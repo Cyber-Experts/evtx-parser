@@ -1,0 +1,38 @@
+{
+  "metadata": {
+    "homeTitle": "Inicio",
+    "homeDescription": "Plantilla Next.js internacionalizada y optimizada para SEO.",
+    "blogTitle": "Blog",
+    "blogDescription": "Artículos, guías y novedades.",
+    "searchTitle": "Búsqueda",
+    "searchDescription": "Buscar en el blog.",
+    "sitemapTitle": "Mapa del sitio",
+    "sitemapDescription": "Todas las páginas del sitio."
+  },
+  "nav": { "home": "Inicio", "blog": "Blog", "search": "Búsqueda" },
+  "toggleTheme": "Cambiar tema",
+  "footer": { "rights": "Todos los derechos reservados.", "sitemap": "Mapa del sitio", "rss": "RSS" },
+  "blog": {
+    "tableOfContents": "En esta página",
+    "relatedArticles": "Artículos relacionados",
+    "readMore": "Leer más",
+    "readingTime": "min de lectura",
+    "publishedOn": "Publicado el",
+    "updatedOn": "Actualizado el",
+    "byAuthor": "por",
+    "tags": "Etiquetas",
+    "share": "Compartir",
+    "noPosts": "Aún no hay artículos.",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "page": "Página"
+  },
+  "tag": { "title": "Artículos etiquetados", "back": "Volver a los artículos" },
+  "search": { "placeholder": "Buscar artículos…", "noResults": "Sin resultados." },
+  "notFound": { "title": "Página no encontrada", "cta": "Volver al inicio" },
+  "home": {
+    "heading": "Una plantilla Next.js centrada en SEO.",
+    "subheading": "Por defecto shadcn. @next-md-blog/core. Multilingüe desde el principio.",
+    "readBlog": "Leer el blog"
+  }
+}

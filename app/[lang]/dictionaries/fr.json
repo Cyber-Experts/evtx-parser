@@ -1,0 +1,38 @@
+{
+  "metadata": {
+    "homeTitle": "Accueil",
+    "homeDescription": "Un starter Next.js internationalisé optimisé pour le SEO.",
+    "blogTitle": "Blog",
+    "blogDescription": "Articles, guides et nouveautés.",
+    "searchTitle": "Recherche",
+    "searchDescription": "Rechercher dans le blog.",
+    "sitemapTitle": "Plan du site",
+    "sitemapDescription": "Toutes les pages du site."
+  },
+  "nav": { "home": "Accueil", "blog": "Blog", "search": "Recherche" },
+  "toggleTheme": "Changer de thème",
+  "footer": { "rights": "Tous droits réservés.", "sitemap": "Plan du site", "rss": "RSS" },
+  "blog": {
+    "tableOfContents": "Sur cette page",
+    "relatedArticles": "Articles liés",
+    "readMore": "Lire la suite",
+    "readingTime": "min de lecture",
+    "publishedOn": "Publié le",
+    "updatedOn": "Mis à jour le",
+    "byAuthor": "par",
+    "tags": "Tags",
+    "share": "Partager",
+    "noPosts": "Pas encore d’articles.",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "page": "Page"
+  },
+  "tag": { "title": "Articles tagués", "back": "Retour aux articles" },
+  "search": { "placeholder": "Rechercher des articles…", "noResults": "Aucun résultat." },
+  "notFound": { "title": "Page introuvable", "cta": "Retour à l’accueil" },
+  "home": {
+    "heading": "Un template Next.js orienté SEO.",
+    "subheading": "Les défauts shadcn. @next-md-blog/core. Multilingue dès le départ.",
+    "readBlog": "Lire le blog"
+  }
+}
