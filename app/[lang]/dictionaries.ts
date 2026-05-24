@@ -1,6 +1,16 @@
 import "server-only";
 import { isLocale, type Locale } from "@/lib/i18n";
+import { getDict, type Dict } from "@/src/dict";
 
+/**
+ * The shape the template's UI components expect. We adapt the richer
+ * evtx-parser `Dict` into this shape so the existing template components
+ * (SiteHeader, SiteFooter, blog list, pagination, breadcrumbs labels…) keep
+ * working without forcing edits across 8 locale files for template-y strings.
+ *
+ * Strings absent from the evtx-parser dict get English defaults — translate
+ * by extending `src/dict/types.ts` + each locale's file.
+ */
 export type Dictionary = {
   metadata: {
     homeTitle: string;
@@ -36,21 +46,58 @@ export type Dictionary = {
   home: { heading: string; subheading: string; readBlog: string };
 };
 
-const loaders: Record<Locale, () => Promise<Dictionary>> = {
-  en: () =>
-    import("./dictionaries/en.json").then((m) => m.default as Dictionary),
-  fr: () =>
-    import("./dictionaries/fr.json").then((m) => m.default as Dictionary),
-  es: () =>
-    import("./dictionaries/es.json").then((m) => m.default as Dictionary),
-  de: () =>
-    import("./dictionaries/de.json").then((m) => m.default as Dictionary),
-};
-
 export function hasLocale(value: string): value is Locale {
   return isLocale(value);
 }
 
+function adapt(dict: Dict): Dictionary {
+  return {
+    metadata: {
+      homeTitle: dict.meta.title,
+      homeDescription: dict.meta.description,
+      blogTitle: dict.blog.indexTitle,
+      blogDescription: dict.blog.indexIntro,
+      searchTitle: "Search",
+      searchDescription: "Search the blog.",
+      sitemapTitle: "Sitemap",
+      sitemapDescription: "All pages on the site.",
+    },
+    nav: { home: dict.breadcrumb.home, blog: dict.footer.blog, search: "Search" },
+    toggleTheme: "Toggle theme",
+    footer: {
+      rights: "All rights reserved.",
+      sitemap: "Sitemap",
+      rss: "RSS",
+    },
+    blog: {
+      tableOfContents: dict.toc.heading,
+      relatedArticles: dict.blog.relatedHeading,
+      readMore: dict.blog.readMore,
+      readingTime: dict.blog.readingTime,
+      publishedOn: dict.blog.publishedOn,
+      updatedOn: dict.blog.updatedOn,
+      byAuthor: dict.blog.byLine,
+      tags: dict.tags.tagsOnPost,
+      share: "Share",
+      noPosts: "No posts yet.",
+      previous: dict.blog.prevPost,
+      next: dict.blog.nextPost,
+      page: "Page",
+    },
+    tag: { title: dict.tags.tagTitleTemplate, back: dict.blog.backToBlog },
+    search: { placeholder: "Search posts…", noResults: "No results." },
+    notFound: {
+      title: dict.notFound.heading,
+      cta: dict.notFound.backHome,
+    },
+    home: {
+      heading: dict.home.heading,
+      subheading: dict.home.intro,
+      readBlog: dict.blog.readMore,
+    },
+  };
+}
+
 export async function getDictionary(locale: Locale): Promise<Dictionary> {
-  return loaders[locale]();
+  return adapt(getDict(locale));
 }

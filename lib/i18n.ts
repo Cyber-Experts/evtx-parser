@@ -1,28 +1,44 @@
-export const LOCALES = ["en", "fr", "es", "de"] as const;
-export const DEFAULT_LOCALE = "en" as const;
+/**
+ * Single source of truth for the locale list.
+ * Re-exports `src/dict/locales.ts` so both the typed dict system and the
+ * template's routing helpers stay in sync.
+ */
+export {
+  locales as LOCALES,
+  defaultLocale as DEFAULT_LOCALE,
+  localeNames,
+  isLocale,
+  type Locale,
+} from "@/src/dict/locales";
 
-export type Locale = (typeof LOCALES)[number];
-
-export function isLocale(value: string): value is Locale {
-  return (LOCALES as readonly string[]).includes(value);
-}
+import { locales, defaultLocale, isLocale } from "@/src/dict/locales";
+import type { Locale } from "@/src/dict/locales";
 
 export function hasLocale(value: string): value is Locale {
   return isLocale(value);
 }
-
-export const localeNames: Record<Locale, string> = {
-  en: "English",
-  fr: "Français",
-  es: "Español",
-  de: "Deutsch",
-};
 
 export const localeLabels: Record<Locale, string> = {
   en: "EN",
   fr: "FR",
   es: "ES",
   de: "DE",
+  it: "IT",
+  pt: "PT",
+  ja: "JA",
+  zh: "ZH",
+};
+
+/** OpenGraph `og:locale` values (BCP-47 with region). */
+export const ogLocale: Record<Locale, string> = {
+  en: "en_US",
+  fr: "fr_FR",
+  es: "es_ES",
+  de: "de_DE",
+  it: "it_IT",
+  pt: "pt_PT",
+  ja: "ja_JP",
+  zh: "zh_CN",
 };
 
 /**
@@ -56,9 +72,9 @@ export function hreflangFor(siteUrl: string, pathWithoutLocale: string) {
     ? pathWithoutLocale
     : "/" + pathWithoutLocale;
   const map: Record<string, string> = {};
-  for (const l of LOCALES) {
+  for (const l of locales) {
     map[l] = `${base}/${l}${path === "/" ? "" : path}`;
   }
-  map["x-default"] = `${base}/${DEFAULT_LOCALE}${path === "/" ? "" : path}`;
+  map["x-default"] = `${base}/${defaultLocale}${path === "/" ? "" : path}`;
   return map;
 }

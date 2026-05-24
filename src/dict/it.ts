@@ -1,0 +1,200 @@
+import type { Dict } from "./types";
+
+export const it: Dict = {
+  meta: {
+    title: "EVTX parser — analisi forense dei log eventi Windows nel browser",
+    description:
+      "Analizza i file .evtx di Windows interamente nel browser. Forense in WebAssembly — i file non lasciano mai il tuo dispositivo.",
+    siteName: "EVTX parser",
+  },
+  home: {
+    heading: "EVTX parser",
+    headline: "EVTX parser — visualizzatore di log eventi Windows nel browser",
+    intro:
+      "Trascina un log eventi .evtx di Windows. L'analisi viene eseguita interamente nel browser via WebAssembly — non viene caricato nulla.",
+    featuredHeading: "Guide in evidenza",
+    dropArea: "Trascina un .evtx qui o clicca per sceglierne uno",
+    privacyNote: "I file restano sul tuo dispositivo. Analisi 100 % lato client.",
+    statusReading: "Lettura di {name}…",
+    statusParsing: "Analisi del log eventi…",
+    eventsLabel: "eventi",
+    filterPlaceholder: "Filtra per Event ID, provider, canale, computer…",
+    clearFilter: "Pulisci",
+    noMatches: "Nessun evento corrisponde al filtro.",
+    topIds: "ID frequenti",
+    exportCsv: "Esporta CSV",
+    exportJson: "Esporta JSON",
+    includeXml: "Colonna XML grezzo",
+    exporting: "Esportazione…",
+    clearTime: "Pulisci intervallo",
+  },
+  table: {
+    record: "Rec. #",
+    time: "Ora (UTC)",
+    level: "Livello",
+    eventId: "Event ID",
+    name: "Nome",
+    summary: "Riepilogo",
+    provider: "Provider",
+    channel: "Canale",
+    computer: "Computer",
+    viewDetails: "Dettagli",
+    closeDetails: "Chiudi",
+    eventData: "Dati evento",
+    noEventData: "Nessun campo EventData per questo record.",
+    showRawXml: "Mostra XML grezzo",
+    hideRawXml: "Nascondi XML grezzo",
+    prev: "prec.",
+    next: "succ.",
+  },
+  levels: {
+    critical: "Critico",
+    error: "Errore",
+    warning: "Avviso",
+    info: "Informazione",
+    verbose: "Dettagliato",
+    unknown: "—",
+  },
+  faq: {
+    heading: "FAQ log eventi",
+    items: [
+      {
+        q: "Cos'è un file EVTX?",
+        a: "EVTX è il formato binario del log eventi di Windows introdotto con Windows Vista. Ogni .evtx è una sequenza di blocchi da 64 KB; ogni blocco contiene una tabella di template XML e un flusso di record che la referenziano. L'analisi ricostruisce l'XML completo di ogni evento.",
+      },
+      {
+        q: "Dove si trovano i .evtx su Windows?",
+        a: "I log attivi stanno in C:\\Windows\\System32\\winevt\\Logs. I tre principali in ambito forense sono Security.evtx (accessi, privilegi), System.evtx (driver, servizi) e Application.evtx (errori applicativi). I canali Sysmon e PowerShell sono di solito i più preziosi in incident response.",
+      },
+      {
+        q: "Questo strumento carica il mio .evtx da qualche parte?",
+        a: "No. L'analisi avviene in un Web Worker con un parser EVTX in Rust compilato in WebAssembly. Il file viene letto in memoria del browser e mai trasmesso. Disconnetti la rete per verificarlo.",
+      },
+      {
+        q: "Cosa significa la colonna Livello?",
+        a: "I livelli EVTX sono numerici: 1 Critico, 2 Errore, 3 Avviso, 4 Informazione, 5 Dettagliato. Microsoft colloca alcuni ID noti (es. Security 4625 = autenticazione fallita a livello Informazione) — la severità da sola non basta per il triage.",
+      },
+      {
+        q: "Riesce a gestire .evtx molto grandi?",
+        a: "L'analisi gira in un Web Worker. La memoria cresce con la dimensione del file; qualche centinaio di MB è comodo nei browser moderni. Per raccolte più grandi, esporta con evtx_dump e ricarica a tratti.",
+      },
+    ],
+  },
+  footer: {
+    blog: "Blog",
+    builtWith:
+      "Realizzato con WebAssembly e il crate Rust omerbenamram/evtx. 100 % lato client — i file non lasciano mai il browser.",
+  },
+  notFound: {
+    title: "404 — pagina non trovata",
+    heading: "Pagina non trovata",
+    description:
+      "Questo URL non esiste su questo sito. Forse è stato spostato o stai seguendo un link non più valido.",
+    backHome: "← Torna alla home",
+  },
+  blog: {
+    indexTitle: "Note sul log eventi",
+    indexIntro:
+      "Note brevi sul formato binario del log eventi di Windows, sugli Event ID utili in forense e sui flussi di triage.",
+    readMore: "Continua a leggere",
+    backToBlog: "← Torna al blog",
+    publishedOn: "Pubblicato",
+    updatedOn: "Aggiornato",
+    readingTime: "{n} min di lettura",
+    prevPost: "← Articolo precedente",
+    nextPost: "Articolo successivo →",
+    relatedHeading: "Articoli correlati",
+    resourcesHeading: "Risorse esterne",
+    byLine: "Di",
+  },
+  eventIds: {
+    title: "Riferimento Event ID di Windows",
+    intro:
+      "Indice curato degli Event ID di Windows utili in un caso forense — raggruppati per canale, con i campi EventData da leggere per primi. Gli ID coperti rimandano alla guida; gli altri a Microsoft Learn.",
+    description:
+      "Indice di riferimento degli Event ID di Windows utili in DFIR: Security 4624/4625/1102, System 7045/7036, Sysmon 1/3/7/11, PowerShell 4104, TaskScheduler, Kerberos — con link a guide approfondite.",
+    columnId: "Event ID",
+    columnName: "Nome",
+    columnNotes: "Note",
+  },
+  glossary: {
+    title: "Glossario del log eventi di Windows",
+    intro:
+      "I termini che compaiono nei record .evtx e nei report DFIR, spiegati in una o due frasi.",
+    description:
+      "Definizioni semplici dei termini chiave del log eventi di Windows: LogonType, BinXML, canale, provider, chunk, template, SID, EventData, RecordID, ecc.",
+  },
+  tools: {
+    title: "Strumenti EVTX a confronto: KAPE, FTK Imager, wevtutil, evtx_dump",
+    intro:
+      "Confronto affiancato degli strumenti usati dagli analisti con il log eventi di Windows — cosa fa davvero bene ciascuno, quanto costa e dove fallisce.",
+    description:
+      "Confronto tra KAPE, FTK Imager, wevtutil, evtx_dump, python-evtx, RawCopy ed EVTX parser — per piattaforma, caso d'uso, licenza e limiti.",
+    columnTool: "Strumento",
+    columnPlatform: "Piattaforma",
+    columnUseCase: "Caso d'uso principale",
+    columnLicense: "Licenza",
+  },
+  breadcrumb: {
+    home: "Home",
+    label: "Breadcrumb",
+  },
+  eventId: {
+    title: "Event ID {id}: {name} ({channel})",
+    intro:
+      "Cosa registra davvero questo Event ID su disco, i campi EventData da leggere per primi e dove si colloca in un workflow di triage DFIR.",
+    description:
+      "Windows Event ID {id} ({name}) sul canale {channel}: significato, campi EventData, tecniche offensive comuni ed Event ID correlati.",
+    channelLabel: "Canale",
+    providerLabel: "Provider",
+    notesLabel: "Note di triage",
+    inDepthHeading: "Guida approfondita",
+    inDepthCta: "Leggi l'analisi completa",
+    microsoftLearnHeading: "Microsoft Learn",
+    microsoftLearnCta: "Apri la documentazione ufficiale",
+    relatedHeading: "Event ID correlati",
+    notCoveredYet:
+      "Questo Event ID è nell'indice ma non ha ancora un'analisi approfondita. Microsoft Learn copre i campi a livello di protocollo.",
+    notFoundTitle: "Event ID sconosciuto",
+    notFoundDescription:
+      "Questo Event ID non è ancora presente nell'indice di riferimento.",
+  },
+  tags: {
+    indexTitle: "Argomenti — tutti i tag del blog",
+    indexIntro:
+      "Tutti gli argomenti trattati nel blog, con il numero di articoli per tag. Utile come secondo asse di navigazione accanto all'indice Event ID.",
+    indexDescription:
+      "Esplora gli argomenti del blog EVTX parser: audit Security, Sysmon, PowerShell, Kerberos, servizi, interni del formato EVTX e raccolta forense.",
+    tagTitleTemplate: "Articoli con il tag «{tag}»",
+    tagIntroTemplate:
+      "Tutti gli articoli del blog con il tag «{tag}», dal più recente.",
+    tagDescriptionTemplate:
+      "Articoli di forense del log eventi di Windows con il tag «{tag}» — note DFIR, tecniche offensive e interni del parser.",
+    postsCount: "{n} articoli",
+    tagsOnPost: "Tag",
+    labels: {
+      security: "Audit Security",
+      logon: "Logon",
+      process: "Processo",
+      account: "Account",
+      privileges: "Privilegi",
+      "object-access": "Accesso agli oggetti",
+      kerberos: "Kerberos",
+      "anti-forensics": "Anti-forense",
+      attack: "Tecniche offensive",
+      sysmon: "Sysmon",
+      powershell: "PowerShell",
+      system: "Canale System",
+      service: "Servizio",
+      persistence: "Persistenza",
+      format: "Formato EVTX",
+      fundamentals: "Fondamenti",
+      collection: "Raccolta",
+      tooling: "Strumenti",
+      navigation: "Navigazione",
+    },
+  },
+  toc: {
+    heading: "In questa pagina",
+  },
+};

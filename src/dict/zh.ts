@@ -1,0 +1,198 @@
+import type { Dict } from "./types";
+
+export const zh: Dict = {
+  meta: {
+    title: "EVTX parser — 浏览器内的 Windows 事件日志取证",
+    description:
+      "在浏览器中完整解析 Windows .evtx 事件日志。基于 WebAssembly 的取证 — 文件不会离开你的设备。",
+    siteName: "EVTX parser",
+  },
+  home: {
+    heading: "EVTX parser",
+    headline: "EVTX parser — 浏览器中的 Windows 事件日志查看器",
+    intro:
+      "将一个 Windows .evtx 事件日志拖入。解析全部在浏览器中通过 WebAssembly 完成 — 不会上传任何内容。",
+    featuredHeading: "精选指南",
+    dropArea: "拖放 .evtx 到此处,或点击选择",
+    privacyNote: "文件留在你的设备上,完全客户端解析。",
+    statusReading: "正在读取 {name}…",
+    statusParsing: "正在解析事件日志…",
+    eventsLabel: "条事件",
+    filterPlaceholder: "按 Event ID、提供程序、通道、计算机筛选…",
+    clearFilter: "清除",
+    noMatches: "没有事件匹配当前筛选条件。",
+    topIds: "高频 ID",
+    exportCsv: "导出 CSV",
+    exportJson: "导出 JSON",
+    includeXml: "原始 XML 列",
+    exporting: "导出中…",
+    clearTime: "清除时间范围",
+  },
+  table: {
+    record: "记录 #",
+    time: "时间 (UTC)",
+    level: "级别",
+    eventId: "Event ID",
+    name: "名称",
+    summary: "摘要",
+    provider: "提供程序",
+    channel: "通道",
+    computer: "计算机",
+    viewDetails: "详情",
+    closeDetails: "关闭",
+    eventData: "事件数据",
+    noEventData: "此记录没有 EventData 字段。",
+    showRawXml: "显示原始 XML",
+    hideRawXml: "隐藏原始 XML",
+    prev: "上一页",
+    next: "下一页",
+  },
+  levels: {
+    critical: "严重",
+    error: "错误",
+    warning: "警告",
+    info: "信息",
+    verbose: "详细",
+    unknown: "—",
+  },
+  faq: {
+    heading: "事件日志 FAQ",
+    items: [
+      {
+        q: "什么是 EVTX 文件?",
+        a: "EVTX 是 Windows Vista 引入的二进制事件日志格式。每个 .evtx 文件由若干 64 KB 的块组成;每个块包含一张 XML 模板表以及一串引用这些模板的记录。解析过程会为每条事件还原出完整的 XML。",
+      },
+      {
+        q: "Windows 上 .evtx 在哪里?",
+        a: "运行中的日志位于 C:\\Windows\\System32\\winevt\\Logs。取证中最重要的三个是 Security.evtx(登录、特权使用)、System.evtx(驱动、服务)和 Application.evtx(应用错误)。在事件响应中,Sysmon 与 PowerShell 通道通常最有价值。",
+      },
+      {
+        q: "这个工具会把我的 .evtx 上传到任何地方吗?",
+        a: "不会。解析在 Web Worker 中通过编译为 WebAssembly 的 Rust 版 EVTX 解析器进行。文件只在浏览器内存中读取,绝不会传输出去。可以断开网络来验证。",
+      },
+      {
+        q: "「级别」列是什么意思?",
+        a: "EVTX 的级别是数字:1 严重、2 错误、3 警告、4 信息、5 详细。微软将一些常见 ID 映射到固定级别(如 Security 4625 = 认证失败在「信息」级别) — 仅凭级别不足以判定优先级。",
+      },
+      {
+        q: "能解析非常大的 .evtx 吗?",
+        a: "解析运行在 Web Worker 线程中。内存随文件大小增长;数百 MB 在现代浏览器中可以从容处理。更大的集合可以先用 evtx_dump 导出,再分段加载。",
+      },
+    ],
+  },
+  footer: {
+    blog: "Blog",
+    builtWith:
+      "由 WebAssembly 和 omerbenamram/evtx Rust crate 构建。100% 客户端 — 文件不会离开浏览器。",
+  },
+  notFound: {
+    title: "404 — 页面未找到",
+    heading: "页面未找到",
+    description:
+      "本站没有这个 URL。可能页面已被移动,或者你点击的是一个失效的链接。",
+    backHome: "← 返回首页",
+  },
+  blog: {
+    indexTitle: "事件日志笔记",
+    indexIntro:
+      "关于 Windows 事件日志二进制格式、取证中常见的 Event ID 以及分诊流程的简短笔记。涵盖 EVTX 文件的内部结构、分块与模板机制、以及 BinXML 如何压缩事件记录的相关内容。文章侧重于事件响应、威胁狩猎和日志审查中真正用得上的实用细节，而不是 Event Viewer 界面里能看到的表层信息。新的笔记会持续添加，逐步覆盖更多与 Windows 事件日志取证相关的主题与工作流。",
+    readMore: "阅读全文",
+    backToBlog: "← 返回博客",
+    publishedOn: "发布于",
+    updatedOn: "更新于",
+    readingTime: "约 {n} 分钟阅读",
+    prevPost: "← 上一篇",
+    nextPost: "下一篇 →",
+    relatedHeading: "相关文章",
+    resourcesHeading: "外部资源",
+    byLine: "作者",
+  },
+  eventIds: {
+    title: "Windows Event ID 参考",
+    intro:
+      "DFIR 取证案件中真正用得到的 Windows Event ID 精选索引 — 按通道分组，并列出值得首先查看的 EventData 字段。已覆盖的 ID 链接到详细指南，未覆盖的链接到 Microsoft Learn。",
+    description:
+      "DFIR 取证常用的 Windows Event ID 参考索引：Security 4624/4625/1102、System 7045/7036、Sysmon 1/3/7/11、PowerShell 4104、TaskScheduler、Kerberos — 配套详细指南链接。",
+    columnId: "Event ID",
+    columnName: "名称",
+    columnNotes: "备注",
+  },
+  glossary: {
+    title: "Windows 事件日志术语表",
+    intro:
+      "出现在 .evtx 记录和 DFIR 报告中的术语，用一两句话简要解释。",
+    description:
+      "Windows 事件日志关键术语的简明定义：LogonType、BinXML、通道、提供程序、分块、模板、SID、EventData、RecordID 等。",
+  },
+  tools: {
+    title: "EVTX 工具对比：KAPE / FTK Imager / wevtutil / evtx_dump",
+    intro:
+      "Windows 事件日志取证常用工具的横向对比 — 各自擅长什么、成本如何、有哪些局限。",
+    description:
+      "对比 KAPE、FTK Imager、wevtutil、evtx_dump、python-evtx、RawCopy 与 EVTX parser — 按平台、用途、许可证和限制分类。",
+    columnTool: "工具",
+    columnPlatform: "平台",
+    columnUseCase: "主要用途",
+    columnLicense: "许可证",
+  },
+  breadcrumb: {
+    home: "首页",
+    label: "面包屑",
+  },
+  eventId: {
+    title: "Event ID {id}：{name}（{channel}）",
+    intro:
+      "这个 Event ID 实际在磁盘上记录的内容、优先查看的 EventData 字段，以及它在 DFIR 分诊流程中的位置。",
+    description:
+      "{channel} 通道的 Windows Event ID {id}（{name}）：含义、EventData 字段、常见攻击者技战法以及相关 Event ID。",
+    channelLabel: "通道",
+    providerLabel: "提供程序",
+    notesLabel: "分诊备注",
+    inDepthHeading: "深入解读",
+    inDepthCta: "阅读完整分析",
+    microsoftLearnHeading: "Microsoft Learn",
+    microsoftLearnCta: "打开官方参考",
+    relatedHeading: "相关 Event ID",
+    notCoveredYet:
+      "该 Event ID 已收录在索引中，但暂未撰写深度分析。字段级细节请参阅 Microsoft Learn。",
+    notFoundTitle: "未知的 Event ID",
+    notFoundDescription: "该 Event ID 暂未在参考索引中收录。",
+  },
+  tags: {
+    indexTitle: "话题 — 博客的全部标签",
+    indexIntro:
+      "博客涵盖的所有话题及每个标签下的文章数，可与 Event ID 索引并列作为第二条导航。",
+    indexDescription:
+      "浏览 EVTX parser 博客话题：Security 审核、Sysmon、PowerShell、Kerberos、服务、EVTX 格式内部与取证采集。",
+    tagTitleTemplate: "标签「{tag}」的文章",
+    tagIntroTemplate: "博客中所有标记为「{tag}」的文章，按时间倒序排列。",
+    tagDescriptionTemplate:
+      "Windows 事件日志取证博客中带「{tag}」标签的文章 — DFIR 笔记、攻击者技战法与解析器内部。",
+    postsCount: "{n} 篇",
+    tagsOnPost: "标签",
+    labels: {
+      security: "Security 审核",
+      logon: "登录",
+      process: "进程",
+      account: "账户",
+      privileges: "特权",
+      "object-access": "对象访问",
+      kerberos: "Kerberos",
+      "anti-forensics": "反取证",
+      attack: "攻击者技战法",
+      sysmon: "Sysmon",
+      powershell: "PowerShell",
+      system: "System 通道",
+      service: "服务",
+      persistence: "持久化",
+      format: "EVTX 格式",
+      fundamentals: "基础",
+      collection: "采集",
+      tooling: "工具链",
+      navigation: "导航",
+    },
+  },
+  toc: {
+    heading: "本页内容",
+  },
+};

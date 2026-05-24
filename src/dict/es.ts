@@ -1,0 +1,200 @@
+import type { Dict } from "./types";
+
+export const es: Dict = {
+  meta: {
+    title: "EVTX parser — análisis forense de registros de Windows en el navegador",
+    description:
+      "Analiza tus archivos .evtx de Windows íntegramente en el navegador. Análisis forense con WebAssembly — los archivos nunca salen de tu dispositivo.",
+    siteName: "EVTX parser",
+  },
+  home: {
+    heading: "EVTX parser",
+    headline: "EVTX parser — visor de registros de Windows en el navegador",
+    intro:
+      "Suelta un registro de eventos .evtx de Windows. El análisis se ejecuta en tu navegador mediante WebAssembly — no se sube nada.",
+    featuredHeading: "Guías destacadas",
+    dropArea: "Suelta un .evtx aquí o haz clic para elegir",
+    privacyNote: "Los archivos se quedan en tu dispositivo. Análisis 100 % en el cliente.",
+    statusReading: "Leyendo {name}…",
+    statusParsing: "Analizando el registro de eventos…",
+    eventsLabel: "eventos",
+    filterPlaceholder: "Filtrar por ID de evento, proveedor, canal, equipo…",
+    clearFilter: "Limpiar",
+    noMatches: "Ningún evento coincide con el filtro.",
+    topIds: "IDs frecuentes",
+    exportCsv: "Exportar CSV",
+    exportJson: "Exportar JSON",
+    includeXml: "Columna XML sin procesar",
+    exporting: "Exportando…",
+    clearTime: "Limpiar rango horario",
+  },
+  table: {
+    record: "Reg. #",
+    time: "Hora (UTC)",
+    level: "Nivel",
+    eventId: "ID de evento",
+    name: "Nombre",
+    summary: "Resumen",
+    provider: "Proveedor",
+    channel: "Canal",
+    computer: "Equipo",
+    viewDetails: "Detalles",
+    closeDetails: "Cerrar",
+    eventData: "Datos del evento",
+    noEventData: "Este registro no tiene campos EventData.",
+    showRawXml: "Mostrar XML en bruto",
+    hideRawXml: "Ocultar XML en bruto",
+    prev: "ant.",
+    next: "sig.",
+  },
+  levels: {
+    critical: "Crítico",
+    error: "Error",
+    warning: "Advertencia",
+    info: "Información",
+    verbose: "Detallado",
+    unknown: "—",
+  },
+  faq: {
+    heading: "Preguntas sobre el registro de eventos",
+    items: [
+      {
+        q: "¿Qué es un archivo EVTX?",
+        a: "EVTX es el formato binario del registro de eventos de Windows introducido con Windows Vista. Cada .evtx es una secuencia de bloques de 64 KB; cada bloque contiene una tabla de plantillas XML y un flujo de registros que las referencian. El análisis reconstruye el XML completo de cada evento.",
+      },
+      {
+        q: "¿Dónde se encuentran los .evtx en Windows?",
+        a: "Los registros activos están en C:\\Windows\\System32\\winevt\\Logs. Los tres principales en forense son Security.evtx (inicios de sesión, privilegios), System.evtx (controladores, servicios) y Application.evtx (errores de aplicación). Los canales Sysmon y PowerShell suelen ser los más valiosos en respuesta a incidentes.",
+      },
+      {
+        q: "¿Esta herramienta sube mi .evtx a algún sitio?",
+        a: "No. El análisis se hace en un Web Worker con un parser EVTX en Rust compilado a WebAssembly. El archivo se lee en memoria del navegador y nunca se transmite. Desconecta la red si quieres comprobarlo.",
+      },
+      {
+        q: "¿Qué significa la columna Nivel?",
+        a: "Los niveles EVTX son numéricos: 1 Crítico, 2 Error, 3 Advertencia, 4 Información, 5 Detallado. Microsoft asigna algunos IDs habituales (p. ej. Security 4625 = autenticación fallida a nivel Información) — la severidad por sí sola no basta para priorizar.",
+      },
+      {
+        q: "¿Puede manejar archivos .evtx muy grandes?",
+        a: "El análisis corre en un Web Worker. La memoria escala con el tamaño; varios cientos de MB son cómodos en navegadores modernos. Para colecciones mayores, exporta con evtx_dump y recarga por tramos.",
+      },
+    ],
+  },
+  footer: {
+    blog: "Blog",
+    builtWith:
+      "Construido con WebAssembly y el crate de Rust omerbenamram/evtx. 100 % cliente — los archivos nunca salen del navegador.",
+  },
+  notFound: {
+    title: "404 — página no encontrada",
+    heading: "Página no encontrada",
+    description:
+      "Esta URL no existe en el sitio. Puede que se haya movido, o que sigas un enlace antiguo.",
+    backHome: "← Volver al inicio",
+  },
+  blog: {
+    indexTitle: "Notas sobre el registro de eventos",
+    indexIntro:
+      "Notas breves sobre el formato binario del registro de eventos de Windows, IDs útiles en forense y flujos de triage.",
+    readMore: "Leer más",
+    backToBlog: "← Volver al blog",
+    publishedOn: "Publicado",
+    updatedOn: "Actualizado",
+    readingTime: "{n} min de lectura",
+    prevPost: "← Anterior",
+    nextPost: "Siguiente →",
+    relatedHeading: "Artículos relacionados",
+    resourcesHeading: "Recursos externos",
+    byLine: "Por",
+  },
+  eventIds: {
+    title: "Referencia de Event ID de Windows",
+    intro:
+      "Índice curado de los Event ID de Windows que importan en un caso forense — agrupados por canal, con los campos EventData más útiles. Haz clic en un ID cubierto para la guía detallada; los demás enlazan a Microsoft Learn.",
+    description:
+      "Índice de referencia de Event ID de Windows útiles en DFIR: Security 4624/4625/1102, System 7045/7036, Sysmon 1/3/7/11, PowerShell 4104, TaskScheduler, Kerberos — con enlaces a guías detalladas.",
+    columnId: "Event ID",
+    columnName: "Nombre",
+    columnNotes: "Notas",
+  },
+  glossary: {
+    title: "Glosario del registro de eventos de Windows",
+    intro:
+      "Los términos que aparecen en los registros .evtx y los informes DFIR, explicados en una o dos frases.",
+    description:
+      "Definiciones claras de los términos del registro de eventos de Windows: LogonType, BinXML, canal, provider, chunk, template, SID, EventData, RecordID, etc.",
+  },
+  tools: {
+    title: "Herramientas EVTX comparadas: KAPE, FTK Imager, wevtutil, evtx_dump",
+    intro:
+      "Comparación lado a lado de las herramientas que un analista usa con el log de eventos de Windows — para qué sirve cada una, qué cuesta y dónde falla.",
+    description:
+      "Compara KAPE, FTK Imager, wevtutil, evtx_dump, python-evtx, RawCopy y EVTX parser — por plataforma, caso de uso, licencia y limitaciones.",
+    columnTool: "Herramienta",
+    columnPlatform: "Plataforma",
+    columnUseCase: "Caso de uso principal",
+    columnLicense: "Licencia",
+  },
+  breadcrumb: {
+    home: "Inicio",
+    label: "Ruta de migas",
+  },
+  eventId: {
+    title: "Event ID {id}: {name} ({channel})",
+    intro:
+      "Lo que este Event ID realmente registra en disco, los campos EventData a leer primero y su lugar en un flujo de triage DFIR.",
+    description:
+      "Windows Event ID {id} ({name}) en el canal {channel}: significado, campos EventData, técnicas ofensivas comunes y Event IDs relacionados.",
+    channelLabel: "Canal",
+    providerLabel: "Proveedor",
+    notesLabel: "Notas de triage",
+    inDepthHeading: "Guía detallada",
+    inDepthCta: "Leer el análisis completo",
+    microsoftLearnHeading: "Microsoft Learn",
+    microsoftLearnCta: "Abrir la referencia oficial",
+    relatedHeading: "Event IDs relacionados",
+    notCoveredYet:
+      "Este Event ID está en el índice pero aún no tiene un análisis detallado. Microsoft Learn cubre los campos a nivel de protocolo.",
+    notFoundTitle: "Event ID desconocido",
+    notFoundDescription:
+      "Este Event ID aún no figura en el índice de referencia.",
+  },
+  tags: {
+    indexTitle: "Temas — todas las etiquetas del blog",
+    indexIntro:
+      "Todos los temas tratados en el blog, con el número de artículos por etiqueta. Sirve como segundo eje de navegación junto al índice de Event ID.",
+    indexDescription:
+      "Explora los temas del blog EVTX parser: auditoría Security, Sysmon, PowerShell, Kerberos, servicios, internos del formato EVTX y colección forense.",
+    tagTitleTemplate: "Artículos con la etiqueta «{tag}»",
+    tagIntroTemplate:
+      "Todos los artículos del blog con la etiqueta «{tag}», más recientes primero.",
+    tagDescriptionTemplate:
+      "Artículos de forense del log de eventos de Windows con la etiqueta «{tag}» — notas DFIR, técnicas ofensivas e internos del parser.",
+    postsCount: "{n} artículos",
+    tagsOnPost: "Etiquetas",
+    labels: {
+      security: "Auditoría Security",
+      logon: "Inicio de sesión",
+      process: "Proceso",
+      account: "Cuenta",
+      privileges: "Privilegios",
+      "object-access": "Acceso a objetos",
+      kerberos: "Kerberos",
+      "anti-forensics": "Anti-forense",
+      attack: "Técnicas ofensivas",
+      sysmon: "Sysmon",
+      powershell: "PowerShell",
+      system: "Canal System",
+      service: "Servicio",
+      persistence: "Persistencia",
+      format: "Formato EVTX",
+      fundamentals: "Fundamentos",
+      collection: "Colección",
+      tooling: "Herramientas",
+      navigation: "Navegación",
+    },
+  },
+  toc: {
+    heading: "En esta página",
+  },
+};

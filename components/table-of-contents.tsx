@@ -15,10 +15,10 @@ export function TableOfContents({
       <ol className="space-y-2 border-l">
         {items.map((it) => (
           <li
-            key={it.slug}
+            key={it.id}
             className={cn("pl-3", it.depth === 3 && "pl-6 text-muted-foreground")}
           >
-            <a href={`#${it.slug}`} className="hover:text-foreground hover:underline">
+            <a href={`#${it.id}`} className="hover:text-foreground hover:underline">
               {it.text}
             </a>
           </li>

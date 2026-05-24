@@ -10,13 +10,15 @@ export const site = defineSite({
   siteUrl: siteConfig.url,
   defaultAuthor: siteConfig.defaultAuthor,
   authors: [...siteConfig.authors],
-  twitterHandle: siteConfig.twitter,
+  ...(siteConfig.twitter ? { twitterHandle: siteConfig.twitter } : {}),
   defaultLang: "en",
   organization: {
     legalName: siteConfig.organization.legalName,
     logo: `${siteConfig.url}${siteConfig.organization.logo}`,
     sameAs: [...siteConfig.organization.sameAs],
-    founder: siteConfig.organization.founder,
+    ...(siteConfig.organization.founder
+      ? { founder: siteConfig.organization.founder }
+      : {}),
     foundingDate: siteConfig.organization.foundingDate,
     address: { ...siteConfig.organization.address },
     contactPoint: {
@@ -44,7 +46,6 @@ export const blog = defineCollection({
 
 /**
  * Glossary collection — DefinedTerm schema (Schema.org), no RSS.
- * Same site, separate URL space (/[lang]/glossary/...).
  */
 export const glossary = defineCollection({
   id: "glossary",
@@ -59,5 +60,4 @@ export const glossary = defineCollection({
 export const collections = [blog, glossary] as const;
 export { LOCALES };
 
-// Default export kept for tooling that imports a single config module.
 export default site;

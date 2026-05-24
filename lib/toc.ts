@@ -1,6 +1,7 @@
 export type TocItem = {
+  /** HTML id (matches the heading's rehype-slug output). */
+  id: string;
   depth: number;
-  slug: string;
   text: string;
 };
 
@@ -32,7 +33,7 @@ export function extractHeadings(markdown: string): TocItem[] {
     if (!match) continue;
     const depth = match[1].length;
     const text = match[2].replace(/`/g, "");
-    items.push({ depth, text, slug: slugify(text) });
+    items.push({ depth, text, id: slugify(text) });
   }
   return items;
 }

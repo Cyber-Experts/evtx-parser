@@ -1,0 +1,199 @@
+import type { Dict } from "./types";
+
+export const ja: Dict = {
+  meta: {
+    title: "EVTX parser — ブラウザで動く Windows イベントログ解析",
+    description:
+      "Windows の .evtx イベントログをブラウザだけで解析。WebAssembly によるフォレンジック — ファイルはあなたの端末から外に出ません。",
+    siteName: "EVTX parser",
+  },
+  home: {
+    heading: "EVTX parser",
+    headline: "EVTX parser — ブラウザで動く Windows イベントログ ビューア",
+    intro:
+      "Windows の .evtx イベントログをドロップしてください。解析は WebAssembly でブラウザ内のみで実行され、アップロードは一切ありません。",
+    featuredHeading: "おすすめガイド",
+    dropArea: "ここに .evtx をドロップ、またはクリックで選択",
+    privacyNote: "ファイルは端末内にとどまります。完全クライアントサイド処理です。",
+    statusReading: "{name} を読み込み中…",
+    statusParsing: "イベントログを解析中…",
+    eventsLabel: "件",
+    filterPlaceholder: "Event ID、プロバイダ、チャネル、コンピュータで絞り込み…",
+    clearFilter: "クリア",
+    noMatches: "条件に一致するイベントはありません。",
+    topIds: "頻出 ID",
+    exportCsv: "CSV をエクスポート",
+    exportJson: "JSON をエクスポート",
+    includeXml: "生 XML 列",
+    exporting: "エクスポート中…",
+    clearTime: "時間範囲をクリア",
+  },
+  table: {
+    record: "レコード #",
+    time: "時刻 (UTC)",
+    level: "レベル",
+    eventId: "Event ID",
+    name: "名前",
+    summary: "概要",
+    provider: "プロバイダ",
+    channel: "チャネル",
+    computer: "コンピュータ",
+    viewDetails: "詳細",
+    closeDetails: "閉じる",
+    eventData: "イベントデータ",
+    noEventData: "このレコードに EventData フィールドはありません。",
+    showRawXml: "生 XML を表示",
+    hideRawXml: "生 XML を非表示",
+    prev: "前へ",
+    next: "次へ",
+  },
+  levels: {
+    critical: "重大",
+    error: "エラー",
+    warning: "警告",
+    info: "情報",
+    verbose: "詳細",
+    unknown: "—",
+  },
+  faq: {
+    heading: "イベントログ FAQ",
+    items: [
+      {
+        q: "EVTX ファイルとは?",
+        a: "EVTX は Windows Vista で導入されたバイナリ形式の Windows イベントログです。各 .evtx ファイルは 64 KB のチャンクが連なった構造で、各チャンクは XML テンプレートのテーブルとそれを参照するレコード列で構成されます。解析するとイベントごとの完全な XML が再構築されます。",
+      },
+      {
+        q: "Windows のどこに .evtx がありますか?",
+        a: "稼働中のログは C:\\Windows\\System32\\winevt\\Logs にあります。フォレンジックで重要な 3 つは Security.evtx(ログオン、特権使用)、System.evtx(ドライバ、サービス)、Application.evtx(アプリ エラー)です。インシデント対応では Sysmon と PowerShell のチャネルが最も価値を持つことが多いです。",
+      },
+      {
+        q: "このツールは私の .evtx をどこかへ送りますか?",
+        a: "いいえ。解析は WebAssembly にコンパイルされた Rust 製の EVTX パーサーを Web Worker 上で実行します。ファイルはブラウザのメモリ上で読み込まれるだけで送信されません。確認したい場合はネットワークを切断してください。",
+      },
+      {
+        q: "レベル列は何を意味しますか?",
+        a: "EVTX のレベルは数値です: 1 重大、2 エラー、3 警告、4 情報、5 詳細。Microsoft はよく知られた一部の ID をマッピングしています(例: Security 4625 = 認証失敗は「情報」レベル) — レベルだけでトリアージはできません。",
+      },
+      {
+        q: "巨大な .evtx でも解析できますか?",
+        a: "解析は Web Worker スレッドで実行されます。メモリ使用量はファイル サイズに比例します。最新のブラウザなら数百 MB は快適に扱えます。それ以上は evtx_dump で先にエクスポートし、分割して読み込んでください。",
+      },
+    ],
+  },
+  footer: {
+    blog: "Blog",
+    builtWith:
+      "WebAssembly と omerbenamram/evtx Rust クレートで構築。100% クライアントサイド — ファイルがブラウザから出ることはありません。",
+  },
+  notFound: {
+    title: "404 — ページが見つかりません",
+    heading: "ページが見つかりません",
+    description:
+      "この URL はこのサイトには存在しません。移動されたか、古いリンクをたどった可能性があります。",
+    backHome: "← トップへ戻る",
+  },
+  blog: {
+    indexTitle: "イベントログ ノート",
+    indexIntro:
+      "Windows イベントログのバイナリ形式、フォレンジックで重要な Event ID、トリアージ ワークフローに関する短いメモ集です。EVTX ファイルの内部構造、チャンクとテンプレートの仕組み、BinXML が記録をどのように圧縮するかを扱います。インシデント レスポンス、脅威ハンティング、ログ レビューに役立つ実用的な情報を中心にまとめています。すべての記事は、Event Viewer の画面ではなく、実際のフォレンジック作業で必要となる詳細に焦点を当てています。新しいメモは随時追加されます。",
+    readMore: "続きを読む",
+    backToBlog: "← ブログに戻る",
+    publishedOn: "公開",
+    updatedOn: "更新",
+    readingTime: "{n} 分で読める",
+    prevPost: "← 前の記事",
+    nextPost: "次の記事 →",
+    relatedHeading: "関連記事",
+    resourcesHeading: "外部リソース",
+    byLine: "著者",
+  },
+  eventIds: {
+    title: "Windows Event ID リファレンス",
+    intro:
+      "フォレンジック調査で重要となる Windows Event ID をチャネル別にまとめた索引です。EventData で最初に確認すべきフィールドを併記し、扱っている ID は詳細ガイドへ、それ以外は Microsoft Learn へリンクします。",
+    description:
+      "DFIR で重要な Windows Event ID のリファレンス索引: Security 4624/4625/1102、System 7045/7036、Sysmon 1/3/7/11、PowerShell 4104、TaskScheduler、Kerberos など — 詳細ガイドへのリンク付き。",
+    columnId: "Event ID",
+    columnName: "名前",
+    columnNotes: "メモ",
+  },
+  glossary: {
+    title: "Windows イベントログ用語集",
+    intro:
+      ".evtx レコードや DFIR レポートに出てくる用語を、1〜2 文で簡潔に解説します。",
+    description:
+      "Windows イベントログの主要用語の平易な定義集: LogonType、BinXML、チャネル、プロバイダ、チャンク、テンプレート、SID、EventData、RecordID など。",
+  },
+  tools: {
+    title: "EVTX ツール比較: KAPE / FTK Imager / wevtutil / evtx_dump",
+    intro:
+      "Windows イベントログ調査で使われるツールを横並びで比較します — それぞれの得意分野、コスト、弱点をまとめています。",
+    description:
+      "KAPE、FTK Imager、wevtutil、evtx_dump、python-evtx、RawCopy、EVTX parser をプラットフォーム・用途・ライセンス・制限の観点で比較。",
+    columnTool: "ツール",
+    columnPlatform: "プラットフォーム",
+    columnUseCase: "主な用途",
+    columnLicense: "ライセンス",
+  },
+  breadcrumb: {
+    home: "ホーム",
+    label: "パンくず",
+  },
+  eventId: {
+    title: "Event ID {id}: {name}（{channel}）",
+    intro:
+      "この Event ID がディスクに実際に記録する内容、最初に確認すべき EventData フィールド、DFIR トリアージの中での位置付けを解説します。",
+    description:
+      "{channel} チャネルの Windows Event ID {id}（{name}）: 意味、EventData フィールド、典型的な攻撃手法、関連 Event ID。",
+    channelLabel: "チャネル",
+    providerLabel: "プロバイダ",
+    notesLabel: "トリアージ メモ",
+    inDepthHeading: "詳細ガイド",
+    inDepthCta: "詳細な解説を読む",
+    microsoftLearnHeading: "Microsoft Learn",
+    microsoftLearnCta: "公式リファレンスを開く",
+    relatedHeading: "関連 Event ID",
+    notCoveredYet:
+      "この Event ID は索引には含まれていますが、まだ詳細記事はありません。プロトコル レベルのフィールドは Microsoft Learn を参照してください。",
+    notFoundTitle: "未知の Event ID",
+    notFoundDescription:
+      "この Event ID はまだ参照索引に登録されていません。",
+  },
+  tags: {
+    indexTitle: "トピック — ブログの全タグ",
+    indexIntro:
+      "ブログで扱っているすべてのトピックと、タグごとの記事数を一覧します。Event ID 索引と並ぶ第 2 のナビゲーションとして利用できます。",
+    indexDescription:
+      "EVTX parser ブログのトピック一覧: Security 監査、Sysmon、PowerShell、Kerberos、サービス、EVTX フォーマットの内部、フォレンジック収集など。",
+    tagTitleTemplate: "「{tag}」タグの記事",
+    tagIntroTemplate: "「{tag}」タグが付いたブログ記事の一覧です（新しい順）。",
+    tagDescriptionTemplate:
+      "Windows イベントログ フォレンジックの記事(「{tag}」タグ) — DFIR メモ、攻撃手法、パーサー内部。",
+    postsCount: "{n} 件",
+    tagsOnPost: "タグ",
+    labels: {
+      security: "Security 監査",
+      logon: "ログオン",
+      process: "プロセス",
+      account: "アカウント",
+      privileges: "特権",
+      "object-access": "オブジェクト アクセス",
+      kerberos: "Kerberos",
+      "anti-forensics": "アンチフォレンジック",
+      attack: "攻撃手法",
+      sysmon: "Sysmon",
+      powershell: "PowerShell",
+      system: "System チャネル",
+      service: "サービス",
+      persistence: "永続化",
+      format: "EVTX フォーマット",
+      fundamentals: "基礎",
+      collection: "収集",
+      tooling: "ツール",
+      navigation: "ナビゲーション",
+    },
+  },
+  toc: {
+    heading: "このページの目次",
+  },
+};

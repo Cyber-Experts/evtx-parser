@@ -1,5 +1,5 @@
 {
-  "name": "website-template",
+  "name": "evtx-parser",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,6 +9,7 @@
     "lint": "eslint",
     "lint:content": "tsx scripts/lint-content.ts",
     "indexnow": "tsx scripts/indexnow.ts",
+    "wasm:build": "cd crates/evtx-wasm && wasm-pack build --target web --release --out-dir ../../lib/evtx-wasm && cp ../../lib/evtx-wasm/evtx_wasm_bg.wasm ../../public/evtx_wasm_bg.wasm",
     "prepare": "husky"
   },
   "lint-staged": {

@@ -1,0 +1,200 @@
+import type { Dict } from "./types";
+
+export const de: Dict = {
+  meta: {
+    title: "EVTX parser — Windows-Ereignisprotokoll-Forensik im Browser",
+    description:
+      "Windows .evtx-Ereignisprotokolle vollständig im Browser analysieren. WebAssembly-Forensik — die Dateien verlassen niemals dein Gerät.",
+    siteName: "EVTX parser",
+  },
+  home: {
+    heading: "EVTX parser",
+    headline: "EVTX parser — Windows-Ereignisprotokoll-Viewer im Browser",
+    intro:
+      "Ziehe ein Windows .evtx-Ereignisprotokoll hierher. Die Analyse läuft komplett im Browser über WebAssembly — es wird nichts hochgeladen.",
+    featuredHeading: "Ausgewählte Guides",
+    dropArea: ".evtx hier ablegen oder klicken zum Auswählen",
+    privacyNote: "Die Dateien bleiben auf deinem Gerät. Reine Client-Analyse.",
+    statusReading: "Lese {name}…",
+    statusParsing: "Analysiere Ereignisprotokoll…",
+    eventsLabel: "Ereignisse",
+    filterPlaceholder: "Nach Event ID, Anbieter, Kanal, Computer filtern…",
+    clearFilter: "Leeren",
+    noMatches: "Keine Ereignisse entsprechen dem Filter.",
+    topIds: "Häufige IDs",
+    exportCsv: "CSV exportieren",
+    exportJson: "JSON exportieren",
+    includeXml: "Rohe-XML-Spalte",
+    exporting: "Export läuft…",
+    clearTime: "Zeitraum leeren",
+  },
+  table: {
+    record: "Eintrag #",
+    time: "Zeit (UTC)",
+    level: "Stufe",
+    eventId: "Event ID",
+    name: "Name",
+    summary: "Zusammenfassung",
+    provider: "Anbieter",
+    channel: "Kanal",
+    computer: "Computer",
+    viewDetails: "Details",
+    closeDetails: "Schließen",
+    eventData: "Ereignisdaten",
+    noEventData: "Dieser Eintrag enthält keine EventData-Felder.",
+    showRawXml: "Roh-XML anzeigen",
+    hideRawXml: "Roh-XML ausblenden",
+    prev: "zurück",
+    next: "weiter",
+  },
+  levels: {
+    critical: "Kritisch",
+    error: "Fehler",
+    warning: "Warnung",
+    info: "Information",
+    verbose: "Ausführlich",
+    unknown: "—",
+  },
+  faq: {
+    heading: "FAQ zum Ereignisprotokoll",
+    items: [
+      {
+        q: "Was ist eine EVTX-Datei?",
+        a: "EVTX ist das binäre Windows-Ereignisprotokollformat, das mit Windows Vista eingeführt wurde. Jede .evtx-Datei besteht aus 64 KB-Blöcken; jeder Block enthält eine XML-Vorlagen-Tabelle und einen Strom von Datensätzen, die darauf verweisen. Die Analyse rekonstruiert das vollständige XML jedes Ereignisses.",
+      },
+      {
+        q: "Wo liegen .evtx-Dateien unter Windows?",
+        a: "Aktive Protokolle liegen unter C:\\Windows\\System32\\winevt\\Logs. Die forensisch wichtigsten sind Security.evtx (Anmeldungen, Privilegien), System.evtx (Treiber, Dienste) und Application.evtx (Anwendungsfehler). Sysmon- und PowerShell-Kanäle sind bei Incident Response besonders wertvoll.",
+      },
+      {
+        q: "Wird meine .evtx irgendwohin hochgeladen?",
+        a: "Nein. Die Analyse läuft in einem Web Worker mit einem in Rust geschriebenen EVTX-Parser, der zu WebAssembly kompiliert wurde. Die Datei wird im Browser-Speicher gelesen und nie übertragen. Trenne das Netzwerk, wenn du es überprüfen möchtest.",
+      },
+      {
+        q: "Was bedeutet die Spalte Stufe?",
+        a: "EVTX-Stufen sind numerisch: 1 Kritisch, 2 Fehler, 3 Warnung, 4 Information, 5 Ausführlich. Microsoft setzt einige bekannte IDs (z. B. Security 4625 = fehlgeschlagene Anmeldung auf Information) — die Stufe allein ist kein Triage-Signal.",
+      },
+      {
+        q: "Kann das Tool sehr große .evtx-Dateien verarbeiten?",
+        a: "Die Analyse läuft in einem Web Worker. Der Speicher skaliert mit der Dateigröße; einige hundert MB sind in modernen Browsern komfortabel. Für größere Sammlungen exportiere zuerst mit evtx_dump und lade in Abschnitten neu.",
+      },
+    ],
+  },
+  footer: {
+    blog: "Blog",
+    builtWith:
+      "Erstellt mit WebAssembly und dem Rust-Crate omerbenamram/evtx. 100 % clientseitig — deine Dateien verlassen niemals den Browser.",
+  },
+  notFound: {
+    title: "404 — Seite nicht gefunden",
+    heading: "Seite nicht gefunden",
+    description:
+      "Diese URL existiert auf dieser Seite nicht. Vielleicht wurde sie verschoben oder du bist einem veralteten Link gefolgt.",
+    backHome: "← Zurück zur Startseite",
+  },
+  blog: {
+    indexTitle: "Notizen zum Ereignisprotokoll",
+    indexIntro:
+      "Kurznotizen zum binären Windows-Ereignisprotokollformat, forensisch relevanten Event IDs und Triage-Workflows.",
+    readMore: "Weiterlesen",
+    backToBlog: "← Zurück zum Blog",
+    publishedOn: "Veröffentlicht",
+    updatedOn: "Aktualisiert",
+    readingTime: "{n} Min. Lesezeit",
+    prevPost: "← Vorheriger Beitrag",
+    nextPost: "Nächster Beitrag →",
+    relatedHeading: "Verwandte Beiträge",
+    resourcesHeading: "Externe Ressourcen",
+    byLine: "Von",
+  },
+  eventIds: {
+    title: "Windows-Event-ID-Referenz",
+    intro:
+      "Kuratiertes Verzeichnis der Windows Event IDs, die in einem forensischen Fall relevant sind — nach Kanal gruppiert, mit den zuerst zu lesenden EventData-Feldern. Erfasste IDs verlinken zum Deep-Dive; übrige zu Microsoft Learn.",
+    description:
+      "Referenzindex für Windows Event IDs in der DFIR-Praxis: Security 4624/4625/1102, System 7045/7036, Sysmon 1/3/7/11, PowerShell 4104, TaskScheduler, Kerberos — mit Links zu ausführlichen Leitfäden.",
+    columnId: "Event ID",
+    columnName: "Name",
+    columnNotes: "Hinweise",
+  },
+  glossary: {
+    title: "Glossar zum Windows-Ereignisprotokoll",
+    intro:
+      "Begriffe, die in .evtx-Datensätzen und DFIR-Reports auftauchen, in ein bis zwei Sätzen erklärt.",
+    description:
+      "Klare Definitionen zentraler Windows-Ereignisprotokoll-Begriffe: LogonType, BinXML, Kanal, Provider, Chunk, Template, SID, EventData, RecordID usw.",
+  },
+  tools: {
+    title: "EVTX-Tools im Vergleich: KAPE, FTK Imager, wevtutil, evtx_dump",
+    intro:
+      "Vergleich der Tools, die Analysten beim Arbeiten mit dem Windows-Ereignisprotokoll nutzen — was jedes wirklich gut kann, was es kostet und wo es scheitert.",
+    description:
+      "Vergleich von KAPE, FTK Imager, wevtutil, evtx_dump, python-evtx, RawCopy und EVTX parser — nach Plattform, Einsatzzweck, Lizenz und Grenzen.",
+    columnTool: "Tool",
+    columnPlatform: "Plattform",
+    columnUseCase: "Hauptanwendung",
+    columnLicense: "Lizenz",
+  },
+  breadcrumb: {
+    home: "Start",
+    label: "Brotkrumen",
+  },
+  eventId: {
+    title: "Event ID {id}: {name} ({channel})",
+    intro:
+      "Was diese Event ID tatsächlich auf der Festplatte aufzeichnet, welche EventData-Felder zuerst zu lesen sind und wo sie in einem DFIR-Triage-Workflow steht.",
+    description:
+      "Windows Event ID {id} ({name}) im Kanal {channel}: Bedeutung, EventData-Felder, gängige Angreifer-Tradecraft und verwandte Event IDs.",
+    channelLabel: "Kanal",
+    providerLabel: "Anbieter",
+    notesLabel: "Triage-Notizen",
+    inDepthHeading: "Detail-Guide",
+    inDepthCta: "Vollständige Analyse lesen",
+    microsoftLearnHeading: "Microsoft Learn",
+    microsoftLearnCta: "Offizielle Referenz öffnen",
+    relatedHeading: "Verwandte Event IDs",
+    notCoveredYet:
+      "Diese Event ID steht im Index, hat aber noch keine ausführliche Analyse. Microsoft Learn beschreibt die Felder auf Protokollebene.",
+    notFoundTitle: "Unbekannte Event ID",
+    notFoundDescription:
+      "Diese Event ID ist noch nicht im Referenzindex erfasst.",
+  },
+  tags: {
+    indexTitle: "Themen — alle Tags des Blogs",
+    indexIntro:
+      "Alle Themen des Blogs mit Anzahl der Beiträge pro Tag. Dient als zweite Navigationsachse neben dem Event-ID-Index.",
+    indexDescription:
+      "Durchsuche die Themen des EVTX-parser-Blogs: Security-Auditing, Sysmon, PowerShell, Kerberos, Dienste, EVTX-Format-Interna und forensische Erfassung.",
+    tagTitleTemplate: "Beiträge mit dem Tag „{tag}\"",
+    tagIntroTemplate:
+      "Alle Blog-Beiträge mit dem Tag „{tag}\", neueste zuerst.",
+    tagDescriptionTemplate:
+      "Windows-Ereignisprotokoll-Forensik-Beiträge mit dem Tag „{tag}\" — DFIR-Notizen, Angreifer-Tradecraft und Parser-Interna.",
+    postsCount: "{n} Beiträge",
+    tagsOnPost: "Tags",
+    labels: {
+      security: "Security-Auditing",
+      logon: "Anmeldung",
+      process: "Prozess",
+      account: "Konto",
+      privileges: "Privilegien",
+      "object-access": "Objektzugriff",
+      kerberos: "Kerberos",
+      "anti-forensics": "Anti-Forensik",
+      attack: "Angreifer-Tradecraft",
+      sysmon: "Sysmon",
+      powershell: "PowerShell",
+      system: "System-Kanal",
+      service: "Dienst",
+      persistence: "Persistenz",
+      format: "EVTX-Format",
+      fundamentals: "Grundlagen",
+      collection: "Erfassung",
+      tooling: "Werkzeuge",
+      navigation: "Navigation",
+    },
+  },
+  toc: {
+    heading: "Auf dieser Seite",
+  },
+};
