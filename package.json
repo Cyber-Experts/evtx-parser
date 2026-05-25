@@ -15,6 +15,9 @@
   "lint-staged": {
     "content/**/*.{md,mdx}": "tsx scripts/lint-content.ts"
   },
+  "overrides": {
+    "node-domexception": "file:./shims/node-domexception"
+  },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@formatjs/intl-localematcher": "^0.8.8",
