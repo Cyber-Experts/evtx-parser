@@ -4,6 +4,7 @@ import type { Locale } from "@/lib/i18n";
 
 type Dict = {
   footer: { rights: string; sitemap: string; rss: string };
+  nav: { authors: string };
 };
 
 export function SiteFooter({ locale, dict }: { locale: Locale; dict: Dict }) {
@@ -15,6 +16,9 @@ export function SiteFooter({ locale, dict }: { locale: Locale; dict: Dict }) {
           © {year} {siteConfig.name}. {dict.footer.rights}
         </p>
         <nav className="flex gap-4 flex-wrap" aria-label="Footer">
+          <Link href={`/${locale}/authors`} className="hover:underline">
+            {dict.nav.authors}
+          </Link>
           <Link href={`/${locale}/sitemap`} className="hover:underline">
             {dict.footer.sitemap}
           </Link>
