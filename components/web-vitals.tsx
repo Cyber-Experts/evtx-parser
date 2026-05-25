@@ -52,7 +52,6 @@ export function WebVitals() {
           non_interaction: true,
         });
       } else if (process.env.NODE_ENV === "development") {
-        // eslint-disable-next-line no-console
         console.debug("[web-vitals]", metric.name, value);
       }
     } catch {
