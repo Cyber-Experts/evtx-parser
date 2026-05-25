@@ -2,8 +2,10 @@ import type { Dict } from "@/src/dict/types";
 import type { Locale } from "@/src/dict/locales";
 
 import { siteConfig } from "@/site.config";
+import pkg from "../package.json" with { type: "json" };
 
 const SITE_URL = siteConfig.url;
+const APP_VERSION = pkg.version;
 
 // Single connected JSON-LD @graph per page. Nodes are cross-linked by @id
 // (Organization ← WebSite ← WebPage ← {SoftwareApplication | FAQPage |
@@ -155,20 +157,41 @@ function breadcrumbNode(id: string, items: Crumb[]) {
 }
 
 function softwareApplicationNode(locale: Locale, dict: Dict, pageUrl: string) {
+  const appUrl = `${SITE_URL}/${locale}`;
+  // OG image is the closest thing we have to a product screenshot; using
+  // the same URL twice (image + screenshot) is the canonical pattern for
+  // web apps that don't ship a separate marketing shot.
+  const heroImage = `${appUrl}/opengraph-image`;
   return {
-    "@type": "SoftwareApplication",
+    "@type": ["SoftwareApplication", "WebApplication"],
     "@id": `${SITE_URL}/${locale}#app`,
     name: dict.meta.siteName,
     description: dict.meta.description,
-    url: `${SITE_URL}/${locale}`,
+    url: appUrl,
+    image: heroImage,
+    screenshot: {
+      "@type": "ImageObject",
+      url: heroImage,
+      caption: dict.meta.siteName,
+    },
     applicationCategory: "SecurityApplication",
+    applicationSubCategory: "Digital Forensics",
     operatingSystem: "Any (web browser)",
+    browserRequirements: "Requires JavaScript, WebAssembly, and Web Workers.",
+    softwareVersion: APP_VERSION,
+    softwareRequirements:
+      "Modern browser with WebAssembly support (Chrome, Edge, Firefox, Safari).",
+    permissions: "No external permissions; file is read locally.",
+    availableOnDevice: ["Desktop", "Tablet", "Mobile"],
+    countriesSupported: "Worldwide",
     inLanguage: locale,
     isAccessibleForFree: true,
     offers: {
       "@type": "Offer",
       price: "0",
       priceCurrency: "USD",
+      availability: "https://schema.org/InStock",
+      url: appUrl,
     },
     featureList: [
       "Browser-side .evtx parsing",
@@ -178,8 +201,35 @@ function softwareApplicationNode(locale: Locale, dict: Dict, pageUrl: string) {
       "EventData flattened to CSV/JSON export",
       "Per-event XML inspection",
     ],
-    mainEntityOfPage: { "@id": pageId(pageUrl) },
+    keywords: [
+      "evtx",
+      "evtx parser",
+      "evtx viewer",
+      "Windows Event Log",
+      "Windows Event Log viewer",
+      "DFIR",
+      "digital forensics",
+      "incident response",
+      "Sysmon",
+      "PowerShell",
+      "Kerberos",
+      "Security audit",
+    ].join(", "),
+    audience: {
+      "@type": "Audience",
+      audienceType:
+        "DFIR analysts, incident responders, SOC engineers, threat hunters",
+    },
+    softwareHelp: {
+      "@type": "CreativeWork",
+      url: `${appUrl}/blog`,
+      name: dict.blog.indexTitle,
+    },
+    creator: { "@id": `${SITE_URL}#author-florian-amette` },
+    author: { "@id": `${SITE_URL}#author-florian-amette` },
+    maintainer: { "@id": ORG_ID },
     publisher: { "@id": ORG_ID },
+    mainEntityOfPage: { "@id": pageId(pageUrl) },
   };
 }
 
@@ -257,6 +307,9 @@ export function homeGraph(locale: Locale, dict: Dict) {
   const url = `${SITE_URL}/${locale}`;
   return graph([
     organizationNode(dict),
+    // SoftwareApplication references AUTHOR_ID via creator/author — keep
+    // the Person node in the same graph so the reference resolves.
+    authorNode(dict),
     websiteNode(locale, dict),
     webPageNode({
       url,
