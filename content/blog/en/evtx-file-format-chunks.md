@@ -4,7 +4,7 @@ description: "How a .evtx file is laid out at the byte level — file header, 64
 date: "2026-05-17"
 ---
 
-The Windows Event Log format — `.evtx` — was introduced with Windows Vista to replace the line-oriented `.evt`. It is a binary, append-only, chunked container designed to be written by a single process (the EventLog service) and rotated or sealed when full. Understanding how it's laid out makes the forensic recovery cases — partial files, dirty chunks, carving — much easier.
+The [Windows Event Log format — `.evtx`](/en/blog/what-is-an-evtx-file) — was introduced with Windows Vista to replace the line-oriented `.evt`. It is a binary, append-only, chunked container designed to be written by a single process (the EventLog service) and rotated or sealed when full. Understanding how it's laid out makes the forensic recovery cases — partial files, dirty chunks, carving — much easier.
 
 ## File header
 
@@ -33,7 +33,7 @@ To reconstruct the XML for a record, a parser:
 3. Substitutes the per-record values into the template's placeholder positions.
 4. Emits the resulting XML.
 
-This is why parsers (including the one powering this page, [`omerbenamram/evtx`](https://github.com/omerbenamram/evtx)) need to track chunk-local context — template IDs are not global across the file.
+This is why [parsers](/en/blog/how-to-open-an-evtx-file) (including the one powering this page, [`omerbenamram/evtx`](https://github.com/omerbenamram/evtx)) need to track chunk-local context — template IDs are not global across the file.
 
 ## Sealed vs dirty chunks
 
@@ -43,7 +43,7 @@ A `Dirty` chunk — last-modified time after the file header was last updated �
 
 ## Practical implications for parsing
 
-- A truncated `.evtx` is often still mostly recoverable — every complete chunk is independent.
+- A truncated `.evtx` — common when you [collect from a live host](/en/blog/collecting-evtx-from-live-system) — is often still mostly recoverable, because every complete chunk is independent.
 - Carved-from-unallocated chunks can be wrapped with a synthetic file header and parsed.
 - A failed parse of one chunk does not mean failure of the file — robust parsers move on to the next chunk.
 - The chunk's CRC32 is what flags tampering: a modified record that doesn't recompute the CRC is detectable.

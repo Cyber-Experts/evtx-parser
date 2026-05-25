@@ -4,7 +4,7 @@ description: "Sysmon's event 1 is the richest process-creation record Windows ca
 date: "2026-05-17"
 ---
 
-Sysmon is a free Microsoft tool that augments the Windows Event Log with telemetry the base OS doesn't capture in usable form. Its event ID 1 — `ProcessCreate` — is the most-cited Sysmon record in IR playbooks. If you only ever extract one Sysmon channel from a host, this is the one.
+Sysmon is a free Microsoft tool that augments the [Windows Event Log](/en/blog/what-is-an-evtx-file) with telemetry the base OS doesn't capture in usable form. Its event ID 1 — `ProcessCreate` — is the most-cited Sysmon record in IR playbooks. If you only ever extract one Sysmon channel from a host, this is the one.
 
 ## Where it lives and what it captures
 
@@ -95,7 +95,7 @@ DeviceProcessEvents
 | order by Timestamp desc
 ```
 
-`InitiatingProcessCommandLine` is the Defender XDR equivalent of Sysmon 1's `ParentCommandLine` — which 4688 does not provide.
+`InitiatingProcessCommandLine` is the Defender XDR equivalent of Sysmon 1's `ParentCommandLine` — which [4688](/en/blog/event-id-4688-process-creation) does not provide.
 
 ## Sample Splunk — LOLBins from user-writable paths
 

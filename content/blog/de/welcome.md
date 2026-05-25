@@ -6,6 +6,8 @@ date: "2026-05-16"
 
 Das Windows-Ereignisprotokoll — `.evtx` — ist das binäre Format, das Microsoft mit Windows Vista eingeführt hat, um das ältere `.evt` abzulösen. Es ist das Rückgrat fast jeder Windows-Incident-Response: Anmeldungen, Dienststarts, PowerShell-Befehlszeilen, Sysmon-Prozesserstellungen und eine lange Liste anbieterspezifischer Kanäle werden darin serialisiert.
 
+Neu bei `.evtx`? Beginne mit [was eine .evtx-Datei ist](/de/blog/what-is-an-evtx-file) und [wie man eine öffnet](/de/blog/how-to-open-an-evtx-file). Der Rest dieses Posts ist die Kanal- und Event-ID-Orientierung für Analysten, die mit dem Format bereits vertraut sind.
+
 ## Wie eine Datei aufgebaut ist
 
 Jede `.evtx`-Datei beginnt mit einem 4 KB großen Header (Magic `ElfFile\0`, Prüfsumme, Block-Anzahl), gefolgt von einer Folge von 64 KB-Blöcken. Jeder Block hat seinen eigenen Header (`ElfChnk`), eine Tabelle der im Block vorkommenden XML-Vorlagen und einen Strom binärer Datensätze, die diese Vorlagen per ID referenzieren. Der Parser rekonstruiert jedes Ereignis, indem er die Vorlagen-Platzhalter mit den Werten aus dem jeweiligen Datensatz verknüpft.

@@ -4,7 +4,7 @@ description: "4672 fires whenever a logon is granted sensitive privileges like S
 date: "2026-05-24"
 ---
 
-Event ID **4672** — "Special privileges assigned to new logon" — fires on the `Security` channel every time a logon session is granted one of a fixed set of sensitive Windows privileges. In practice that means: every successful administrator-equivalent logon produces a 4672, immediately after the corresponding [4624](/en/blog/understanding-event-id-4624). On most workstations, 4672 is rare; on domain controllers and admin jumpboxes, it's constant. That asymmetry is what makes it useful.
+Event ID **4672** — "Special privileges assigned to new logon" — fires on the [`Security` channel](/en/blog/what-is-an-evtx-file) every time a logon session is granted one of a fixed set of sensitive Windows privileges. In practice that means: every successful administrator-equivalent logon produces a 4672, immediately after the corresponding [4624](/en/blog/understanding-event-id-4624). On most workstations, 4672 is rare; on domain controllers and admin jumpboxes, it's constant. That asymmetry is what makes it useful.
 
 If you only filter Security records by one field, "give me all 4672s in the last week" is the cheapest "show me every privileged session in the estate" query you can run.
 

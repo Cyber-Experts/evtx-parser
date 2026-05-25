@@ -6,7 +6,7 @@ date: "2026-05-24"
 
 Event ID **4768** — "A Kerberos authentication ticket (TGT) was requested" — fires on a Domain Controller every time anyone asks for a Ticket Granting Ticket. Every domain logon starts with one of these. Pair it with [4769](/en/blog/event-id-4769-kerberoasting) (service ticket) and you see the entire Kerberos lifecycle of every account in the forest.
 
-On a DC, 4768 is the highest-volume Security record after 4624. Most of it is noise; the high-signal slices live in two specific fields — and one of them is the AS-REP roasting fingerprint.
+On a DC, 4768 is the highest-volume record in the [Security channel](/en/blog/what-is-an-evtx-file) after 4624. Most of it is noise; the high-signal slices live in two specific fields — and one of them is the AS-REP roasting fingerprint.
 
 ## Where it fires
 

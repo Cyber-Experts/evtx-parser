@@ -4,7 +4,7 @@ description: "Qué contiene realmente un registro 4624, por qué el campo LogonT
 date: "2026-05-17"
 ---
 
-El event ID 4624 — «Se inició sesión correctamente en una cuenta» — se registra en el canal `Security` cada vez que Windows autentica una identidad. Es el registro más voluminoso en la mayoría de estaciones y la columna vertebral de casi toda investigación de IR. Saber leerlo no es negociable.
+El event ID 4624 — «Se inició sesión correctamente en una cuenta» — se registra en el [canal `Security`](/es/blog/what-is-an-evtx-file) cada vez que Windows autentica una identidad. Es el registro más voluminoso en la mayoría de estaciones y la columna vertebral de casi toda investigación de IR. Saber leerlo no es negociable.
 
 ## Qué hay dentro de un registro 4624
 
@@ -44,8 +44,8 @@ Un 4624 con LogonType **10** desde una IP externa a las 03:00 un domingo cuenta 
 
 Un 4624 exitoso por sí solo rara vez es un hallazgo. Lo es cuando se combina con:
 
-- **4625** precediéndolo desde la misma fuente — un éxito tras una ráfaga de fallos es la firma de manual de fuerza-bruta-con-éxito.
-- **4672** (privilegios especiales asignados) — marca los inicios de sesión que otorgaron privilegios como `SeDebugPrivilege`, útil para detectar uso de cuentas privilegiadas.
+- [**4625**](/es/blog/detecting-4625-brute-force) precediéndolo desde la misma fuente — un éxito tras una ráfaga de fallos es la firma de manual de fuerza-bruta-con-éxito.
+- [**4672**](/es/blog/event-id-4672-special-privileges) (privilegios especiales asignados) — marca los inicios de sesión que otorgaron privilegios como `SeDebugPrivilege`, útil para detectar uso de cuentas privilegiadas.
 - **4648** (inicio con credenciales explícitas) — captura `runas` y otros patrones de paso de credenciales.
 
 ## Leerlo a escala

@@ -6,6 +6,8 @@ date: "2026-05-16"
 
 O log de eventos do Windows — `.evtx` — é o formato binário que a Microsoft introduziu no Windows Vista para substituir o antigo `.evt`. Ele é a espinha dorsal de quase toda resposta a incidentes em Windows: logons, inicializações de serviço, linhas de comando PowerShell, criações de processo do Sysmon e uma longa lista de canais específicos de provedores são serializados nele.
 
+Novo em `.evtx`? Comece por [o que é um arquivo .evtx](/pt/blog/what-is-an-evtx-file) e [como abrir um](/pt/blog/how-to-open-an-evtx-file). O resto deste post é a orientação por canal e Event ID para analistas já familiarizados com o formato.
+
 ## Como um arquivo é organizado
 
 Todo `.evtx` começa com um cabeçalho de 4 KB (assinatura `ElfFile\0`, checksum e contagem de chunks), seguido por uma sequência de blocos de 64 KB. Cada bloco tem seu próprio cabeçalho (`ElfChnk`), uma tabela de templates XML usados no bloco e um fluxo de registros binários que referenciam esses templates por ID. O parser reconstrói cada evento ligando os marcadores do template aos valores presentes no registro.

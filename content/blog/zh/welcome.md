@@ -6,6 +6,8 @@ date: "2026-05-16"
 
 Windows 事件日志 — `.evtx` — 是微软在 Windows Vista 中引入的二进制格式,用来取代更老的 `.evt`。它几乎是每一次 Windows 应急响应的脊柱:登录、服务启动、PowerShell 命令行、Sysmon 进程创建,以及一长串与提供程序相关的通道,几乎都会被序列化进来。
 
+初次接触 `.evtx`?先看[什么是 .evtx 文件](/zh/blog/what-is-an-evtx-file)和[如何打开一个](/zh/blog/how-to-open-an-evtx-file)。本文后面的部分,是写给已经熟悉该格式的分析师的通道与 Event ID 速览。
+
 ## 文件结构
 
 每个 `.evtx` 文件都以一个 4 KB 的文件头开始(魔数 `ElfFile\0`、校验和、块数量),后面是一连串 64 KB 的块。每个块都有自己的块头(`ElfChnk`)、本块用到的 XML 模板表,以及一串通过模板 ID 引用这些模板的二进制记录流。解析器通过把模板的占位符与记录自身的值绑定,来重建每条事件。

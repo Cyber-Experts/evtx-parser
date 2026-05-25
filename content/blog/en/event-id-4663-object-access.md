@@ -4,7 +4,7 @@ description: "4663 is the per-access object-audit record. Configure SACLs on the
 date: "2026-05-24"
 ---
 
-Event ID **4663** — "An attempt was made to access an object" — fires on the `Security` channel every time an audited file, registry key, or kernel object is accessed in a way that matches its System Access Control List (SACL). Unlike most Security records, 4663 produces nothing on its own — you have to *configure* the SACL on the object you care about before any 4663 records exist. That makes it cheap by default and devastatingly effective once tuned.
+Event ID **4663** — "An attempt was made to access an object" — fires on the [`Security` channel](/en/blog/what-is-an-evtx-file) every time an audited file, registry key, or kernel object is accessed in a way that matches its System Access Control List (SACL). Unlike most Security records, 4663 produces nothing on its own — you have to *configure* the SACL on the object you care about before any 4663 records exist. That makes it cheap by default and devastatingly effective once tuned.
 
 If you only audit one thing with 4663, audit access to credential stores and high-value data shares. The signal-to-noise is among the best in the entire audit catalog.
 

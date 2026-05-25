@@ -8,6 +8,7 @@ import {
   localeNames,
 } from "@/src/dict/locales";
 import { getDict } from "@/src/dict";
+import { siteConfig } from "@/site.config";
 import "./globals.css";
 
 /**
@@ -25,6 +26,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const dict = getDict(defaultLocale);
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.url),
   title: dict.notFound.title,
   robots: { index: false, follow: false },
 };

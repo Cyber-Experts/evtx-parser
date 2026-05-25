@@ -4,7 +4,7 @@ description: "Ce que contient réellement un enregistrement 4624, pourquoi le ch
 date: "2026-05-17"
 ---
 
-L'event ID 4624 — « Un compte s'est connecté avec succès » — est journalisé sur le canal `Security` chaque fois que Windows authentifie une identité. C'est l'enregistrement le plus volumineux sur la plupart des postes de travail et l'épine dorsale de presque toutes les enquêtes IR. Savoir le lire n'est pas négociable.
+L'event ID 4624 — « Un compte s'est connecté avec succès » — est journalisé sur le [canal `Security`](/fr/blog/what-is-an-evtx-file) chaque fois que Windows authentifie une identité. C'est l'enregistrement le plus volumineux sur la plupart des postes de travail et l'épine dorsale de presque toutes les enquêtes IR. Savoir le lire n'est pas négociable.
 
 ## Ce que contient un enregistrement 4624
 

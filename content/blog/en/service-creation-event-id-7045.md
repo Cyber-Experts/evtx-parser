@@ -4,7 +4,7 @@ description: "Service creation is one of the loudest persistence techniques. Eve
 date: "2026-05-17"
 ---
 
-Event ID **7045** — "A service was installed in the system" — fires on the `System` channel whenever the Service Control Manager registers a new service. It's noisy on a stock build (driver installs, updates) but in steady-state corporate environments it's quiet enough that anomalies stand out. It's also one of MITRE ATT&CK's most-cited persistence techniques: T1543.003.
+Event ID **7045** — "A service was installed in the system" — fires on the [`System` channel](/en/blog/what-is-an-evtx-file) whenever the Service Control Manager registers a new service. It's noisy on a stock build (driver installs, updates) but in steady-state corporate environments it's quiet enough that anomalies stand out. It's also one of MITRE ATT&CK's most-cited persistence techniques: T1543.003.
 
 ## What the record contains
 
@@ -34,7 +34,7 @@ A 7045 with `ImagePath` ending in `.exe` followed seconds later by [4624 LogonTy
 
 ## What 7045 doesn't tell you
 
-7045 fires on *installation*, not on each subsequent start. To see the service actually running you need 7036 ("service entered the running state"). To see the underlying process you need [Sysmon event 1](/en/blog/sysmon-event-id-1-process-create) or 4688 with the matching `Image` path.
+7045 fires on *installation*, not on each subsequent start. To see the service actually running you need 7036 ("service entered the running state"). To see the underlying process you need [Sysmon event 1](/en/blog/sysmon-event-id-1-process-create) or [4688](/en/blog/event-id-4688-process-creation) with the matching `Image` path.
 
 For services installed *before* the audit log starts (e.g., during OS install), there's no 7045 — they exist in the registry under `HKLM\SYSTEM\CurrentControlSet\Services\` and have to be enumerated there, not from event logs.
 

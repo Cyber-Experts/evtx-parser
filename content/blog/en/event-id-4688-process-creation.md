@@ -4,7 +4,7 @@ description: "4688 is the base-OS process create record — provided command-lin
 date: "2026-05-24"
 ---
 
-Event ID **4688** — "A new process has been created" — fires on the `Security` channel every time a process is launched. It is the closest the base OS gets to the telemetry [Sysmon event 1](/en/blog/sysmon-event-id-1-process-create) provides — and on hosts where Sysmon isn't deployed, it's the only `CommandLine` source you get. On a properly configured estate, every process create is one of these records. Read it well and you can answer "what ran" without ever opening an EDR.
+Event ID **4688** — "A new process has been created" — fires on the [`Security` channel](/en/blog/what-is-an-evtx-file) every time a process is launched. It is the closest the base OS gets to the telemetry [Sysmon event 1](/en/blog/sysmon-event-id-1-process-create) provides — and on hosts where Sysmon isn't deployed, it's the only `CommandLine` source you get. On a properly configured estate, every process create is one of these records. Read it well and you can answer "what ran" without ever opening an EDR.
 
 ## Turning it on (because the default is half-blind)
 

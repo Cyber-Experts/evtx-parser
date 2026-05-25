@@ -4,7 +4,7 @@ description: "4769 is the DC's record of every service-ticket request. Read it t
 date: "2026-05-24"
 ---
 
-Event ID **4769** — "A Kerberos service ticket was requested" — fires on every Domain Controller every time any account requests a TGS (Ticket Granting Service) ticket for a service. Every SMB connection, every SQL login, every web SSO hit produces one of these on whichever DC handled the request. It is the highest-volume Security record on a busy DC — and the only place kerberoasting reliably shows up before the credentials are cracked offline.
+Event ID **4769** — "A Kerberos service ticket was requested" — fires on every Domain Controller every time any account requests a TGS (Ticket Granting Service) ticket for a service. Every SMB connection, every SQL login, every web SSO hit produces one of these on whichever DC handled the request. It is the highest-volume record in the [Security channel](/en/blog/what-is-an-evtx-file) on a busy DC — and the only place kerberoasting reliably shows up before the credentials are cracked offline.
 
 If you only get to instrument three Security records from your domain controllers, this is one of them.
 
@@ -69,7 +69,7 @@ The 4769 fingerprint:
 - `TicketEncryptionType` is `0x17`.
 - A burst of these requests within a short window, from the same source, for many SPNs, is the dead giveaway.
 
-A second, related pattern — **AS-REP roasting** (T1558.004) — uses [4768](/en/blog/understanding-event-id-4624) instead (the TGT request), targeting accounts with `DONT_REQUIRE_PREAUTH` set. Different record, same family of attacks.
+A second, related pattern — **AS-REP roasting** (T1558.004) — uses [4768](/en/blog/event-id-4768-kerberos-tgt) instead (the TGT request), targeting accounts with `DONT_REQUIRE_PREAUTH` set. Different record, same family of attacks.
 
 ## Pass-the-ticket / golden / silver tickets
 

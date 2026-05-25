@@ -4,7 +4,7 @@ description: "Cosa contiene davvero un record 4624, perché il campo LogonType c
 date: "2026-05-17"
 ---
 
-L'Event ID 4624 — «Account connesso correttamente» — viene registrato sul canale `Security` ogni volta che Windows autentica un'identità. È il record più voluminoso sulla maggior parte delle postazioni e la spina dorsale di quasi ogni indagine IR. Saperlo leggere non è opzionale.
+L'Event ID 4624 — «Account connesso correttamente» — viene registrato sul [canale `Security`](/it/blog/what-is-an-evtx-file) ogni volta che Windows autentica un'identità. È il record più voluminoso sulla maggior parte delle postazioni e la spina dorsale di quasi ogni indagine IR. Saperlo leggere non è opzionale.
 
 ## Cosa contiene un record 4624
 

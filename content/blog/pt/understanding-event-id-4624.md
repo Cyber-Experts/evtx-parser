@@ -4,7 +4,7 @@ description: "O que um registro 4624 realmente contém, por que o campo LogonTyp
 date: "2026-05-17"
 ---
 
-O event ID 4624 — «Uma conta foi conectada com sucesso» — é registrado no canal `Security` toda vez que o Windows autentica uma identidade. É o registro mais volumoso na maioria das estações e a espinha dorsal de quase toda investigação de IR. Saber lê-lo não é negociável.
+O event ID 4624 — «Uma conta foi conectada com sucesso» — é registrado no [canal `Security`](/pt/blog/what-is-an-evtx-file) toda vez que o Windows autentica uma identidade. É o registro mais volumoso na maioria das estações e a espinha dorsal de quase toda investigação de IR. Saber lê-lo não é negociável.
 
 ## O que tem dentro de um registro 4624
 
@@ -44,8 +44,8 @@ Um 4624 com LogonType **10** vindo de um IP externo às 03h de domingo conta out
 
 Um 4624 bem-sucedido sozinho raramente é um achado. Torna-se um quando combinado com:
 
-- **4625** precedendo a partir da mesma fonte — um sucesso após uma rajada de falhas é a assinatura clássica de brute-force-com-sucesso.
-- **4672** (privilégios especiais atribuídos) — sinaliza logons que concederam privilégios como `SeDebugPrivilege`, útil para detectar uso de conta privilegiada.
+- [**4625**](/pt/blog/detecting-4625-brute-force) precedendo a partir da mesma fonte — um sucesso após uma rajada de falhas é a assinatura clássica de brute-force-com-sucesso.
+- [**4672**](/pt/blog/event-id-4672-special-privileges) (privilégios especiais atribuídos) — sinaliza logons que concederam privilégios como `SeDebugPrivilege`, útil para detectar uso de conta privilegiada.
 - **4648** (logon com credenciais explícitas) — captura `runas` e outros padrões de passagem de credenciais.
 
 ## Lendo em escala

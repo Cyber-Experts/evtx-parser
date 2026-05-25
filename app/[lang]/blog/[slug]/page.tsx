@@ -5,6 +5,8 @@ import { cache } from "react";
 import rehypeSlug from "rehype-slug";
 import { MarkdownContent, slugifySeries } from "@next-md-blog/core";
 
+import { rehypeGlossaryLinker } from "@/lib/rehype-glossary-linker";
+
 import { blog } from "@/next-md-blog.config";
 import { siteConfig } from "@/site.config";
 import { LOCALES, type Locale } from "@/lib/i18n";
@@ -201,6 +203,36 @@ export default async function BlogPostPage({
                 <p className="text-lg text-muted-foreground">{fm.description as string}</p>
               )}
               <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-2 items-center">
+                {(() => {
+                  // Resolve author display from the normalized array
+                  // @next-md-blog/core returns. Prefer the Author object
+                  // when we have a profile URL (E-E-A-T anchor).
+                  const author = post.authors?.[0];
+                  if (!author) return null;
+                  const name =
+                    typeof author === "string" ? author : author.name;
+                  const url =
+                    typeof author === "object" && author.url
+                      ? author.url
+                      : null;
+                  return (
+                    <span>
+                      {dict.blog.byAuthor}{" "}
+                      {url ? (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="author noopener"
+                          className="underline underline-offset-2"
+                        >
+                          {name}
+                        </a>
+                      ) : (
+                        name
+                      )}
+                    </span>
+                  );
+                })()}
                 {date && (
                   <span>
                     {dict.blog.publishedOn}{" "}
@@ -239,10 +271,23 @@ export default async function BlogPostPage({
             </header>
             <Separator className="mb-8" />
             <div className="prose dark:prose-invert max-w-none prose-headings:scroll-mt-20">
+              {/*
+                rehype-slug — heading anchors so in-page #links work.
+                glossary linker — first-occurrence-only anchor inserter;
+                  skips code/pre/headings.
+                TODO: Shiki highlighting. `MarkdownContent` runs its rehype
+                pipeline synchronously (react-markdown sync mode), and
+                Shiki is async. To re-enable, either swap the renderer for
+                an async-capable one or wire highlighting via a custom
+                `pre`/`code` component override in markdownComponents.
+              */}
               <MarkdownContent
                 content={post.content}
                 components={markdownComponents}
-                rehypePlugins={[rehypeSlug]}
+                rehypePlugins={[
+                  rehypeSlug,
+                  [rehypeGlossaryLinker, { locale, selfSlug: slug }],
+                ]}
               />
             </div>
           </article>

@@ -15,7 +15,7 @@ howto:
       text: "When tampering is suspected, use RawCopy or tsk_recover to open the volume below the filesystem layer (\\\\.\\PhysicalDriveN or \\\\.\\C:) and read each .evtx byte-for-byte from the MFT. The EventLog service cannot block this path."
 ---
 
-The first hard problem in an event-log investigation isn't parsing, it's *getting the files*. On a running Windows host, the EventLog service holds open handles to the active `.evtx` files in `C:\Windows\System32\winevt\Logs\`, which means a naive `copy` fails. Four approaches cover almost every case.
+The first hard problem in an event-log investigation isn't parsing, it's *getting the files*. On a running Windows host, the EventLog service holds open handles to the active [`.evtx` files](/en/blog/what-is-an-evtx-file) in `C:\Windows\System32\winevt\Logs\`, which means a naive `copy` fails. Four approaches cover almost every case.
 
 ## Built-in: wevtutil / Get-WinEvent
 
@@ -34,13 +34,13 @@ Get-WinEvent -LogName Security |
   Export-Csv triage.csv
 ```
 
-`Get-WinEvent` returns parsed records, not the file. Useful for a quick triage CSV but loses the binary fidelity needed for deeper forensics — chunk-level recovery, dirty-chunk inspection, carving.
+`Get-WinEvent` returns parsed records, not the file. Useful for a quick triage CSV but loses the binary fidelity needed for deeper forensics — [chunk-level recovery, dirty-chunk inspection, carving](/en/blog/evtx-file-format-chunks).
 
 ## FTK Imager
 
 For full disk or filesystem-level acquisition, FTK Imager is the standard. Add the live drive as evidence (Physical Drive or Logical Drive), navigate to `\Windows\System32\winevt\Logs\`, right-click the channel files, and Export Files. FTK reads the underlying NTFS structures directly, bypassing the file-system lock the EventLog service holds. It also exports archived `*.evtx` files (those with timestamps in the name) that `wevtutil` won't touch.
 
-The trade-off is that FTK reads files that may be mid-write — the resulting `.evtx` can have a dirty trailing chunk. Most parsers (including this one) handle that gracefully but it's worth verifying.
+The trade-off is that FTK reads files that may be mid-write — the resulting `.evtx` can have a dirty trailing chunk. Most parsers ([including this one](/en/blog/how-to-open-an-evtx-file)) handle that gracefully but it's worth verifying.
 
 ## KAPE
 

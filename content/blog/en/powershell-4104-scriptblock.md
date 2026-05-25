@@ -4,7 +4,7 @@ description: "Scriptblock logging is Windows' most useful free defensive control
 date: "2026-05-17"
 ---
 
-When PowerShell scriptblock logging is enabled, the engine records the body of every script that executes — interactive commands, scripts loaded from disk, and anything reflected into memory by `Invoke-Expression` or `IEX`. The record lands on the channel `Microsoft-Windows-PowerShell/Operational` as event ID **4104**, "Creating Scriptblock text".
+When PowerShell scriptblock logging is enabled, the engine records the body of every script that executes — interactive commands, scripts loaded from disk, and anything reflected into memory by `Invoke-Expression` or `IEX`. The record lands on the [channel](/en/blog/what-is-an-evtx-file) `Microsoft-Windows-PowerShell/Operational` as event ID **4104**, "Creating Scriptblock text".
 
 ## What you get
 

@@ -18,8 +18,10 @@ const AUTHOR_ID = `${SITE_URL}#author-florian-amette`;
 // Real Person — named E-E-A-T signal for DFIR content. sameAs anchors the
 // entity to off-site identities so Google can build a confident graph.
 const AUTHOR_NAME = "Florian Amette";
+const AUTHOR_GIVEN_NAME = "Florian";
+const AUTHOR_FAMILY_NAME = "Amette";
 const AUTHOR_ALIAS = "F4K";
-const AUTHOR_URL = "https://www.f4k.fr/fr";
+const AUTHOR_URL = "https://www.f4k.fr/en";
 const AUTHOR_SAME_AS = [AUTHOR_URL];
 
 const websiteId = (locale: Locale) => `${SITE_URL}/${locale}#website`;
@@ -47,6 +49,8 @@ function authorNode(dict: Dict) {
     "@type": "Person",
     "@id": AUTHOR_ID,
     name: AUTHOR_NAME,
+    givenName: AUTHOR_GIVEN_NAME,
+    familyName: AUTHOR_FAMILY_NAME,
     alternateName: AUTHOR_ALIAS,
     description: `Author at ${dict.meta.siteName} — DFIR practitioner writing on Windows Event Log forensics.`,
     url: AUTHOR_URL,

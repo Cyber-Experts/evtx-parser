@@ -4,7 +4,7 @@ description: "4720 fires every time a user account is created — locally or in 
 date: "2026-05-24"
 ---
 
-Event ID **4720** — "A user account was created" — is written to the `Security` channel every time a new user account is provisioned. On a domain controller it fires for every new AD user; on a workstation or member server it fires for every new local account. In a mature shop, 4720 traffic is overwhelmingly HR-driven and predictable. That predictability is what makes it useful: an attacker creating a backdoor account stands out exactly because the legitimate traffic is so regular.
+Event ID **4720** — "A user account was created" — is written to the [`Security` channel](/en/blog/what-is-an-evtx-file) every time a new user account is provisioned. On a domain controller it fires for every new AD user; on a workstation or member server it fires for every new local account. In a mature shop, 4720 traffic is overwhelmingly HR-driven and predictable. That predictability is what makes it useful: an attacker creating a backdoor account stands out exactly because the legitimate traffic is so regular.
 
 This is one of the cheapest persistence-detection records the platform produces.
 

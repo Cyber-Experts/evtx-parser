@@ -7,6 +7,8 @@ updated: "2026-05-24"
 
 `.evtx` is the binary Windows Event Log format Microsoft shipped with Windows Vista to replace the older `.evt`. It's the spine of every Windows incident response: logons, service installs, scheduled tasks, PowerShell command lines, and Sysmon process trees all serialise into it. This post is the index — a one-screen orientation, then links to the deeper posts on the channels and Event IDs that actually matter on a case.
 
+New to `.evtx`? Start with [what an .evtx file is](/en/blog/what-is-an-evtx-file) and [how to open one](/en/blog/how-to-open-an-evtx-file). The rest of this post is the channel-and-Event-ID orientation for analysts already comfortable with the format.
+
 ## Where the files live
 
 Live logs sit under `C:\Windows\System32\winevt\Logs\`. Each channel is one `.evtx` file. The defaults you'll always have:

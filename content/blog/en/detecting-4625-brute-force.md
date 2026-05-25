@@ -4,7 +4,7 @@ description: "4625 is the failed-logon record. Read it right and you spot passwo
 date: "2026-05-17"
 ---
 
-Event ID 4625 — "An account failed to log on" — fires on the `Security` channel whenever an authentication attempt is rejected. It's the single most useful record for catching credential-attack activity, but only if you read the right fields.
+Event ID 4625 — "An account failed to log on" — fires on the [`Security` channel](/en/blog/what-is-an-evtx-file) whenever an authentication attempt is rejected. It's the single most useful record for catching credential-attack activity, but only if you read the right fields.
 
 ## The fields that actually matter
 

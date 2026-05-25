@@ -21,14 +21,32 @@ export const siteConfig = {
     "Free in-browser .evtx parser for Windows Event Log forensics. No upload, no install — drop a file and triage logons, services and PowerShell in seconds.",
   url: resolveSiteUrl(),
   twitter: undefined as string | undefined,
-  defaultAuthor: "EVTX parser",
-  authors: [],
+  // Named author for E-E-A-T — the schema graph resolves this string
+  // against the `authors` array below so JSON-LD emits a full Person node
+  // (with sameAs pointing at f4k.fr) on every post that doesn't override
+  // it in frontmatter.
+  defaultAuthor: "Florian Amette",
+  authors: [
+    {
+      name: "Florian Amette",
+      bio: "DFIR practitioner writing on Windows Event Log forensics. Alias: F4K.",
+      url: "https://www.f4k.fr/fr",
+    },
+  ] as Array<{
+    name: string;
+    email?: string;
+    bio?: string;
+    avatar?: string;
+    twitter?: string;
+    github?: string;
+    url?: string;
+  }>,
   defaultOgImage: "/opengraph-image",
   organization: {
     legalName: "EVTX parser",
     logo: "/icon",
     foundingDate: "2025-01-01",
-    founder: undefined as string | undefined,
+    founder: "Florian Amette" as string | undefined,
     wikidata: undefined as string | undefined,
     sameAs: [] as string[],
     address: {

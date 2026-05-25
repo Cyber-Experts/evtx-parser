@@ -4,7 +4,7 @@ description: "7036 fires every time a service starts or stops. Paired with 7045 
 date: "2026-05-24"
 ---
 
-Event ID **7036** — "The {service} service entered the {state} state" — fires on the `System` channel every time the Service Control Manager (SCM) sees a service transition. Each service start, stop, pause and resume produces one. By itself it is high-volume and easy to dismiss; paired with [7045](/en/blog/service-creation-event-id-7045) (service installed) it is the difference between *a backdoor was installed* and *a backdoor was installed and ran*.
+Event ID **7036** — "The {service} service entered the {state} state" — fires on the [`System` channel](/en/blog/what-is-an-evtx-file) every time the Service Control Manager (SCM) sees a service transition. Each service start, stop, pause and resume produces one. By itself it is high-volume and easy to dismiss; paired with [7045](/en/blog/service-creation-event-id-7045) (service installed) it is the difference between *a backdoor was installed* and *a backdoor was installed and ran*.
 
 For incident response, this is the cheapest "did it execute?" record the OS gives you.
 

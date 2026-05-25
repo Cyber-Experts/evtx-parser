@@ -4,7 +4,7 @@ description: "What a 4624 record actually contains, why the LogonType field matt
 date: "2026-05-17"
 ---
 
-Event ID 4624 — "An account was successfully logged on" — is logged on the `Security` channel every time Windows authenticates an identity. It is the single highest-traffic record on most workstations and the spine of almost every IR investigation. Knowing how to read one is non-negotiable.
+Event ID 4624 — "An account was successfully logged on" — is logged on the [`Security` channel](/en/blog/what-is-an-evtx-file) every time Windows authenticates an identity. It is the single highest-traffic record on most workstations and the spine of almost every IR investigation. Knowing how to read one is non-negotiable.
 
 ## What's inside a 4624 record
 

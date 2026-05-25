@@ -4,7 +4,7 @@ description: "1102 is the one event you can't suppress without leaving more evid
 date: "2026-05-17"
 ---
 
-Event ID **1102** is the record Windows writes to the `Security` channel when the audit log is cleared. It is — by design — one of the hardest records for an attacker to suppress, because suppressing it requires either successfully replacing the EventLog service before it boots or accepting that the act of clearing leaves a 1102 of its own.
+Event ID **1102** is the record Windows writes to the [`Security` channel](/en/blog/what-is-an-evtx-file) when the audit log is cleared. It is — by design — one of the hardest records for an attacker to suppress, because suppressing it requires either successfully replacing the EventLog service before it boots or accepting that the act of clearing leaves a 1102 of its own.
 
 For defenders this means: if you see 1102, somebody with sufficient privilege deliberately wiped the audit trail. That is almost never a normal admin action.
 
@@ -121,4 +121,4 @@ The signal is so directly anti-forensic that even legitimate 1102s should be inv
 
 ## Why this matters for parsing
 
-When you load an .evtx file into a forensic tool, the *first* search worth running is `EventID:1102` and `EventID:104`. If either is present, the log you're holding has known gaps and any timeline you build from it is incomplete. Note it loudly in the report.
+When you [load an .evtx file into a forensic tool](/en/blog/how-to-open-an-evtx-file), the *first* search worth running is `EventID:1102` and `EventID:104`. If either is present, the log you're holding has known gaps and any timeline you build from it is incomplete. Note it loudly in the report.

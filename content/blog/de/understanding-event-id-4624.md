@@ -4,7 +4,7 @@ description: "Was ein 4624-Datensatz wirklich enthält, warum das Feld LogonType
 date: "2026-05-17"
 ---
 
-Event-ID 4624 — „Ein Konto wurde erfolgreich angemeldet" — wird auf dem `Security`-Kanal jedes Mal protokolliert, wenn Windows eine Identität authentifiziert. Es ist auf den meisten Arbeitsplätzen der häufigste Datensatz und das Rückgrat fast jeder IR-Untersuchung. Ihn lesen zu können ist Pflicht.
+Event-ID 4624 — „Ein Konto wurde erfolgreich angemeldet" — wird auf dem [`Security`-Kanal](/de/blog/what-is-an-evtx-file) jedes Mal protokolliert, wenn Windows eine Identität authentifiziert. Es ist auf den meisten Arbeitsplätzen der häufigste Datensatz und das Rückgrat fast jeder IR-Untersuchung. Ihn lesen zu können ist Pflicht.
 
 ## Was steckt in einem 4624-Datensatz
 
@@ -44,8 +44,8 @@ Ein 4624 mit LogonType **10** von einer externen IP um 03:00 Uhr an einem Sonnta
 
 Ein erfolgreicher 4624 allein ist selten ein Befund. Er wird zu einem in Kombination mit:
 
-- **4625** davor von derselben Quelle — ein Erfolg nach einer Reihe von Fehlversuchen ist die Lehrbuchsignatur für „Brute-Force, dann Erfolg".
-- **4672** (besondere Rechte zugewiesen) — markiert Anmeldungen, die Rechte wie `SeDebugPrivilege` gewährt haben; nützlich, um privilegierte Konto-Nutzung zu finden.
+- [**4625**](/de/blog/detecting-4625-brute-force) davor von derselben Quelle — ein Erfolg nach einer Reihe von Fehlversuchen ist die Lehrbuchsignatur für „Brute-Force, dann Erfolg".
+- [**4672**](/de/blog/event-id-4672-special-privileges) (besondere Rechte zugewiesen) — markiert Anmeldungen, die Rechte wie `SeDebugPrivilege` gewährt haben; nützlich, um privilegierte Konto-Nutzung zu finden.
 - **4648** (Anmeldung mit expliziten Anmeldedaten) — fängt `runas` und andere Credential-Passing-Muster ein.
 
 ## Sie skaliert lesen

@@ -6,6 +6,8 @@ date: "2026-05-16"
 
 El registro de eventos de Windows — `.evtx` — es el formato binario que Microsoft introdujo con Windows Vista para reemplazar al antiguo `.evt`. Es la columna vertebral de casi cualquier respuesta a incidentes en Windows: inicios de sesión, arranques de servicio, líneas de comando de PowerShell, creaciones de procesos de Sysmon y una larga lista de canales específicos de proveedores se serializan en él.
 
+¿Nuevo en `.evtx`? Empieza por [qué es un archivo .evtx](/es/blog/what-is-an-evtx-file) y [cómo abrir uno](/es/blog/how-to-open-an-evtx-file). El resto de este post es la orientación de canales y Event IDs para analistas ya cómodos con el formato.
+
 ## Cómo está organizado un archivo
 
 Cada `.evtx` comienza con un encabezado de 4 KB (firma `ElfFile\0`, checksum y número de bloques), seguido por una secuencia de bloques de 64 KB. Cada bloque tiene su propio encabezado (`ElfChnk`), una tabla de plantillas XML usadas en el bloque y un flujo de registros binarios que referencian esas plantillas por ID. El parser reconstruye cada evento enlazando los marcadores de la plantilla con los valores propios del registro.
