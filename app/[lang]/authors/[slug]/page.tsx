@@ -89,6 +89,7 @@ export default async function AuthorPage({
           items={[
             { name: dict.nav.home, href: `/${locale}` },
             { name: dict.metadata.blogTitle, href: `/${locale}/blog` },
+            { name: dict.authors.indexTitle, href: `/${locale}/authors` },
             { name: author.name },
           ]}
         />

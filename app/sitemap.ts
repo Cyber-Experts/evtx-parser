@@ -11,6 +11,7 @@ const STATIC_PATHS = [
   "/glossary",
   "/event-ids",
   "/tools",
+  "/authors",
   "/search",
   "/sitemap",
 ];

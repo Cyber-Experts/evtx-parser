@@ -5,7 +5,7 @@ import { ThemeToggle } from "./theme-toggle";
 import type { Locale } from "@/lib/i18n";
 
 type Dict = {
-  nav: { home: string; blog: string; search: string };
+  nav: { home: string; blog: string; authors: string; search: string };
   toggleTheme: string;
 };
 
@@ -23,6 +23,9 @@ export function SiteHeader({ locale, dict }: { locale: Locale; dict: Dict }) {
             </Link>
             <Link href={`/${locale}/blog`} className="hover:underline">
               {dict.nav.blog}
+            </Link>
+            <Link href={`/${locale}/authors`} className="hover:underline">
+              {dict.nav.authors}
             </Link>
             <Link href={`/${locale}/search`} className="hover:underline">
               {dict.nav.search}

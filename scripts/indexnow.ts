@@ -112,6 +112,7 @@ async function main() {
     urls.add(`${siteConfig.url}/${lang}/glossary`);
     urls.add(`${siteConfig.url}/${lang}/event-ids`);
     urls.add(`${siteConfig.url}/${lang}/tools`);
+    urls.add(`${siteConfig.url}/${lang}/authors`);
     urls.add(`${siteConfig.url}/${lang}/sitemap`);
     urls.add(`${siteConfig.url}/${lang}/contact`);
     urls.add(`${siteConfig.url}/${lang}/privacy`);

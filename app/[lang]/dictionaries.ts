@@ -22,7 +22,7 @@ export type Dictionary = {
     sitemapTitle: string;
     sitemapDescription: string;
   };
-  nav: { home: string; blog: string; search: string };
+  nav: { home: string; blog: string; authors: string; search: string };
   toggleTheme: string;
   footer: { rights: string; sitemap: string; rss: string };
   blog: {
@@ -41,6 +41,12 @@ export type Dictionary = {
     page: string;
   };
   tag: { title: string; back: string };
+  authors: {
+    indexTitle: string;
+    indexDescription: string;
+    postsCount: string;
+    backToIndex: string;
+  };
   search: { placeholder: string; noResults: string };
   notFound: { title: string; cta: string };
   home: { heading: string; subheading: string; readBlog: string };
@@ -62,7 +68,12 @@ function adapt(dict: Dict): Dictionary {
       sitemapTitle: "Sitemap",
       sitemapDescription: "All pages on the site.",
     },
-    nav: { home: dict.breadcrumb.home, blog: dict.footer.blog, search: "Search" },
+    nav: {
+      home: dict.breadcrumb.home,
+      blog: dict.footer.blog,
+      authors: "Authors",
+      search: "Search",
+    },
     toggleTheme: "Toggle theme",
     footer: {
       rights: "All rights reserved.",
@@ -85,6 +96,12 @@ function adapt(dict: Dict): Dictionary {
       page: "Page",
     },
     tag: { title: dict.tags.tagTitleTemplate, back: dict.blog.backToBlog },
+    authors: {
+      indexTitle: "Authors",
+      indexDescription: `The people writing on ${dict.meta.siteName}.`,
+      postsCount: dict.tags.postsCount,
+      backToIndex: "← All authors",
+    },
     search: { placeholder: "Search posts…", noResults: "No results." },
     notFound: {
       title: dict.notFound.heading,
