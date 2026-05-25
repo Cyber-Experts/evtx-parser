@@ -7,7 +7,7 @@ export const size = ogSize;
 export const contentType = ogContentType;
 export const alt = "EVTX parser — browser-side Windows Event Log forensics";
 
-export default async function OpengraphImage({
+export default async function TwitterImage({
   params,
 }: {
   params: Promise<{ lang: string }>;

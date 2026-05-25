@@ -1,26 +1,14 @@
-import { ImageResponse } from "next/og";
-import { OgImage } from "@next-md-blog/core";
-import { siteConfig } from "@/site.config";
+import { defaultLocale } from "@/src/dict/locales";
+import { ogContentType, ogSize, renderOg } from "@/lib/og-template";
 
-export const runtime = "nodejs";
-export const alt = siteConfig.name;
-export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
+export const size = ogSize;
+export const contentType = ogContentType;
+export const alt = "EVTX parser — browser-side Windows Event Log forensics";
 
-export default function Image() {
-  return new ImageResponse(
-    (
-      <OgImage
-        title={siteConfig.name}
-        description={siteConfig.description}
-        siteName={siteConfig.name}
-      />
-    ),
-    {
-      ...size,
-      headers: {
-        "Cache-Control": "public, max-age=31536000, immutable",
-      },
-    },
-  );
+/**
+ * Site-wide default OG image (no locale segment in URL). Renders the
+ * default-locale variant of the branded template.
+ */
+export default async function OpengraphImage() {
+  return renderOg(defaultLocale);
 }
