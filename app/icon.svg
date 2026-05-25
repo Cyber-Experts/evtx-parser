@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="8" fill="#0a0a0a"/>
+  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central"
+        font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+        font-size="20" font-weight="700" fill="#fafafa"
+        letter-spacing="-1px">.evtx</text>
+</svg>
