@@ -1,0 +1,15 @@
+{
+  "name": "evtx-wasm",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "evtx_wasm_bg.wasm",
+    "evtx_wasm.js",
+    "evtx_wasm.d.ts"
+  ],
+  "main": "evtx_wasm.js",
+  "types": "evtx_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
