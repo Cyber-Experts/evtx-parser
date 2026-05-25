@@ -3,15 +3,17 @@ import { composeSitemap } from "@next-md-blog/core";
 import { blog, glossary } from "@/next-md-blog.config";
 import { siteConfig } from "@/site.config";
 import { LOCALES, DEFAULT_LOCALE, hreflangFor } from "@/lib/i18n";
+import { allEventIdParams } from "@/lib/event-id-data";
 
-/*
- * Google caps a single sitemap at 50,000 URLs / 50 MB. When you grow past
- * that, switch to sharded sitemaps via `generateSitemaps()` returning N
- * shard ids; Next will emit /sitemap.xml as an index that references
- * /sitemap/<id>.xml.
- */
-
-const STATIC_PATHS = ["", "/blog", "/glossary", "/search", "/sitemap"];
+const STATIC_PATHS = [
+  "",
+  "/blog",
+  "/glossary",
+  "/event-ids",
+  "/tools",
+  "/search",
+  "/sitemap",
+];
 
 function staticEntry(
   path: string,
@@ -30,10 +32,27 @@ function staticEntry(
   };
 }
 
+/**
+ * Per-Event-ID landing pages — curated, finite, available in every locale.
+ * Each gets a sitemap row with the full hreflang map.
+ */
+function eventIdEntries(): MetadataRoute.Sitemap {
+  const out: MetadataRoute.Sitemap = [];
+  for (const { id } of allEventIdParams()) {
+    out.push(
+      staticEntry(`/event-id/${id}`, "monthly", 0.6),
+    );
+  }
+  return out;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticEntries = STATIC_PATHS.map((p) =>
-    staticEntry(p, p === "" ? "daily" : "weekly", p === "" ? 1 : 0.7),
-  );
+  const staticEntries = [
+    ...STATIC_PATHS.map((p) =>
+      staticEntry(p, p === "" ? "daily" : "weekly", p === "" ? 1 : 0.7),
+    ),
+    ...eventIdEntries(),
+  ];
   return composeSitemap({
     collections: [blog, glossary],
     locales: LOCALES,
