@@ -23,7 +23,7 @@ const AUTHOR_NAME = "Florian Amette";
 const AUTHOR_GIVEN_NAME = "Florian";
 const AUTHOR_FAMILY_NAME = "Amette";
 const AUTHOR_ALIAS = "F4K";
-const AUTHOR_URL = "https://www.f4k.fr/en";
+const AUTHOR_URL = "https://www.f4k.fr";
 const AUTHOR_SAME_AS = [AUTHOR_URL];
 
 const websiteId = (locale: Locale) => `${SITE_URL}/${locale}#website`;

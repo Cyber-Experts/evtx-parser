@@ -30,7 +30,7 @@ export const siteConfig = {
     {
       name: "Florian Amette",
       bio: "DFIR practitioner writing on Windows Event Log forensics. Alias: F4K.",
-      url: "https://www.f4k.fr/en",
+      url: "https://www.f4k.fr",
     },
   ] as Array<{
     name: string;
