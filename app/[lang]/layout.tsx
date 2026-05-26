@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { notFound } from "next/navigation";
+import Script from "next/script";
 import "../globals.css";
 
 import { siteConfig } from "@/site.config";
@@ -136,6 +137,11 @@ export default async function LangLayout({
         <WebVitals />
         <VercelAnalytics />
         <SpeedInsights />
+        <Script
+          src="https://analytics.ahrefs.com/analytics.js"
+          data-key="W+lz3lBWLPK1AkW6UtoO9w"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
