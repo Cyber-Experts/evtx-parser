@@ -1,16 +1,16 @@
 ---
-title: "Event ID 7036 explicado: cambios de estado de servicio para triage DFIR"
-description: "7036 se dispara cada vez que un servicio arranca o se detiene. Con 7045 confirma si la persistencia se ejecutó — y solo, revela abuso de servicios y evasión de defensas."
+title: "Event ID 7036 explicado: cambios de estado de servicio para triaje DFIR"
+description: "7036 se dispara cada vez que un servicio arranca o se detiene. Emparejado con 7045 confirma si la persistencia realmente se ejecutó. Por sí solo revela abuso de servicios, evasión de defensa y anomalías de arranque."
 date: "2026-05-24"
 ---
 
-El Event ID **7036** — «El servicio {service} entró en el estado {state}» — se dispara en el [canal `System`](/es/blog/what-is-an-evtx-file) cada vez que el Service Control Manager (SCM) ve una transición de servicio. Cada arranque, parada, pausa y reanudación de servicio produce uno. Por sí solo es de alto volumen y fácil de descartar; emparejado con [7045](/es/blog/service-creation-event-id-7045) (servicio instalado) es la diferencia entre *un backdoor fue instalado* y *un backdoor fue instalado y se ejecutó*.
+El Event ID **7036**, "El servicio {service} entró en el estado {state}", se dispara en el [canal `System`](/es/blog/what-is-an-evtx-file) cada vez que el Service Control Manager ve una transición de servicio. Cada arranque, parada, pausa y reanudación produce uno. Por sí solo es de alto volumen y fácil de descartar. Emparejado con [7045](/es/blog/service-creation-event-id-7045) es la diferencia entre "se instaló un backdoor" y "se instaló un backdoor y se ejecutó".
 
-Para respuesta a incidentes, este es el registro «¿se ejecutó?» más barato que el SO te da.
+Para respuesta a incidentes, este es el registro más barato de "¿se ejecutó?" que el SO te da.
 
 ## Dónde vive
 
-Siempre el canal **`System`** en el host donde corrió el servicio. Sin participación del DC, sin forwarding por canal del que preocuparse — está ahí mismo en `System.evtx`. El proveedor es `Service Control Manager`.
+Canal `System` en el host donde el servicio corrió. Sin involucración de DC, sin preocupación por reenvío por canal. Está ahí mismo en `System.evtx`. Provider: `Service Control Manager`.
 
 ## Qué contiene el registro
 
@@ -24,29 +24,29 @@ Siempre el canal **`System`** en el host donde corrió el servicio. Sin particip
 </UserData>
 ```
 
-Eso es todo. Dos parámetros y un tag binario — mucho más pequeño que la mayoría de registros Security, razón por la cual los analistas lo saltan.
+Eso es todo. Dos parámetros y un tag binario. Mucho más pequeño que la mayoría de registros de Security, por eso los analistas lo saltan.
 
-- **`param1`** — el *nombre mostrado* del servicio (no el nombre corto). `Background Intelligent Transfer Service` aquí es el nombre de cara al usuario para `BITS`. Para pivotar a la definición del servicio a menudo necesitarás el nombre corto; el SCM también lo estampa en `Binary` como un blob codificado UTF-16 (el `42 00 49 00 54 00 53 00` aquí decodifica a `BITS`).
-- **`param2`** — el nuevo estado: `running`, `stopped`, `paused`, `resumed`, o uno de un puñado de intermedios pendientes (`start pending`, `stop pending`). Las transiciones `running` y `stopped` son las que la mayoría de reglas usan como clave.
+- `param1`. El *nombre de visualización* del servicio (no el nombre corto). `Background Intelligent Transfer Service` aquí es el nombre de cara al usuario de `BITS`. Para pivotar a la definición del servicio normalmente necesitas el nombre corto. El SCM lo estampa en `Binary` como un blob UTF-16 (`42 00 49 00 54 00 53 00` decodifica a `BITS`).
+- `param2`. El nuevo estado: `running`, `stopped`, `paused`, `resumed` o estados intermedios pendientes (`start pending`, `stop pending`). `running` y `stopped` son sobre los que la mayoría de reglas se centran.
 
-No hay `AccountName`, no `ImagePath`, no `ProcessId` — 7036 te dice *qué* cambió de estado, no *quién* disparó el cambio. Para obtener el porqué, empareja con otros registros (ver abajo).
+No hay `AccountName`, ni `ImagePath`, ni `ProcessId`. 7036 te dice *qué* cambió de estado, no *quién* lo disparó. Para conseguir el por qué, empareja con otros registros.
 
-## 7036 vs 7045 vs 7035 vs 7034
+## 7036, 7045, 7035, 7034: cuál es cuál
 
-Cuatro eventos del canal System relacionados con servicios se confunden constantemente:
+Cuatro eventos relacionados con servicios del canal System se confunden constantemente:
 
 | Evento | Cuándo | Qué te da |
 |---|---|---|
-| **7045** | Servicio instalado | Nombre mostrado, nombre corto, `ImagePath`, `AccountName`, `StartType`. El punto de persistencia. |
-| **7036** | Arranque/parada de servicio | Solo nombre mostrado. El punto de ejecución. |
-| **7035** | Control de servicio enviado | Quién inició el arranque/parada (SID), qué control se envió. Rara vez activado por defecto; valioso cuando lo está. |
-| **7034** | Servicio crasheó inesperadamente | Servicio que terminó sin una parada limpia. Acción de recuperación. |
+| **7045** | Servicio instalado | Nombre de visualización, nombre corto, `ImagePath`, `AccountName`, `StartType`. El punto de persistencia. |
+| **7036** | Arranque/parada de servicio | Solo nombre de visualización. El punto de ejecución. |
+| **7035** | Control de servicio enviado | Quién inició arranque/parada (SID), qué control se envió. Raramente activo por defecto. |
+| **7034** | Servicio crasheó inesperadamente | Servicio terminado sin un stop limpio. |
 
-El patrón importa: **un 7045 seguido segundos después de un 7036 `running` para el mismo nombre mostrado es la secuencia de libro «instalado y ejecutado».** Un 7045 *sin* 7036 correspondiente significa que el servicio fue registrado pero nunca ejecutado — el atacante limpió, el instalador abortó, o el arranque fue diferido.
+El patrón importa: un 7045 seguido segundos después por un 7036 `running` para el mismo nombre de visualización es la secuencia clásica de "instalado y ejecutado". Un 7045 *sin* un 7036 coincidente significa que el servicio se registró pero nunca se ejecutó: o el atacante limpió, el instalador abortó, o el arranque se difirió.
 
-## Los patrones de triage
+## Los patrones de triaje
 
-### 1. Verificación de persistencia — empareja con 7045
+### Verificación de persistencia: emparejar con 7045
 
 ```
 [7045] "A service was installed: PSEXESVC, C:\Windows\PSEXESVC.exe, LocalSystem, demand start"
@@ -54,34 +54,34 @@ El patrón importa: **un 7045 seguido segundos después de un 7036 `running` par
 [7036] "The PSEXESVC service entered the stopped state"
 ```
 
-Tres registros, un evento de ejecución lateral PsExec. El par 7036 te dice que el servicio realmente corrió (no solo se instaló). Para un backdoor *persistente* el segundo 7036 (stopped) puede estar ausente o puede aparecer horas/días después cuando el host se reinicia.
+Tres registros, un evento de ejecución lateral PsExec. El par 7036 te dice que el servicio realmente corrió (no solo se instaló). Para un backdoor *persistente* el segundo 7036 (stopped) puede faltar o aparecer horas después cuando el host reinicia.
 
-Un 7045 sin un 7036 `running` en minutos es su propia anomalía — investiga por qué la instalación no se disparó. Causas comunes: el instalador está staged para el próximo reboot, el servicio fue configurado a manual start y el atacante aún no lo había triggereado, o el arranque falló (busca errores 7034 / 7000).
+Un 7045 sin un 7036 `running` en minutos es su propia anomalía. Investiga por qué la instalación no se disparó. Causas comunes: en cola para el próximo reboot, puesto a arranque manual y el atacante no lo había disparado todavía, arranque falló (busca errores 7034 / 7000).
 
-### 2. Señal de evasión de defensas — detener servicios de seguridad
+### Evasión de defensa: detener servicios de seguridad
 
-El patrón más abusado: un atacante detiene `WinDefend`, `MsMpEng`, `Sense`, `SecurityHealthService`, `EventLog`, `WdNisSvc`, o el servicio de un producto EDR. Cada uno genera un 7036 `stopped` para el nombre mostrado correspondiente. Si se intenta tampering de audit-policy / Defender, este es uno de los registros que sobrevive.
+El patrón más abusado. Un atacante detiene `WinDefend`, `MsMpEng`, `Sense`, `SecurityHealthService`, `EventLog`, `WdNisSvc` o el servicio de un producto EDR. Cada uno genera un 7036 `stopped` para el nombre de visualización correspondiente. Si se está intentando manipular política de auditoría o Defender, este es uno de los registros que sobreviven.
 
-Los nombres a alertar (nombres mostrados; varían según versión de Defender / EDR):
+Nombres para alertar (nombres de visualización; varían por versión de Defender o EDR):
 
-- `Windows Defender Antivirus Service` → servicio `WinDefend`
-- `Microsoft Defender Antivirus Network Inspection Service` → `WdNisSvc`
-- `Windows Defender Advanced Threat Protection Service` → `Sense`
-- `Security Center` → `wscsvc`
-- `Windows Event Log` → `EventLog`
-- Cualquier cosa coincidiendo con `*CrowdStrike*`, `*SentinelOne*`, `*Carbon*`, `*Cylance*`, `*Sophos*`, `*ESET*`, `*Symantec*`
+- `Windows Defender Antivirus Service` -> `WinDefend`
+- `Microsoft Defender Antivirus Network Inspection Service` -> `WdNisSvc`
+- `Windows Defender Advanced Threat Protection Service` -> `Sense`
+- `Security Center` -> `wscsvc`
+- `Windows Event Log` -> `EventLog`
+- Cualquier cosa que matchee `*CrowdStrike*`, `*SentinelOne*`, `*Carbon*`, `*Cylance*`, `*Sophos*`, `*ESET*`, `*Symantec*`
 
-Un 7036 `stopped` para cualquiera de estos — especialmente fuera de una ventana de mantenimiento programada — debería ser una alerta dura. Muchos atacantes usan `sc stop`, `net stop`, `Stop-Service`, o `taskkill /im` — los cuatro producen un 7036.
+Un 7036 `stopped` para cualquiera de estos, especialmente fuera de una ventana de mantenimiento programada, debería ser una alerta dura. Muchos atacantes usan `sc stop`, `net stop`, `Stop-Service` o `taskkill /im`. Los cuatro producen un 7036.
 
-### 3. Typosquatting de nombre de servicio
+### Typosquatting de nombre de servicio
 
-7036 se dispara para el nombre mostrado incluso cuando el servicio subyacente es malicioso. Vigila nombres mostrados que parecen legítimos pero no coinciden con ningún servicio Microsoft instalado: `Windows Update Service` (nombre real es `Windows Update`), `Windows Defender Service` (nombre real es `Windows Defender Antivirus Service`), `Microsoft Telemetry` (no existe tal servicio). Ejecuta un baseline de nombres mostrados desde un host known-good y diffea.
+7036 se dispara para el nombre de visualización incluso cuando el servicio subyacente es malicioso. Vigila nombres de visualización que parecen legítimos pero no coinciden con ningún servicio Microsoft instalado: `Windows Update Service` (nombre real es `Windows Update`), `Windows Defender Service` (nombre real es `Windows Defender Antivirus Service`), `Microsoft Telemetry` (no existe tal servicio). Baseline nombres de visualización de un host conocido bueno y haz diff.
 
-### 4. Anomalías de arranque
+### Anomalías de arranque
 
-Tras un reboot el SCM levanta los servicios auto-start en un orden aproximadamente estable. Un nuevo servicio auto-start apareciendo en la secuencia de 7036 de arranque — especialmente uno que no estaba en el arranque anterior — es un nuevo punto de persistencia. Cruza-referencia con el 7045 correspondiente en o antes del shutdown previo.
+Tras un reboot el SCM levanta servicios de auto-arranque en un orden aproximadamente estable. Un nuevo servicio auto-arranque apareciendo en la secuencia 7036 de arranque, especialmente uno que no estaba en el arranque anterior, es un nuevo punto de persistencia. Cruza con el 7045 correspondiente en o antes del apagado anterior.
 
-## Regla Sigma de ejemplo — servicio de seguridad detenido
+## Sigma: servicio de seguridad detenido
 
 ```yaml
 title: Security Service Stopped via 7036
@@ -122,9 +122,9 @@ tags:
   - attack.t1562.001
 ```
 
-## KQL de ejemplo — secuencia 7045 → 7036
+## KQL: secuencia 7045 a 7036
 
-El pivot titular. Instalación de persistencia seguida de ejecución en 5 minutos en el mismo host:
+El pivote titular. Instalación de persistencia seguida de ejecución en 5 minutos en el mismo host:
 
 ```kusto
 let installs =
@@ -147,9 +147,9 @@ Event
 | order by InstallTime desc
 ```
 
-El `DisplayName` de 7036 no siempre será literalmente igual a `ServiceName` de 7045 (uno es display, otro es corto) — coincide heurísticamente o precomputa un mapa para el pequeño conjunto de servicios que importan.
+`DisplayName` de 7036 no siempre será literalmente igual a `ServiceName` de 7045 (uno es display, otro es short). Matchea heurísticamente o precomputa un mapa para el pequeño conjunto de servicios que importan.
 
-## Splunk de ejemplo
+## Splunk
 
 ```spl
 index=wineventlog SourceName="Service Control Manager" EventCode=7036
@@ -160,36 +160,41 @@ index=wineventlog SourceName="Service Control Manager" EventCode=7036
 
 ## Mapeo ATT&CK
 
-- **T1562.001 — Impair Defenses: Disable or Modify Tools**: 7036 `stopped` para servicios de seguridad.
-- **T1543.003 — Create or Modify System Process: Windows Service**: 7036 `running` emparejado con 7045 para el mismo servicio.
-- **T1569.002 — System Services: Service Execution**: 7036 `running` para un `ImagePath` apuntando a un binario no estándar, frecuentemente como parte de movimiento lateral (PsExec, ejecución remota basada en SCM).
-- **T1489 — Service Stop**: dirigido a disponibilidad — detener servicios para habilitar otras acciones (ransomware deteniendo SQL Server antes de cifrar bases de datos).
+- T1562.001 Impair Defenses: Disable or Modify Tools. 7036 `stopped` para servicios de seguridad.
+- T1543.003 Create or Modify System Process: Windows Service. 7036 `running` emparejado con 7045 para el mismo servicio.
+- T1569.002 System Services: Service Execution. 7036 `running` para un `ImagePath` apuntando a un binario no estándar, a menudo parte de movimiento lateral (PsExec, ejecución remota basada en SCM, Impacket `psexec.py`).
+- T1489 Service Stop. Apuntado a disponibilidad (ransomware deteniendo SQL Server antes de cifrar bases de datos).
 
 ## Falsos positivos que parecen exactamente ataques
 
-- **Windows Update rutinario** reinicia una docena de servicios en una secuencia predecible. El patrón es recurrente y rápido.
-- **Actualizaciones de firmas de Defender** a veces reinician `WinDefend` mismo — un `stopped` seguido rápidamente de `running` desde `MsSecFlt.exe` es el patrón normal. El malicioso es *sin* `running` tras el `stopped`.
-- **Actualizaciones de EDR** detienen y reinician el servicio EDR. Etiqueta las ventanas de actualización del vendor.
-- **Sleep / hibernate del sistema** genera batches de registros `stopped` al dormir y `running` al despertar. Combinado con eventos `wake source` estos son obvios; no alertes sobre ellos aisladamente.
-- **Workloads de Container / Hyper-V** levantan y bajan servicios constantemente.
+- Windows Update reinicia una docena de servicios en una secuencia predecible. Recurrente y rápido.
+- Las actualizaciones de firmas de Defender a veces reinician `WinDefend` en sí. Un `stopped` rápidamente seguido de `running` desde `MsSecFlt.exe` es el patrón normal. El malicioso es *no* `running` tras el `stopped`.
+- Las actualizaciones de EDR detienen y reinician el servicio EDR. Etiqueta las ventanas de upgrade del vendor.
+- Sleep e hibernación del sistema generan tandas de `stopped` al dormir y `running` al despertar. No alertes sobre estos aisladamente.
+- Las cargas de trabajo de contenedores e Hyper-V suben y bajan servicios constantemente.
 
 ## Lo que 7036 no te dice
 
-- **Sin `AccountName`**: el registro no dice bajo qué contexto de seguridad corre el servicio. Saca eso del 7045 correspondiente o de la base de datos SCM.
-- **Sin PID**: no puedes mapear un 7036 directamente a un registro [4688](/es/blog/event-id-4688-process-creation) / [Sysmon 1](/es/blog/sysmon-event-id-1-process-create) sin correlacionar por `ImagePath` y timestamp.
-- **Sin iniciador**: no ves *quién* llamó a Stop-Service. Para eso necesitas 7035 (a menudo deshabilitado por defecto), [4688](/es/blog/event-id-4688-process-creation) para el `net stop` / `sc stop` / `taskkill` llamante, o [4104](/es/blog/powershell-4104-scriptblock) para `Stop-Service`.
-- **Mapeo nombre-corto-servicio**: el nombre mostrado está en `param1`; el nombre corto está en el blob binario y debe ser decodificado. La mayoría de parsers lo hacen automáticamente; si consultas `EventData` crudo tienes que manejarlo.
+- Sin `AccountName`. Saca eso del 7045 correspondiente o de la base de datos del SCM.
+- Sin PID. No puedes mapear un 7036 directamente a un registro [4688](/es/blog/event-id-4688-process-creation) o [Sysmon 1](/es/blog/sysmon-event-id-1-process-create) sin correlacionar por `ImagePath` y timestamp. La caché de [prefetch](https://www.prefetchparser.com) es la corroboración secundaria cuando 4688 estaba apagado.
+- Sin iniciador. No ves quién llamó a Stop-Service. Para eso necesitas 7035 (a menudo deshabilitado por defecto), [4688](/es/blog/event-id-4688-process-creation) para el `net stop` / `sc stop` / `taskkill` llamante, o [4104](/es/blog/powershell-4104-scriptblock) para `Stop-Service`.
+- Mapeo de nombre corto de servicio. El nombre de visualización está en `param1`. El nombre corto está en el blob binario y debe decodificarse. La mayoría de parsers hacen esto automáticamente. Si consultas `EventData` crudo tienes que manejarlo tú.
 
 ## Dónde encaja 7036 en una timeline
 
-El combo de ejecución lateral + evasión de defensas:
+Ejecución lateral más evasión de defensa:
 
-1. [**4624**](/es/blog/understanding-event-id-4624) — LogonType 3 desde un host controlado por el atacante, AuthenticationPackage Kerberos.
-2. [**4688**](/es/blog/event-id-4688-process-creation) — `services.exe` spawneando un hijo para operaciones SCM (o `psexesvc.exe` de PsExec).
-3. [**7045**](/es/blog/service-creation-event-id-7045) — servicio instalado, `ImagePath` fuera de rutas de instalación estándar.
-4. **7036** `running` — la instalación realmente se disparó. **Esta es tu confirmación de ejecución.**
-5. **7036** `stopped` para `WinDefend` / EDR — evasión de defensas antes de que corra el payload.
-6. [**4688**](/es/blog/event-id-4688-process-creation) — proceso payload bajo la cuenta de servicio.
-7. **7036** `stopped` para el servicio instalador — limpieza.
+1. [4624](/es/blog/understanding-event-id-4624). LogonType 3 desde un host controlado por el atacante, AuthenticationPackage Kerberos.
+2. [4688](/es/blog/event-id-4688-process-creation). `services.exe` engendrando un hijo para operaciones SCM (o `psexesvc.exe` de PsExec).
+3. [7045](/es/blog/service-creation-event-id-7045). Servicio instalado, `ImagePath` fuera de rutas de instalación estándar.
+4. **7036 `running`**. La instalación realmente se disparó. Confirmación de ejecución.
+5. **7036 `stopped`** para `WinDefend` o EDR. Evasión de defensa antes de que corra la payload.
+6. [4688](/es/blog/event-id-4688-process-creation). Proceso payload bajo la cuenta del servicio.
+7. **7036 `stopped`** para el servicio instalador. Limpieza.
 
-7036 aparece en los pasos 4, 5 y 7 — tres etapas diferentes de la misma intrusión. Por sí solo es difícil de usar; en contexto ata el registro de persistencia (7045) a la ejecución real y a las acciones de evasión de defensas circundantes.
+7036 aparece en los pasos 4, 5 y 7. Tres etapas distintas de la misma intrusión. Por sí solo es difícil de usar. En contexto ata el registro de persistencia (7045) a la ejecución real y a las acciones de evasión de defensa circundantes.
+
+## Lectura adicional
+
+- [Documentación Microsoft: 7036](https://learn.microsoft.com/en-us/troubleshoot/windows-server/system-management-components/event-id-7036)
+- [MITRE ATT&CK T1562.001](https://attack.mitre.org/techniques/T1562/001/)

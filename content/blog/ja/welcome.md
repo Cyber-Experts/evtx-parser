@@ -1,26 +1,49 @@
 ---
-title: "Windows イベントログのバイナリ形式を読む"
-description: ".evtx ファイルの内部構造、64 KB チャンクと XML テンプレートの仕組み、各イベントに含まれる情報、そしてこのバイナリ形式が Windows のインシデント対応とフォレンジック調査でなぜ重要なのかを短くまとめた入門。"
+title: "ここから始める: DFIR アナリストのための .evtx ガイド"
+description: ".evtx とは何か、重要なチャネル、押さえておくべき Event ID、それぞれがディスク上のどこにあるか。このブログのその他すべてのコンテンツへの出発点となるナビゲーションです。"
 date: "2026-05-16"
+updated: "2026-05-24"
 ---
 
-Windows イベントログ — `.evtx` — は、Microsoft が Windows Vista で導入し、古い `.evt` を置き換えるためのバイナリ形式です。ログオン、サービス起動、PowerShell コマンドライン、Sysmon のプロセス作成、そして長大なプロバイダ固有チャネルのほとんどが、ここに直列化されます。Windows のインシデント レスポンスの背骨と言ってよい存在です。
+`.evtx` は、Microsoft が Vista から導入したバイナリの Windows イベントログ形式で、旧来の `.evt` を置き換えました。Windows のインシデント対応の背骨です。ログオン、サービス インストール、スケジュールド タスク、PowerShell コマンドライン、Sysmon のプロセス ツリー。すべてこの形式にシリアライズされます。本記事は索引です。1 画面で全体像を示してから、実際の事案で意味のあるチャネルと Event ID を扱う各記事へのリンクをまとめます。
 
-`.evtx` に初めて触れる方は、まず [.evtx ファイルとは何か](/ja/blog/what-is-an-evtx-file) と [.evtx ファイルの開き方](/ja/blog/how-to-open-an-evtx-file) から読み始めてください。本記事の以降は、形式にすでに慣れたアナリスト向けの簡潔なオリエンテーションです。
+`.evtx` に初めて触れる方は、まず [.evtx ファイルとは何か](/ja/blog/what-is-an-evtx-file) と [.evtx ファイルの開き方](/ja/blog/how-to-open-an-evtx-file) からどうぞ。本記事の残りは、形式に慣れていて、ホストが炎上したときにまず何を読むべきかを知りたい方を想定しています。
 
-## ファイル構造
+## ファイルの場所
 
-すべての `.evtx` は、4 KB のヘッダー(マジック `ElfFile\0`、チェックサム、チャンク数)で始まり、64 KB のチャンクが連なります。各チャンクは独自のヘッダー(`ElfChnk`)、そのチャンク内で出現する XML テンプレート テーブル、そしてそれらをテンプレート ID で参照するバイナリ レコードの列から構成されます。パーサーは、テンプレートのプレースホルダにレコード固有の値を束ねて、各イベントを再構築します。
+ライブのログは `C:\Windows\System32\winevt\Logs\` の下にあります。1 チャネルにつき 1 つの `.evtx` ファイルです。常に存在するデフォルト:
 
-## レコードの中身
+- `Security.evtx`。ログオン、特権利用、監査ポリシー変更。ほとんどの事案で最もフォレンジック価値が高い。
+- `System.evtx`。ドライバー、サービス、OS レベルのエラー。
+- `Application.evtx`。アプリケーション レベルのエラー。
+- `Setup.evtx` と `ForwardedEvents.evtx`。インストール記録と転送された WEF トラフィック。
 
-デコード後、各レコードは XML 文書になり、主に 2 つのセクションを持ちます。
+加えて `Microsoft-Windows-*` 配下のアプリケーション別チャネル。事案で本領を発揮するもの:
 
-- `<System>` — プロバイダ名、チャネル、Event ID、レベル(1 重大 → 5 詳細)、コンピュータ名、セキュリティ コンテキスト、書き込み時の UTC タイムスタンプ。
-- `<EventData>` — プロバイダ固有のパラメータ(ログオン イベントの対象アカウント、プロセス作成のイメージ パス、など)。
+- `Microsoft-Windows-Sysmon%4Operational.evtx`。Sysmon が入っているときだけ存在します。入っていれば金脈です。
+- `Microsoft-Windows-PowerShell%4Operational.evtx`。Scriptblock とモジュール ロギング。
+- `Microsoft-Windows-TaskScheduler%4Operational.evtx`。スケジュールド タスクの作成と実行。
+- `Microsoft-Windows-TerminalServices-LocalSessionManager%4Operational.evtx`。RDP セッションのライフサイクル。
 
-Event ID だけではトリアージに十分でないことが多く、フォレンジックの「合図」は `<EventData>` ペイロードに宿っています。
+ファイルがどのようにレイアウトされているか(64 KB チャンク、XML テンプレート テーブル、BinXML)の深掘りは、[チャンク レベルの詳細](/ja/blog/evtx-file-format-chunks) を参照してください。
 
-## このツールはどう読むか
+## 押さえておくべき Event ID
 
-パーサーは Rust クレート [`omerbenamram/evtx`](https://github.com/omerbenamram/evtx) を WebAssembly にコンパイルし、Web Worker 上で実行しています。ファイルをドロップすると、Worker がメモリ上に読み込み、各チャンクを走査し、レコードごとの XML を再構築します。ネットワークに何も流しません。Wi-Fi を切って確かめることもできます。
+アナリストが軸にする項目の大半をカバーする要点リスト:
+
+- [**4624** ログオン成功](/ja/blog/understanding-event-id-4624)。`LogonType` で読み解きます。このフィールドが、コンソール (2)、ネットワーク (3)、RDP (10)、`runas /netonly` (9) のどれを見ているかを決めます。
+- [**4625** ログオン失敗](/ja/blog/detecting-4625-brute-force)。バースト パターンは、どのフィールドが集まっているかによって、偵察、ブルートフォース、パスワード スプレーのいずれかになります。
+- [**1102** Security ログがクリアされた](/ja/blog/event-id-1102-cleared-log)。これを見たら、手元のログには既知の欠落があります。報告書に大きく明記してください。
+- [**4104** PowerShell scriptblock](/ja/blog/powershell-4104-scriptblock)。デコードとリフレクションの*後*のスクリプト本体。プラットフォーム上で最も有用な無料の防御制御です。
+- [**7045** サービス インストール](/ja/blog/service-creation-event-id-7045)。MITRE ATT&CK で最も引用される永続化テクニックの 1 つ (T1543.003)。PsExec のシグネチャでもあります。
+- [**Sysmon 1** プロセス作成](/ja/blog/sysmon-event-id-1-process-create)。Sysmon が存在する場合、Windows が生成できる最も豊富なプロセス作成記録です。
+
+それらをつなぎ合わせるワークフローについては、[1 時間と 1 台のホストがあるときの EVTX トリアージ](/ja/blog/evtx-triage-incident-response) を読んでください。
+
+## このサイトの位置づけ
+
+トップ ページのパーサーは Rust クレート [omerbenamram/evtx](https://github.com/omerbenamram/evtx) を WebAssembly にコンパイルし、Web Worker 上で動かしています。`.evtx` をドロップすると、ワーカーがチャンクを走査し、フィルタ可能なイベント タイムラインとレコードごとの XML を返します。すべてブラウザ内で完結し、アップロードはありません。EDR を立ち上げたくないとき、自分のものではないシステムからファイルを移動させたくないときの、即席トリアージに使ってください。
+
+[ライブ ホストから `.evtx` を収集する](/ja/blog/collecting-evtx-from-live-system)(KAPE、FTK Imager、`wevtutil`)場合は、その記事で 4 つの標準的な手法と、それぞれの証拠保全上のトレードオフを扱っています。
+
+EVTX が必要な唯一のアーティファクトであることは稀です。[registry](https://www.registryparser.com)、[MFT](https://www.mftparser.com)、[USN journal](https://www.usnparser.com)、[AmCache](https://www.amcacheparser.com)、[Shimcache](https://www.shimcacheparser.com)、[prefetch](https://www.prefetchparser.com)、[LNK](https://www.lnkparser.com) のパーサーと組み合わせてください。さらに深く掘る必要があるときは、[pagefile](https://www.pagefilesysparser.com) と [RAM dump](https://www.ramparser.com) の解析が、ディスク常駐ログでは失われたものを復元します。ユーザー活動のタイムラインには、[SRUM](https://www.srumparser.com)、[jump lists](https://www.jumplistparser.com)、[recycle bin](https://www.recyclebinparser.com)、[recent file cache](https://www.recentfilecacheparser.com)、[browser history](https://www.browserforensics.app) が、EVTX では埋められない空白を埋めます。

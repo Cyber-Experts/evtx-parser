@@ -1,21 +1,21 @@
 ---
-title: "Event ID 4720 explicado: detectar creación de cuentas rogue en AD"
-description: "4720 se dispara cada vez que se crea una cuenta de usuario — local o en AD. Léelo con 4722/4724/4732 y detectas cuentas de persistencia y movimiento lateral en minutos."
+title: "Event ID 4720 explicado: detectar creación de cuentas maliciosas en AD"
+description: "4720 se dispara cada vez que se crea una cuenta de usuario, local o de dominio. Léelo con 4722, 4724 y 4732 y atrapas cuentas de persistencia y movimiento lateral en minutos."
 date: "2026-05-24"
 ---
 
-El Event ID **4720** — «Se creó una cuenta de usuario» — se escribe en el [canal `Security`](/es/blog/what-is-an-evtx-file) cada vez que se aprovisiona una nueva cuenta de usuario. En un domain controller se dispara para cada nuevo usuario AD; en una workstation o servidor miembro se dispara para cada nueva cuenta local. En un shop maduro, el tráfico 4720 es abrumadoramente HR-driven y predecible. Esa predictibilidad es lo que lo hace útil: un atacante creando una cuenta backdoor destaca precisamente porque el tráfico legítimo es tan regular.
+El Event ID **4720**, "Se creó una cuenta de usuario", aterriza en el [canal `Security`](/es/blog/what-is-an-evtx-file) cada vez que se aprovisiona un nuevo usuario. En un controlador de dominio se dispara para cada nuevo usuario de AD. En una estación de trabajo o servidor miembro se dispara para cada nueva cuenta local. En un shop maduro, el tráfico de 4720 es abrumadoramente impulsado por RRHH y predecible. Esa predictibilidad es lo que lo hace útil. Un atacante creando una cuenta backdoor destaca precisamente porque el tráfico legítimo es tan regular.
 
-Este es uno de los registros de detección de persistencia más baratos que la plataforma produce.
+Este es uno de los registros de detección de persistencia más baratos que produce la plataforma. He cerrado casos solo con él.
 
 ## Dónde se dispara
 
-- **Cuentas de dominio**: 4720 aterriza en el DC que manejó la creación. Recolecta en todos los DCs.
-- **Cuentas locales**: 4720 aterriza en el host donde se creó la cuenta. Capturar esto desde workstations miembro requiere WEF o colección por host — muchos shops se saltan el forwarding de Security de workstations y pierden esta señal por completo.
+- Cuentas de dominio: 4720 aterriza en el DC que manejó la creación. Recoge a través de todos los DCs.
+- Cuentas locales: 4720 aterriza en el host donde se creó la cuenta. Capturar esto desde estaciones miembro requiere WEF o colección por host. Muchos shops se saltan el reenvío de Security de estaciones y pierden esta señal completamente.
 
-Si el atacante crea una cuenta *local* en un servidor que ya ha comprometido (a menudo como credencial de respaldo), el 4720 estará solo en ese servidor. La cobertura importa.
+Si el atacante crea una cuenta *local* en un servidor que ya ha comprometido (a menudo como credencial de respaldo), el 4720 estará solo en ese servidor. La cobertura importa más que las reglas.
 
-## Qué contiene el registro
+## Qué hay en el registro
 
 ```xml
 <Data Name="TargetUserName">svc_backup2</Data>
@@ -43,40 +43,40 @@ Si el atacante crea una cuenta *local* en un servidor que ya ha comprometido (a 
 <Data Name="LogonHours">all</Data>
 ```
 
-Los campos que conducen las investigaciones:
+Los campos que mueven las investigaciones:
 
-- **`TargetUserName`** — la nueva cuenta. El nombre literal es la primera señal de triage: `svc_*`, `backup*`, `admin2`, `test`, `guest2`, parecidos a cuentas legítimas (`administrator`, `administr0r`), y cadenas aleatorias cortas, todos merecen una mirada más cercana.
-- **`SubjectUserName` / `SubjectLogonId`** — *quién* la creó. Pivot al [4624](/es/blog/understanding-event-id-4624) que creó esa sesión. Un 4720 desde `LocalSystem` en una workstation fuera del horario laboral no es un workflow de aprovisionamiento real.
-- **`UserAccountControl`** — el conjunto *inicial* de flags UAC. `0x10` (el ejemplo) es `NORMAL_ACCOUNT`; los flags peligrosos aparecen en registros 4738 (account changed) subsiguientes. El mapa de bits UAC completo está en MS-SAMR.
-- **`PrimaryGroupId`** — 513 (Domain Users) es normal; 512 (Domain Admins) en una cuenta nueva es una anomalía a gritos que nunca debería ocurrir en un workflow de aprovisionamiento real.
-- **`SidHistory`** — un `SidHistory` no vacío en una cuenta *recién creada* es una señal fuerte de una herramienta de migración — o, en el contexto equivocado, un artefacto de autenticación forjado.
+- `TargetUserName`. La nueva cuenta. El nombre literal es la primera señal de triaje: `svc_*`, `backup*`, `admin2`, `test`, `guest2`, lookalikes de cuentas legítimas (`administrator`, `administr0r`) y cadenas aleatorias cortas, todas merecen una mirada más cercana.
+- `SubjectUserName` y `SubjectLogonId`. Quién la creó. Pivota al [4624](/es/blog/understanding-event-id-4624) que creó esa sesión. Un 4720 desde `LocalSystem` en una estación de trabajo fuera de horario no es un workflow de aprovisionamiento real.
+- `UserAccountControl`. El conjunto *inicial* de flags UAC. `0x10` (en el ejemplo) es `NORMAL_ACCOUNT`. Los flags peligrosos aparecen en registros 4738 posteriores.
+- `PrimaryGroupId`. 513 (Domain Users) es normal. 512 (Domain Admins) en una cuenta nueva es a gritos y nunca debería pasar en un workflow de aprovisionamiento real.
+- `SidHistory`. No vacío en una cuenta recién creada es o una herramienta de migración o, en el contexto equivocado, un artefacto de autenticación forjado.
 
-## Los registros con los que 4720 no viene solo
+## 4720 nunca viene solo
 
 La creación de cuenta casi nunca es un evento único. La secuencia mínima:
 
 | Evento | Significado | Por qué te importa |
 |---|---|---|
 | **4720** | Cuenta de usuario creada | El titular. |
-| **4722** | Cuenta de usuario habilitada | La cuenta se configura para permitir logon. Si 4722 está ausente, la cuenta existe pero aún no puede iniciar sesión. |
-| **4724** | Reseteo de contraseña (admin-driven) | Alguien — posiblemente no el creador — estableció o reseteó la contraseña. |
-| **4738** | Cuenta de usuario modificada | Flags UAC, expiración, grupo, cambios de atributos. |
-| **4732** | Miembro añadido a un grupo local con seguridad habilitada | Si el grupo local es `Administrators`, este es el otorgamiento de privilegio. |
-| **4728** | Miembro añadido a un grupo global con seguridad habilitada | Si el grupo global es `Domain Admins` o `Enterprise Admins`, escalada. |
-| **4756** | Miembro añadido a un grupo universal con seguridad habilitada | `Schema Admins`, `Enterprise Admins`, delegaciones personalizadas. |
+| **4722** | Cuenta de usuario habilitada | La cuenta se establece para permitir logon. Si falta 4722, la cuenta existe pero no puede loguearse todavía. |
+| **4724** | Reset de contraseña (impulsado por admin) | Alguien, posiblemente no el creador, estableció o reseteó la contraseña. |
+| **4738** | Cuenta de usuario cambiada | Flags UAC, expiración, grupo, cambios de atributo. |
+| **4732** | Miembro añadido a un grupo local habilitado para seguridad | Si el grupo local es `Administrators`, esta es la concesión de privilegio. |
+| **4728** | Miembro añadido a un grupo global habilitado para seguridad | Si el grupo global es `Domain Admins` o `Enterprise Admins`, escalada. |
+| **4756** | Miembro añadido a un grupo universal habilitado para seguridad | `Schema Admins`, `Enterprise Admins`, delegaciones personalizadas. |
 
-Una cuenta backdoor rara vez se crea y se deja con privilegio por defecto. La cadena completa — `4720 → 4722 → 4724 → 4738 (flags UAC) → 4732/4728 (group add)` — se completa en segundos y es el evento de persistencia real.
+Una cuenta backdoor raramente se crea y se deja con privilegio por defecto. La cadena completa (4720, 4722, 4724, 4738, 4732/4728) se completa en segundos y es el evento de persistencia real.
 
-## Patrones de triage
+## Patrones de triaje
 
-1. **Cuenta nueva → grupo admin en minutos**: 4720 seguido de 4732/4728 a un grupo privilegiado dentro de una hora, donde el group add privilegiado *no* fue precedido por un ticket en el sistema de change-management. Empareja `TargetSid` del 4720 con `MemberSid` en 4732/4728.
-2. **Creación fuera de horario**: 4720 fuera del horario laboral por un `SubjectUserName` que no es una cuenta de servicio haciendo aprovisionamiento automatizado.
-3. **Nombre parecido**: `Levenshtein(TargetUserName, real_admin_name) <= 2` contra la tabla de usuarios existente. `administrato`, `administr0r`, `helpd3sk` — todos son casos reales.
-4. **Creada por una cuenta recientemente comprometida**: 4720 donde `SubjectLogonId` se remonta a un 4624 desde una IP inusual, o un 4624 LogonType 3 desde una workstation que el sujeto normalmente no usa.
-5. **Creada por `LocalSystem` en una workstation**: 4720 con `SubjectUserSid = S-1-5-18` en cualquier cosa que no sea un domain controller o servidor de aprovisionamiento conocido. Casi siempre malicioso.
-6. **`PrimaryGroupId == 512`**: nunca ocurre en aprovisionamiento normal. Alerta dura.
+1. **Cuenta nueva en grupo admin en minutos**. 4720 seguido de 4732 o 4728 a un grupo privilegiado en una hora, donde el añadido al grupo privilegiado no estuvo precedido por un ticket. Empareja `TargetSid` del 4720 con `MemberSid` en 4732/4728.
+2. **Creación fuera de horario**. 4720 fuera del horario laboral por un `SubjectUserName` que no es una cuenta de servicio ejecutando aprovisionamiento automatizado.
+3. **Nombre lookalike**. `Levenshtein(TargetUserName, real_admin_name) <= 2` contra la tabla de usuarios existente. `administrato`, `administr0r`, `helpd3sk`. Todas reales.
+4. **Creado por una cuenta recientemente comprometida**. 4720 donde `SubjectLogonId` rastrea hacia un 4624 desde una IP inusual, o un 4624 LogonType 3 desde una estación de trabajo que el sujeto normalmente no usa.
+5. **Creado por LocalSystem en una estación de trabajo**. 4720 con `SubjectUserSid = S-1-5-18` en cualquier cosa que no sea un controlador de dominio o servidor de aprovisionamiento conocido. Casi siempre malicioso.
+6. **PrimaryGroupId == 512**. Nunca pasa en aprovisionamiento normal. Alerta dura.
 
-## Regla Sigma de ejemplo
+## Sigma
 
 ```yaml
 title: Suspicious User Account Creation
@@ -106,11 +106,9 @@ tags:
   - attack.t1136
 ```
 
-Una variante de alta confianza: combina 4720 con un 4732/4728 a un grupo privilegiado dentro de 1 hora, scopeado por `TargetSid`.
+Una variante de alta confianza combina 4720 con un 4732 o 4728 a un grupo privilegiado en 1 hora, scopeado por `TargetSid`.
 
-## KQL de ejemplo — 4720 + otorgamiento de privilegio
-
-KQL (Sentinel) — el pivot «cuenta nueva → grupo admin»:
+## KQL: 4720 más concesión de privilegio
 
 ```kusto
 let creates =
@@ -133,7 +131,7 @@ SecurityEvent
 | order by CreateTime desc
 ```
 
-## Splunk de ejemplo
+## Splunk
 
 ```spl
 index=wineventlog EventCode=4720
@@ -148,38 +146,43 @@ index=wineventlog EventCode=4720
 
 ## Mapeo ATT&CK
 
-- **T1136.001 — Create Account: Local Account** para cuentas locales de workstation/servidor.
-- **T1136.002 — Create Account: Domain Account** para creaciones registradas en DC.
-- **T1136.003 — Create Account: Cloud Account** — *no* dispara 4720 (las creaciones de cuenta cloud están en los audit logs de Azure AD / unified audit log, no en Windows Security).
-- **T1098 — Account Manipulation** cuando 4720 es seguido por escalada de grupo o cambios de atributos.
+- T1136.001 Create Account: Local Account. Cuentas locales de estación de trabajo y servidor.
+- T1136.002 Create Account: Domain Account. Creaciones registradas en DC.
+- T1136.003 Create Account: Cloud Account. *No* dispara 4720. Las creaciones en cloud viven en los audit logs de Entra ID / unified audit log.
+- T1098 Account Manipulation. Cuando a 4720 le siguen escalada de grupo o cambios de atributo.
 
-## Falsos positivos que parecen exactamente ataques
+## Falsos positivos que parecen ataques
 
-- **Herramientas de migración masiva** (ADMT, Quest Migration Manager) crean cuentas a velocidad con `SidHistory` configurado. La forma del tráfico es idéntica a un atacante rápido; baseline las ventanas de migración conocidas.
-- **Pipelines de joiner** en workflows de aprovisionamiento HR-driven disparan 4720 a horas predecibles. Si alertas en cada 4720 fuera de horario te enterrarás en runs del sistema HR que se desplazan más allá de medianoche.
-- **Herramientas de gestión estilo SCCM / Intune / Jamf** crean cuentas locales para aprovisionamiento de SO. El `SubjectUserSid` será `S-1-5-18` (LocalSystem) en hosts de build conocidos; etiqueta esos hosts.
-- **Instaladores de servicio** para algunos productos legacy crean una cuenta de servicio local en el primer run. Baseline el instalador.
+- Las herramientas de migración masiva (ADMT, Quest Migration Manager) crean cuentas a velocidad con `SidHistory` puesto. La forma es idéntica a un atacante rápido. Baseline ventanas de migración conocidas.
+- Los pipelines de joiner en workflows de aprovisionamiento impulsados por RRHH disparan 4720 en momentos predecibles. Alertar sobre cada 4720 fuera de horario te enterrará en ejecuciones de RRHH que se derraman pasada la medianoche.
+- Las herramientas de gestión estilo SCCM, Intune y Jamf crean cuentas locales para aprovisionamiento de OS. `SubjectUserSid` es `S-1-5-18` en hosts de build conocidos. Etiqueta esos.
+- Los instaladores de servicio para algunos productos legacy crean una cuenta de servicio local en la primera ejecución. Baseline el instalador.
 
-Las detecciones sólidas de 4720 siempre combinan la creación con una señal de seguimiento (group add, cambio de contraseña a un patrón débil conocido, login inmediato desde un host inusual). La creación standalone es demasiado ruidosa.
+Las detecciones sólidas de 4720 siempre combinan la creación con una señal de seguimiento (añadido a grupo, cambio de contraseña a un patrón débil conocido, login inmediato desde un host inusual). La creación independiente es demasiado ruidosa.
 
 ## Lo que 4720 no te dice
 
-El registro no incluye la *contraseña* de la nueva cuenta (Windows nunca registra eso, en ningún sitio). Tampoco incluye el SID del *dominio objetivo* explícitamente; lees el dominio desde `TargetDomainName` o lo derivas de la porción de dominio del `TargetSid`.
+El registro no incluye la contraseña de la nueva cuenta (Windows nunca logea eso, en ningún lado). Tampoco incluye el SID del dominio destino explícitamente. Lees el dominio de `TargetDomainName` o lo derivas de la porción de dominio de `TargetSid`.
 
-Las creaciones de cuenta local en workstations miembro son invisibles al DC. Si no estás recolectando Security desde workstations (la mayoría de shops no lo hacen), te perderás cada cuenta backdoor local. Sysmon y un EDR de verdad cubren parte del hueco (patrones de creación de archivos / cambios en registro cuando se toca el SAM local), pero el forwarding de 4720 es la forma más barata.
+Las creaciones de cuentas locales en estaciones miembro son invisibles para el DC. Si no estás recolectando Security de estaciones de trabajo (la mayoría de shops no lo hacen), pierdes toda cuenta backdoor local. Sysmon y un EDR real llenan parte del hueco (patrones de creación de archivo y cambio de registro cuando se toca el SAM local), pero el reenvío de 4720 es el control más barato. El snapshot de hive del [registro](https://www.registryparser.com) es la corroboración cuando el reenvío de log estaba apagado.
 
 ## Dónde encaja 4720 en una timeline
 
-La cadena de persistencia de libro de texto:
+La cadena de persistencia de manual:
 
-1. [**4624**](/es/blog/understanding-event-id-4624) — logon de dominio inicial por un usuario phisheado.
-2. Ráfaga de [**4769**](/es/blog/event-id-4769-kerberoasting) — kerberoasting contra cuentas de servicio de dominio.
-3. **4624** como cuenta de servicio comprometida en un servidor miembro.
-4. [**4688**](/es/blog/event-id-4688-process-creation) — `net user svc_backup2 P@ssw0rd! /add /domain` (o lo mismo vía PowerShell `New-ADUser`).
-5. **4720** — cuenta creada en el DC.
-6. **4724** — contraseña establecida.
-7. **4722** — cuenta habilitada.
-8. **4728** — añadida a Domain Admins.
-9. [**7045**](/es/blog/service-creation-event-id-7045) — servicio instalado en un servidor, corriendo bajo la nueva cuenta.
+1. [4624](/es/blog/understanding-event-id-4624). Logon inicial de dominio por un usuario phisheado.
+2. Ráfaga de [4769](/es/blog/event-id-4769-kerberoasting). Kerberoasting contra cuentas de servicio de dominio.
+3. 4624 como una cuenta de servicio comprometida en un servidor miembro.
+4. [4688](/es/blog/event-id-4688-process-creation). `net user svc_backup2 P@ssw0rd! /add /domain` (o `New-ADUser` vía PowerShell).
+5. **4720**. Cuenta creada en el DC.
+6. 4724. Contraseña establecida.
+7. 4722. Cuenta habilitada.
+8. 4728. Añadido a Domain Admins.
+9. [7045](/es/blog/service-creation-event-id-7045). Servicio instalado en un servidor, ejecutándose bajo la nueva cuenta.
 
-Si instrumentas 4720 solo, atrapas la persistencia en el paso 5 — antes de que los pasos 6-9 hagan ningún daño. Ese es el valor.
+Instrumenta solo 4720 y atrapas la persistencia en el paso 5, antes de que los pasos 6 a 9 hagan ningún daño. Ese es el valor.
+
+## Lectura adicional
+
+- [Documentación Microsoft para 4720](https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4720)
+- [MITRE ATT&CK T1136](https://attack.mitre.org/techniques/T1136/)

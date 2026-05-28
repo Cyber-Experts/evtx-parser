@@ -1,12 +1,12 @@
 ---
-title: "Event ID 1102 explicado: log de auditoría de seguridad borrado (y qué sobrevive)"
-description: "1102 es el único evento que no puedes suprimir sin dejar más evidencia. Aquí está qué te dice y qué sobrevive al borrado."
+title: "Event ID 1102 explicado: registro de auditoría de Security borrado (y lo que sobrevive)"
+description: "1102 es el único evento que no puedes suprimir sin dejar más pruebas. Esto es lo que te dice, lo que sobrevive al borrado y dónde mirar cuando lo veas."
 date: "2026-05-17"
 ---
 
-El Event ID **1102** es el registro que Windows escribe en el [canal `Security`](/es/blog/what-is-an-evtx-file) cuando el log de auditoría es borrado. Es — por diseño — uno de los registros más difíciles de suprimir para un atacante, porque suprimirlo requiere o bien reemplazar con éxito el servicio EventLog antes de que arranque o aceptar que el acto de borrar deja a su vez un 1102.
+El Event ID **1102** es lo que Windows escribe en el [canal `Security`](/es/blog/what-is-an-evtx-file) cuando alguien borra el registro de auditoría. Por diseño, es uno de los registros más difíciles de suprimir para un atacante. Suprimirlo limpiamente requiere reemplazar el binario del servicio EventLog antes de que arranque, o aceptar que el acto de borrar deja un 1102 propio. La mayoría de operadores eligen la segunda opción, esperando que nadie esté prestando atención.
 
-Para los defensores esto significa: si ves un 1102, alguien con privilegios suficientes borró deliberadamente la pista de auditoría. Eso casi nunca es una acción administrativa normal.
+Si ves 1102, alguien con suficiente privilegio borró deliberadamente el rastro de auditoría. Esto prácticamente nunca es una acción admin rutinaria, y cuando lo es, debería tener un ticket. Trata cada 1102 fuera de una ventana de mantenimiento aprobada como un incidente hasta que se demuestre lo contrario.
 
 ## Qué hay en el registro
 
@@ -21,35 +21,36 @@ Para los defensores esto significa: si ves un 1102, alguien con privilegios sufi
 </UserData>
 ```
 
-Nota el bloque `UserData` en lugar del usual `EventData` — 1102 es uno de los registros que usa un esquema estructurado de user-data. Los campos te dicen *quién* borró el log bajo qué sesión de logon. Pivotando sobre `SubjectLogonId` encuentras el [4624](/es/blog/understanding-event-id-4624) correspondiente y obtienes la IP de origen y el tipo de logon que produjo la sesión privilegiada.
+Nota el bloque `UserData` en lugar del `EventData` habitual. 1102 usa un esquema estructurado user-data, que confunde a algunos parsers ingenuos que solo miran `EventData`. Los campos te dicen quién borró el log bajo qué sesión de logon. Pivota en `SubjectLogonId` al [4624](/es/blog/understanding-event-id-4624) correspondiente y tendrás la IP origen, el tipo de logon y la credencial que produjo la sesión privilegiada.
 
-## Qué se dispara también cuando se dispara un 1102
+## Qué cabalga al lado
 
-Un borrado de log rara vez es la *única* acción anti-forense. Compañeros comunes, en orden cronológico aproximado:
+Un borrado de log raramente es la única acción anti-forense de la cadena. Los registros que tienden a dispararse cerca, en orden cronológico aproximado:
 
-- **104** en el canal `System` — mismo acto, registrado por el SCM. Si 104 está presente pero 1102 no, el atacante solo borró el Security log y olvidó System.
-- **4719** — «Se modificó la política de auditoría del sistema». A veces un atacante reduce la cobertura de auditoría *antes* de borrar, para dejar menos registros en la siguiente ronda.
-- **4616** — «Se cambió la hora del sistema». El desfase horario pre-borrado dificulta la reconstrucción de la timeline.
-- **Una brecha en los 4624** durante una hora o dos antes del 1102 — el atacante puede haber usado un canal lateral no registrado.
+- **104** en el canal `System`. El mismo acto que 1102 pero registrado por el SCM para canales no-Security. Si 104 está presente y falta 1102, el atacante solo borró Security y se olvidó de System.
+- **4719**, "se cambió la política de auditoría del sistema". A veces el atacante reduce la cobertura de auditoría *antes* de borrar, para dejar menos registros la próxima vez.
+- **4616**, "se cambió la hora del sistema". El timestomping previo al borrado dificulta la reconstrucción de la timeline.
+- Un hueco en 4624s en la hora o dos antes de 1102. El atacante puede haber usado un canal lateral no registrado para entrar.
 
 ## Qué sobrevive a un borrado
 
 Borrar el event log en memoria no toca:
 
-- **Otros canales**: `System`, `Application`, `PowerShell/Operational`, `Sysmon/Operational`, `TaskScheduler/Operational`, canales de eventos reenviados — ninguno de estos se borra con un wipe de Security.
-- **Eventos reenviados**: si Windows Event Forwarding (WEF) está configurado hacia un colector central, los registros borrados ya están en otro host.
-- **El propio archivo en disco**: un `Security.evtx` borrado se reemplaza por un archivo nuevo; los clusters del archivo *eliminado* anterior a menudo persisten en espacio no asignado y pueden carvearse con herramientas NTFS.
-- **Entradas del USN journal** sobre el reemplazo del archivo: incluso la operación de borrado deja artefactos a nivel de filesystem.
+- Otros canales. `System`, `Application`, `PowerShell/Operational`, `Sysmon/Operational`, `TaskScheduler/Operational`, canales de eventos reenviados. Ninguno se borra con un wipe de Security.
+- Eventos reenviados. Si Windows Event Forwarding está enviando Security a un recolector, los registros borrados ya están en otro host. Los RecordIDs y timestamps originales se preservan.
+- El propio archivo en disco. Una `Security.evtx` borrada se reemplaza por un archivo fresco. Los clusters del archivo anterior a menudo persisten en espacio no asignado. Los registros EVTX [carvan limpiamente](/es/blog/carve-deleted-evtx-records) de esos clusters.
+- Entradas del [diario USN](https://www.usnparser.com) para el reemplazo del archivo. Incluso el acto de borrar deja artefactos a nivel de sistema de archivos.
+- La entrada [MFT](https://www.mftparser.com) para el archivo nuevo, que lleva un timestamp de creación que debería coincidir con el 1102 con un segundo de margen.
 
-Un borrado de log «exitoso» rara vez es tan limpio como espera el atacante.
+Un borrado de log "exitoso" raramente es tan limpio como el atacante espera.
 
-## Regla Sigma de ejemplo — log borrado
+## Sigma: log borrado
 
 ```yaml
 title: Windows Security Event Log Cleared
 id: 2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e
 status: stable
-description: Detect 1102 (Security log cleared) and 104 (System log cleared) — anti-forensic actions.
+description: Detect 1102 (Security log cleared) and 104 (System log cleared). Anti-forensic actions.
 references:
   - https://attack.mitre.org/techniques/T1070/001/
 logsource:
@@ -71,9 +72,7 @@ tags:
   - attack.t1070.001
 ```
 
-Si ves un 1102 fuera de una ventana de mantenimiento aprobada, trátalo como un incidente — sin discusión.
-
-## KQL de ejemplo — correlación log clear + sesión privilegiada
+## KQL: borrado correlacionado con sesión privilegiada
 
 ```kusto
 let clears =
@@ -92,9 +91,9 @@ clears
 | order by ClearTime desc
 ```
 
-Cada 1102 se remonta a un [4672](/es/blog/event-id-4672-special-privileges) otorgando `SeSecurityPrivilege` — que a su vez se remonta a un [4624](/es/blog/understanding-event-id-4624). El join completa la imagen.
+Todo 1102 rastrea hasta un [4672](/es/blog/event-id-4672-special-privileges) que concede `SeSecurityPrivilege`, que rastrea hasta un [4624](/es/blog/understanding-event-id-4624). El join completa la imagen.
 
-## Splunk de ejemplo — cadena anti-forense de compañeros
+## Splunk: la cadena de manipulación
 
 ```spl
 index=wineventlog ( EventCode=1102 OR EventCode=104 OR EventCode=4719 OR EventCode=4616 )
@@ -102,23 +101,30 @@ index=wineventlog ( EventCode=1102 OR EventCode=104 OR EventCode=4719 OR EventCo
 | where mvcount(Events) >= 2
 ```
 
-Un `LogonId` que tocó política de auditoría (4719) o la hora del sistema (4616) y luego borró un log (1102/104) es la cadena de tampering.
+Un LogonId que tocó la política de auditoría (4719) o la hora del sistema (4616) y luego borró un log (1102/104) es la cadena de manipulación.
 
 ## Mapeo ATT&CK
 
-- **T1070.001 — Indicator Removal: Clear Windows Event Logs**: la técnica titular. 1102 *es* el indicador primario de esta técnica.
-- **T1562.002 — Impair Defenses: Disable Windows Event Logging**: 4719 (audit policy changed) precediendo a 1102 mapea aquí.
-- **T1070.006 — Indicator Removal: Timestomp**: emparejado con 4616 (system time changed) en la misma cadena.
-- **T1078.003 — Valid Accounts: Local Accounts**: 1102 por un Administrator local que no debería haber iniciado sesión a esa hora.
+- T1070.001 Indicator Removal: Clear Windows Event Logs. El titular. 1102 *es* el indicador primario.
+- T1562.002 Impair Defenses: Disable Windows Event Logging. 4719 antes de 1102 mapea aquí.
+- T1070.006 Indicator Removal: Timestomp. Emparejado con 4616 en la misma cadena.
+- T1078.003 Valid Accounts: Local Accounts. 1102 por un Administrador local que no debería haber estado conectado en ese momento.
 
-## Falsos positivos — raros pero reales
+## Falsos positivos, raros pero reales
 
-- **Workflows de migración / decom**: técnicos borrando el log en un host que se está desmantelando. Siempre debería estar tickeado.
-- **Laboratorios forenses / de testing**: workflows de borrar-y-reproducir durante el desarrollo de detecciones.
-- **Algunas herramientas legacy** borran el log para resetear baselines — casi siempre un error procedimental, pero real.
+- Workflows de migración o decom. Técnicos borrando logs en un host que se decomisiona. Siempre debería tener ticket.
+- Laboratorios forenses ejecutando bucles de borrado y reproducir durante el desarrollo de detección.
+- Algunas herramientas legacy borran el log para "resetear baselines". Casi siempre un error de procedimiento, pero real.
 
-La señal es tan directamente anti-forense que incluso los 1102 legítimos deberían ser investigados y documentados a posteriori. No hay razón «segura» para un 1102 en operación normal.
+No hay una razón segura para un 1102 en operaciones normales. Incluso los legítimos deberían investigarse y documentarse a posteriori.
 
-## Por qué esto importa para el parsing
+## Cuando encuentras uno en el paquete
 
-Cuando [cargas un archivo .evtx en una herramienta forense](/es/blog/how-to-open-an-evtx-file), la *primera* búsqueda que merece la pena ejecutar es `EventID:1102` y `EventID:104`. Si cualquiera está presente, el log que tienes tiene huecos conocidos y cualquier timeline que construyas a partir de él es incompleta. Anótalo bien fuerte en el informe.
+Cuando cargas un [archivo .evtx en una herramienta forense](/es/blog/how-to-open-an-evtx-file), las primeras dos búsquedas que vale la pena ejecutar son `EventID:1102` y `EventID:104`. Si alguno está presente, el log que tienes tiene huecos conocidos. Cualquier timeline construida con él está incompleta. Anótalo en alto en el informe. Luego ve a ver qué sobrevivió: el [registro](https://www.registryparser.com), el [diario USN](https://www.usnparser.com), la [MFT](https://www.mftparser.com), [prefetch](https://www.prefetchparser.com) y [AmCache](https://www.amcacheparser.com). Juntos reconstruyen la mayoría de lo que 1102 intentó borrar.
+
+Herramientas como `Invoke-Phant0m` saltan el 1102 por completo suspendiendo los hilos del servicio de eventos en lugar de borrar. Si ves un silencio de varias horas en Security sin 1102 y sin apagado del sistema, esa es la otra forma del mismo problema.
+
+## Lectura adicional
+
+- [MITRE ATT&CK T1070.001](https://attack.mitre.org/techniques/T1070/001/)
+- [Documentación Microsoft para 1102](https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-1102)

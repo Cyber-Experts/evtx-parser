@@ -1,12 +1,14 @@
 ---
-title: "Event ID 4625 explained: detecting brute force, sprays & enumeration"
-description: "4625 is the failed-logon record. Read it right and you spot password sprays, credential stuffing, and Kerberos abuse before they succeed."
+title: "Event ID 4625 explained: detecting brute force, sprays and enumeration"
+description: "4625 is the failed-logon record. Read it right and you spot password sprays, credential stuffing, and Kerberos abuse before they turn into a success."
 date: "2026-05-17"
 ---
 
-Event ID 4625 — "An account failed to log on" — fires on the [`Security` channel](/en/blog/what-is-an-evtx-file) whenever an authentication attempt is rejected. It's the single most useful record for catching credential-attack activity, but only if you read the right fields.
+Event ID 4625, "An account failed to log on", fires on the [`Security` channel](/en/blog/what-is-an-evtx-file) every time an authentication attempt is rejected. It is the single most useful record for catching credential attacks in flight. It is also the record analysts most often misread, because the headline message is generic and the answer lives two fields deeper.
 
-## The fields that actually matter
+## The fields that decide the call
+
+A typical record:
 
 ```xml
 <Data Name="TargetUserName">administrator</Data>
@@ -16,39 +18,39 @@ Event ID 4625 — "An account failed to log on" — fires on the [`Security` cha
 <Data Name="LogonType">3</Data>
 <Data Name="WorkstationName">attacker-vm</Data>
 <Data Name="IpAddress">203.0.113.7</Data>
+<Data Name="LogonProcessName">NtLmSsp</Data>
+<Data Name="AuthenticationPackageName">NTLM</Data>
 ```
 
-The combination of `Status` and `SubStatus` tells you *why* the logon failed:
+`Status` and `SubStatus` together tell you why the logon failed. The pair you actually care about is `SubStatus`. The codes worth memorising:
 
-- `0xc0000064` — account does not exist (username enumeration).
-- `0xc000006a` — wrong password (the classic).
-- `0xc0000234` — account locked out.
-- `0xc0000072` — account disabled.
-- `0xc0000071` — password expired.
-- `0xc0000133` — clock skew on a Kerberos ticket (common during AS-REP roasting).
-- `0xc000018b` — wrong SID — the workstation isn't in the domain it thinks it is.
+- `0xC0000064`: account does not exist. Username enumeration.
+- `0xC000006A`: bad password. The classic.
+- `0xC0000234`: account locked out.
+- `0xC0000072`: account disabled.
+- `0xC0000071`: password expired.
+- `0xC0000133`: clock skew on Kerberos. Common during AS-REP roasting attempts where the attacker spoofed a time.
+- `0xC000018B`: wrong SID, the workstation thinks it is in a domain it is not. Rare and interesting.
 
-A burst of `0xc0000064` against valid and invalid usernames is reconnaissance. A burst of `0xc000006a` against one account is brute force. A burst of `0xc000006a` against many accounts with the *same password* is a password spray.
+A burst of `0xC0000064` across mixed valid and invalid usernames is reconnaissance. A burst of `0xC000006A` against one account is brute force. A burst of `0xC000006A` against many accounts using the *same* password is a spray. Same event ID, three different incidents.
 
-## The patterns
+## The triage queries that earn their keep
 
-The simplest triage queries:
+1. Spray detection. Group 4625 by `IpAddress` (or `WorkstationName` if the IP field is empty), count distinct `TargetUserName` over 10 minutes. More than five accounts per source in that window is suspicious almost everywhere.
+2. Brute force. Group by `TargetUserName`, count failures per minute. More than ten per minute against one account is almost always automated.
+3. Lockout root cause. Pair 4740 (account locked) with the preceding 4625s. The `WorkstationName` field will tell you which device triggered the lockout. Most of the time it is a domain-joined server with a stale cached credential, not an attacker. The triage matters because the helpdesk treats both the same way and the SOC has to pick which one to escalate.
 
-1. **Spray detection**: group 4625 records by `IpAddress` (or `WorkstationName` if the IP isn't recorded), count distinct `TargetUserName` over 10 minutes. >5 accounts per source in that window is suspicious almost everywhere.
-2. **Brute force**: group by `TargetUserName`, count failures per minute. >10 per minute against one account is usually a bot.
-3. **Lockout root cause**: pair 4740 (account locked) with the preceding 4625s — the `WorkstationName` field will show which device triggered the lockout, which is critical because it's often a domain-joined server with a stale stored credential, not an attacker.
+## The "after" decides the response
 
-## The "after" matters as much as the "before"
+A 4625 burst followed by a [4624](/en/blog/understanding-event-id-4624) from the same `IpAddress` is the actionable case. The attacker found a working credential. The progression in the timeline is unmistakable: dense failures, sudden silence, single success.
 
-A 4625 burst followed by a [4624](/en/blog/understanding-event-id-4624) from the same `IpAddress` is the actionable case — the attacker found a working credential. The parser on this page lets you filter the table to a source IP and watch the level and event-ID transitions over time in the timeline. The burst-then-spike pattern is unmistakable.
-
-## Sample Sigma rule — password spray
+## Sigma: password spray
 
 ```yaml
 title: Password Spray via NTLM Failed Logons
 id: 6d2e1f4a-1a8b-4c7c-8a5f-2c3d4e5f6a7b
 status: stable
-description: One source IP failing logons against many distinct accounts within a short window — the password-spray fingerprint.
+description: One source IP failing logons against many distinct accounts within a short window. The password-spray fingerprint.
 references:
   - https://attack.mitre.org/techniques/T1110/003/
 logsource:
@@ -70,7 +72,7 @@ tags:
   - attack.t1110.003
 ```
 
-## Sample KQL — brute force against one account
+## KQL: brute force against one account
 
 ```kusto
 SecurityEvent
@@ -82,7 +84,7 @@ SecurityEvent
 | order by TimeGenerated desc
 ```
 
-## Sample Splunk — enumeration before brute
+## Splunk: enumeration leading into brute
 
 ```spl
 index=wineventlog EventCode=4625
@@ -91,25 +93,30 @@ index=wineventlog EventCode=4625
 | where mvcount(Sequence) >= 2 AND mvfind(Sequence, "enumeration") >= 0 AND mvfind(Sequence, "wrong_password") >= 0
 ```
 
-The signal is the *progression* — enumeration to find valid usernames, then brute force against those.
+The signal is the *progression*: enumeration to find valid usernames first, then targeted password attempts. A real operator with a fresh user list will produce both shapes within minutes.
 
 ## ATT&CK mapping
 
-- **T1110.001 — Brute Force: Password Guessing**: single account, many `0xC000006A` failures.
-- **T1110.003 — Brute Force: Password Spraying**: many accounts, few failures per account, one source.
-- **T1110.004 — Brute Force: Credential Stuffing**: many accounts, one source, often `0xC0000064` (account doesn't exist) for leaked-list misses interspersed with `0xC000006A` hits.
-- **T1078 — Valid Accounts**: 4625 followed by [4624](/en/blog/understanding-event-id-4624) success from the same source = compromise.
-- **T1556 — Modify Authentication Process**: anomalous `LogonProcessName` (anything other than `User32`, `NtLmSsp`, `Kerberos`, `Advapi`, or `Schannel`) suggests authentication tampering.
+- T1110.001 Brute Force: Password Guessing. Single account, many `0xC000006A` failures.
+- T1110.003 Brute Force: Password Spraying. Many accounts, one source, few failures each.
+- T1110.004 Credential Stuffing. Many accounts, one source, mixed `0xC0000064` (account does not exist, leaked-list miss) and `0xC000006A` (hit).
+- T1078 Valid Accounts. 4625 burst followed by [4624](/en/blog/understanding-event-id-4624) success from the same source. Compromise.
+- T1556 Modify Authentication Process. Anomalous `LogonProcessName` (anything other than `User32`, `NtLmSsp`, `Kerberos`, `Advapi`, `Schannel`) suggests tampering.
 
-## False positives that look like attacks
+## False positives that wear the costume
 
-- **Stored credentials going stale** after a password change. The user's mapped drives, scheduled tasks, or service account configs keep retrying the old password. The pattern: one `TargetUserName`, one `IpAddress` (sometimes one `WorkstationName`), steady `0xC000006A` cadence. Hunt for the host with the stale credential and fix it.
-- **Misconfigured automation**: a script with a wrong password retrying in a loop. Same shape as brute force; talk to the owner before alerting.
-- **Vulnerability scanners** during authenticated scans produce dense 4625 traffic. Tag scanner IPs.
-- **Lockout-policy misconfiguration**: helpdesk procedures that unlock too aggressively can produce repeating 4625 → 4740 → 4624 cycles.
+- Stored credentials going stale after a password change. The user's mapped drives, scheduled tasks, or service configs retry the old password. The shape is one `TargetUserName`, one `IpAddress`, steady `0xC000006A` cadence. Find the host with the stale credential and fix it before alerting.
+- Misconfigured automation. A script with the wrong password retrying in a loop. Same shape as brute force. Talk to the owner first.
+- Vulnerability scanners during authenticated scans produce dense 4625 traffic. Tag scanner IPs.
+- Lockout-policy churn. Helpdesk procedures that unlock aggressively create repeating 4625 to 4740 to 4624 cycles. Annoying. Not malicious.
 
-## What you don't see in 4625
+## What 4625 hides
 
-NTLMv2 and Kerberos failures coming from a domain controller don't always carry a useful `IpAddress` — the field can be empty or `-`. For those you need the matching DC events ([4768](/en/blog/event-id-4768-kerberos-tgt)/4771 for Kerberos pre-auth failures) or network-level data. Don't conclude "no source IP, no investigation" — pivot to the DC channel.
+Kerberos and NTLMv2 failures coming through a DC do not always carry a useful `IpAddress`. The field can be empty or `-`. For those, you pivot to the DC's records: [4768](/en/blog/event-id-4768-kerberos-tgt) and 4771 for Kerberos pre-auth failures. "No source IP, no investigation" is the wrong instinct. Look at the DC log instead.
 
-The `LogonProcessName` and `AuthenticationPackageName` fields tell you which auth stack handled the attempt. Most useful are `NtLmSsp` (NTLM), `Kerberos`, and `Negotiate` (which picks one of the two). `User32` is local console; `Schannel` is TLS-based.
+The `LogonProcessName` and `AuthenticationPackageName` fields tell you which auth stack handled the attempt. Useful values: `NtLmSsp` (NTLM), `Kerberos`, `Negotiate` (picks one of the two), `User32` (local console), `Schannel` (TLS-backed). Anything else, look harder.
+
+## Further reading
+
+- [JPCERT/CC: Detecting Lateral Movement through Tracking Event Logs](https://jpcertcc.github.io/ToolAnalysisResultSheet/)
+- [MITRE ATT&CK T1110: Brute Force](https://attack.mitre.org/techniques/T1110/)

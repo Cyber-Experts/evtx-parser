@@ -1,18 +1,18 @@
 ---
-title: "Event ID 4769 explicado: service tickets Kerberos e kerberoasting"
-description: "4769 é o registro do DC de cada requisição de service ticket. Leia-o pelo encryption type e você identifica kerberoasting; leia-o com 4768 e você identifica pass-the-ticket."
+title: "Event ID 4769 explicado: tickets de serviço Kerberos e kerberoasting"
+description: "O 4769 é o registo do DC de cada pedido de service ticket. Lê-lo pelo tipo de encriptação e revela kerberoasting. Lê-lo com o 4768 e revela pass-the-ticket."
 date: "2026-05-24"
 ---
 
-O Event ID **4769** — "A Kerberos service ticket was requested" — dispara em todo Domain Controller toda vez que qualquer conta requisita um ticket TGS (Ticket Granting Service) para um serviço. Toda conexão SMB, todo login SQL, todo hit de SSO web produz um desses no DC que tratou a requisição. É o registro de maior volume no [canal Security](/pt/blog/what-is-an-evtx-file) em um DC ocupado — e o único lugar onde kerberoasting aparece de forma confiável antes das credenciais serem crackeadas offline.
+O Event ID **4769**, "Foi pedido um service ticket Kerberos", dispara em cada Domain Controller sempre que qualquer conta pede um ticket TGS (Ticket Granting Service) para um serviço. Cada ligação SMB, cada login SQL, cada acerto SSO web produz um no DC que tratou do pedido. É o registo de maior volume no [canal Security](/pt/blog/what-is-an-evtx-file) num DC ocupado, e o único sítio onde o kerberoasting aparece de forma fiável antes de as credenciais serem crackeadas offline.
 
-Se você só consegue instrumentar três registros Security dos seus domain controllers, este é um deles.
+Se só instrumentar três registos de Security dos seus DCs, este é um deles.
 
 ## Onde vive
 
-`4769` é escrito no canal `Security` do **Domain Controller emissor** — não no cliente e não no serviço alvo. Para ver todos os registros 4769 de um domínio, você tem que coletar de todo DC. O target `EventLogs` do KAPE em um DC, ou encaminhar `Security` via WEF para um coletor, ambos funcionam; a rota WEF é a que a maioria das operações maduras usa.
+O `4769` é escrito no canal Security apenas do **Domain Controller** que o emite. Não no cliente, não no serviço alvo. Para ver todos os registos 4769 de um domínio, tem de recolher de cada DC. O target `EventLogs` do KAPE num DC, ou o reencaminhamento de Security via WEF para um coletor, ambos funcionam. WEF é o que as lojas maduras usam.
 
-## O que o registro contém
+## O que o registo contém
 
 ```xml
 <Data Name="TargetUserName">alice@CORP.LOCAL</Data>
@@ -28,68 +28,66 @@ Se você só consegue instrumentar três registros Security dos seus domain cont
 <Data Name="TransmittedServices">-</Data>
 ```
 
-Os campos que dirigem triagem:
+Os campos que conduzem a triagem:
 
-- **`TargetUserName`** — o *requisitante* (a conta de usuário, em forma `user@DOMAIN`).
-- **`ServiceName`** — o SPN sendo requisitado. Uma conta de usuário aqui (em vez de `host/...` ou uma classe de serviço) é suspeito.
-- **`TicketEncryptionType`** — o valor que decide se este registro importa. Domínios modernos rodam `0x12` (AES-256-CTS-HMAC-SHA1-96) ou `0x11` (AES-128). **`0x17` é RC4-HMAC** — legado, fraco e o *único* encryption type que o modo `kerberoast` de Mimikatz/Rubeus requisita. Um 4769 para um ticket de service account com `0x17` é um fingerprint escolar de kerberoasting.
-- **`Status`** — `0x0` é sucesso; qualquer outra coisa significa negado (códigos de status documentados em `[MS-KILE]`).
-- **`IpAddress`** — o host requisitante. Combine com [4624](/pt/blog/understanding-event-id-4624) nesse host para ver o logon que produziu a sessão.
+- `TargetUserName`. O requisitante (a conta de utilizador, em formato `user@DOMAIN`).
+- `ServiceName`. O SPN pedido. Uma conta de utilizador aqui (em vez de `host/...` ou uma classe de serviço) é suspeito.
+- `TicketEncryptionType`. O campo que decide se este registo importa. Domínios modernos correm `0x12` (AES-256-CTS-HMAC-SHA1-96) ou `0x11` (AES-128). **`0x17` é RC4-HMAC**: legado, fraco, e o *único* tipo de encriptação que os modos `kerberoast` do Mimikatz e Rubeus pedem. Um 4769 para um ticket de conta de serviço com `0x17` é uma impressão digital manual de kerberoasting.
+- `Status`. `0x0` é sucesso. Qualquer outro valor é negado (códigos documentados em `[MS-KILE]`).
+- `IpAddress`. Host requisitante. Combine com o [4624](/pt/blog/understanding-event-id-4624) nesse host para ver o logon que produziu a sessão.
 
-## TicketEncryptionType — o campo que importa
+## TicketEncryptionType: o campo que decide
 
-A tabela completa, abreviada:
-
-| Valor | Algoritmo | Status |
+| Valor | Algoritmo | Estado |
 |---|---|---|
-| 0x01 | DES-CBC-CRC | Desabilitado por padrão desde Win7 |
-| 0x03 | DES-CBC-MD5 | Desabilitado por padrão desde Win7 |
+| 0x01 | DES-CBC-CRC | Desativado por defeito desde Win7 |
+| 0x03 | DES-CBC-MD5 | Desativado por defeito desde Win7 |
 | 0x11 | AES-128-CTS-HMAC-SHA1-96 | Moderno |
-| 0x12 | AES-256-CTS-HMAC-SHA1-96 | Moderno (padrão para a maioria das contas) |
-| **0x17** | **RC4-HMAC-MD5** | **Legado. Requerido para kerberoasting.** |
-| 0x18 | RC4-HMAC-EXP | RC4 export-grade, extremamente raro |
+| 0x12 | AES-256-CTS-HMAC-SHA1-96 | Moderno (default para a maioria das contas) |
+| **0x17** | **RC4-HMAC-MD5** | **Legado. Necessário para kerberoasting.** |
+| 0x18 | RC4-HMAC-EXP | RC4 export-grade, raríssimo |
 
-Se o domínio foi baseliened e `msDS-SupportedEncryptionTypes` setado para AES-only em service accounts, `0x17` não deveria aparecer para essas contas. Atacantes requisitam `0x17` explicitamente porque crackear service tickets criptografados com RC4 é computacionalmente barato; AES não é. A ferramenta de cracking precisa do hash RC4, então a requisição *tem* que ser 0x17.
+Se o domínio tiver sido baselined e o `msDS-SupportedEncryptionTypes` definido para AES-only em contas de serviço, o `0x17` não devia aparecer para essas contas de todo. Atacantes pedem `0x17` explicitamente porque crackear service tickets RC4 é barato computacionalmente. AES não é. A ferramenta de cracking *tem* de pedir 0x17.
 
-Esse é o campo de maior sinal no registro.
+Este é o campo de sinal mais alto no registo.
 
-## O padrão de kerberoasting
+## O padrão do kerberoasting
 
-Kerberoasting (MITRE T1558.003) funciona assim:
+Kerberoasting (T1558.003) funciona assim:
 
-1. Atacante autentica com qualquer conta de usuário de domínio (nenhum direito admin necessário).
-2. Atacante enumera SPNs registrados a contas de usuário (não contas de computador), tipicamente via LDAP `(servicePrincipalName=*)` filtrado para objetos de usuário.
-3. Atacante requisita um TGS para cada SPN com `etype=23` (RC4) via o protocolo Kerberos padrão. **Esse é o 4769 que você está procurando.**
-4. O DC alegremente emite o ticket, criptografado com o hash NTLM da *service account*.
-5. Atacante puxa o blob criptografado da memória (ou do fio) e cracka offline com Hashcat (`-m 13100`).
+1. Atacante autentica com qualquer utilizador de domínio (não precisa de admin).
+2. Atacante enumera SPNs registados em contas de utilizador (não contas de computador), tipicamente via LDAP `(servicePrincipalName=*)` filtrado a objetos de utilizador.
+3. Atacante pede um TGS para cada SPN com `etype=23` (RC4) via o protocolo Kerberos padrão. O 4769 que está à procura.
+4. O DC emite o ticket com prazer, encriptado com o hash NTLM da conta de serviço.
+5. Atacante puxa o blob encriptado e crackeia-o offline no Hashcat (`-m 13100`).
 
-O fingerprint do 4769:
+A impressão digital no 4769:
 
-- `ServiceName` é `MSSQLSvc/...`, `HTTP/...`, `LDAP/...` ou qualquer SPN apontando para uma conta de *usuário* (não `host/...` ou `cifs/...` que são contas de computador).
+- `ServiceName` é `MSSQLSvc/...`, `HTTP/...`, `LDAP/...` ou qualquer SPN a apontar para uma conta de utilizador (não `host/...` ou `cifs/...`, que são contas de computador).
 - `TicketEncryptionType` é `0x17`.
-- Uma rajada dessas requisições em uma janela curta, da mesma origem, para muitos SPNs, é o sinal definitivo.
+- Um surto dentro de uma janela curta, da mesma origem, para muitos SPNs.
 
-Um segundo padrão relacionado — **AS-REP roasting** (T1558.004) — usa [4768](/pt/blog/event-id-4768-kerberos-tgt) em vez (a requisição de TGT), visando contas com `DONT_REQUIRE_PREAUTH` setado. Registro diferente, mesma família de ataques.
+Um padrão relacionado, **AS-REP roasting** (T1558.004), usa o [4768](/pt/blog/event-id-4768-kerberos-tgt) em vez disso, visando contas com `DONT_REQUIRE_PREAUTH`. Registo diferente, mesma família.
 
-## Pass-the-ticket / golden / silver tickets
+## Pass-the-ticket, golden, silver
 
-4769 também revela forjamento de ticket, mas o sinal é mais sutil.
+O 4769 também revela forjamento de tickets, mas o sinal é mais subtil.
 
-- Um 4769 *sem* um 4768 precedente (requisição de TGT) para o mesmo `LogonGuid` do mesmo host em uma janela razoável — suspeita de **golden ticket**. O atacante apresentou um TGT forjado e foi direto para requisições de TGS sem nunca pedir um TGT real.
-- Um 4769 *e* a autenticação de serviço resultante no alvo *sem* um 4769 visível em qualquer DC — suspeita de **silver ticket**. O atacante forjou o próprio TGS; o DC nunca foi consultado.
-- Mismatch de `LogonGuid` entre 4624 no serviço alvo e o 4769 supostamente emitindo o ticket — ticket forjado.
+- Um 4769 *sem* um 4768 precedente para o mesmo `LogonGuid` a partir do mesmo host numa janela razoável: suspeita de golden ticket. O atacante apresentou um TGT forjado e foi direto a pedidos de TGS.
+- Um 4769 *e* a autenticação de serviço resultante no alvo *sem* um 4769 visível em qualquer DC: suspeita de silver ticket. O atacante forjou o próprio TGS. O DC nunca foi consultado.
+- Mismatch de `LogonGuid` entre o 4624 no alvo e o 4769 supostamente a emitir o ticket: ticket forjado.
 
-Esses são padrões de detecção-por-ausência, o que significa que exigem cobertura completa de log em todos os DCs e nos serviços alvo. Lacunas na cobertura WEF produzem falsos positivos idênticos; caracterize sua coleta antes de alertar.
+Estes são padrões de deteção por ausência. Requerem cobertura completa de logs em todos os DCs e serviços alvo. Lacunas na cobertura WEF produzem falsos positivos com aparência idêntica. Caracterize a sua recolha antes de alertar.
 
 ## Workflow de triagem
 
 1. Filtre todos os 4769 no corpus de DCs por `TicketEncryptionType == 0x17`.
-2. Agrupe por `IpAddress` e por `TargetUserName` em janelas de 30 minutos. Conte `ServiceName` distintos por origem.
-3. >3 SPNs distintos requisitados como 0x17 de uma origem em 30 minutos é kerberoasting em quase qualquer lugar.
-4. Pivote o IP de origem para seu [4624](/pt/blog/understanding-event-id-4624) no host de origem — encontre a credencial que iniciou o ataque.
-5. Pivote os SPNs requisitados para as service accounts que os possuem. Rotacione essas senhas. Reset hashes crackeados em horas, não dias.
+2. Agrupe por `IpAddress` e `TargetUserName` em janelas de 30 minutos. Conte `ServiceName` distintos por origem.
+3. Mais de 3 SPNs distintos pedidos como 0x17 de uma origem em 30 minutos é kerberoasting em quase todo o lado.
+4. Pivote o IP de origem para o seu [4624](/pt/blog/understanding-event-id-4624) para encontrar a credencial que iniciou o ataque.
+5. Pivote os SPNs pedidos para as contas de serviço proprietárias. Rode essas passwords. Faça reset a hashes crackeados em horas, não em dias.
 
-## Exemplo de regra Sigma
+## Sigma
 
 ```yaml
 title: Kerberoasting via RC4 Service Ticket Request
@@ -122,11 +120,9 @@ tags:
   - attack.t1558.003
 ```
 
-A cláusula `filter_machine` exclui SPNs de conta de computador (que sempre terminam em `$`); kerberoasting só visa SPNs de conta de usuário.
+O `filter_machine` exclui SPNs de contas de computador (que terminam sempre em `$`). Kerberoasting visa apenas SPNs de contas de utilizador.
 
-## Exemplo de KQL / Splunk
-
-KQL (Defender XDR / Sentinel via `SecurityEvent`):
+## KQL e Splunk
 
 ```kusto
 SecurityEvent
@@ -139,8 +135,6 @@ SecurityEvent
 | order by TimeGenerated desc
 ```
 
-Splunk:
-
 ```spl
 index=wineventlog EventCode=4769 TicketEncryptionType="0x17"
 | search ServiceName!="*$"
@@ -151,36 +145,40 @@ index=wineventlog EventCode=4769 TicketEncryptionType="0x17"
 
 ## Mapeamento ATT&CK
 
-O corpus de 4769 cobre:
+- T1558.003 Kerberoasting. O título.
+- T1558.001 Golden Ticket. 4769 sem 4768 do mesmo `LogonGuid`.
+- T1558.002 Silver Ticket. 4769 ausente para uma autenticação de serviço observada no alvo.
+- T1078 Valid Accounts. 4769 a partir de um IP inesperado para uma conta de serviço conhecida.
+- T1550.003 Pass the Ticket. 4769 seguido por [4624](/pt/blog/understanding-event-id-4624) LogonType 3 com `LogonProcessName: Kerberos`.
 
-- **T1558.003 — Kerberoasting**: o caso de uso de manchete.
-- **T1558.001 — Golden Ticket**: 4769 sem 4768 do mesmo `LogonGuid`.
-- **T1558.002 — Silver Ticket**: 4769 ausente para uma autenticação de serviço observada no alvo.
-- **T1078 — Valid Accounts**: 4769 de um IP inesperado para uma service account conhecida.
-- **T1550.003 — Pass the Ticket**: 4769 seguido por [4624](/pt/blog/understanding-event-id-4624) LogonType 3 com `LogonProcessName: Kerberos`.
+## Falsos positivos que vai ver
 
-## Falsos positivos que você verá
+- Aplicações legadas (alguns conectores antigos de SQL Server, certas apps Java/JBoss) pedem RC4 explicitamente. 0x17 estável, em horas de expediente, a partir de um conjunto pequeno de hosts estáveis. Baseline e exclua.
+- Domínios pré-AES durante uma transição de hardening Kerberos emitem 0x17 amplamente até `msDS-SupportedEncryptionTypes` estar definido em cada conta. Incómodo. Não malicioso.
+- Vulnerability scanners (Tenable, Qualys, scripts de enumeração BloodHound) replicam tráfego de kerberoasting. Marque hosts de scanner.
+- Ferramentas de migração de contas durante movimentações cross-forest podem pedir combinações invulgares.
 
-- **Aplicações legadas** (alguns conectores SQL Server antigos, algumas apps Java/JBoss) requisitam explicitamente RC4. Aparecem como tráfego 0x17 constante e diurno de um pequeno conjunto de hosts estáveis. Baseline e exclua.
-- **Domínios pré-AES** durante uma transição de hardening Kerberos emitirão 0x17 amplamente até `msDS-SupportedEncryptionTypes` ser setado em toda conta. Irritante; não malicioso.
-- **Scanners de vulnerabilidade** (Tenable, Qualys, scripts de enumeração BloodHound) replicam tráfego de kerberoasting. Marque hosts de scanner.
-- **Ferramentas de migração de conta** durante movimentações cross-forest podem requisitar combinações incomuns de ticket.
+O sinal é o padrão de *surto*, não o registo individual. 0x17 estável de um host é configuração. 0x17 em surto para muitos SPNs de um host em minutos é o ataque.
 
-O sinal é o padrão de *rajada*, não o registro individual. 0x17 constante de um host é configuração; 0x17 em rajada para muitos SPNs de um host em minutos é o ataque.
+## O que o 4769 não lhe diz
 
-## O que 4769 não te diz
+O registo não inclui o ticket encriptado em si. O cracking acontece sobre o que o atacante exfiltrou, não na rede a partir do DC. Não consegue, só com o 4769, distinguir "ticket foi emitido e nunca usado" de "ticket foi crackeado, credenciais reutilizadas". Para a segunda metade da cadeia precisa do [4624](/pt/blog/understanding-event-id-4624) resultante no serviço alvo (LogonType 3, AuthenticationPackage Kerberos), e idealmente [4688](/pt/blog/event-id-4688-process-creation) ou [Sysmon 1](/pt/blog/sysmon-event-id-1-process-create) a mostrar o que correu depois da credencial ser reutilizada. Trate o 4769 como canário, não como alarme.
 
-O registro não inclui o ticket criptografado em si — o cracking acontece no que o atacante exfiltrou, não no fio do DC. Você não pode, somente a partir do 4769, distinguir "ticket foi emitido e nunca usado" de "ticket foi crackeado, credenciais reutilizadas". Para a segunda metade da cadeia você precisa do [4624](/pt/blog/understanding-event-id-4624) resultante no serviço alvo (LogonType 3, AuthenticationPackage Kerberos), e idealmente [4688](/pt/blog/event-id-4688-process-creation) ou [Sysmon 1](/pt/blog/sysmon-event-id-1-process-create) mostrando o que rodou depois que a credencial foi reutilizada. Trate 4769 como o canário, não o alarme.
+## Onde o 4769 encaixa numa timeline
 
-## Onde 4769 se encaixa em uma timeline
+Cadeia clássica de kerberoasting pós-exploração:
 
-Cadeia clássica de pós-exploração com kerberoasting:
+1. [4624](/pt/blog/understanding-event-id-4624) numa workstation. Acesso inicial via credenciais de utilizador feito phishing.
+2. **4769** ×N dessa workstation para um DC, todos `etype=0x17`, todos a visar contas de serviço com SPN de utilizador em 5 minutos. Kerberoasting.
+3. *(Offline, invisível)*. Atacante crackeia o hash da conta de serviço mais fraca no Hashcat.
+4. [4768](/pt/blog/event-id-4768-kerberos-tgt). Pedido de TGT como a conta de serviço comprometida, a partir de um host diferente.
+5. 4624 LogonType 3 num servidor de alto valor, AuthenticationPackage Kerberos.
+6. [7045](/pt/blog/service-creation-event-id-7045). Serviço instalado para persistência sob a conta comprometida.
 
-1. [**4624**](/pt/blog/understanding-event-id-4624) em uma estação — acesso inicial via credenciais phisheadas de usuário.
-2. **4769** ×N daquele IP de estação para um DC, todos `etype=0x17`, todos visando service accounts de SPN de usuário em 5 minutos — kerberoasting.
-3. *(Offline, invisível)* — atacante cracka o hash da service account mais fraca no Hashcat.
-4. **4768** — requisição de TGT como a service account comprometida, de um host diferente.
-5. **4624** LogonType 3 em um servidor de alto valor, AuthenticationPackage Kerberos, usando a service account.
-6. [**7045**](/pt/blog/service-creation-event-id-7045) — serviço instalado para persistência sob a conta comprometida.
+O surto de 4769 no passo 2 é o seu ponto de deteção mais precoce e mais barato. Horas ou dias antes do atacante voltar como a conta de serviço.
 
-A rajada de 4769 no passo 2 é seu ponto de detecção mais cedo e mais barato — horas ou dias antes do atacante voltar como a service account.
+## Leitura adicional
+
+- [Documentação Microsoft do 4769](https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4769)
+- [MITRE ATT&CK T1558.003](https://attack.mitre.org/techniques/T1558/003/)
+- [Sean Metcalf: Kerberoasting Without Mimikatz](https://adsecurity.org/?p=2293)

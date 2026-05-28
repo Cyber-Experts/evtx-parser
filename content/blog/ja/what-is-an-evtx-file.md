@@ -1,89 +1,95 @@
 ---
-title: ".evtx ファイルとは何か:Windows イベント ログ形式を解説"
-description: ".evtx ファイルはバイナリ形式の Windows イベント ログです。保存場所、内部構造、.evt との違い、そしてインストール不要で開く方法を解説します。"
+title: ".evtx ファイルとは何か? Windows イベントログ形式の解説"
+description: ".evtx ファイルはバイナリの Windows イベントログです。配置場所、中身、.evt との違い、開き方を解説。インストール不要。"
 date: "2026-05-24"
 faq:
   - question: ".evtx ファイルとは何ですか?"
-    answer: ".evtx ファイルは、Windows Vista で導入されたバイナリ形式の Windows イベント ログです。EventLog サービスが書き込むシステム、セキュリティ、アプリケーションのイベントを保存します。Windows マシンには C:\\Windows\\System32\\winevt\\Logs\\ 配下に数十個の .evtx ファイルがあり、各チャネルごとに 1 ファイルが対応します。"
-  - question: ".evtx ファイルは Windows のどこに保存されますか?"
-    answer: "既定の保存場所は C:\\Windows\\System32\\winevt\\Logs\\ です。トラフィックの多い 3 つの主要ファイルは Security.evtx、System.evtx、Application.evtx です。アプリケーション単位のチャネルは同じフォルダ内に Microsoft-Windows-Sysmon%4Operational.evtx のような名前で保存されます。"
+    answer: ".evtx ファイルは、Windows Vista とともに導入されたバイナリ形式の Windows イベントログです。EventLog サービスが書き込んだシステム、セキュリティ、アプリケーション イベントを格納します。各 Windows マシンでは、C:\\Windows\\System32\\winevt\\Logs\\ の下に、チャネルごとに 1 つずつ、数十の .evtx ファイルが存在します。"
+  - question: "Windows 上で .evtx ファイルはどこに保存されますか?"
+    answer: "既定の場所は C:\\Windows\\System32\\winevt\\Logs\\ です。トラフィックが多い 3 つのファイルは Security.evtx、System.evtx、Application.evtx です。アプリケーション別チャネルは同じフォルダに Microsoft-Windows-Sysmon%4Operational.evtx のような名前で配置されます。"
   - question: ".evtx と .evt の違いは何ですか?"
-    answer: ".evt は Windows XP および Server 2003 まで使用されていた旧バイナリ形式です。.evtx は Windows Vista(2007 年)でこれを置き換え、より豊富なイベント メタデータ、大容量ログ、wevtutil や Get-WinEvent による構造化クエリをサポートするチャンク化された BinXML ベースのレイアウトを採用しました。2 つの形式に互換性はありません。"
-  - question: ".evtx ファイルはどうやって開きますか?"
-    answer: "Windows 標準ツール:イベント ビューア(eventvwr.msc)、コマンド ラインの wevtutil、PowerShell の Get-WinEvent。クロスプラットフォーム:本サイトのブラウザ ベース パーサー(インストール・アップロード不要)、またはコマンド ラインの evtxecmd。すべての選択肢は how-to-open-an-evtx-file の記事を参照してください。"
-  - question: ".evtx ファイルは macOS や Linux でも開けますか?"
-    answer: "はい。Windows ネイティブ ツールは使えませんが、複数のクロスプラットフォーム パーサーが利用できます:本サイトのブラウザ ベース パーサー(モダン ブラウザのある任意の OS)、python-evtx、Rust の evtx クレート、mono 経由の evtxecmd などです。いずれも Windows ホストを必要としません。"
+    answer: ".evt は XP や Server 2003 まで Windows が使っていたレガシーなバイナリ形式です。.evtx は Windows Vista (2007) でそれを置き換え、より豊富なイベント メタデータ、より大きなログ、wevtutil と Get-WinEvent による構造化クエリをサポートするチャンク化された BinXML ベースのレイアウトを採用しました。両形式に互換性はありません。"
+  - question: ".evtx ファイルを開くにはどうしますか?"
+    answer: "Windows 標準ツール: Event Viewer (eventvwr.msc)、コマンドラインの wevtutil、PowerShell の Get-WinEvent。クロスプラットフォーム: 本サイトのブラウザ ベース パーサー(インストール不要、アップロードなし)、またはコマンドラインの evtxecmd。すべての選択肢については how-to-open-an-evtx-file の記事を参照してください。"
+  - question: "macOS や Linux で .evtx ファイルを開けますか?"
+    answer: "はい。Windows 標準ツールは動作しませんが、いくつかのクロスプラットフォーム パーサーが動作します。本サイトのブラウザ ベース パーサー(モダン ブラウザがあるどの OS でも)、python-evtx、Rust の evtx クレート、.NET 経由の evtxecmd。どれも Windows ホストを必要としません。"
 ---
 
-`.evtx` ファイルは、Microsoft が 2007 年に Windows Vista と共に出荷し、旧来の `.evt` 形式を置き換えたバイナリ形式の Windows イベント ログです。OS、ドライバ、サービス、アプリケーションが Windows イベント ログに書き込むイベントは、すべてディスク上の `.evtx` ファイルに格納されます。あらゆる Windows 調査の屋台骨となるファイルです。
+`.evtx` ファイルは、Microsoft が 2007 年に Vista で旧来の `.evt` を置き換えるためにリリースしたバイナリの Windows イベントログ形式です。OS、ドライバー、サービス、アプリケーションが Windows イベントログに書き込むあらゆるイベントは、ディスク上の `.evtx` ファイルに記録されます。これは Windows 調査すべての背骨です。Windows で DFIR をやるなら、他のどのアーティファクト クラスよりも、このファイルの中で過ごす時間の方が長くなるはずです。
 
-## 簡潔な答え
+## 端的に言うと
 
-`.evtx` ファイルは Windows EventLog サービスが `C:\Windows\System32\winevt\Logs\` に書き込みます。**チャネル**ごとに 1 ファイル(`Security.evtx`、`System.evtx`、`Application.evtx` のほか、アプリケーション固有のチャネル)が存在します。内部はチャンク化されたバイナリ コンテナで、`BinXML` でエンコードされたレコードが格納されており、プレーン テキストではありません。読み込むにはイベント ビューア、`wevtutil`、`Get-WinEvent`、またはサードパーティ パーサーを使用します。
+`.evtx` ファイルは Windows EventLog サービスが `C:\Windows\System32\winevt\Logs\` に書き込みます。**チャネル**ごとに 1 ファイルです (`Security.evtx`、`System.evtx`、`Application.evtx`、加えてアプリケーション別チャネル)。内部的には、各ファイルは `BinXML` でエンコードされたレコードのチャンク化バイナリ コンテナです。プレーン テキストではありません。Event Viewer、`wevtutil`、`Get-WinEvent`、またはサードパーティ パーサーで読みます。
 
-## .evtx ファイルの保存場所
+## .evtx ファイルの場所
 
-サポートされるすべての Windows バージョン(Vista から Windows 11 / Server 2025 まで)の標準的な保存場所:
+サポートされているすべての Windows バージョン (Vista から Windows 11 と Server 2025 まで) の標準的な場所:
 
 ```text
 C:\Windows\System32\winevt\Logs\
 ```
 
-各 `.evtx` ファイルは 1 つのイベント チャネルに対応します。常に存在する既定のファイル:
+各 `.evtx` ファイルは 1 つのイベント チャネルに対応します。デフォルト:
 
-- `Security.evtx` — ログオン、特権の使用、監査ポリシーの変更。多くのケースでフォレンジック上もっとも価値が高いファイル。
-- `System.evtx` — ドライバ、サービス、カーネル レベルのエラー。
-- `Application.evtx` — アプリケーション レベルのエラーおよび情報イベント。
-- `Setup.evtx` — インストール記録。
-- `ForwardedEvents.evtx` — Windows Event Forwarding(WEF)経由で他ホストから収集されたイベント。
+- `Security.evtx`。ログオン、特権利用、監査ポリシー変更。ほとんどの事案でフォレンジック価値が最も高い。
+- `System.evtx`。ドライバー、サービス、カーネル レベルのエラー。
+- `Application.evtx`。アプリケーション レベルのエラーと情報イベント。
+- `Setup.evtx`。インストール記録。
+- `ForwardedEvents.evtx`。Windows Event Forwarding (WEF) 経由で他のホストから収集されたイベント。
 
-アプリケーション単位のチャネルは同じフォルダに保存され、パス区切り文字の代わりに `%4` が使用されます:
+アプリケーション別チャネルは同じフォルダに、パス区切り記号の代わりに `%4` を使った名前で格納されます。
 
-- `Microsoft-Windows-Sysmon%4Operational.evtx` — Sysmon のプロセス、ネットワーク、ファイル イベント(インストール時)。
-- `Microsoft-Windows-PowerShell%4Operational.evtx` — PowerShell の ScriptBlock とモジュール ロギング。
-- `Microsoft-Windows-TaskScheduler%4Operational.evtx` — スケジュールド タスクの作成と実行。
-- `Microsoft-Windows-TerminalServices-LocalSessionManager%4Operational.evtx` — RDP セッションのライフサイクル。
+- `Microsoft-Windows-Sysmon%4Operational.evtx`。Sysmon のプロセス、ネットワーク、ファイル イベント (インストール時)。
+- `Microsoft-Windows-PowerShell%4Operational.evtx`。PowerShell scriptblock とモジュール ロギング。
+- `Microsoft-Windows-TaskScheduler%4Operational.evtx`。スケジュールド タスクの作成と実行。
+- `Microsoft-Windows-TerminalServices-LocalSessionManager%4Operational.evtx`。RDP セッションのライフサイクル。
 
-ローテーションされたチャネルは同じフォルダにタイムスタンプ付きのアーカイブ ファイルを生成します(`Security.evtx`、`Archive-Security-2026-05-23-…evtx` のように)。アクティブなファイルは Windows 動作中、EventLog サービスによって開かれた状態で保持されます。
+ローテーションされたチャネルは、同じフォルダにタイムスタンプ付きアーカイブ ファイルを生成します (`Security.evtx`、`Archive-Security-2026-05-23-...evtx`)。Windows が稼働している間、アクティブ ファイルは EventLog サービスが開いたままにします。これが、[ライブ ホストからこれらのファイルを取り出す方法](/ja/blog/collecting-evtx-from-live-system) という記事が存在する理由そのものです。
 
 ## .evtx ファイルの中身
 
-このファイルはバイナリ コンテナであり、プレーン テキストではありません。4 KB のヘッダ(マジック値 `ElfFile\0`)に続いて、64 KB の**チャンク**列が並びます。各チャンクは独自のヘッダ(`ElfChnk`)、そのチャンク内に現れる XML **テンプレート**のテーブル、そしてテンプレートを ID で参照するレコードのストリームを持ちます。パーサーはレコード単位の値をテンプレートのプレースホルダに代入することで各イベントを再構築します。これが `.evtx` をディスク上で生 XML よりもコンパクトに保つ仕組みです。
+ファイルはバイナリ コンテナで、プレーン テキストではありません。4 KB のヘッダー(マジック `ElfFile\0`)に続いて、64 KB の**チャンク**が連なります。各チャンクは独自のヘッダー (`ElfChnk`)、その中で出現する XML **テンプレート**のテーブル、そしてそれらを ID で参照するレコードのストリームを持ちます。パーサーは、レコード レベルの値をテンプレートのプレースホルダーに代入することで各イベントを再構築します。これが `.evtx` をディスク上で文字どおりの XML よりコンパクトにしている理由です。
 
-デコードされた各レコードは、2 つの部分から成る XML 文書です:
+デコードすると、各レコードは 2 つの半分から成る XML ドキュメントになります。
 
-- `<System>` — プロバイダ名、チャネル、Event ID、レベル(1 Critical → 5 Verbose)、コンピュータ名、セキュリティ コンテキスト、UTC の書き込みタイムスタンプ。
-- `<EventData>` — プロバイダ固有のパラメータ:ログオンの対象アカウント、プロセス作成時のイメージ パス、監査された書き込みのレジストリ キーなど。
+- `<System>`。プロバイダー名、チャネル、Event ID、レベル (1 重大から 5 詳細)、コンピューター名、セキュリティ コンテキスト、UTC 書き込みタイムスタンプ。
+- `<EventData>`。プロバイダー固有のパラメータ。ログオンの対象アカウント、プロセス作成のイメージ パス、監査された書き込みのレジストリ キー、などなど。
 
-Event ID だけではトリアージには不十分です。フォレンジック上のシグナルは `<EventData>` に存在します。フォーマットの深い仕組み — チャンク、BinXML、テンプレート、ダーティ チャンク復旧 — については [EVTX ファイル形式の内部構造](/ja/blog/evtx-file-format-chunks) を参照してください。
+Event ID 単体ではトリアージに足りないことが多いです。フォレンジックの信号は `<EventData>` に宿ります。形式の細部 (チャンク、BinXML、テンプレート、ダーティ チャンクの復旧) については、[チャンク レベルの詳細](/ja/blog/evtx-file-format-chunks) を参照してください。
 
-## .evtx と .evt:なぜ形式が変わったのか
+## .evtx 対 .evt: 形式が変わった理由
 
-XP および Server 2003 まで使用されていた旧 `.evt` 形式には、新形式が解決しようとした 3 つの厳しい制限がありました:
+XP と Server 2003 まで Windows が使っていたレガシーな `.evt` 形式には、新形式が解決するために設計された 3 つの厳しい制約がありました。
 
-- **固定サイズの文字列。** `.evt` レコードは完全なメッセージではなくメッセージ テーブルへの参照を保持していたため、ソース DLL が欠落したり更新されたりすると描画時の結合が壊れました。
-- **構造化クエリの欠如。** フィルタリングするには全レコードを線形に読み、パースする必要がありました。
-- **1 ファイルにつき 1 チャネル。** カスタム アプリケーション ログは独自の非標準形式を必要としました。
+- **固定長の文字列。** `.evt` レコードはメッセージ全体ではなくメッセージ テーブルへの参照を持っていました。ソース DLL が欠落していたりアップグレードされていたりすると、レンダリング時のジョインが壊れました。
+- **構造化クエリがない。** フィルタリングするには、すべてのレコードを線形に読んで解析する必要がありました。
+- **ファイルあたり 1 チャネル。** カスタム アプリケーション ログには独自の非標準形式が必要でした。
 
-`.evtx`(Vista、2007 年)は BinXML レコード、任意ネスト可能なチャネル単位ファイル、`wevtutil qe` と `Get-WinEvent -FilterHashtable` による XPath スタイルのフィルタリング、そして部分書き込みに耐えるチャンク化レイアウトを導入しました。トレードオフは互換性の完全な断絶でした — `.evt` と `.evtx` に互換性はなく、モダン Windows で `.evt` を読める唯一の標準ツールはレガシー フラグ付きの `wevtutil` のみで、しかも `.evtx` へのエクスポートに限られます。
+`.evtx` (Vista、2007) では、BinXML レコード、任意の階層を持つチャネル別ファイル、`wevtutil qe` と `Get-WinEvent -FilterHashtable` による XPath 形式のフィルタリング、そして部分書き込みに耐えるチャンク化レイアウトが導入されました。代償は完全な互換性の断絶でした。`.evt` と `.evtx` は互換性がなく、最新の Windows で `.evt` を読める標準ツールは、レガシー フラグを指定した `wevtutil` のみです (しかも `.evtx` へのエクスポート用途のみ)。
 
 ## .evtx ファイルの開き方
 
-導入の手間が少ない順に、主要な 5 通りを紹介します:
+5 つの一般的な経路を、おおよそ手間の少ない順に紹介します。
 
-1. **ブラウザでインストール不要** — 本サイトのトップ ページにあるパーサーへファイルをドロップします。WebAssembly にコンパイルした Rust 製の [`omerbenamram/evtx`](https://github.com/omerbenamram/evtx) クレートを Web Worker 内で実行します。マシンから何も外に出ません。フォレンジック VM を立ち上げたくない、その場限りのトリアージに向いています。
-2. **イベント ビューア(`eventvwr.msc`)** — Windows 標準の GUI。イベント ビューア → 操作 → 保存されたログを開く… → `.evtx` を選択。閲覧には良いが、大量のフィルタリングには弱い。
-3. **`wevtutil` / `Get-WinEvent`** — コマンド ラインと PowerShell。どちらも Windows に同梱。`wevtutil qe path\to\file.evtx /f:text /lf:true` で全レコードをダンプ。`Get-WinEvent -Path` は `Where-Object` にパイプ可能なオブジェクトを返します。
-4. **EvtxECmd** — Eric Zimmerman 氏のパーサー。.NET 経由でクロスプラットフォーム、高速、`<EventData>` をすべて平坦化した 1 レコード 1 行の CSV を生成します。
-5. **`python-evtx`** — 純 Python 製でスクリプト化が容易。Rust クレートより遅いものの、すでに Python ツール チェーンがある場合に有用です。
+1. **ブラウザで、インストール不要。** 本サイトのトップ ページのパーサーにファイルをドロップしてください。Web Worker 内で WebAssembly にコンパイルされた Rust の [`omerbenamram/evtx`](https://github.com/omerbenamram/evtx) クレートを実行します。何もマシンから出ません。フォレンジック VM を立ち上げたくない即席トリアージに最適です。
+2. **Event Viewer (`eventvwr.msc`)**。Windows の組み込み GUI。**操作 / 保存されたログを開く / .evtx を選択**。閲覧には向いていますが、スケールでのフィルタリングには弱い。
+3. **`wevtutil` / `Get-WinEvent`**。コマンドラインと PowerShell、どちらも Windows に付属しています。`wevtutil qe path\to\file.evtx /f:text /lf:true` ですべてのレコードをダンプします。`Get-WinEvent -Path` はオブジェクトを返すので `Where-Object` にパイプできます。
+4. **EvtxECmd**。Eric Zimmerman のパーサー。.NET でクロスプラットフォーム、高速、レコードごとに 1 行の CSV を生成し、`<EventData>` をフラット化します。
+5. **`python-evtx`**。純 Python、スクリプト化が容易。Rust クレートより遅いですが、すでに Python ツール チェーンを使っているなら有用です。
 
-各手法の実際に実行するコマンドを含む詳細な手順は、[.evtx ファイルの開き方](/ja/blog/how-to-open-an-evtx-file) を参照してください。
+それぞれの完全なウォークスルーと実際のコマンドについては、[.evtx ファイルの開き方](/ja/blog/how-to-open-an-evtx-file) を参照してください。
 
-## 実務で .evtx に出会う場面
+## .evtx に出会う場面
 
-- **インシデント レスポンス。** 侵害ホストからトリアージの一環として取得。注目すべきチャネルは手がかり次第 — ログオンや特権の悪用なら `Security`、プロセス ツリーなら `Sysmon`、ScriptBlock の内容なら `PowerShell`。
-- **コンプライアンス監査。** 監査人は定められた期間の `Security.evtx` を要求し、ログオンとポリシー変更の履歴を検証します。
-- **アプリケーションのデバッグ。** `Application.evtx` とベンダー固有チャネルには、アプリケーション自身のログには無いクラッシュやエラーのコンテキストが残ります。
-- **脅威ハンティング。** アーカイブされた `.evtx`(またはライブ チャネルを転送している SIEM)に対する長期間ルールが、業務時間外 RDP やサービス アカウントの `LogonType` の変化といった、ゆっくり進行するパターンを捕捉します。
+- **インシデント対応。** トリアージの一環として侵害されたホストから取り出します。関心のあるチャネルは追跡対象によって異なります。ログオンと特権濫用なら `Security`、プロセス ツリーなら `Sysmon`、scriptblock 内容なら `PowerShell`。実行の裏付けには [registry](https://www.registryparser.com)、[MFT](https://www.mftparser.com)、[USN journal](https://www.usnparser.com)、[AmCache](https://www.amcacheparser.com)、[prefetch](https://www.prefetchparser.com) と組み合わせてください。
+- **コンプライアンス監査。** 監査人はログオンとポリシー変更の履歴を確認するため、定義された期間の `Security.evtx` を要求します。
+- **アプリケーション デバッグ。** `Application.evtx` とベンダー別チャネルには、アプリ自体のログには現れないクラッシュやエラー コンテキストが含まれていることが多いです。
+- **脅威ハンティング。** アーカイブされた `.evtx` (またはライブ チャネルを転送する SIEM) に対する長期傾向のルールが、深夜帯の RDP やサービス アカウントの `LogonType` ドリフトのような長期的なパターンを捉えます。
 
-もっとも有用な切り口は Event ID です。実運用の SOC で価値を発揮する厳選リスト — [4624 ログオン成功](/ja/blog/understanding-event-id-4624)、[4625 ログオン失敗](/ja/blog/detecting-4625-brute-force)、[1102 ログの消去](/ja/blog/event-id-1102-cleared-log)、[4104 PowerShell ScriptBlock](/ja/blog/powershell-4104-scriptblock)、[7045 サービスのインストール](/ja/blog/service-creation-event-id-7045)、[Sysmon 1 プロセス作成](/ja/blog/sysmon-event-id-1-process-create) — は [スタート地点となるオリエンテーション](/ja/blog/welcome) を参照してください。
+最も有用な軸は Event ID です。実際の SOC で本領を発揮する短いリスト ([4624](/ja/blog/understanding-event-id-4624)、[4625](/ja/blog/detecting-4625-brute-force)、[1102](/ja/blog/event-id-1102-cleared-log)、[4104](/ja/blog/powershell-4104-scriptblock)、[7045](/ja/blog/service-creation-event-id-7045)、[Sysmon 1](/ja/blog/sysmon-event-id-1-process-create)) については、[ここから始めるオリエンテーション](/ja/blog/welcome) を参照してください。
+
+## 参考資料
+
+- [Microsoft ドキュメント: Windows Event Log](https://learn.microsoft.com/en-us/windows/win32/wes/windows-event-log)
+- [libevtx EVTX 形式仕様](https://github.com/libyal/libevtx/blob/main/documentation/Windows%20XML%20Event%20Log%20%28EVTX%29.asciidoc)
+- [omerbenamram/evtx (Rust パーサー)](https://github.com/omerbenamram/evtx)

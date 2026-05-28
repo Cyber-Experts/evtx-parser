@@ -1,14 +1,14 @@
 ---
 title: "Event ID 1102 expliqué : journal d'audit Security effacé (et ce qui survit)"
-description: "1102 est le seul événement qu'on ne peut pas supprimer sans laisser plus de traces. Voici ce qu'il vous dit et ce qui survit à l'effacement."
+description: "1102 est le seul événement que vous ne pouvez pas supprimer sans laisser plus de preuves derrière. Voici ce qu'il vous dit, ce qui survit à l'effacement et où chercher quand vous le voyez."
 date: "2026-05-17"
 ---
 
-L'Event ID **1102** est l'enregistrement que Windows écrit sur le [canal `Security`](/fr/blog/what-is-an-evtx-file) quand le journal d'audit est effacé. C'est — par conception — l'un des enregistrements les plus difficiles à supprimer pour un attaquant, parce que cela impose soit de remplacer le service EventLog avant son démarrage, soit d'accepter que l'acte d'effacement laisse son propre 1102.
+L'Event ID **1102** est ce que Windows écrit dans le [canal `Security`](/fr/blog/what-is-an-evtx-file) quand quelqu'un efface le journal d'audit. Par conception, c'est l'un des enregistrements les plus difficiles à supprimer pour un attaquant. Le supprimer proprement nécessite soit de remplacer le binaire du service EventLog avant qu'il ne démarre, soit d'accepter que l'acte même d'effacer laisse son propre 1102. La plupart des opérateurs choisissent la seconde option, en espérant que personne ne fasse attention.
 
-Pour les défenseurs, cela signifie : si vous voyez un 1102, quelqu'un avec suffisamment de privilèges a délibérément effacé la piste d'audit. Ce n'est presque jamais une action admin normale.
+Si vous voyez 1102, quelqu'un avec un privilège suffisant a délibérément essuyé la piste d'audit. Ce n'est essentiellement jamais une action admin de routine, et quand ça l'est, ça devrait être ticketé. Traitez chaque 1102 hors d'une fenêtre de maintenance approuvée comme un incident jusqu'à preuve du contraire.
 
-## Ce que contient l'enregistrement
+## Ce qui est dans l'enregistrement
 
 ```xml
 <UserData>
@@ -21,35 +21,36 @@ Pour les défenseurs, cela signifie : si vous voyez un 1102, quelqu'un avec suff
 </UserData>
 ```
 
-Notez le bloc `UserData` au lieu de l'habituel `EventData` — 1102 fait partie des enregistrements qui utilisent un schéma user-data structuré. Les champs vous disent *qui* a effacé le journal sous quelle session. Pivotez sur le `SubjectLogonId` pour trouver le [4624](/fr/blog/understanding-event-id-4624) correspondant et vous aurez l'IP source et le type de connexion qui ont produit la session privilégiée.
+Notez le bloc `UserData` au lieu du `EventData` habituel. 1102 utilise un schéma user-data structuré, qui fait trébucher certains parsers naïfs qui ne regardent que `EventData`. Les champs vous disent qui a effacé le journal sous quelle session de logon. Pivotez sur `SubjectLogonId` vers le [4624](/fr/blog/understanding-event-id-4624) correspondant et vous avez l'IP source, le type de logon et l'identifiant qui ont produit la session privilégiée.
 
-## Ce qui se déclenche aussi quand 1102 se déclenche
+## Ce qui chevauche à côté
 
-Un effacement de journal est rarement la *seule* action anti-forensique. Compagnons fréquents, dans un ordre chronologique grossier :
+Un effacement de journal est rarement la seule action anti-forensique de la chaîne. Les enregistrements qui ont tendance à se déclencher près de lui, en ordre chronologique approximatif :
 
-- **104** sur le canal `System` — même acte, enregistré par le SCM. Si 104 est présent mais 1102 manque, l'attaquant n'a effacé que le journal Security et a oublié System.
-- **4719** — « Stratégie d'audit système modifiée ». Parfois un attaquant réduit la couverture d'audit *avant* d'effacer, pour laisser moins d'enregistrements au prochain tour.
-- **4616** — « L'heure système a été modifiée ». Un décalage horaire avant l'effacement rend la reconstruction de timeline plus difficile.
-- **Un trou dans les 4624** pendant une heure ou deux avant le 1102 — l'attaquant a peut-être utilisé un canal latéral non journalisé.
+- **104** sur le canal `System`. Même acte que 1102 mais enregistré par le SCM pour les canaux non-Security. Si 104 est présent et 1102 absent, l'attaquant n'a effacé que Security et a oublié System.
+- **4719**, « la stratégie d'audit système a été modifiée ». Parfois l'attaquant réduit la couverture d'audit *avant* d'effacer, pour laisser moins d'enregistrements la prochaine fois.
+- **4616**, « l'heure système a été modifiée ». Le timestomping avant effacement rend la reconstruction de timeline plus difficile.
+- Un trou dans les 4624 dans l'heure ou les deux précédant 1102. L'attaquant peut avoir utilisé un canal latéral non journalisé pour entrer.
 
 ## Ce qui survit à un effacement
 
-Effacer le journal en mémoire ne touche pas :
+Effacer le journal d'événements en mémoire ne touche pas :
 
-- **Les autres canaux** : `System`, `Application`, `PowerShell/Operational`, `Sysmon/Operational`, `TaskScheduler/Operational`, les canaux d'événements transférés — aucun n'est effacé par un wipe Security.
-- **Les événements transférés** : si Windows Event Forwarding (WEF) est configuré vers un collecteur central, les enregistrements effacés sont déjà sur un autre hôte.
-- **Le fichier sur disque lui-même** : un `Security.evtx` effacé est remplacé par un nouveau fichier ; les clusters du fichier *supprimé* persistent souvent dans l'espace non alloué et peuvent être carvés avec un outil NTFS.
-- **Les entrées USN journal** pour le remplacement du fichier : même l'opération d'effacement laisse des artefacts au niveau du système de fichiers.
+- D'autres canaux. `System`, `Application`, `PowerShell/Operational`, `Sysmon/Operational`, `TaskScheduler/Operational`, canaux d'événements transférés. Aucun n'est effacé par un wipe de Security.
+- Les événements transférés. Si Windows Event Forwarding envoie Security vers un collecteur, les enregistrements effacés sont déjà sur un autre hôte. Les RecordIDs et horodatages d'origine sont préservés.
+- Le fichier sur disque lui-même. Une `Security.evtx` effacée est remplacée par un fichier frais. Les clusters du fichier précédent persistent souvent dans l'espace non alloué. Les enregistrements EVTX [se carvent proprement](/fr/blog/carve-deleted-evtx-records) depuis ces clusters.
+- Les entrées du [journal USN](https://www.usnparser.com) pour le remplacement du fichier. Même l'acte d'effacer laisse des artefacts niveau système de fichiers.
+- L'entrée [MFT](https://www.mftparser.com) pour le nouveau fichier, qui porte un horodatage de création qui devrait correspondre au 1102 à la seconde près.
 
-Un effacement de log « réussi » est rarement aussi propre que l'attaquant l'espère.
+Un effacement de journal « réussi » est rarement aussi propre que l'attaquant l'espère.
 
-## Exemple de règle Sigma — log effacé
+## Sigma : journal effacé
 
 ```yaml
 title: Windows Security Event Log Cleared
 id: 2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e
 status: stable
-description: Detect 1102 (Security log cleared) and 104 (System log cleared) — anti-forensic actions.
+description: Detect 1102 (Security log cleared) and 104 (System log cleared). Anti-forensic actions.
 references:
   - https://attack.mitre.org/techniques/T1070/001/
 logsource:
@@ -71,9 +72,7 @@ tags:
   - attack.t1070.001
 ```
 
-Si vous voyez un 1102 hors d'une fenêtre de maintenance approuvée, traitez comme un incident — point final.
-
-## Exemple KQL — corrélation effacement + session privilégiée
+## KQL : effacement corrélé à une session privilégiée
 
 ```kusto
 let clears =
@@ -92,9 +91,9 @@ clears
 | order by ClearTime desc
 ```
 
-Chaque 1102 remonte à un [4672](/fr/blog/event-id-4672-special-privileges) qui a accordé `SeSecurityPrivilege` — qui remonte à un [4624](/fr/blog/understanding-event-id-4624). La jointure complète le tableau.
+Chaque 1102 remonte à un [4672](/fr/blog/event-id-4672-special-privileges) accordant `SeSecurityPrivilege`, qui remonte à un [4624](/fr/blog/understanding-event-id-4624). La jointure complète l'image.
 
-## Exemple Splunk — chaîne anti-forensique avec compagnons
+## Splunk : la chaîne d'altération
 
 ```spl
 index=wineventlog ( EventCode=1102 OR EventCode=104 OR EventCode=4719 OR EventCode=4616 )
@@ -102,23 +101,30 @@ index=wineventlog ( EventCode=1102 OR EventCode=104 OR EventCode=4719 OR EventCo
 | where mvcount(Events) >= 2
 ```
 
-Un `LogonId` qui a touché à la politique d'audit (4719) ou à l'heure système (4616) puis effacé un log (1102/104) est la chaîne de tampering.
+Un LogonId qui a touché à la stratégie d'audit (4719) ou à l'heure système (4616) puis a effacé un journal (1102/104) est la chaîne d'altération.
 
-## Cartographie ATT&CK
+## Mapping ATT&CK
 
-- **T1070.001 — Indicator Removal: Clear Windows Event Logs** : la technique principale. 1102 *est* l'indicateur primaire de cette technique.
-- **T1562.002 — Impair Defenses: Disable Windows Event Logging** : 4719 (politique d'audit modifiée) précédant 1102 colle ici.
-- **T1070.006 — Indicator Removal: Timestomp** : couplé à 4616 (heure système modifiée) dans la même chaîne.
-- **T1078.003 — Valid Accounts: Local Accounts** : 1102 par un Administrator local qui n'aurait pas dû être connecté à cet instant.
+- T1070.001 Indicator Removal: Clear Windows Event Logs. Le titre. 1102 *est* l'indicateur principal.
+- T1562.002 Impair Defenses: Disable Windows Event Logging. 4719 précédant 1102 mappe ici.
+- T1070.006 Indicator Removal: Timestomp. Associé à 4616 dans la même chaîne.
+- T1078.003 Valid Accounts: Local Accounts. 1102 par un Administrateur local qui n'aurait pas dû être connecté à ce moment-là.
 
-## Faux positifs — rares mais réels
+## Faux positifs, rares mais réels
 
-- **Workflows de migration / décommissionnement** : des techs effacent le log sur un hôte en cours de décommissionnement. Devrait toujours être ticketé.
-- **Labos forensique / test** : workflows d'effacement-puis-reproduction pendant le développement de détections.
-- **Certains outils legacy** effacent le log pour réinitialiser des baselines — presque toujours une erreur procédurale, mais réelle.
+- Workflows de migration ou de decom. Des techniciens qui effacent les journaux sur un hôte en cours de mise hors service. Devrait toujours être ticketé.
+- Laboratoires forensiques exécutant des boucles effacer-et-reproduire pendant le développement de détection.
+- Certains outils legacy effacent le journal pour « réinitialiser les baselines ». Presque toujours une erreur procédurale, mais réelle.
 
-Le signal est si directement anti-forensique que même des 1102 légitimes devraient être enquêtés et documentés a posteriori. Il n'y a pas de raison « sûre » à un 1102 en opérations normales.
+Il n'y a pas de raison sûre pour un 1102 en opérations normales. Même les légitimes devraient être enquêtés et documentés après coup.
 
-## Pourquoi cela compte pour le parsing
+## Quand vous en trouvez un dans le bundle
 
-Quand vous [chargez un fichier .evtx dans un outil forensique](/fr/blog/how-to-open-an-evtx-file), la *première* recherche à lancer est `EventID:1102` et `EventID:104`. Si l'un ou l'autre est présent, le log que vous tenez a des trous connus et toute timeline que vous en construirez est incomplète. Notez-le bruyamment dans le rapport.
+Quand vous chargez un [fichier .evtx dans un outil forensique](/fr/blog/how-to-open-an-evtx-file), les deux premières recherches qui valent la peine sont `EventID:1102` et `EventID:104`. Si l'un est présent, le journal que vous avez en main a des trous connus. Toute timeline construite dessus est incomplète. Notez-le bruyamment dans le rapport. Puis allez voir ce qui a survécu : le [registre](https://www.registryparser.com), le [journal USN](https://www.usnparser.com), la [MFT](https://www.mftparser.com), le [prefetch](https://www.prefetchparser.com) et l'[AmCache](https://www.amcacheparser.com). Ensemble, ils reconstruisent l'essentiel de ce que 1102 a tenté d'effacer.
+
+Des outils comme `Invoke-Phant0m` sautent 1102 entièrement en suspendant les threads du service d'événements au lieu d'effacer. Si vous voyez un silence de plusieurs heures dans Security sans 1102 et sans arrêt système, c'est l'autre forme du même problème.
+
+## Pour aller plus loin
+
+- [MITRE ATT&CK T1070.001](https://attack.mitre.org/techniques/T1070/001/)
+- [Documentation Microsoft pour 1102](https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-1102)

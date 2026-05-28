@@ -1,12 +1,14 @@
 ---
-title: "Event ID 4625 を解読する:ブルートフォース、スプレー、列挙の検知"
-description: "4625 はログオン失敗のレコード。正しく読めば、成功する前にパスワード スプレー、クレデンシャル スタッフィング、Kerberos 不正利用を捕捉できる。"
+title: "Event ID 4625 を解説: ブルートフォース、スプレー、列挙の検出"
+description: "4625 はログオン失敗レコードです。正しく読めば、成功に転じる前にパスワード スプレー、クレデンシャル スタッフィング、Kerberos の悪用を見つけられます。"
 date: "2026-05-17"
 ---
 
-Event ID 4625 — 「アカウントがログオンに失敗しました」 — は、認証試行が拒否されるたびに [`Security` チャネル](/ja/blog/what-is-an-evtx-file) に記録されます。クレデンシャル攻撃活動を捕捉するうえで単体で最も有用なレコードですが、それは正しいフィールドを読めればの話です。
+Event ID 4625「アカウントがログオンに失敗しました」は、認証試行が拒否されるたびに [`Security` チャネル](/ja/blog/what-is-an-evtx-file) に発火します。クレデンシャル攻撃を進行中に捕まえるうえで最も有用なレコードです。同時に、見出しメッセージが汎用的で、答えがフィールド 2 つぶん深くにあるために、アナリストが最も誤読しやすいレコードでもあります。
 
-## 実際に重要なフィールド
+## 判断を決めるフィールド
+
+典型的なレコード:
 
 ```xml
 <Data Name="TargetUserName">administrator</Data>
@@ -16,39 +18,39 @@ Event ID 4625 — 「アカウントがログオンに失敗しました」 — 
 <Data Name="LogonType">3</Data>
 <Data Name="WorkstationName">attacker-vm</Data>
 <Data Name="IpAddress">203.0.113.7</Data>
+<Data Name="LogonProcessName">NtLmSsp</Data>
+<Data Name="AuthenticationPackageName">NTLM</Data>
 ```
 
-`Status` と `SubStatus` の組み合わせが、ログオンが失敗した*理由*を教えてくれます。
+`Status` と `SubStatus` を合わせて読むことで、ログオンが失敗した理由が分かります。実際に気にすべきペアは `SubStatus` です。覚えておくべきコード:
 
-- `0xc0000064` — アカウントが存在しない（ユーザー名列挙）。
-- `0xc000006a` — パスワード違い（教科書的）。
-- `0xc0000234` — アカウント ロックアウト。
-- `0xc0000072` — アカウント無効化。
-- `0xc0000071` — パスワード期限切れ。
-- `0xc0000133` — Kerberos チケットのクロック スキュー（AS-REP roasting 時によく見られる）。
-- `0xc000018b` — SID 違い — ワークステーションが自分が思っているドメインに属していない。
+- `0xC0000064`: アカウントが存在しない。ユーザー名列挙。
+- `0xC000006A`: パスワード違い。古典的なもの。
+- `0xC0000234`: アカウントがロックアウトされた。
+- `0xC0000072`: アカウントが無効化されている。
+- `0xC0000071`: パスワードの有効期限切れ。
+- `0xC0000133`: Kerberos の時刻ずれ。AS-REP roasting 試行でホストの時刻を偽装したときによくあります。
+- `0xC000018B`: SID が違う。ワークステーションが自分のドメインを誤認識している。稀で興味深い。
 
-有効・無効を問わないユーザー名に対する `0xc0000064` の連発は偵察。1 つのアカウントに対する `0xc000006a` の連発はブルートフォース。複数アカウントに対して*同じパスワード*での `0xc000006a` の連発はパスワード スプレーです。
+有効と無効のユーザー名が混じった `0xC0000064` のバーストは偵察です。1 アカウントに対する `0xC000006A` のバーストはブルートフォースです。多数アカウントに対して*同じ*パスワードで試す `0xC000006A` のバーストはスプレーです。同じイベント ID、3 つの異なるインシデントです。
 
-## パターン
+## 本領を発揮するトリアージ クエリ
 
-最もシンプルなトリアージ クエリ。
+1. スプレー検知。4625 を `IpAddress` (IP フィールドが空なら `WorkstationName`) でグループ化し、10 分間にわたるユニークな `TargetUserName` の数を数える。そのウィンドウで送信元あたり 5 アカウント超は、ほぼどこでも怪しい。
+2. ブルートフォース。`TargetUserName` でグループ化し、分あたりの失敗数を数える。1 アカウントに対して分あたり 10 回超は、ほぼ自動化されています。
+3. ロックアウトの根本原因。4740 (アカウント ロック) を先行する 4625 と組み合わせる。`WorkstationName` フィールドがロックアウトを引き起こしたデバイスを教えてくれます。多くの場合、攻撃者ではなく古いキャッシュ資格情報を持つドメイン参加サーバーです。ヘルプデスクは両者を同じように扱い、SOC はどちらをエスカレートするか決めなければならないので、トリアージが重要になります。
 
-1. **スプレー検出**:4625 を `IpAddress`（IP が記録されていなければ `WorkstationName`）でグルーピングし、10 分間に対する distinct な `TargetUserName` を数える。同じウィンドウで送信元あたり 5 を超えるアカウントなら、ほぼどこでも不審。
-2. **ブルートフォース**:`TargetUserName` でグルーピングし、1 分あたりの失敗数を数える。1 つのアカウントに対して毎分 10 を超えるならボットの可能性大。
-3. **ロックアウトの根本原因**:4740（アカウントがロックアウト）と先行する 4625 群を組み合わせる — `WorkstationName` フィールドがロックアウトを引き起こしたデバイスを示します。これは重要で、攻撃者ではなくドメイン参加サーバに古いパスワードが保存されているケースが多いからです。
+## 「その後」が対応を決める
 
-## 「あと」も「まえ」と同じくらい大事
+同じ `IpAddress` からの 4625 バーストの後に [4624](/ja/blog/understanding-event-id-4624) が続くのが、行動すべきケースです。攻撃者が動く資格情報を見つけました。タイムラインでの進行は紛れもありません: 密な失敗、突然の沈黙、単一の成功。
 
-4625 の連発の直後に同じ `IpAddress` から [4624](/ja/blog/understanding-event-id-4624) が来るのが actionable なケースです — 攻撃者が有効なクレデンシャルを見つけたということ。本ページのパーサーでは、テーブルを送信元 IP でフィルタリングし、タイムラインでレベルとイベント ID の推移を時間軸で観察できます。連発の後にスパイクが来るパターンは間違いようがありません。
-
-## サンプル Sigma ルール — パスワード スプレー
+## Sigma: パスワード スプレー
 
 ```yaml
 title: Password Spray via NTLM Failed Logons
 id: 6d2e1f4a-1a8b-4c7c-8a5f-2c3d4e5f6a7b
 status: stable
-description: One source IP failing logons against many distinct accounts within a short window — the password-spray fingerprint.
+description: One source IP failing logons against many distinct accounts within a short window. The password-spray fingerprint.
 references:
   - https://attack.mitre.org/techniques/T1110/003/
 logsource:
@@ -70,7 +72,7 @@ tags:
   - attack.t1110.003
 ```
 
-## サンプル KQL — 単一アカウントへのブルートフォース
+## KQL: 単一アカウントに対するブルートフォース
 
 ```kusto
 SecurityEvent
@@ -82,7 +84,7 @@ SecurityEvent
 | order by TimeGenerated desc
 ```
 
-## サンプル Splunk — ブルート前の列挙
+## Splunk: 列挙からブルートへの移行
 
 ```spl
 index=wineventlog EventCode=4625
@@ -91,25 +93,30 @@ index=wineventlog EventCode=4625
 | where mvcount(Sequence) >= 2 AND mvfind(Sequence, "enumeration") >= 0 AND mvfind(Sequence, "wrong_password") >= 0
 ```
 
-シグナルは*進行*にあります — 有効なユーザー名を見つけるための列挙、続いてそれに対するブルートフォース。
+信号は*進行*そのものです: まず列挙で有効ユーザー名を見つけ、次に標的を絞ったパスワード試行。新しいユーザー リストを持った実オペレーターは、両方の形を数分以内に生み出します。
 
 ## ATT&CK マッピング
 
-- **T1110.001 — Brute Force: Password Guessing**:単一アカウント、多数の `0xC000006A` 失敗。
-- **T1110.003 — Brute Force: Password Spraying**:多数アカウント、アカウントあたり数回の失敗、単一送信元。
-- **T1110.004 — Brute Force: Credential Stuffing**:多数アカウント、単一送信元、漏洩リストの外れに対する `0xC0000064`（アカウント不存在）が `0xC000006A` のヒットに混ざる。
-- **T1078 — Valid Accounts**:同一送信元からの 4625 の後に [4624](/ja/blog/understanding-event-id-4624) 成功 = 侵害。
-- **T1556 — Modify Authentication Process**:異常な `LogonProcessName`（`User32`、`NtLmSsp`、`Kerberos`、`Advapi`、`Schannel` 以外）は認証スタック改ざんの兆候。
+- T1110.001 Brute Force: Password Guessing。単一アカウントへの多数の `0xC000006A` 失敗。
+- T1110.003 Brute Force: Password Spraying。多数アカウント、1 つの送信元、各々の失敗は少数。
+- T1110.004 Credential Stuffing。多数アカウント、1 つの送信元、`0xC0000064` (アカウント不在、漏洩リストの外れ) と `0xC000006A` (命中) の混在。
+- T1078 Valid Accounts。同じ送信元から 4625 バースト後に [4624](/ja/blog/understanding-event-id-4624) 成功。侵害です。
+- T1556 Modify Authentication Process。異常な `LogonProcessName` (`User32`、`NtLmSsp`、`Kerberos`、`Advapi`、`Schannel` 以外) は改ざんを示唆します。
 
-## 攻撃に見える誤検知
+## 衣装を着た誤検知
 
-- **パスワード変更後に古くなった保存資格情報**。ユーザーのマップ ドライブ、スケジュールド タスク、サービス アカウントの設定が古いパスワードでリトライし続けます。パターン:1 つの `TargetUserName`、1 つの `IpAddress`（時には 1 つの `WorkstationName`）、安定した間隔の `0xC000006A`。古い資格情報を持つホストを探し、修正してください。
-- **誤設定された自動化**:誤ったパスワードでループするスクリプト。形はブルートフォースと同じ。アラート前にオーナーに確認。
-- **脆弱性スキャナ**は認証スキャン中に高密度の 4625 トラフィックを発生させます。スキャナ IP にタグを付けてください。
-- **ロックアウト ポリシーの誤設定**:ヘルプデスクが過剰に解除する手順では、4625 → 4740 → 4624 のサイクルが繰り返し発生し得ます。
+- パスワード変更後に古くなった保存資格情報。ユーザーのマップ ドライブ、スケジュールド タスク、サービス設定が古いパスワードで再試行します。形は 1 つの `TargetUserName`、1 つの `IpAddress`、安定した `0xC000006A` の頻度。アラートを出す前に、古い資格情報を持つホストを見つけて修正してください。
+- 構成ミスの自動化。間違ったパスワードでループ リトライするスクリプト。ブルートフォースと同じ形。まずオーナーに話してください。
+- 認証スキャン中の脆弱性スキャナーは密な 4625 トラフィックを生成します。スキャナー IP にタグを付けてください。
+- ロックアウト ポリシーのチャーン。積極的にロック解除するヘルプデスク手順は、繰り返す 4625 → 4740 → 4624 のサイクルを生みます。煩わしい。悪意はない。
 
-## 4625 では見えないもの
+## 4625 が隠すもの
 
-ドメイン コントローラからの NTLMv2 や Kerberos の失敗は、必ずしも有用な `IpAddress` を含みません — フィールドが空や `-` のことがあります。それらについては対応する DC イベント（Kerberos の事前認証失敗なら [4768](/ja/blog/event-id-4768-kerberos-tgt)/4771）またはネットワーク レベルのデータが必要です。「送信元 IP がないから調査しない」とは結論しないでください — DC チャネルへピボットしましょう。
+DC を通る Kerberos と NTLMv2 の失敗は、有用な `IpAddress` を常に運ぶわけではありません。フィールドは空または `-` になることがあります。それらについては、DC のレコード ([4768](/ja/blog/event-id-4768-kerberos-tgt) と Kerberos pre-auth 失敗の 4771) に軸を変えてください。「送信元 IP がなければ調査なし」は誤った直感です。代わりに DC ログを見てください。
 
-`LogonProcessName` と `AuthenticationPackageName` フィールドは試行を処理した認証スタックを示します。よく見るのは `NtLmSsp`（NTLM）、`Kerberos`、`Negotiate`（両者から選択）です。`User32` はローカル コンソール、`Schannel` は TLS ベースです。
+`LogonProcessName` と `AuthenticationPackageName` フィールドは、どの認証スタックが試行を処理したかを教えます。有用な値: `NtLmSsp` (NTLM)、`Kerberos`、`Negotiate` (どちらかを選ぶ)、`User32` (ローカル コンソール)、`Schannel` (TLS バックアップ)。それ以外はもっとよく見てください。
+
+## 参考資料
+
+- [JPCERT/CC: Detecting Lateral Movement through Tracking Event Logs](https://jpcertcc.github.io/ToolAnalysisResultSheet/)
+- [MITRE ATT&CK T1110: Brute Force](https://attack.mitre.org/techniques/T1110/)

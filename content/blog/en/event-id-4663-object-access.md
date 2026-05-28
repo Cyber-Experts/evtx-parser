@@ -1,18 +1,18 @@
 ---
-title: "Event ID 4663 explained: file & registry access auditing with SACLs"
-description: "4663 is the per-access object-audit record. Configure SACLs on the right files and keys and you get a per-byte log of who touched what — useful for ransomware, exfil, and credential-store theft."
+title: "Event ID 4663 explained: file and registry access auditing with SACLs"
+description: "4663 is the per-access object-audit record. Configure SACLs on the right files and keys and you get a per-byte log of who touched what. Useful for ransomware, exfil, and credential-store theft."
 date: "2026-05-24"
 ---
 
-Event ID **4663** — "An attempt was made to access an object" — fires on the [`Security` channel](/en/blog/what-is-an-evtx-file) every time an audited file, registry key, or kernel object is accessed in a way that matches its System Access Control List (SACL). Unlike most Security records, 4663 produces nothing on its own — you have to *configure* the SACL on the object you care about before any 4663 records exist. That makes it cheap by default and devastatingly effective once tuned.
+Event ID **4663**, "An attempt was made to access an object", fires on the [`Security` channel](/en/blog/what-is-an-evtx-file) every time an audited file, registry key, or kernel object is touched in a way that matches its System Access Control List. Unlike most Security records, 4663 produces nothing by default. You have to *configure* the SACL on the object first. That is why most environments do not have it. It is also why the ones that do have an almost unfair detection advantage on a small set of techniques.
 
-If you only audit one thing with 4663, audit access to credential stores and high-value data shares. The signal-to-noise is among the best in the entire audit catalog.
+If you instrument 4663 on exactly five things and ignore the rest, you will catch credential-dump staging, ransomware sweeps, and DPAPI theft cheaper than any EDR can.
 
 ## Where it fires
 
-Always on the host that owns the object — the file server for a file SACL, the workstation for a local registry SACL, the DC for an AD object SACL. There is no central record; if you want estate-wide visibility on a sensitive share, you need to forward `Security` from the file server hosting it.
+On the host that owns the object. File SACLs fire on the file server. Local registry SACLs fire on the workstation. AD object SACLs fire on the DC. There is no central record. To get estate-wide visibility on a sensitive share, you need to forward Security from the file server hosting it. This catches people out constantly.
 
-## What the record contains
+## The record fields
 
 ```xml
 <Data Name="SubjectUserSid">S-1-5-21-...-1107</Data>
@@ -30,62 +30,60 @@ Always on the host that owns the object — the file server for a file SACL, the
 <Data Name="ResourceAttributes">-</Data>
 ```
 
-The fields:
+The ones that matter:
 
-- **`ObjectType`** — `File`, `Key` (registry), `Process`, `Token`, `Directory`, `Section`, or any object class that supports SACLs.
-- **`ObjectName`** — the full path. For files it's a Windows path; for registry keys, the full path under `\REGISTRY\MACHINE\…` (note: not the `HKLM\…` notation you'd type into regedit).
-- **`AccessList`** — what was attempted, as a list of decoded access-right names (one per `%%NNNN` token). The common decoded values:
-  - `%%4416` = `ReadData (or ListDirectory)`
-  - `%%4417` = `WriteData (or AddFile)`
-  - `%%4418` = `AppendData (or AddSubdirectory)`
-  - `%%4419` = `ReadEA` / `%%4420` = `WriteEA`
-  - `%%4423` = `ReadAttributes` / `%%4424` = `WriteAttributes`
-  - `%%4425` = `DELETE`
-- **`AccessMask`** — the raw bitmask of `STANDARD_RIGHTS_*` and object-specific rights actually requested.
-- **`ProcessName`** + **`ProcessId`** — the process that opened the handle. The pivot to [4688](/en/blog/event-id-4688-process-creation) / [Sysmon 1](/en/blog/sysmon-event-id-1-process-create) for the full process context.
-- **`SubjectLogonId`** — pivot to [4624](/en/blog/understanding-event-id-4624) for the originating session, the source IP if network logon, and the user.
+- `ObjectType`. `File`, `Key` (registry), `Process`, `Token`, `Directory`, `Section`. Any object class that supports SACLs.
+- `ObjectName`. Full path. For files, a Windows path. For registry keys, the full path under `\REGISTRY\MACHINE\...` (not the `HKLM\...` you would type into regedit).
+- `AccessList`. What was attempted, as decoded access-right tokens. The common ones:
+  - `%%4416` = ReadData / ListDirectory
+  - `%%4417` = WriteData / AddFile
+  - `%%4418` = AppendData / AddSubdirectory
+  - `%%4419` = ReadEA, `%%4420` = WriteEA
+  - `%%4423` = ReadAttributes, `%%4424` = WriteAttributes
+  - `%%4425` = DELETE
+- `AccessMask`. Raw bitmask of `STANDARD_RIGHTS_*` and object-specific rights actually requested.
+- `ProcessName` and `ProcessId`. The process that opened the handle. Pivot to [4688](/en/blog/event-id-4688-process-creation) or [Sysmon 1](/en/blog/sysmon-event-id-1-process-create) for the full process context.
+- `SubjectLogonId`. Pivot to [4624](/en/blog/understanding-event-id-4624) for the originating session, the source IP if network logon, and the user.
 
-## Configuring 4663 — the part that's actually work
+## Turning 4663 on is three steps and people skip one
 
-There are three layers of configuration; missing any one of them means no records.
+1. **Audit policy**. Enable *Object Access* sub-policies for File System and/or Registry, success and/or failure. Group Policy or `auditpol /set /subcategory:"File System" /success:enable /failure:enable`.
+2. **SACL on the object**. Properties, Security tab, Advanced, Auditing tab in the GUI. Or `Set-Acl`, `icacls /audit`. You specify which principal, which rights, and whether to audit success, failure, or both.
+3. **For registry**, same flow via regedit's key Permissions, Advanced, Auditing.
 
-1. **Audit policy**: enable *Object Access → Audit File System* and/or *Audit Registry* for success and/or failure. Either via Group Policy or `auditpol /set /subcategory:"File System" /success:enable /failure:enable`.
-2. **SACL on the object**: right-click → Properties → Security → Advanced → Auditing tab (Windows GUI), or via `Set-Acl` / `icacls /audit`. You specify *which principal* (often `Everyone` or `Authenticated Users`), *which rights*, and *whether to audit success, failure, or both*.
-3. **For registry**: same flow, accessed via `regedit` → key → Permissions → Advanced → Auditing.
+Without (1) the records never write. Without (2) Windows has no idea you wanted to audit anything. Without (3) you are only auditing files. People most often skip (2) because step (1) feels like it should be enough. It is not.
 
-Without (1) the records never write. Without (2) Windows has no idea you wanted to audit anything. Without (3) you're only auditing files.
+The SACLs that earn their keep on every server:
 
-The SACLs to set on every server:
+- `C:\Windows\System32\config\SAM`, `SECURITY`, `SYSTEM`. Audit `Everyone : ReadData : Success`. Anything reading these other than `LocalSystem` is credential dumping.
+- `*.dmp` files in `C:\Windows\Temp` and `%TEMP%`. Audit `Everyone : WriteData : Success`. A process writing a `.dmp` here is either Windows after a crash, or a Mimikatz operator.
+- `C:\ProgramData\Microsoft\Crypto\RSA` and `C:\Users\*\AppData\Roaming\Microsoft\Protect`. DPAPI master-key directories. Audit `ReadData : Success`. Anything reading these outside the user's own session is stealing secrets.
+- `HKLM\SECURITY` and `HKLM\SAM`. Registry equivalents. Same audit.
+- Sensitive file shares: finance, legal, payroll. Audit `WriteData + DELETE : Success` to catch ransomware sweeps and bulk deletions.
 
-- **`C:\Windows\System32\config\SAM`**, **`SECURITY`**, **`SYSTEM`** — local credential stores. Audit `Everyone : ReadData : Success`. Anything reading these other than `LocalSystem` is a credential-dumping attempt.
-- **`%TEMP%\lsass.dmp`** and any `*.dmp` in `C:\Windows\Temp` — process minidumps. Audit `Everyone : WriteData : Success`. A process writing a `.dmp` here is either a crash dump (Windows) or a Mimikatz operator (everyone else).
-- **`C:\ProgramData\Microsoft\Crypto\RSA`** and **`C:\Users\*\AppData\Roaming\Microsoft\Protect`** — DPAPI master-key directories. Audit `ReadData : Success`. Anyone reading these from outside the user's own session is stealing protected secrets.
-- **`HKLM\SECURITY`** and **`HKLM\SAM`** — registry equivalents. Audit `ReadData : Success`.
-- **Sensitive file shares** — finance, legal, payroll. Audit `WriteData + DELETE : Success` to catch ransomware encryption sweeps and bulk deletions.
+## The patterns you will actually catch
 
-## The triage patterns
+### SAM or SYSTEM hive read
 
-### 1. SAM / SYSTEM hive read
+Any 4663 with `ObjectName` ending in `\config\SAM`, `\config\SECURITY`, or `\config\SYSTEM`, where `ProcessName` is not `services.exe`, `lsass.exe`, or `wininit.exe`, and `SubjectUserSid` is not `S-1-5-18`. This is `reg save HKLM\SAM`, `esentutl /y` against a shadow copy, or any credential-dumping tool with file-level hive access. Cross-check the [registry](https://www.registryparser.com) for any backup hive files left behind.
 
-Any 4663 with `ObjectName` ending in `\config\SAM`, `\config\SECURITY`, or `\config\SYSTEM`, where `ProcessName` is not `services.exe` / `lsass.exe` / `wininit.exe` and `SubjectUserSid` is not `S-1-5-18`. This is `reg save HKLM\SAM`, `esentutl /y`, `vssadmin create shadow + copy`, or any credential-dumping tool with file-level hive access.
+### LSASS minidump written
 
-### 2. LSASS dump file written
+A 4663 `WriteData` for a `.dmp` file in `C:\Windows\Temp\`, `C:\ProgramData\`, or `%TEMP%`, with `ProcessName` of `rundll32.exe`, `procdump*.exe`, or anything calling `comsvcs.dll`. The textbook is `rundll32.exe C:\Windows\System32\comsvcs.dll MiniDump <pid> lsass.dmp full`. Cross-reference [4688](/en/blog/event-id-4688-process-creation) for the `CommandLine`. The 4663 catches this even when EDR was asleep.
 
-A 4663 `WriteData` for a `.dmp` file in `C:\Windows\Temp\`, `C:\ProgramData\`, or `%TEMP%`, with `ProcessName` of `rundll32.exe`, `procdump*.exe`, `comsvcs.dll`-related callers, or a renamed binary. This is the LSASS-minidump pattern. Cross-reference with [4688](/en/blog/event-id-4688-process-creation) for the `CommandLine` — `comsvcs.dll MiniDump` is the most common encoding.
+### Ransomware encryption sweep
 
-### 3. Ransomware encryption sweep
+Many 4663s with `AccessMask` including `WriteData + DELETE` against files in a sensitive share within seconds, all from the same `SubjectLogonId` and `ProcessName`. A real backup process touches files in a throttled, measurable pattern. Ransomware sweeps a directory tree as fast as the disk allows. The shape gives it away.
 
-Many 4663s with `AccessMask` including `WriteData + DELETE` against files in a sensitive share within seconds, all from the same `SubjectLogonId` and `ProcessName`. A real backup process touches files in a measurable, throttled pattern; ransomware sweeps a directory tree as fast as the disk allows.
+### DPAPI master-key theft
 
-### 4. DPAPI master-key theft
+4663 `ReadData` on files under `\AppData\Roaming\Microsoft\Protect\<sid>\` by any process other than the user's own session. The dead giveaway is `SubjectUserSid` being a *different* SID from the one embedded in the path.
 
-4663 `ReadData` on files under `\AppData\Roaming\Microsoft\Protect\<sid>\` by any process other than the user's own session. The classic pattern is `SubjectUserSid` being a *different* SID from the one in the path.
+### Group Policy Preferences password file read
 
-### 5. Group Policy preference password file read
+4663 `ReadData` on files matching `\SYSVOL\<domain>\Policies\*\Groups.xml`, or `Services.xml`, `Drives.xml`, `ScheduledTasks.xml`. This is `Get-GPPPassword`. The technique is old. The SYSVOL files often still exist on legacy domains, and you would be surprised how often somebody picks the obfuscated AES key off MSDN and walks away with a domain credential.
 
-4663 `ReadData` on files matching `\SYSVOL\<domain>\Policies\*\Groups.xml` (or `Services.xml`, `Drives.xml`). This is the `Get-GPPPassword` attack — old, but the SYSVOL files often still exist on legacy domains.
-
-## Sample Sigma rule — SAM hive read
+## Sigma: SAM hive read
 
 ```yaml
 title: SAM Hive Read from Disk (Credential Dumping)
@@ -124,7 +122,7 @@ tags:
   - attack.t1003.002
 ```
 
-## Sample KQL — ransomware encryption sweep
+## KQL: ransomware encryption sweep
 
 ```kusto
 SecurityEvent
@@ -137,9 +135,9 @@ SecurityEvent
 | order by TimeGenerated desc
 ```
 
-100 distinct files written-or-deleted per minute under one logon session is a sweep, full stop.
+100 distinct files written-or-deleted per minute under one logon session is a sweep. Full stop.
 
-## Sample Splunk — DPAPI master-key access
+## Splunk: DPAPI master-key access
 
 ```spl
 index=wineventlog EventCode=4663 ObjectName="*\\AppData\\Roaming\\Microsoft\\Protect\\*"
@@ -150,50 +148,56 @@ index=wineventlog EventCode=4663 ObjectName="*\\AppData\\Roaming\\Microsoft\\Pro
 
 ## ATT&CK mapping
 
-- **T1003.002 — OS Credential Dumping: Security Account Manager**: SAM hive reads.
-- **T1003.004 — OS Credential Dumping: LSA Secrets**: SECURITY hive reads.
-- **T1003.001 — OS Credential Dumping: LSASS Memory**: `.dmp` writes (combined with process context).
-- **T1555.004 — Credentials from Password Stores: Windows Credential Manager**: access to `\AppData\Local\Microsoft\Credentials\`.
-- **T1552.006 — Unsecured Credentials: Group Policy Preferences**: SYSVOL `Groups.xml` reads.
-- **T1486 — Data Encrypted for Impact**: bulk WriteData + DELETE patterns (ransomware).
-- **T1565.001 — Stored Data Manipulation**: arbitrary file writes to monitored data shares.
+- T1003.002 OS Credential Dumping: Security Account Manager. SAM hive reads.
+- T1003.004 LSA Secrets. SECURITY hive reads.
+- T1003.001 LSASS Memory. `.dmp` writes (combined with process context).
+- T1555.004 Credentials from Password Stores: Windows Credential Manager. Access to `\AppData\Local\Microsoft\Credentials\`.
+- T1552.006 Unsecured Credentials: Group Policy Preferences. SYSVOL `Groups.xml` reads.
+- T1486 Data Encrypted for Impact. Bulk `WriteData + DELETE` patterns.
+- T1565.001 Stored Data Manipulation. Arbitrary writes to monitored data shares.
 
-## Volume management — the SACL trap
+## The SACL volume trap
 
-Naively setting `Everyone : All access : Success+Failure` on a busy directory will produce hundreds of thousands of 4663 records per minute and bury your collection. SACLs are precision instruments. Audit:
+Setting `Everyone : All access : Success+Failure` on a busy directory produces hundreds of thousands of 4663s per minute and buries the collection. SACLs are precision instruments. Audit:
 
-- **Only the access types you care about** (`ReadData` for credential stores; `WriteData + DELETE` for data shares; rarely both).
-- **Only success** — failures are rarer and rarely interesting.
-- **Specific files**, not whole drives. The SAM file, not all of `C:\Windows\System32\config\`. The HR share, not all of `D:\`.
-- **Specific principals** when you can — for SAM-class objects `Everyone` is fine because legit access is by `LocalSystem` anyway; for shared data, audit only the principals actually touching the data.
+- Only the access types you care about. ReadData for credential stores. WriteData + DELETE for data shares. Rarely both at once.
+- Only success. Failures are rarer and rarely interesting in this corpus.
+- Specific files, not whole drives. The SAM file, not all of `C:\Windows\System32\config\`. The HR share, not all of `D:\`.
+- Specific principals when you can. For SAM-class objects, `Everyone` is fine because legit access is by `LocalSystem` anyway. For shared data, audit only the principals actually touching the data.
 
-A well-tuned SACL on five high-value objects produces 50-200 records a day per host — entirely tractable.
+A well-tuned SACL on five high-value objects produces 50 to 200 records a day per host. Entirely tractable.
 
-## False positives that look exactly like attacks
+## False positives that look identical to attacks
 
-- **Volume Shadow Copy** (VSS) backups generate dense 4663 traffic during a backup window. Tag the backup orchestrator's `ProcessName`.
-- **Antivirus on-access scans** open every file in a target directory; AV product service accounts will dominate any naive 4663 rule. Whitelist by SID.
-- **Indexing services** (Windows Search, Spotlight-style) hit metadata via `ReadAttributes` — usually filter-able by `AccessList`.
-- **Backup-staged restores** look like ransomware writes (many files, one process, in a directory) but the process is your backup agent.
-- **Defender real-time scanning** reads everything; if you audit too broadly, it's the dominant noise source.
+- Volume Shadow Copy backups generate dense 4663 traffic during a backup window. Tag the backup orchestrator's `ProcessName`.
+- Antivirus on-access scans open every file in a target directory. AV product service accounts will dominate any naive 4663 rule. Whitelist by SID.
+- Indexing services (Windows Search) hit metadata via `ReadAttributes`. Usually filter-able by `AccessList`.
+- Backup-staged restores look like ransomware writes (many files, one process, in a directory). Process tells you the difference.
+- Defender real-time scanning reads everything. If you audit too broadly, it dominates the noise.
 
-## What 4663 doesn't tell you
+## What 4663 does not tell you
 
-- **Content of the access**: you see that a file was read/written, not what was read/written. For the latter you need an EDR or FIM (File Integrity Monitoring) product.
-- **Why the access happened**: just the syscall outcome. To correlate to user intent, pair with [4688](/en/blog/event-id-4688-process-creation) / [Sysmon 1](/en/blog/sysmon-event-id-1-process-create) for the calling process's full context.
-- **Closed handles**: 4663 fires on handle *open*. Close events are 4658, rarely useful for attack detection.
-- **Network paths transparently**: SMB access to a share fires 4663 on the *server*; the client sees nothing. You need server-side collection.
-- **Failed access by default**: many shops only audit `Success`; configure `Failure` only if you genuinely care about thwarted access attempts.
+- The content of the access. You see that a file was read or written, not what was read or written. For that, EDR or FIM.
+- Why the access happened. To correlate to user intent, pair with [4688](/en/blog/event-id-4688-process-creation) or [Sysmon 1](/en/blog/sysmon-event-id-1-process-create) for the calling process's full context.
+- Closed handles. 4663 fires on handle *open*. Close events are 4658, rarely useful for attack detection.
+- Network paths transparently. SMB access to a share fires 4663 on the *server*. The client sees nothing. You need server-side collection.
+- Failed access by default. Many shops only audit Success. Configure Failure only if you genuinely care about thwarted attempts.
 
 ## Where 4663 fits in a timeline
 
 Classic LSASS credential dump chain:
 
-1. [**4624**](/en/blog/understanding-event-id-4624) — admin logon (LogonType 3 or 10).
-2. [**4672**](/en/blog/event-id-4672-special-privileges) — SeDebugPrivilege granted with the session.
-3. [**4688**](/en/blog/event-id-4688-process-creation) — `rundll32.exe C:\Windows\System32\comsvcs.dll MiniDump <pid> C:\Windows\Temp\lsass.dmp full`.
-4. **4663** — `WriteData` to `C:\Windows\Temp\lsass.dmp` by `rundll32.exe`. **Forensic gold — proof of exfil staging.**
-5. [**4688**](/en/blog/event-id-4688-process-creation) — file move / archive (the operator extracting the dump).
-6. [**1102**](/en/blog/event-id-1102-cleared-log) — Security log cleared (some operators do this; many forget).
+1. [4624](/en/blog/understanding-event-id-4624). Admin logon, LogonType 3 or 10.
+2. [4672](/en/blog/event-id-4672-special-privileges). SeDebugPrivilege granted with the session.
+3. [4688](/en/blog/event-id-4688-process-creation). `rundll32.exe C:\Windows\System32\comsvcs.dll MiniDump <pid> C:\Windows\Temp\lsass.dmp full`.
+4. **4663**. `WriteData` to `C:\Windows\Temp\lsass.dmp` by `rundll32.exe`. Forensic gold. Proof of staged exfil.
+5. [4688](/en/blog/event-id-4688-process-creation). File move or archive (operator extracting the dump).
+6. [1102](/en/blog/event-id-1102-cleared-log). Security log cleared. Some operators do this. Many forget.
 
-The 4663 in step 4 is the cheapest, most specific signal in the chain — it directly identifies the credential-theft artifact by name, on disk, with the calling process attached. SAM-hive reads, DPAPI master-key access, and SYSVOL Groups.xml reads work the same way.
+Step 4 is the cheapest, most specific signal in the chain. It directly identifies the credential-theft artifact by name, on disk, with the calling process attached. SAM-hive reads, DPAPI master-key access, and SYSVOL Groups.xml reads work the same way.
+
+## Further reading
+
+- [Microsoft documentation for 4663](https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4663)
+- [SpecterOps: SACLs for Detection](https://posts.specterops.io/an-introduction-to-manipulating-token-privileges-dbd13a6ab1c2)
+- [MITRE ATT&CK T1003](https://attack.mitre.org/techniques/T1003/)

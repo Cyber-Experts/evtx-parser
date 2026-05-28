@@ -1,18 +1,18 @@
 ---
-title: "Event ID 4663 を解読する:SACL によるファイル & レジストリ アクセス監査"
-description: "4663 はオブジェクト アクセスごとの監査レコード。適切なファイルとキーに SACL を設定すれば、誰が何に触れたかをバイト単位で記録できる — ランサムウェア、データ持ち出し、資格情報ストア窃取に有効。"
+title: "Event ID 4663 を解説: SACL によるファイルとレジストリのアクセス監査"
+description: "4663 はアクセスごとに発生するオブジェクト監査レコードです。適切なファイルとキーに SACL を設定すれば、誰が何に触れたかを 1 バイト単位で記録できます。ランサムウェア、エクスフィル、資格情報ストア窃取に有用です。"
 date: "2026-05-24"
 ---
 
-Event ID **4663** — 「オブジェクトへのアクセスが試行されました」 — は、監査対象のファイル、レジストリ キー、またはカーネル オブジェクトが、その System Access Control List（SACL）にマッチする方法でアクセスされるたびに [`Security` チャネル](/ja/blog/what-is-an-evtx-file) に記録されます。ほとんどの Security レコードと違い、4663 は単独では何も出力しません — 4663 のレコードを生むには、対象オブジェクトの SACL を*設定する*必要があります。これによりデフォルトでは軽量、チューニングすれば破壊的に効果的になります。
+Event ID **4663**「オブジェクトへのアクセスが試行されました」は、監査対象のファイル、レジストリ キー、またはカーネル オブジェクトが SACL (System Access Control List) と一致する方法で触れられるたびに [`Security` チャネル](/ja/blog/what-is-an-evtx-file) に発火します。多くの Security レコードと異なり、4663 は既定では何も生成しません。オブジェクトの SACL を*設定*する必要があります。これがほとんどの環境にない理由です。同時に、設定している環境が、わずかなテクニックに対して反則レベルの検知優位を持つ理由でもあります。
 
-4663 で 1 つだけ監査するなら、資格情報ストアと高価値データ共有へのアクセスを監査してください。シグナル対ノイズ比は監査カタログ全体でも最良の部類です。
+4663 をちょうど 5 つのものに計装し、それ以外を無視するだけで、credential dump のステージング、ランサムウェアのスイープ、DPAPI 窃取を、どんな EDR よりも安く捕まえられます。
 
 ## どこで発火するか
 
-オブジェクトを所有するホスト上で常に発火します — ファイル SACL ならファイル サーバ、ローカル レジストリ SACL ならワークステーション、AD オブジェクト SACL なら DC。中央集約レコードはありません。重要な共有について全社的に可視化したいなら、その共有をホストするファイル サーバから `Security` を転送する必要があります。
+オブジェクトを所有するホスト上です。ファイル SACL はファイル サーバーで発火します。ローカル レジストリ SACL はワークステーションで発火します。AD オブジェクト SACL は DC で発火します。中央集権的なレコードはありません。機密共有を全社的に可視化するには、それをホストするファイル サーバーから Security を転送する必要があります。これを見落とす人が後を絶ちません。
 
-## レコードの中身
+## レコードのフィールド
 
 ```xml
 <Data Name="SubjectUserSid">S-1-5-21-...-1107</Data>
@@ -30,62 +30,60 @@ Event ID **4663** — 「オブジェクトへのアクセスが試行されま�
 <Data Name="ResourceAttributes">-</Data>
 ```
 
-各フィールド。
+重要なもの:
 
-- **`ObjectType`** — `File`、`Key`（レジストリ）、`Process`、`Token`、`Directory`、`Section`、または SACL をサポートする任意のオブジェクト クラス。
-- **`ObjectName`** — フル パス。ファイルなら Windows パス、レジストリ キーなら `\REGISTRY\MACHINE\…` 配下のフル パス（注意:regedit に入力する `HKLM\…` 表記ではありません）。
-- **`AccessList`** — 何が試行されたか。デコード済みのアクセス権名のリスト（`%%NNNN` トークン 1 つにつき 1 つ）。よく見るデコード値:
-  - `%%4416` = `ReadData (or ListDirectory)`
-  - `%%4417` = `WriteData (or AddFile)`
-  - `%%4418` = `AppendData (or AddSubdirectory)`
-  - `%%4419` = `ReadEA` / `%%4420` = `WriteEA`
-  - `%%4423` = `ReadAttributes` / `%%4424` = `WriteAttributes`
-  - `%%4425` = `DELETE`
-- **`AccessMask`** — 実際に要求された `STANDARD_RIGHTS_*` とオブジェクト固有の権利の生のビットマスク。
-- **`ProcessName`** + **`ProcessId`** — ハンドルを開いたプロセス。完全なプロセス コンテキストには [4688](/ja/blog/event-id-4688-process-creation) / [Sysmon 1](/ja/blog/sysmon-event-id-1-process-create) へピボット。
-- **`SubjectLogonId`** — 元のセッションへピボットするための鍵。ネットワーク ログオンなら送信元 IP、ユーザーを取得するため [4624](/ja/blog/understanding-event-id-4624) へ。
+- `ObjectType`。`File`、`Key` (レジストリ)、`Process`、`Token`、`Directory`、`Section`。SACL をサポートする任意のオブジェクト クラス。
+- `ObjectName`。フル パス。ファイルは Windows パス。レジストリ キーは `\REGISTRY\MACHINE\...` 配下のフル パス (regedit で入力する `HKLM\...` ではない)。
+- `AccessList`。試行された内容をデコードされたアクセス権トークンとして。よく使うもの:
+  - `%%4416` = ReadData / ListDirectory
+  - `%%4417` = WriteData / AddFile
+  - `%%4418` = AppendData / AddSubdirectory
+  - `%%4419` = ReadEA、`%%4420` = WriteEA
+  - `%%4423` = ReadAttributes、`%%4424` = WriteAttributes
+  - `%%4425` = DELETE
+- `AccessMask`。実際に要求された `STANDARD_RIGHTS_*` とオブジェクト固有権のビット マスク。
+- `ProcessName` と `ProcessId`。ハンドルを開いたプロセス。フル プロセス コンテキストには [4688](/ja/blog/event-id-4688-process-creation) または [Sysmon 1](/ja/blog/sysmon-event-id-1-process-create) に飛んでください。
+- `SubjectLogonId`。発信元セッション、ネットワーク ログオンの場合の送信元 IP、ユーザーには [4624](/ja/blog/understanding-event-id-4624) に飛んでください。
 
-## 4663 の設定 — 実際に手間がかかる部分
+## 4663 を有効化するのは 3 ステップで、1 つを飛ばす人が多い
 
-設定は 3 層あり、どれを欠いてもレコードは出ません。
+1. **監査ポリシー**。File System や Registry の *Object Access* サブポリシーを、成功や失敗で有効化。グループ ポリシー、または `auditpol /set /subcategory:"File System" /success:enable /failure:enable`。
+2. **オブジェクトの SACL**。GUI ではプロパティの Security タブ、Advanced、Auditing タブ。あるいは `Set-Acl`、`icacls /audit`。どのプリンシパル、どの権利、成功/失敗のどちらを監査するかを指定。
+3. **レジストリの場合**、regedit のキーのアクセス許可、Advanced、Auditing から同じ流れ。
 
-1. **監査ポリシー**:*オブジェクト アクセス → ファイル システムの監査*および/または *レジストリの監査*を success / failure で有効化。グループ ポリシーまたは `auditpol /set /subcategory:"File System" /success:enable /failure:enable` 経由。
-2. **オブジェクトへの SACL**:右クリック → プロパティ → セキュリティ → 詳細設定 → 監査タブ（Windows GUI）、または `Set-Acl` / `icacls /audit`。*どのプリンシパル*（多くは `Everyone` か `Authenticated Users`）、*どの権利*、*success / failure / 両方*を監査するかを指定。
-3. **レジストリの場合**:同じフロー。`regedit` → キー → アクセス許可 → 詳細設定 → 監査からアクセス。
+(1) がなければレコードは書かれません。(2) がなければ Windows は何を監査したいか知りません。(3) がなければファイルしか監査していないことになります。人々が最もよく飛ばすのは (2) です。ステップ (1) だけで足りるように感じるからです。足りません。
 
-(1) がなければレコードは決して書かれません。(2) がなければ Windows は何を監査したいのか知りません。(3) がなければファイルしか監査されません。
+すべてのサーバーで本領を発揮する SACL:
 
-すべてのサーバに設定すべき SACL。
+- `C:\Windows\System32\config\SAM`、`SECURITY`、`SYSTEM`。`Everyone : ReadData : Success` を監査。これらを `LocalSystem` 以外が読むのは credential dumping です。
+- `C:\Windows\Temp` と `%TEMP%` の `*.dmp` ファイル。`Everyone : WriteData : Success` を監査。ここに `.dmp` を書くプロセスは、クラッシュ後の Windows か、Mimikatz オペレーターです。
+- `C:\ProgramData\Microsoft\Crypto\RSA` と `C:\Users\*\AppData\Roaming\Microsoft\Protect`。DPAPI マスター キー ディレクトリ。`ReadData : Success` を監査。ユーザー自身のセッション外でこれらを読むのはシークレットを盗んでいます。
+- `HKLM\SECURITY` と `HKLM\SAM`。レジストリ相当。同じ監査。
+- 機密ファイル共有: 経理、法務、給与。ランサムウェア スイープと一括削除を捕えるため `WriteData + DELETE : Success` を監査。
 
-- **`C:\Windows\System32\config\SAM`**、**`SECURITY`**、**`SYSTEM`** — ローカル資格情報ストア。`Everyone : ReadData : Success` を監査。`LocalSystem` 以外がこれらを読むのは資格情報ダンプの試みです。
-- **`%TEMP%\lsass.dmp`** および `C:\Windows\Temp` の任意の `*.dmp` — プロセス minidump。`Everyone : WriteData : Success` を監査。ここに `.dmp` を書き込むプロセスはクラッシュ ダンプ（Windows）か Mimikatz オペレータ（それ以外全員）のどちらかです。
-- **`C:\ProgramData\Microsoft\Crypto\RSA`** および **`C:\Users\*\AppData\Roaming\Microsoft\Protect`** — DPAPI マスタ キー ディレクトリ。`ReadData : Success` を監査。ユーザー自身のセッション外からこれらを読む者は保護されたシークレットを窃取しています。
-- **`HKLM\SECURITY`** および **`HKLM\SAM`** — レジストリの等価物。`ReadData : Success` を監査。
-- **重要なファイル共有** — 財務、法務、給与。`WriteData + DELETE : Success` を監査して、ランサムウェアの暗号化スイープと大量削除を捕捉。
+## 実際に捕まえるパターン
 
-## トリアージ パターン
+### SAM または SYSTEM ハイブの読み取り
 
-### 1. SAM / SYSTEM ハイブ読み取り
+`ObjectName` が `\config\SAM`、`\config\SECURITY`、または `\config\SYSTEM` で終わり、`ProcessName` が `services.exe`、`lsass.exe`、`wininit.exe` 以外で、`SubjectUserSid` が `S-1-5-18` でない 4663。これは `reg save HKLM\SAM`、シャドウ コピーに対する `esentutl /y`、またはハイブにファイル レベルでアクセスする任意の credential dumping ツールです。残されたバックアップ ハイブ ファイルがないか [registry](https://www.registryparser.com) を相互チェックしてください。
 
-`ObjectName` が `\config\SAM`、`\config\SECURITY`、`\config\SYSTEM` で終わり、`ProcessName` が `services.exe` / `lsass.exe` / `wininit.exe` でなく、`SubjectUserSid` が `S-1-5-18` でない 4663。これは `reg save HKLM\SAM`、`esentutl /y`、`vssadmin create shadow + copy`、またはファイル レベルのハイブ アクセスを持つ任意の資格情報ダンプ ツールです。
+### LSASS minidump の書き込み
 
-### 2. LSASS ダンプ ファイルの書き込み
+`C:\Windows\Temp\`、`C:\ProgramData\`、または `%TEMP%` の `.dmp` ファイルへの `WriteData` の 4663 で、`ProcessName` が `rundll32.exe`、`procdump*.exe`、または `comsvcs.dll` を呼ぶもの。教科書は `rundll32.exe C:\Windows\System32\comsvcs.dll MiniDump <pid> lsass.dmp full`。[4688](/ja/blog/event-id-4688-process-creation) を相互参照して `CommandLine` を見てください。EDR が寝ていてもこの 4663 が捕まえます。
 
-`C:\Windows\Temp\`、`C:\ProgramData\`、または `%TEMP%` の `.dmp` ファイルに対する 4663 `WriteData`。`ProcessName` が `rundll32.exe`、`procdump*.exe`、`comsvcs.dll` 関連の呼び出し元、または改名されたバイナリ。これは LSASS-minidump パターンです。`CommandLine` を見るため [4688](/ja/blog/event-id-4688-process-creation) と相互参照 — `comsvcs.dll MiniDump` が最も一般的な形式です。
+### ランサムウェアの暗号化スイープ
 
-### 3. ランサムウェアの暗号化スイープ
+機密共有内のファイルに対する、数秒以内のすべて同じ `SubjectLogonId` と `ProcessName` からの、`WriteData + DELETE` を含む `AccessMask` の 4663 が多数。実際のバックアップ プロセスはスロットルされた測定可能なパターンでファイルに触れます。ランサムウェアはディスクが許す限り速くディレクトリ ツリーをスイープします。形でわかります。
 
-秒単位で重要共有内のファイルに対し `AccessMask` が `WriteData + DELETE` を含む 4663 が多数、すべて同じ `SubjectLogonId` と `ProcessName` から。本物のバックアップ プロセスは測定可能でスロットルされたパターンでファイルに触れますが、ランサムウェアはディスクが許す限りの速度でディレクトリ ツリーをスイープします。
+### DPAPI マスター キーの窃取
 
-### 4. DPAPI マスタ キー窃取
+ユーザー自身のセッション以外のプロセスによる `\AppData\Roaming\Microsoft\Protect\<sid>\` 配下のファイルへの `ReadData` の 4663。決定的な兆候は、`SubjectUserSid` がパスに埋め込まれた SID と*異なる*こと。
 
-`\AppData\Roaming\Microsoft\Protect\<sid>\` 配下のファイルに対する 4663 `ReadData` で、ユーザー自身のセッション以外のプロセスからのもの。古典的なパターンは `SubjectUserSid` がパス内の SID と*異なる*こと。
+### Group Policy Preferences パスワード ファイルの読み取り
 
-### 5. グループ ポリシー設定ファイル内のパスワード読み取り
+`\SYSVOL\<domain>\Policies\*\Groups.xml`、または `Services.xml`、`Drives.xml`、`ScheduledTasks.xml` にマッチするファイルへの `ReadData` の 4663。これは `Get-GPPPassword` です。古いテクニックです。SYSVOL ファイルはレガシー ドメインに今もよく残っており、MSDN から難読化された AES キーを拾ってドメイン資格情報を持って帰る人が、想像以上にいます。
 
-`\SYSVOL\<domain>\Policies\*\Groups.xml`（または `Services.xml`、`Drives.xml`）にマッチするファイルへの 4663 `ReadData`。これは `Get-GPPPassword` 攻撃で、古いですが SYSVOL ファイルはレガシー ドメインに残っていることが多いです。
-
-## サンプル Sigma ルール — SAM ハイブ読み取り
+## Sigma: SAM ハイブの読み取り
 
 ```yaml
 title: SAM Hive Read from Disk (Credential Dumping)
@@ -124,7 +122,7 @@ tags:
   - attack.t1003.002
 ```
 
-## サンプル KQL — ランサムウェア暗号化スイープ
+## KQL: ランサムウェアの暗号化スイープ
 
 ```kusto
 SecurityEvent
@@ -137,9 +135,9 @@ SecurityEvent
 | order by TimeGenerated desc
 ```
 
-1 ログオン セッション下で 1 分あたり 100 個の distinct ファイルへの書き込み / 削除はスイープ、議論の余地なし。
+1 つのログオン セッションで分あたり 100 個の異なるファイルが書き込まれるか削除されているのはスイープです。終わり。
 
-## サンプル Splunk — DPAPI マスタ キー アクセス
+## Splunk: DPAPI マスター キー アクセス
 
 ```spl
 index=wineventlog EventCode=4663 ObjectName="*\\AppData\\Roaming\\Microsoft\\Protect\\*"
@@ -150,50 +148,56 @@ index=wineventlog EventCode=4663 ObjectName="*\\AppData\\Roaming\\Microsoft\\Pro
 
 ## ATT&CK マッピング
 
-- **T1003.002 — OS Credential Dumping: Security Account Manager**:SAM ハイブ読み取り。
-- **T1003.004 — OS Credential Dumping: LSA Secrets**:SECURITY ハイブ読み取り。
-- **T1003.001 — OS Credential Dumping: LSASS Memory**:`.dmp` 書き込み（プロセス コンテキストと組み合わせて）。
-- **T1555.004 — Credentials from Password Stores: Windows Credential Manager**:`\AppData\Local\Microsoft\Credentials\` へのアクセス。
-- **T1552.006 — Unsecured Credentials: Group Policy Preferences**:SYSVOL `Groups.xml` 読み取り。
-- **T1486 — Data Encrypted for Impact**:大量の WriteData + DELETE パターン（ランサムウェア）。
-- **T1565.001 — Stored Data Manipulation**:監視対象データ共有への任意のファイル書き込み。
+- T1003.002 OS Credential Dumping: Security Account Manager。SAM ハイブの読み取り。
+- T1003.004 LSA Secrets。SECURITY ハイブの読み取り。
+- T1003.001 LSASS Memory。`.dmp` 書き込み (プロセス コンテキストと組み合わせ)。
+- T1555.004 Credentials from Password Stores: Windows Credential Manager。`\AppData\Local\Microsoft\Credentials\` へのアクセス。
+- T1552.006 Unsecured Credentials: Group Policy Preferences。SYSVOL の `Groups.xml` 読み取り。
+- T1486 Data Encrypted for Impact。一括 `WriteData + DELETE` パターン。
+- T1565.001 Stored Data Manipulation。監視対象データ共有への任意書き込み。
 
-## ボリューム管理 — SACL の罠
+## SACL ボリュームの罠
 
-忙しいディレクトリに素朴に `Everyone : All access : Success+Failure` を設定すると、毎分数十万件の 4663 が生成され、コレクションが埋まります。SACL は精密機器です。監査するのは:
+`Everyone : All access : Success+Failure` を忙しいディレクトリに設定すると、分あたり数十万の 4663 が出てコレクションを埋もれさせます。SACL は精密機器です。監査するのは:
 
-- **気にするアクセス タイプだけ**（資格情報ストアには `ReadData`、データ共有には `WriteData + DELETE`、両方は稀）。
-- **success のみ** — failure はより稀でほぼ興味なし。
-- **特定のファイル**、ドライブ全体ではなく。`C:\Windows\System32\config\` 全体ではなく SAM ファイル。`D:\` 全体ではなく HR 共有。
-- 可能な限り**特定のプリンシパル** — SAM クラスのオブジェクトでは正当なアクセスはどのみち `LocalSystem` だから `Everyone` で OK、共有データなら実際にデータに触れるプリンシパルのみを監査。
+- 関心のあるアクセス種別だけ。資格情報ストアには ReadData。データ共有には WriteData + DELETE。両方同時はまれ。
+- 成功のみ。失敗はこのコーパスでは稀で、興味深いことも稀。
+- ドライブ全体ではなく特定ファイル。`C:\Windows\System32\config\` 全体ではなく SAM ファイル。`D:\` 全体ではなく HR 共有。
+- 可能なら特定のプリンシパル。SAM クラスのオブジェクトについては正当なアクセスは `LocalSystem` のみなので `Everyone` で OK。共有データについては、実際にデータに触れるプリンシパルだけを監査。
 
-5 つの高価値オブジェクトに対する適切にチューニングされた SACL は、ホストあたり 1 日 50〜200 レコードを生成 — 完全に扱える量です。
+5 つの高価値オブジェクトの調整された SACL は、ホストあたり 1 日 50 〜 200 レコードを生成します。完全に扱えます。
 
-## 攻撃そっくりの誤検知
+## 攻撃と見分けがつかない誤検知
 
-- **Volume Shadow Copy**（VSS）バックアップは、バックアップ ウィンドウ中に高密度の 4663 トラフィックを生成。バックアップ オーケストレータの `ProcessName` にタグを付ける。
-- **アンチウイルスのオンアクセス スキャン**は対象ディレクトリのすべてのファイルを開く。AV 製品のサービス アカウントが素朴な 4663 ルールを支配します。SID でホワイトリスト化。
-- **インデックス サービス**（Windows Search、Spotlight 風）は `ReadAttributes` でメタデータに触れる — 通常 `AccessList` でフィルタ可能。
-- **バックアップから段階的なリストア**はランサムウェア書き込みのように見える（多くのファイル、1 プロセス、1 ディレクトリ内）が、プロセスはバックアップ エージェント。
-- **Defender のリアルタイム スキャン**はあらゆるものを読みます。広く監査しすぎると支配的なノイズ源になります。
+- Volume Shadow Copy バックアップは、バックアップ ウィンドウ中に密な 4663 トラフィックを生成します。バックアップ オーケストレータの `ProcessName` にタグを。
+- アンチウイルスのオン アクセス スキャンは、対象ディレクトリのすべてのファイルを開きます。AV 製品のサービス アカウントは、素朴な 4663 ルールを支配します。SID でホワイトリスト化を。
+- インデックス サービス (Windows Search) は `ReadAttributes` 経由でメタデータに触れます。通常 `AccessList` でフィルタ可能。
+- バックアップ ステージのリストアはランサムウェア書き込みのように見えます (多数のファイル、1 つのプロセス、ディレクトリ内)。プロセスが違いを教えます。
+- Defender のリアルタイム スキャンはすべてを読みます。広く監査するとノイズを支配します。
 
-## 4663 では分からないこと
+## 4663 が教えないこと
 
-- **アクセスの内容**:ファイルが読み書きされたことは分かりますが、何を読み書きされたかは分かりません。後者には EDR や FIM（File Integrity Monitoring）製品が必要です。
-- **アクセスの理由**:syscall の結果のみ。ユーザーの意図と相関させるには、呼び出しプロセスの完全コンテキストを得るため [4688](/ja/blog/event-id-4688-process-creation) / [Sysmon 1](/ja/blog/sysmon-event-id-1-process-create) と組み合わせます。
-- **ハンドルのクローズ**:4663 はハンドル*オープン*で発火。クローズ イベントは 4658 で、攻撃検知には稀にしか有用ではありません。
-- **ネットワーク パス透過的に**:共有への SMB アクセスは*サーバ*で 4663 を発火させます。クライアントには何も見えません。サーバ側収集が必要です。
-- **デフォルトでは failure のアクセス**:多くの現場は `Success` のみを監査。阻止されたアクセス試行を本当に気にする場合のみ `Failure` を設定。
+- アクセスの内容。ファイルが読まれた/書かれたことは見えますが、何が読まれた/書かれたかは見えません。それには EDR か FIM。
+- アクセスが起きた理由。ユーザー意図と相関させるには、呼び出しプロセスのフル コンテキストのため [4688](/ja/blog/event-id-4688-process-creation) または [Sysmon 1](/ja/blog/sysmon-event-id-1-process-create) と組み合わせ。
+- 閉じられたハンドル。4663 はハンドル *open* で発火します。close イベントは 4658 で、攻撃検知に有用なことはまれです。
+- ネットワーク パスを透過的には。共有への SMB アクセスは*サーバー*で 4663 を発火します。クライアントには何も見えません。サーバー側の収集が必要です。
+- 既定で失敗アクセス。多くのショップは Success のみ監査します。阻止された試行を本当に気にする場合のみ Failure を構成してください。
 
-## タイムラインにおける 4663 の位置
+## タイムラインでの 4663 の位置
 
-古典的な LSASS 資格情報ダンプ連鎖。
+古典的な LSASS 資格情報ダンプのチェーン:
 
-1. [**4624**](/ja/blog/understanding-event-id-4624) — 管理者ログオン（LogonType 3 または 10）。
-2. [**4672**](/ja/blog/event-id-4672-special-privileges) — セッションに SeDebugPrivilege を付与。
-3. [**4688**](/ja/blog/event-id-4688-process-creation) — `rundll32.exe C:\Windows\System32\comsvcs.dll MiniDump <pid> C:\Windows\Temp\lsass.dmp full`。
-4. **4663** — `rundll32.exe` による `C:\Windows\Temp\lsass.dmp` への `WriteData`。**フォレンジック ゴールド — エクスフィル ステージングの証拠。**
-5. [**4688**](/ja/blog/event-id-4688-process-creation) — ファイル移動 / アーカイブ（ダンプを抽出するオペレータ）。
-6. [**1102**](/ja/blog/event-id-1102-cleared-log) — Security ログのクリア（一部のオペレータはこれを行う。多くは忘れる）。
+1. [4624](/ja/blog/understanding-event-id-4624)。管理者ログオン、LogonType 3 または 10。
+2. [4672](/ja/blog/event-id-4672-special-privileges)。セッションで SeDebugPrivilege が付与。
+3. [4688](/ja/blog/event-id-4688-process-creation)。`rundll32.exe C:\Windows\System32\comsvcs.dll MiniDump <pid> C:\Windows\Temp\lsass.dmp full`。
+4. **4663**。`rundll32.exe` による `C:\Windows\Temp\lsass.dmp` への `WriteData`。フォレンジックの金。ステージング エクスフィルの証拠。
+5. [4688](/ja/blog/event-id-4688-process-creation)。ファイル移動またはアーカイブ (オペレーターがダンプを抽出)。
+6. [1102](/ja/blog/event-id-1102-cleared-log)。Security ログのクリア。一部のオペレーターはこれをします。多くは忘れます。
 
-ステップ 4 の 4663 は連鎖中で最も安価かつ最も特異なシグナルです — 資格情報窃取のアーティファクトを名前付きで、ディスク上で、呼び出しプロセスとともに直接特定します。SAM ハイブ読み取り、DPAPI マスタ キー アクセス、SYSVOL Groups.xml 読み取りも同様に機能します。
+ステップ 4 はチェーン内で最も安価で具体的な信号です。credential 窃盗のアーティファクトを名前で、ディスク上で、呼び出しプロセス付きで直接特定します。SAM ハイブの読み取り、DPAPI マスター キーのアクセス、SYSVOL の Groups.xml の読み取りも同じように動作します。
+
+## 参考資料
+
+- [4663 の Microsoft ドキュメント](https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4663)
+- [SpecterOps: SACLs for Detection](https://posts.specterops.io/an-introduction-to-manipulating-token-privileges-dbd13a6ab1c2)
+- [MITRE ATT&CK T1003](https://attack.mitre.org/techniques/T1003/)

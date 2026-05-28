@@ -1,14 +1,16 @@
 ---
 title: "Sysmon Event ID 1 explained: process creation for DFIR triage"
-description: "Sysmon's event 1 is the richest process-creation record Windows can produce. Here's what's in it and how to triage it fast."
+description: "Sysmon's event 1 is the richest process-creation record Windows can produce. Here is what is in it and how to triage it fast."
 date: "2026-05-17"
 ---
 
-Sysmon is a free Microsoft tool that augments the [Windows Event Log](/en/blog/what-is-an-evtx-file) with telemetry the base OS doesn't capture in usable form. Its event ID 1 — `ProcessCreate` — is the most-cited Sysmon record in IR playbooks. If you only ever extract one Sysmon channel from a host, this is the one.
+Sysmon is a free Microsoft tool that augments the [Windows Event Log](/en/blog/what-is-an-evtx-file) with telemetry the base OS does not capture in usable form. Its event ID 1, `ProcessCreate`, is the most-cited Sysmon record in IR playbooks. If you only ever extract one Sysmon channel from a host, this is the one.
+
+I will say what I say in every Sysmon writeup: a deployment without a real config is mostly theatre. Read [sysmon-modular](https://github.com/olafhartong/sysmon-modular) or SwiftOnSecurity's `sysmon-config` before you decide what your event 1 records actually contain.
 
 ## Where it lives and what it captures
 
-Sysmon writes to the channel `Microsoft-Windows-Sysmon/Operational` (on disk: `Microsoft-Windows-Sysmon%4Operational.evtx`). A ProcessCreate record contains:
+Sysmon writes to `Microsoft-Windows-Sysmon/Operational` (on disk: `Microsoft-Windows-Sysmon%4Operational.evtx`). A ProcessCreate record contains:
 
 ```xml
 <Data Name="UtcTime">2026-05-17 14:02:11.123</Data>
@@ -25,21 +27,25 @@ Sysmon writes to the channel `Microsoft-Windows-Sysmon/Operational` (on disk: `M
 <Data Name="ParentCommandLine">"winword.exe" /n /dde</Data>
 ```
 
-The fields that drive investigations: `CommandLine` (the full argv, not just the binary), `Image` + `Hashes` (the exact binary that ran, hash usable in VT/Hybrid Analysis), and the `Parent*` set (the calling process — critical for finding macro and LOLBin chains).
+The fields that drive investigations:
+
+- `CommandLine`. The full argv, not just the binary.
+- `Image` and `Hashes`. The exact binary that ran, hash usable in VirusTotal or Hybrid Analysis.
+- The `Parent*` set. The calling process. Critical for finding macro and LOLBin chains. `ParentCommandLine` in particular is what [4688](/en/blog/event-id-4688-process-creation) cannot give you.
 
 ## Triage in three pivots
 
-When you have a triage Sysmon file, three queries cover most cases:
+Three queries cover most cases:
 
-1. **Suspicious parents**: filter for `ParentImage` ending in `winword.exe`, `excel.exe`, `outlook.exe`, `mshta.exe`, or a browser, with `Image` being a shell (`cmd.exe`, `powershell.exe`, `pwsh.exe`, `wscript.exe`, `cscript.exe`, `rundll32.exe`). A document app spawning a shell is almost always malicious.
-2. **Encoded PowerShell**: `Image` ending `powershell.exe` and `CommandLine` containing `-enc`, `-encodedcommand`, or `FromBase64String`. Decode the payload, check what it does — and cross-check the [PowerShell 4104 scriptblock](/en/blog/powershell-4104-scriptblock) record on the same host to see what actually executed.
-3. **LOLBins from odd locations**: signed Microsoft binaries (`certutil`, `regsvr32`, `mshta`, `installutil`, `bitsadmin`) running from `C:\Users\`, `%TEMP%`, or `C:\ProgramData\`.
+1. **Suspicious parents.** Filter for `ParentImage` ending `winword.exe`, `excel.exe`, `outlook.exe`, `mshta.exe`, or a browser, with `Image` being a shell (`cmd.exe`, `powershell.exe`, `pwsh.exe`, `wscript.exe`, `cscript.exe`, `rundll32.exe`). A document app spawning a shell is almost always malicious.
+2. **Encoded PowerShell.** `Image` ending `powershell.exe` and `CommandLine` containing `-enc`, `-encodedcommand`, or `FromBase64String`. Decode the payload, check what it does. Cross-check the [PowerShell 4104 scriptblock](/en/blog/powershell-4104-scriptblock) on the same host to see what actually executed.
+3. **LOLBins from odd locations.** Signed Microsoft binaries (`certutil`, `regsvr32`, `mshta`, `installutil`, `bitsadmin`) running from `C:\Users\`, `%TEMP%`, or `C:\ProgramData\`.
 
 ## Why the parent chain matters
 
-A single ProcessCreate is a snapshot; the chain is the story. `ProcessGuid` and `ParentProcessGuid` are GUIDs Sysmon assigns to track lineage across process exits — they're more reliable than PIDs because PIDs are reused. Reconstruct the tree (each record's `ParentProcessGuid` is some other record's `ProcessGuid`) and the kill-chain becomes obvious: Outlook → Word → PowerShell → cmd → certutil → mshta.
+A single ProcessCreate is a snapshot. The chain is the story. `ProcessGuid` and `ParentProcessGuid` are GUIDs Sysmon assigns to track lineage across process exits. They are more reliable than PIDs because PIDs are reused. Reconstruct the tree (each record's `ParentProcessGuid` is some other record's `ProcessGuid`) and the kill chain becomes obvious: Outlook to Word to PowerShell to cmd to certutil to mshta. Reading the tree in chronological order is usually how a writeup writes itself.
 
-## Sample Sigma rule — Office app spawning shell
+## Sigma: Office app spawning shell
 
 ```yaml
 title: Office Application Spawning Shell or Scripting Host (Sysmon)
@@ -83,7 +89,7 @@ tags:
   - attack.t1566.001
 ```
 
-## Sample KQL — encoded PowerShell with parent context
+## KQL: encoded PowerShell with parent context
 
 ```kusto
 DeviceProcessEvents
@@ -95,9 +101,9 @@ DeviceProcessEvents
 | order by Timestamp desc
 ```
 
-`InitiatingProcessCommandLine` is the Defender XDR equivalent of Sysmon 1's `ParentCommandLine` — which [4688](/en/blog/event-id-4688-process-creation) does not provide.
+`InitiatingProcessCommandLine` is the Defender XDR equivalent of Sysmon 1's `ParentCommandLine`, which [4688](/en/blog/event-id-4688-process-creation) does not provide.
 
-## Sample Splunk — LOLBins from user-writable paths
+## Splunk: LOLBins from user-writable paths
 
 ```spl
 sourcetype=xmlwineventlog source="*Sysmon/Operational"
@@ -111,19 +117,27 @@ sourcetype=xmlwineventlog source="*Sysmon/Operational"
 
 ## ATT&CK mapping
 
-- **T1059 — Command and Scripting Interpreter** and sub-techniques `.001` PowerShell, `.003` Windows Command Shell, `.005` Visual Basic, `.007` JavaScript.
-- **T1566.001 — Phishing: Spearphishing Attachment**: Office → shell chains.
-- **T1218 — System Binary Proxy Execution** and sub-techniques `.005` Mshta, `.010` Regsvr32, `.011` Rundll32, `.007` Msiexec.
-- **T1036.003 — Masquerading: Rename System Utilities**: `OriginalFileName` ≠ `Image`'s filename.
-- **T1055 — Process Injection**: Sysmon 1's `IntegrityLevel` and parent chain help spot anomalous parents for processes like `lsass.exe` or `services.exe`.
+- T1059 Command and Scripting Interpreter and sub-techniques `.001` PowerShell, `.003` Windows Command Shell, `.005` Visual Basic, `.007` JavaScript.
+- T1566.001 Phishing: Spearphishing Attachment. Office to shell chains.
+- T1218 System Binary Proxy Execution and sub-techniques `.005` Mshta, `.010` Regsvr32, `.011` Rundll32, `.007` Msiexec.
+- T1036.003 Masquerading: Rename System Utilities. `OriginalFileName` != `Image`'s filename.
+- T1055 Process Injection. Sysmon 1's `IntegrityLevel` and parent chain help spot anomalous parents for processes like `lsass.exe` or `services.exe`.
 
 ## False positives that look like attacks
 
-- **Software-update agents** routinely spawn shells under SYSTEM (Chocolatey, WinGet, vendor MSI). Tag known auto-update hosts.
-- **Vulnerability scanners** mimic offensive process trees during authenticated scans. Tag scanner IPs.
-- **Citrix / RDS** multi-session hosts generate dense process-create traffic that overlaps with attacker patterns. Filter by source range.
-- **Defender / EDR scans** run signed Microsoft binaries from unusual paths during on-demand scans.
+- Software-update agents routinely spawn shells under SYSTEM (Chocolatey, WinGet, vendor MSI). Tag known auto-update hosts.
+- Vulnerability scanners mimic offensive process trees during authenticated scans. Tag scanner IPs.
+- Citrix and RDS multi-session hosts generate dense process-create traffic that overlaps with attacker patterns. Filter by source range.
+- Defender or EDR scans run signed Microsoft binaries from unusual paths during on-demand scans.
 
 ## Coverage caveats
 
-Sysmon only captures what its config tells it to. The default config logs nothing; the canonical references are SwiftOnSecurity's `sysmon-config` and Olaf Hartong's `sysmon-modular`. Without a real config in place, your event 1 records will be sparse, the `CommandLine` field may be redacted, and `Hashes` may be missing. Read the host's Sysmon config alongside its logs.
+Sysmon only captures what its config tells it to. The default config logs almost nothing. The canonical references are SwiftOnSecurity's `sysmon-config` and Olaf Hartong's `sysmon-modular`. Without a real config in place, your event 1 records will be sparse, `CommandLine` may be redacted by a `<CommandLine onmatch="exclude">` rule, and `Hashes` may be missing. Read the host's Sysmon config alongside its logs. The mismatch between what an analyst thinks Sysmon is logging and what it actually logs has cost me hours more than once.
+
+When Sysmon is not installed at all, fall back to [4688](/en/blog/event-id-4688-process-creation) with command-line auditing, then [prefetch](https://www.prefetchparser.com), [AmCache](https://www.amcacheparser.com), and the [USN journal](https://www.usnparser.com) for execution evidence.
+
+## Further reading
+
+- [Sysmon documentation](https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon)
+- [olafhartong/sysmon-modular](https://github.com/olafhartong/sysmon-modular)
+- [SwiftOnSecurity/sysmon-config](https://github.com/SwiftOnSecurity/sysmon-config)

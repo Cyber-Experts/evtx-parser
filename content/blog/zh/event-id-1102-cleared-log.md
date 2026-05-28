@@ -1,12 +1,12 @@
 ---
-title: "Event ID 1102 详解:安全审计日志被清空(以及还有什么留下来)"
-description: "1102 是攻击者无法在不留下更多证据的前提下抑制的事件之一。这里讲它告诉你什么,以及清空之后还有什么会幸存。"
+title: "Event ID 1102 解读：Security 审计日志被清除（与什么得以幸存）"
+description: "1102 是你无法抑制而不留下更多证据的唯一事件。它告诉了你什么，清除后什么得以保留，看到它后该去哪儿查。"
 date: "2026-05-17"
 ---
 
-Event ID **1102** 是 Windows 在 [`Security` 通道](/zh/blog/what-is-an-evtx-file)审计日志被清空时写入的记录。按设计,它是攻击者最难抑制的记录之一 —— 因为要抑制它,要么得在 EventLog 服务启动前成功替换它,要么得接受清空动作本身会留下一条自己的 1102。
+Event ID **1102** 是 Windows 在有人清除审计日志时写入 [`Security` 通道](/zh/blog/what-is-an-evtx-file) 的记录。设计上，它是攻击者较难抑制的记录之一。要干净地抑制它，要么在 EventLog 服务启动前替换其二进制，要么接受清除行为本身会留下一条自己的 1102。多数操作者选择第二种，寄望于没人在看。
 
-对防御者而言这意味着:看到 1102,说明有人以足够的权限有意抹掉了审计轨迹。这几乎从来不是正常的管理员动作。
+如果你看到 1102，意味着具备足够特权的某人故意抹掉了审计轨迹。这在常规运维中基本不会发生；即便发生，也应当有工单。把任何不在批准维护时间窗内的 1102，视作事件，直到证伪。
 
 ## 记录里有什么
 
@@ -21,35 +21,36 @@ Event ID **1102** 是 Windows 在 [`Security` 通道](/zh/blog/what-is-an-evtx-f
 </UserData>
 ```
 
-注意这里是 `UserData` 块而不是常见的 `EventData` —— 1102 是少数几条使用结构化 user-data schema 的记录之一。字段告诉你*谁*在哪个登录会话下清了日志。用 `SubjectLogonId` 透视找到对应的 [4624](/zh/blog/understanding-event-id-4624),就能拿到产生这个特权会话的源 IP 和登录类型。
+注意是 `UserData` 块，而不是常见的 `EventData`。1102 使用一个结构化的 user-data 模式，会把只看 `EventData` 的朴素解析器绊倒。这些字段告诉你是在哪个 logon 会话下，由谁清除了日志。以 `SubjectLogonId` 为支点，跳到对应的 [4624](/zh/blog/understanding-event-id-4624)，就能拿到产生该特权会话的源 IP、登录类型与凭据。
 
-## 1102 触发时还会有什么
+## 一同出现的伙伴
 
-清日志几乎从来不是*唯一*的反取证动作。常见的伙伴事件,按大致时间顺序:
+日志清除几乎从不是链路中唯一的反取证动作。在大致时间顺序上，常常和它一起触发的记录：
 
-- **104** 在 `System` 通道 —— 同一动作,由 SCM 记录。如果有 104 但没有 1102,说明攻击者只清了 Security 日志,忘了 System。
-- **4719** —— 「系统审计策略被更改」。有时攻击者在清日志*之前*降低审计覆盖率,以便下一轮少留记录。
-- **4616** —— 「系统时间被更改」。预先制造时间偏差让时间线重建更困难。
-- **1102 之前一两个小时的 4624 缺口** —— 攻击者可能走了不记日志的旁路。
+- `System` 通道的 **104**。与 1102 是同一行为，但由 SCM 为 Security 以外的通道记录。如果存在 104 而没有 1102，攻击者只清了 Security，忘了 System。
+- **4719**，"系统审计策略已更改"。攻击者有时会在清除*之前*缩小审计范围，下次留下的记录更少。
+- **4616**，"系统时间已更改"。清除前的时间戳改动会让时间线重建更难。
+- 1102 之前一两个小时内的 4624 出现缺口。攻击者可能通过未被记录的旁路进入。
 
-## 清空之后什么会幸存
+## 清除能幸存什么
 
-清掉内存中的事件日志并不会影响:
+清除内存中的事件日志，并不会影响：
 
-- **其它通道**:`System`、`Application`、`PowerShell/Operational`、`Sysmon/Operational`、`TaskScheduler/Operational`、转发事件通道 —— 这些都不会被 Security 的清空波及。
-- **已转发的事件**:如果配置了 Windows 事件转发(WEF)到中央收集器,被清掉的记录已经在另一台主机上。
-- **磁盘上的文件本身**:被清掉的 `Security.evtx` 会被一份新文件替换;*被删除的*原始文件所在的簇通常仍在未分配空间中,可以用 NTFS 工具雕刻出来。
-- **文件替换在 USN journal 中的条目**:连清空操作都会留下文件系统级的痕迹。
+- 其他通道。`System`、`Application`、`PowerShell/Operational`、`Sysmon/Operational`、`TaskScheduler/Operational`、转发事件通道。这些都不会因 Security 的清除而被清。
+- 转发事件。如果 Windows Event Forwarding 把 Security 发到收集器，被清除的记录早已在另一台主机上。原始的 RecordID 与时间戳得以保留。
+- 磁盘上的文件本身。被清除的 `Security.evtx` 会被替换为新文件。旧文件的簇通常仍残留在未分配空间中。EVTX 记录可从这些簇中[干净地雕刻出来](/zh/blog/carve-deleted-evtx-records)。
+- 文件替换对应的 [USN journal](https://www.usnparser.com) 条目。清除这一行为本身就留下文件系统级的工件。
+- 新文件的 [MFT](https://www.mftparser.com) 项，其创建时间戳应当与 1102 在秒级吻合。
 
-「成功」的日志清空很少像攻击者希望的那样干净。
+一次"成功"的日志清除，远不像攻击者期望的那么干净。
 
-## Sigma 规则样例 —— 日志被清空
+## Sigma：日志被清
 
 ```yaml
 title: Windows Security Event Log Cleared
 id: 2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e
 status: stable
-description: Detect 1102 (Security log cleared) and 104 (System log cleared) — anti-forensic actions.
+description: Detect 1102 (Security log cleared) and 104 (System log cleared). Anti-forensic actions.
 references:
   - https://attack.mitre.org/techniques/T1070/001/
 logsource:
@@ -71,9 +72,7 @@ tags:
   - attack.t1070.001
 ```
 
-如果你在批准的维护窗口之外看到 1102,按事件对待 —— 没得商量。
-
-## KQL 样例 —— 清日志与特权会话关联
+## KQL：与特权会话关联的清除
 
 ```kusto
 let clears =
@@ -92,9 +91,9 @@ clears
 | order by ClearTime desc
 ```
 
-每一条 1102 都能追溯到一条授予 `SeSecurityPrivilege` 的 [4672](/zh/blog/event-id-4672-special-privileges) —— 而 4672 又能追到一条 [4624](/zh/blog/understanding-event-id-4624)。这一连串 join 才完整。
+每一条 1102 都可追溯到一条授予 `SeSecurityPrivilege` 的 [4672](/zh/blog/event-id-4672-special-privileges)，再可追溯到一条 [4624](/zh/blog/understanding-event-id-4624)。这次连接补齐了画面。
 
-## Splunk 样例 —— 反取证伴生链
+## Splunk：篡改链
 
 ```spl
 index=wineventlog ( EventCode=1102 OR EventCode=104 OR EventCode=4719 OR EventCode=4616 )
@@ -102,23 +101,30 @@ index=wineventlog ( EventCode=1102 OR EventCode=104 OR EventCode=4719 OR EventCo
 | where mvcount(Events) >= 2
 ```
 
-一个先动了审计策略(4719)或系统时间(4616)、再清了日志(1102/104)的 `LogonId`,就是篡改链。
+一个 LogonId 先动过审计策略（4719）或系统时间（4616），随后又清了日志（1102/104），就是篡改链。
 
 ## ATT&CK 对应
 
-- **T1070.001 —— Indicator Removal: Clear Windows Event Logs**:头号技术。1102 *就是*这一技术的主要指示。
-- **T1562.002 —— Impair Defenses: Disable Windows Event Logging**:1102 之前的 4719(审计策略更改)对应这里。
-- **T1070.006 —— Indicator Removal: Timestomp**:同链中和 4616(系统时间更改)配对。
-- **T1078.003 —— Valid Accounts: Local Accounts**:本不该在那个时间登录的本地 Administrator 触发的 1102。
+- T1070.001 Indicator Removal: Clear Windows Event Logs。标题。1102 *就是*主要指示器。
+- T1562.002 Impair Defenses: Disable Windows Event Logging。1102 之前的 4719 对应到这里。
+- T1070.006 Indicator Removal: Timestomp。与同一链路中的 4616 搭配。
+- T1078.003 Valid Accounts: Local Accounts。本不该在当时登录的本地 Administrator 触发的 1102。
 
-## 误报 —— 罕见但真实存在
+## 罕见但真实的误报
 
-- **迁移 / 退役流程**:工程师在退役主机上清日志。这种操作必须有工单。
-- **取证 / 测试实验室**:检测开发过程中清空再复现的工作流。
-- **某些遗留工具**:为了重置基线而清日志 —— 几乎一定是流程错误,但确实会发生。
+- 迁移或下架流程。技术人员在被下架的主机上清日志。应当始终走工单。
+- 在检测开发期跑 clear-and-reproduce 循环的取证实验室。
+- 部分遗留工具会清日志以"重置基线"。几乎永远是流程错误，但真实存在。
 
-由于该信号直接是反取证,即使是合法的 1102 也应在事后调查并记录。正常运维里不存在「安全」的 1102 理由。
+正常运维中没有出现 1102 的安全理由。即便是合法情况，事后也应当调查并归档。
 
-## 这对解析意味着什么
+## 在文件包中发现它时
 
-[把 .evtx 文件载入取证工具时](/zh/blog/how-to-open-an-evtx-file),*第一个*值得跑的搜索是 `EventID:1102` 和 `EventID:104`。如果其中任一存在,手里这份日志就有已知缺口,基于它构建的任何时间线都不完整。在报告里大声标注出来。
+当你把一个 [.evtx 文件加载到取证工具](/zh/blog/how-to-open-an-evtx-file) 中，最值得跑的前两个搜索是 `EventID:1102` 与 `EventID:104`。任一存在，你手上的日志就有已知缺口。基于它构建的任何时间线都不完整。在报告中大声写明这一点。然后去看那些幸存的：[registry](https://www.registryparser.com)、[USN journal](https://www.usnparser.com)、[MFT](https://www.mftparser.com)、[prefetch](https://www.prefetchparser.com)、[AmCache](https://www.amcacheparser.com)。它们合在一起，能重建 1102 试图抹去的大部分内容。
+
+像 `Invoke-Phant0m` 这种工具通过挂起事件服务的线程而不是清日志来彻底绕过 1102。如果你看到 Security 出现长达数小时的沉默却没有 1102，也没有系统关机，那就是同一个问题的另一种形态。
+
+## 延伸阅读
+
+- [MITRE ATT&CK T1070.001](https://attack.mitre.org/techniques/T1070/001/)
+- [1102 的 Microsoft 文档](https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-1102)
