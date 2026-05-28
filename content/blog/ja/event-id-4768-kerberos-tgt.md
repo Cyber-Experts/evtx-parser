@@ -1,16 +1,16 @@
 ---
-title: "Event ID 4768 を解読する:Kerberos TGT 要求と AS-REP roasting"
-description: "4768 は DC が発行する各 TGT のレコード。結果コードと事前認証フラグで読めば、AS-REP roasting、ブルートフォース、無制約委任の悪用を発見できる。"
+title: "Event ID 4768 を解説: Kerberos TGT リクエストと AS-REP roasting"
+description: "4768 は DC が発行したすべての TGT の記録です。結果コードと pre-auth フラグで読めば、AS-REP roasting、ブルートフォース、unconstrained delegation の悪用を見つけられます。"
 date: "2026-05-24"
 ---
 
-Event ID **4768** — 「Kerberos 認証チケット（TGT）が要求されました」 — は、誰かが Ticket Granting Ticket を要求するたびにドメイン コントローラで発火します。すべてのドメイン ログオンはこのいずれかから始まります。[4769](/ja/blog/event-id-4769-kerberoasting)（サービス チケット）と組み合わせれば、フォレスト内すべてのアカウントの Kerberos ライフサイクル全体が見えます。
+Event ID **4768**「Kerberos 認証チケット (TGT) が要求されました」は、誰かがチケット保証チケットを要求するたびにドメイン コントローラー上で発火します。すべてのドメイン ログオンはこれで始まります。[4769](/ja/blog/event-id-4769-kerberoasting) (サービス チケット) と組み合わせれば、フォレスト内のすべてのアカウントの Kerberos ライフサイクル全体が見えます。
 
-DC では 4768 は 4624 に次ぐ高ボリュームの [Security チャネル](/ja/blog/what-is-an-evtx-file) レコードです。大半はノイズで、高シグナルのスライスは 2 つの特定フィールドにあります — そのうち 1 つが AS-REP roasting の指紋です。
+DC では、4768 は [Security チャネル](/ja/blog/what-is-an-evtx-file) で 4624 に次いで最も大量のレコードです。そのほとんどはノイズです。高シグナルなスライスは 2 つの特定のフィールドに住んでおり、その 1 つは AS-REP roasting のフィンガープリントです。
 
 ## どこで発火するか
 
-[4769](/ja/blog/event-id-4769-kerberoasting) と同様、4768 は発行**ドメイン コントローラ**のみに着地します。クライアントには見えず、ターゲット サービスにも見えません。4768 から何かを検知するには、すべての DC からの Security 収集が必要です — 単発調査なら KAPE スタイル、定常運用なら WEF。
+[4769](/ja/blog/event-id-4769-kerberoasting) と同様、4768 は発行**ドメイン コントローラー**にのみ届きます。クライアントは見ません。対象サービスも見ません。4768 から何かを検出するには、すべての DC からの Security 収集が必要です。1 回きりのエンゲージメントなら KAPE スタイル、定常状態なら WEF。
 
 ## レコードの中身
 
@@ -30,76 +30,74 @@ DC では 4768 は 4624 に次ぐ高ボリュームの [Security チャネル](/
 <Data Name="CertThumbprint">-</Data>
 ```
 
-重要なフィールド。
+重要なフィールド:
 
-- **`TargetUserName`** — TGT を要求しているアカウント。常にユーザーまたはコンピュータ アカウント。`ServiceName` は常に `krbtgt`。
-- **`Status`** — Kerberos 結果コード。`0x0` は成功。4768 を有用にするのは失敗:`0x6` = 未知ユーザー、`0x12` = クライアント ロックアウト、`0x17` = パスワード期限切れ、`0x18` = パスワード違い。
-- **`TicketEncryptionType`** — 4769 と同じエンコーディング:`0x12`/`0x11` AES（モダン）、**`0x17` RC4**（レガシー、かつ AS-REP roasting の指紋）。
-- **`PreAuthType`** — `2` は標準のタイムスタンプ暗号化事前認証、`0` は**事前認証なし**（AS-REP roasting の前提）、`15`/`16`/`17` は PKINIT 証明書ベースの事前認証値。
-- **`IpAddress`** — 要求ホスト。完全な文脈にはクライアント側の [4624](/ja/blog/understanding-event-id-4624) と組み合わせ。
-- **`CertIssuerName` / `CertSerialNumber` / `CertThumbprint`** — PKINIT（スマートカード / 証明書ログオン）時に充填。パスワード ベースのログオンでは空。
+- `TargetUserName`。TGT を要求するアカウント。常にユーザーまたはコンピューター アカウント。`ServiceName` は常に `krbtgt`。
+- `Status`。Kerberos の結果コード。`0x0` は成功。4768 を有用にするのは失敗です。`0x6` unknown user、`0x12` client locked out、`0x17` password expired、`0x18` bad password。
+- `TicketEncryptionType`。4769 と同じエンコーディング: `0x12` と `0x11` AES (最新)、**`0x17` RC4** (レガシー、AS-REP roasting のフィンガープリントでもある)。
+- `PreAuthType`。`2` は標準の暗号化タイムスタンプ pre-auth。`0` は**pre-auth が使われなかった**ことを意味します (AS-REP roasting の前提)。`15`、`16`、`17` は PKINIT 証明書ベースの pre-auth 値です。
+- `IpAddress`。要求元ホスト。完全なコンテキストには、クライアント側の [4624](/ja/blog/understanding-event-id-4624) と組み合わせてください。
+- `CertIssuerName`、`CertSerialNumber`、`CertThumbprint`。PKINIT (スマート カードまたは証明書ログオン) のときに設定されます。パスワード ベース ログオンでは空。
 
 ## 4768 が明かす 2 つの攻撃パターン
 
-### 1. AS-REP roasting（T1558.004）
+### AS-REP roasting (T1558.004)
 
-目玉の使い方。一部のアカウントは `userAccountControl` に `DONT_REQUIRE_PREAUTH` フラグが設定されています（UAC ビット 22 = `0x400000`）。それらのアカウントに対して、DC はタイムスタンプ暗号化事前認証を要求**せずに**TGT 要求に応答します — つまり返される AS-REP には、攻撃者がオフラインでクラックしてアカウントのパスワード ハッシュを復元できる素材が含まれます。
+メインの用途。一部のアカウントは `userAccountControl` で `DONT_REQUIRE_PREAUTH` を持ちます (UAC bit 22 = `0x400000`)。そのようなアカウントについて、DC は暗号化タイムスタンプ pre-auth を必要と**せず**に TGT リクエストに応答します。返される AS-REP には、攻撃者がオフラインで解読してアカウントのパスワード ハッシュを回復できる材料が含まれます。
 
-進行中の AS-REP roast の 4768 指紋。
+進行中の AS-REP roast の 4768 フィンガープリント:
 
-- `PreAuthType` が `0`（事前認証なし）。
-- `TicketEncryptionType` が `0x17`（RC4 — クラッキング ツールが必要とするもの）。
-- `Status` が `0x0`（DC が喜んで AS-REP を発行）。
-- しばしばクラスタ化:攻撃者は事前認証無効化されたアカウントを試すため数十アカウントをバッチします。
+- `PreAuthType = 0` (pre-auth なし)。
+- `TicketEncryptionType = 0x17` (RC4、クラッキング ツールが必要とするもの)。
+- `Status = 0x0` (DC は喜んで AS-REP を発行した)。
+- しばしばクラスタ化。攻撃者は、どのアカウントが pre-auth 無効化されているかを試すために数十のアカウントをまとめます。
 
-`DONT_REQUIRE_PREAUTH` が設定されている実アカウントは、ほぼ例外なくレガシー互換性のため（非常に古い Unix Kerberos クライアント、一部の古いアプライアンス）に存在します。数は少なく、場所は予測可能です。事前認証なし Kerberos を*使う理由がない*アカウントに対する `PreAuthType=0` の 4768 がシグナルです。
+`DONT_REQUIRE_PREAUTH` を持つ実アカウントは、ほぼ排他的にレガシー互換性のために存在します: 非常に古い Unix Kerberos クライアント、一部の古いアプライアンス。数は少なく場所も予測可能です。pre-auth なし Kerberos を使う必要のないアカウントに対する `PreAuthType=0` の 4768 がシグナルです。
 
-### 2. パスワード ベースのブルートフォース / スプレー
+### パスワード ブルートフォースまたはスプレー
 
-失敗した Kerberos 事前認証は `Status=0x18`（「パスワード違い」）の 4768 を生成します。[4625](/ja/blog/detecting-4625-brute-force)（NTLM 失敗を捕捉）と違い、Kerberos ベースのパスワード攻撃が着地するのはこの 4768 です。モダンなツールキット（Rubeus、kerbrute）は直接 Kerberos を話します。DC は Kerberos より NTLM のほうが静かに失敗するのが速く、多くの SOC は 4625 しか監視していないためです。
+失敗した Kerberos pre-auth は `Status=0x18` (「パスワード違い」) の 4768 を生成します。[4625](/ja/blog/detecting-4625-brute-force) (NTLM 失敗をキャプチャ) と異なり、4768 は Kerberos ベースのパスワード攻撃の到着点です。最新のツールキット (Rubeus、kerbrute) は Kerberos を直接話します。DC は NTLM 試行で Kerberos 応答よりも速く静かに失敗し、多くの SOC は 4625 しか見ていないからです。
 
-4768 のブルートフォース指紋。
+4768 のブルートフォース フィンガープリント:
 
-- 同じ送信元 IP から同じ `TargetUserName` への `Status=0x18` レコードが短時間に多数 — 古典的ブルートフォース。
-- 同じ送信元 IP から多数の `TargetUserName` 値への `Status=0x18` レコード、各アカウント 1〜2 回ヒット — パスワード スプレー。
-- 同じ送信元からの `Status=0x18` に先行する `Status=0x6`（「未知ユーザー」）のバースト — ブルート開始前にユーザー列挙が確認できる。
+- 同じ送信元 IP から、短い時間枠内で、同じ `TargetUserName` に対する多数の `Status=0x18` レコード。ブルートフォース。
+- 1 つの送信元 IP から、多数の `TargetUserName` 値にわたる多数の `Status=0x18` レコードで、それぞれ 1 〜 2 回ヒット。パスワード スプレー。
+- 同じ送信元からの `Status=0x6` (「不明なユーザー」) のバーストが `Status=0x18` に先行。ブルートが始まる前にユーザー列挙が確認された。
 
-## 見える Status コード
+## トリアージを駆動するステータス コード
 
-完全リストは大きいですが、トリアージを駆動するのはこれら。
-
-| Status | 意味 | 実環境での通常意味 |
+| Status | 意味 | フィールドの読み方 |
 |---|---|---|
 | `0x0` | KDC_ERR_NONE | 成功。 |
 | `0x6` | KDC_ERR_C_PRINCIPAL_UNKNOWN | ユーザー名が存在しない。バースト = 列挙。 |
-| `0x12` | KDC_ERR_CLIENT_REVOKED | アカウント ロック / 無効 / 期限切れ。 |
-| `0x17` | KDC_ERR_KEY_EXPIRED | パスワード期限切れ。 |
-| `0x18` | KDC_ERR_PREAUTH_FAILED | パスワード違い。バースト = ブルートまたはスプレー。 |
-| `0x19` | KDC_ERR_PREAUTH_REQUIRED | 新規 TGT 要求時にまずクライアントに返される。実際の成功はその後に続く。これだけでアラートしない。 |
-| `0x25` | KRB_AP_ERR_SKEW | クライアントと DC のクロック スキューが 5 分超。故意にクロックを狂わせたホストからの AS-REP roasting 試行が多い。 |
+| `0x12` | KDC_ERR_CLIENT_REVOKED | アカウントがロック、無効、または期限切れ。 |
+| `0x17` | KDC_ERR_KEY_EXPIRED | パスワードが期限切れ。 |
+| `0x18` | KDC_ERR_PREAUTH_FAILED | パスワード違い。バースト = ブルートフォースまたはスプレー。 |
+| `0x19` | KDC_ERR_PREAUTH_REQUIRED | 新しい TGT リクエストでクライアントに最初に返される。真の成功が続く。これ単独ではアラートしない。 |
+| `0x25` | KRB_AP_ERR_SKEW | 時刻ずれ > 5 分。意図的に時計をずらしたホストからの AS-REP roasting 試行でよくある。 |
 
-## トリアージ ワークフロー — AS-REP roasting
+## トリアージ ワークフロー: AS-REP roasting
 
-1. すべての DC で 4768 を `PreAuthType == 0` かつ `TicketEncryptionType == 0x17` でフィルタ。
-2. `IpAddress` でグルーピング。既知の移行ホストからの単一アカウントは設定、1 つの送信元からの複数アカウントは攻撃。
-3. 各 `TargetUserName` を `userAccountControl` にピボット — `DONT_REQUIRE_PREAUTH` が本当に必要？ほぼ確実に不要です。
-4. 送信元 IP → そのホストの [4624](/ja/blog/understanding-event-id-4624) で、攻撃を起動するために認証した資格情報を見つける。
-5. クラックされたアカウントのパスワードをすべてローテーション。必要のないアカウントから `DONT_REQUIRE_PREAUTH` を削除。
+1. すべての DC で `PreAuthType == 0` AND `TicketEncryptionType == 0x17` の 4768 をフィルタ。
+2. `IpAddress` でグループ化。既知の移行ホストからの単一アカウントは構成。1 つの送信元からの複数アカウントが攻撃。
+3. 各 `TargetUserName` を `userAccountControl` に軸を変える。`DONT_REQUIRE_PREAUTH` は実際に設定する必要があるか? ほぼ確実にない。
+4. 攻撃を起動するために認証された資格情報を見つけるため、送信元 IP をそのホスト上の [4624](/ja/blog/understanding-event-id-4624) に軸を変える。
+5. 解読されたすべてのアカウントのパスワードをローテーション。必要のないアカウントから `DONT_REQUIRE_PREAUTH` を削除。
 
-## トリアージ ワークフロー — Kerberos ブルートフォース
+## トリアージ ワークフロー: Kerberos ブルートフォース
 
-1. 4768 を `Status == 0x18` でフィルタ。
-2. 15 分ウィンドウで `IpAddress` ごとにグルーピング。distinct な `TargetUserName` をカウント。
-3. 15 分で 1 つの送信元から 5 を超えるアカウントはスプレー。同ウィンドウで 1 アカウントに対する 10 を超える失敗はブルートフォース。
-4. 同じ送信元からの `Status == 0x6` とクロスチェック — ブルート前の列挙は教科書的な順序。
+1. `Status == 0x18` の 4768 をフィルタ。
+2. 15 分ウィンドウで `IpAddress` でグループ化。distinct `TargetUserName` を数える。
+3. 15 分で 1 つの送信元から 5 アカウント超はスプレー。同じウィンドウで 1 アカウントに対して 10 回超の失敗はブルートフォース。
+4. 同じ送信元からの `Status == 0x6` と相互チェック。ブルート前の列挙が教科書的な順序。
 
-## サンプル Sigma ルール — AS-REP roasting
+## Sigma: AS-REP roasting
 
 ```yaml
 title: AS-REP Roasting via Kerberos TGT Request Without Pre-Authentication
 id: 4d3f9d18-cb29-4e7c-8e9c-7d3c4f4b1a3b
 status: stable
-description: Successful TGT issued with no pre-authentication and RC4 encryption — the AS-REP roasting fingerprint.
+description: Successful TGT issued with no pre-authentication and RC4 encryption. The AS-REP roasting fingerprint.
 references:
   - https://attack.mitre.org/techniques/T1558/004/
 logsource:
@@ -114,14 +112,14 @@ detection:
   condition: selection
 falsepositives:
   - Legacy Unix Kerberos clients explicitly configured without pre-auth
-  - Accounts intentionally set with DONT_REQUIRE_PREAUTH for legacy interop (should be a vanishingly small set)
+  - Accounts intentionally set with DONT_REQUIRE_PREAUTH for legacy interop (a vanishingly small set)
 level: high
 tags:
   - attack.credential_access
   - attack.t1558.004
 ```
 
-## サンプル KQL — Kerberos パスワード スプレー
+## KQL: Kerberos パスワード スプレー
 
 ```kusto
 SecurityEvent
@@ -133,7 +131,7 @@ SecurityEvent
 | order by TimeGenerated desc
 ```
 
-## サンプル Splunk — AS-REP roasting
+## Splunk: AS-REP roasting
 
 ```spl
 index=wineventlog EventCode=4768 PreAuthType=0 TicketEncryptionType="0x17" Status="0x0"
@@ -143,34 +141,40 @@ index=wineventlog EventCode=4768 PreAuthType=0 TicketEncryptionType="0x17" Statu
 
 ## ATT&CK マッピング
 
-- **T1558.004 — AS-REP Roasting**:`PreAuthType=0 + etype=0x17` 上の目玉検知。
-- **T1110 — Brute Force** とサブ技法 `.001` Password Guessing と `.003` Password Spraying — `Status=0x18` パターン。
-- **T1558.001 — Golden Ticket**:偽造 TGT は 4768 を完全にバイパス。ここでの検知は*不在による* — 同じ送信元 / ウィンドウからの 4768 がない [4769](/ja/blog/event-id-4769-kerberoasting)（TGS 要求）が疑惑。
-- **T1187 — Forced Authentication**:4768 では直接見えないが、結果として生じる TGT 要求は見えます。
+- T1558.004 AS-REP Roasting。`PreAuthType=0 + etype=0x17` の見出し検知。
+- T1110 Brute Force とサブテクニック `.001` Password Guessing と `.003` Password Spraying。`Status=0x18` のパターン。
+- T1558.001 Golden Ticket。偽造 TGT は 4768 を完全にバイパスします。検知は*不在*によります: 同じ送信元とウィンドウの先行 4768 がない [4769](/ja/blog/event-id-4769-kerberoasting) が疑いです。
+- T1187 Forced Authentication。4768 では直接見えませんが、結果として生じる TGT リクエストでは見えます。
 
 ## 攻撃に見える誤検知
 
-- レガシー アプリ サイロにある**古い Java / Unix Kerberos スタック**は、事前認証なしの RC4 をデフォルトとすることがあります。安定したホストからの定常的な日中 4768 トラフィックとして現れます。ベースライン化。
-- スマートカード展開中の **PKINIT 移行**:正当な `PreAuthType=15/16/17` のフリップは見たことがなければ異常に見えます。展開ウィンドウを監視。
-- **Kerberos ライブラリのバグ**:一部クライアントは時刻スキューで TGT を積極的に再要求しノイズを生成。`Status=0x25` とクロスチェック。
-- **ドメイン トラスト トラバーサル**:クロスフォレスト認証は両側で 4768 を生成。`IpAddress` は別フォレストの DC。タグを付ける。
+- レガシー アプリ サイロの古い Java や Unix Kerberos スタックは、pre-auth なしで RC4 をデフォルトにすることがあります。安定したホストからの安定した、日中の 4768 トラフィックとして現れます。ベースライン化。
+- スマート カード展開中の PKINIT 移行。正当な `PreAuthType=15/16/17` の切り替えは、見たことがないと異常に見えます。展開ウィンドウに注意。
+- Kerberos ライブラリのバグ。時刻ずれで積極的に TGT を再要求するクライアントがあり、ノイズを生みます。`Status=0x25` で相互チェック。
+- ドメイン信頼の通過。クロス フォレスト認証は両側で 4768 を生成します。`IpAddress` は他フォレストの DC です。タグを。
 
-## 4768 では分からないこと
+## 4768 が教えないこと
 
-レコードには、攻撃者がキャプチャした実際の AS-REP 素材（オフラインでクラックするもの）は**含まれません**。要求が発行されたことは見えますが、メタデータ以外に返されたデータは見えません。また、*クライアント*視点 — どのアプリケーションが要求を起動したか、どのユーザー コンテキストで動いていたか — も見えません。それにはクライアント側の [4624](/ja/blog/understanding-event-id-4624)（および `kerbrute.exe` がローカル実行なら [4688](/ja/blog/event-id-4688-process-creation)）が必要です。
+レコードには、攻撃者がキャプチャした実際の AS-REP 材料 (彼らがオフラインで解読するもの) は含まれません。リクエストが発行されたことは見えます。メタデータを超えて何が返されたかは見えません。クライアントの視点も見えません: どのアプリケーションがリクエストを起動したか、どのユーザー コンテキストで実行されたか。それにはクライアント側の [4624](/ja/blog/understanding-event-id-4624) と、`kerbrute.exe` または Rubeus がローカル実行された場合の [4688](/ja/blog/event-id-4688-process-creation) が必要です。
 
-また 4768 は*初回*の TGT 要求と更新時のみ発火することに注意してください。一度クライアントが有効な TGT をキャッシュすれば、更新までは KDC とは話しません。そこから派生する*サービス*チケットは [4769](/ja/blog/event-id-4769-kerberoasting) を生成し、4768 ではありません。2 つのレコードは同じプロトコルの異なるステージを記述します — そして長寿命の TGT（ゴールデン チケット）を盗んだ攻撃者は、4768 を二度と生まずに任意の 4769 を発行できます。
+4768 が初回 TGT リクエストと更新でのみ発火することにも注意してください。クライアントが有効な TGT をキャッシュしている限り、更新まで KDC と TGT について話しません。そこから派生するサービス チケットは 4768 ではなく [4769](/ja/blog/event-id-4769-kerberoasting) を生成します。長寿命の TGT を盗む攻撃者 (golden ticket) は、別の 4768 を生成せずに任意の 4769 を発行できます。
 
-## タイムラインにおける 4768 の位置
+## タイムラインでの 4768 の位置
 
-AS-REP roasting 連鎖、開始から終了まで。
+AS-REP roasting の開始から終わり:
 
-1. [**4624**](/ja/blog/understanding-event-id-4624) — 初期低特権ドメイン ログオン（フィッシングされた資格情報）。
-2. *(LDAP、SACL 設定があれば 4662)* — 攻撃者は `DONT_REQUIRE_PREAUTH` を持つアカウントの `userAccountControl` フラグを列挙。
-3. **4768** バースト — 候補アカウントごとに `PreAuthType=0`、`etype=0x17`、`Status=0x0`。**ここが検知点。**
-4. *(オフライン、不可視)* — 攻撃者は復元した AS-REP 素材を Hashcat（モード 18200）でクラックし平文パスワードを復元。
-5. **4768** — 侵害アカウントとして新規 TGT 要求、今度は通常通り事前認証あり。
-6. [**4769**](/ja/blog/event-id-4769-kerberoasting) — 侵害アカウントが到達可能なすべての対象に対するサービス チケット。
-7. ターゲット サービス上の [**4624**](/ja/blog/understanding-event-id-4624) LogonType 3。
+1. [4624](/ja/blog/understanding-event-id-4624)。初期低特権ドメイン ログオン (フィッシングされた資格情報)。
+2. *(LDAP、SACL が設定されていれば 4662 のこともある)*。攻撃者が `DONT_REQUIRE_PREAUTH` を持つアカウントの `userAccountControl` を列挙。
+3. **4768** バースト。`PreAuthType=0`、`etype=0x17`、各候補アカウントの `Status=0x0`。検知点。
+4. *(オフライン、不可視)*。攻撃者が回復した AS-REP 材料を Hashcat (モード 18200) で解読。
+5. **4768**。今回は通常 pre-auth された、侵害されたアカウントとしての新規 TGT リクエスト。
+6. [4769](/ja/blog/event-id-4769-kerberoasting)。侵害されたアカウントが到達できるすべてのサービス チケット。
+7. ターゲット サービス上の [4624](/ja/blog/understanding-event-id-4624) LogonType 3。
 
-ステップ 3 がカナリア。ステップ 5 以降が実際の侵害。両者の間のウィンドウ — 数分から数日 — が、資格情報が野生で生きる前にディフェンダーが行動できる唯一のウィンドウです。
+ステップ 3 がカナリアです。ステップ 5 以降が実際の侵害です。その間のウィンドウは数分から数日で、防御側が資格情報がワイルドで生きている前に対応できる唯一のウィンドウです。
+
+## 参考資料
+
+- [4768 の Microsoft ドキュメント](https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4768)
+- [MITRE ATT&CK T1558.004](https://attack.mitre.org/techniques/T1558/004/)
+- [Sean Metcalf: AS-REP Roasting](https://adsecurity.org/?p=3293)

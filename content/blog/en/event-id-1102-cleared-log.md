@@ -1,14 +1,14 @@
 ---
 title: "Event ID 1102 explained: Security audit log cleared (and what survives)"
-description: "1102 is the one event you can't suppress without leaving more evidence. Here's what it tells you and what survives the clear."
+description: "1102 is the one event you cannot suppress without leaving more evidence behind. Here is what it tells you, what survives the clear, and where to look once you see it."
 date: "2026-05-17"
 ---
 
-Event ID **1102** is the record Windows writes to the [`Security` channel](/en/blog/what-is-an-evtx-file) when the audit log is cleared. It is — by design — one of the hardest records for an attacker to suppress, because suppressing it requires either successfully replacing the EventLog service before it boots or accepting that the act of clearing leaves a 1102 of its own.
+Event ID **1102** is what Windows writes to the [`Security` channel](/en/blog/what-is-an-evtx-file) when somebody clears the audit log. It is, by design, one of the harder records for an attacker to suppress. Suppressing it cleanly requires either replacing the EventLog service binary before it boots, or accepting that the act of clearing leaves a 1102 of its own. Most operators take the second option, hoping nobody is paying attention.
 
-For defenders this means: if you see 1102, somebody with sufficient privilege deliberately wiped the audit trail. That is almost never a normal admin action.
+If you see 1102, somebody with sufficient privilege deliberately wiped the audit trail. That is essentially never a routine admin action, and when it is, it should be ticketed. Treat every 1102 outside an approved maintenance window as an incident until proven otherwise.
 
-## What's in the record
+## What is in the record
 
 ```xml
 <UserData>
@@ -21,35 +21,36 @@ For defenders this means: if you see 1102, somebody with sufficient privilege de
 </UserData>
 ```
 
-Note the `UserData` block instead of the usual `EventData` — 1102 is one of the records that uses a structured user-data schema. The fields tell you *who* cleared the log under what logon session. Pivot on the `SubjectLogonId` to find the matching [4624](/en/blog/understanding-event-id-4624) and you'll get the source IP and logon type that produced the privileged session.
+Note the `UserData` block rather than the usual `EventData`. 1102 uses a structured user-data schema, which trips up some naive parsers that only look at `EventData`. The fields tell you who cleared the log under what logon session. Pivot on `SubjectLogonId` to the matching [4624](/en/blog/understanding-event-id-4624) and you have the source IP, logon type, and credential that produced the privileged session.
 
-## What also fires when 1102 fires
+## What rides alongside
 
-A log clear is rarely the *only* anti-forensic action. Common companions, in rough chronological order:
+A log clear is rarely the only anti-forensic action in the chain. The records that tend to fire near it, in rough chronological order:
 
-- **104** on the `System` channel — same act, recorded by the SCM. If 104 is present but 1102 is missing, the attacker only cleared the Security log and forgot System.
-- **4719** — "System audit policy was changed". Sometimes an attacker reduces audit coverage *before* clearing, to leave fewer records on the next round.
-- **4616** — "The system time was changed". Pre-clearing time skew makes timeline reconstruction harder.
-- **A gap in 4624s** for an hour or two before 1102 — the attacker may have used a non-logged side channel.
+- **104** on the `System` channel. Same act as 1102 but recorded by the SCM for non-Security channels. If 104 is present and 1102 is missing, the attacker only cleared Security and forgot System.
+- **4719**, "system audit policy was changed". Sometimes the attacker reduces audit coverage *before* clearing, to leave fewer records the next time around.
+- **4616**, "the system time was changed". Pre-clearing timestomping makes timeline reconstruction harder.
+- A gap in 4624s in the hour or two before 1102. The attacker may have used a non-logged side channel to get in.
 
 ## What survives a clear
 
-Clearing the in-memory event log doesn't touch:
+Clearing the in-memory event log does not touch:
 
-- **Other channels**: `System`, `Application`, `PowerShell/Operational`, `Sysmon/Operational`, `TaskScheduler/Operational`, forwarded-event channels — none of these get cleared by a Security wipe.
-- **Forwarded events**: if Windows Event Forwarding (WEF) is configured to a central collector, the cleared records are already on another host.
-- **The on-disk file itself**: a cleared `Security.evtx` is replaced by a new file; the *deleted* prior file's clusters often persist in unallocated space and can be carved with NTFS tooling.
-- **USN journal entries** for the file replacement: even the clearing operation leaves filesystem-level artifacts.
+- Other channels. `System`, `Application`, `PowerShell/Operational`, `Sysmon/Operational`, `TaskScheduler/Operational`, forwarded-event channels. None of these get cleared by a Security wipe.
+- Forwarded events. If Windows Event Forwarding is sending Security to a collector, the cleared records are already on another host. The originating RecordIDs and timestamps are preserved.
+- The on-disk file itself. A cleared `Security.evtx` is replaced with a fresh file. The clusters of the prior file often persist in unallocated space. EVTX records [carve cleanly](/en/blog/carve-deleted-evtx-records) out of those clusters.
+- [USN journal](https://www.usnparser.com) entries for the file replacement. Even the act of clearing leaves filesystem-level artifacts.
+- The [MFT](https://www.mftparser.com) entry for the new file, which carries a creation timestamp that should match the 1102 within a second.
 
 A "successful" log clear is rarely as clean as the attacker hopes.
 
-## Sample Sigma rule — log cleared
+## Sigma: log cleared
 
 ```yaml
 title: Windows Security Event Log Cleared
 id: 2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e
 status: stable
-description: Detect 1102 (Security log cleared) and 104 (System log cleared) — anti-forensic actions.
+description: Detect 1102 (Security log cleared) and 104 (System log cleared). Anti-forensic actions.
 references:
   - https://attack.mitre.org/techniques/T1070/001/
 logsource:
@@ -71,9 +72,7 @@ tags:
   - attack.t1070.001
 ```
 
-If you see 1102 outside an approved maintenance window, treat as an incident — full stop.
-
-## Sample KQL — log clear + privileged session correlation
+## KQL: clear correlated with privileged session
 
 ```kusto
 let clears =
@@ -92,9 +91,9 @@ clears
 | order by ClearTime desc
 ```
 
-Every 1102 traces back to a [4672](/en/blog/event-id-4672-special-privileges) granting `SeSecurityPrivilege` — which traces back to a [4624](/en/blog/understanding-event-id-4624). The join completes the picture.
+Every 1102 traces back to a [4672](/en/blog/event-id-4672-special-privileges) granting `SeSecurityPrivilege`, which traces back to a [4624](/en/blog/understanding-event-id-4624). The join completes the picture.
 
-## Sample Splunk — companion anti-forensics chain
+## Splunk: the tampering chain
 
 ```spl
 index=wineventlog ( EventCode=1102 OR EventCode=104 OR EventCode=4719 OR EventCode=4616 )
@@ -102,23 +101,30 @@ index=wineventlog ( EventCode=1102 OR EventCode=104 OR EventCode=4719 OR EventCo
 | where mvcount(Events) >= 2
 ```
 
-A `LogonId` that touched audit policy (4719) or system time (4616) and then cleared a log (1102/104) is the tampering chain.
+A LogonId that touched audit policy (4719) or system time (4616) and then cleared a log (1102/104) is the tampering chain.
 
 ## ATT&CK mapping
 
-- **T1070.001 — Indicator Removal: Clear Windows Event Logs**: the headline technique. 1102 *is* this technique's primary indicator.
-- **T1562.002 — Impair Defenses: Disable Windows Event Logging**: 4719 (audit policy changed) preceding 1102 maps here.
-- **T1070.006 — Indicator Removal: Timestomp**: paired with 4616 (system time changed) in the same chain.
-- **T1078.003 — Valid Accounts: Local Accounts**: 1102 by a local Administrator that shouldn't have logged on at that time.
+- T1070.001 Indicator Removal: Clear Windows Event Logs. The headline. 1102 *is* the primary indicator.
+- T1562.002 Impair Defenses: Disable Windows Event Logging. 4719 preceding 1102 maps here.
+- T1070.006 Indicator Removal: Timestomp. Paired with 4616 in the same chain.
+- T1078.003 Valid Accounts: Local Accounts. 1102 by a local Administrator that should not have been logged on at that time.
 
-## False positives — rare but real
+## False positives, rare but real
 
-- **Migration / decom workflows**: techs clearing the log on a host being decommissioned. Should always be ticketed.
-- **Forensic / testing labs**: clear-and-reproduce workflows during detection development.
-- **Some legacy tools** clear the log to reset baselines — almost always a procedural mistake, but a real one.
+- Migration or decom workflows. Techs clearing logs on a host being decommissioned. Should always be ticketed.
+- Forensic labs running clear-and-reproduce loops during detection development.
+- Some legacy tools clear the log to "reset baselines". Almost always a procedural mistake, but a real one.
 
-The signal is so directly anti-forensic that even legitimate 1102s should be investigated and documented after the fact. There's no "safe" reason for a 1102 in normal operations.
+There is no safe reason for a 1102 in normal operations. Even the legitimate ones should be investigated and documented after the fact.
 
-## Why this matters for parsing
+## When you find one in the bundle
 
-When you [load an .evtx file into a forensic tool](/en/blog/how-to-open-an-evtx-file), the *first* search worth running is `EventID:1102` and `EventID:104`. If either is present, the log you're holding has known gaps and any timeline you build from it is incomplete. Note it loudly in the report.
+When you load an [.evtx file into a forensic tool](/en/blog/how-to-open-an-evtx-file), the first two searches worth running are `EventID:1102` and `EventID:104`. If either is present, the log you are holding has known gaps. Any timeline built from it is incomplete. Note it loudly in the report. Then go look at what survived: the [registry](https://www.registryparser.com), [USN journal](https://www.usnparser.com), [MFT](https://www.mftparser.com), [prefetch](https://www.prefetchparser.com), and [AmCache](https://www.amcacheparser.com). Together they reconstruct most of what 1102 tried to erase.
+
+Tools like `Invoke-Phant0m` skip 1102 entirely by suspending the event service threads instead of clearing. If you see a multi-hour silence in Security with no 1102 and no system shutdown, that is the other shape of the same problem.
+
+## Further reading
+
+- [MITRE ATT&CK T1070.001](https://attack.mitre.org/techniques/T1070/001/)
+- [Microsoft documentation for 1102](https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-1102)

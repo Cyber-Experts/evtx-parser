@@ -1,12 +1,14 @@
 ---
 title: "PowerShell Event ID 4104 spiegato: scriptblock logging per DFIR"
-description: "Lo scriptblock logging è il controllo difensivo gratuito più utile di Windows. Registra il corpo completo di ogni script — inclusi quelli offuscati o in-memory — sotto l'evento 4104."
+description: "Lo scriptblock logging è il controllo difensivo gratuito più utile di Windows. Registra il corpo completo dello script, inclusi quelli offuscati o in memoria, sotto l'evento 4104."
 date: "2026-05-17"
 ---
 
-Quando lo scriptblock logging di PowerShell è abilitato, l'engine registra il corpo di ogni script che esegue — comandi interattivi, script caricati da disco e qualsiasi cosa riflessa in memoria da `Invoke-Expression` o `IEX`. Il record atterra sul [canale](/it/blog/what-is-an-evtx-file) `Microsoft-Windows-PowerShell/Operational` come Event ID **4104**, «Creating Scriptblock text».
+Quando lo scriptblock logging di PowerShell è abilitato, l'engine registra il corpo di ogni script che si esegue. Comandi interattivi, script caricati da disco, qualsiasi cosa riflessa in memoria da `Invoke-Expression` o `IEX`. Il record atterra su `Microsoft-Windows-PowerShell%4Operational.evtx` come event ID **4104**, "Creating Scriptblock text".
 
-## Cosa ottieni
+Se non avete un EDR, è ciò che la piattaforma vi dà di più vicino a uno. Accendetelo. Il costo è trascurabile e il vantaggio è tutto ciò che PowerShell cerca di nascondere.
+
+## Cosa ottenete
 
 ```xml
 <Data Name="MessageNumber">1</Data>
@@ -16,40 +18,42 @@ Quando lo scriptblock logging di PowerShell è abilitato, l'engine registra il c
 <Data Name="Path">C:\Users\alice\Downloads\setup.ps1</Data>
 ```
 
-Per uno script lungo PowerShell lo splitta su più record 4104 (uno per message number). Riassemblarli è essenziale — i frammenti sono facili da fraintendere.
+Per uno script lungo, PowerShell divide il corpo su più record 4104, uno per `MessageNumber`. Rimetterli insieme è essenziale. I frammenti sono facili da fraintendere, e un attaccante che conosce lo scriptblock logging riempirà deliberatamente righe in modo che una corrispondenza parziale su un singolo record sembri benigna.
 
-## Come attivarlo
+## Come accenderlo
 
-L'impostazione è `HKLM\Software\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging\EnableScriptBlockLogging = 1`, equivalente alla Group Policy in *Computer Configuration → Administrative Templates → Windows Components → Windows PowerShell → Turn on PowerShell Script Block Logging*. Non c'è alcun costo lato PowerShell degno di essere misurato — accendilo ovunque.
+`HKLM\Software\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging\EnableScriptBlockLogging = 1`. O la Group Policy a *Computer Configuration / Administrative Templates / Windows Components / Windows PowerShell / Turn on PowerShell Script Block Logging*. Non c'è costo lato PowerShell che valga la pena misurare. Accendetelo ovunque.
 
-## Cosa cattura che nient'altro coglie
+Mentre ci siete, abilitate anche Module Logging e trascrizione. Module Logging (4103) vi dà i valori dei parametri per invocazione. La trascrizione scrive la sessione console renderizzata in un file che potete spedire. Ciascuno cattura una fetta diversa. Nessuno sostituisce 4104.
 
-L'engine PowerShell logga lo script **dopo** qualsiasi encoding, compressione o riflessione in memoria. Significa che:
+## Cosa cattura 4104 che nient'altro fa
 
-- Un'invocazione `-EncodedCommand` logga sia il launcher encoded (nel corrispondente ProcessCreate / 4688) sia il corpo decodificato (nel 4104).
+L'engine PowerShell logga lo script *dopo* qualsiasi encoding, compressione, o riflessione in memoria. Significa:
+
+- Un'invocazione `-EncodedCommand` logga sia il launcher encodato (nel [4688](/en/blog/event-id-4688-process-creation) corrispondente o [Sysmon 1](/en/blog/sysmon-event-id-1-process-create)) sia il corpo decodato (in 4104).
 - Uno script che scarica e fa `Invoke-Expression` di un payload remoto logga il corpo *eseguito*, non il wrapper.
-- Un attaccante che usa bypass AMSI lascia comunque il record 4104 — il bypass colpisce lo scanning, non il logging.
+- Un attaccante che usa bypass AMSI lascia comunque il record 4104. Il bypass influenza lo scanning, non il logging. Il bypass stesso si presenta spesso come righe 4104 contenenti `amsiInitFailed` o `amsiScanBuffer`.
 
-Questo è il singolo controllo difensivo gratuito più utile della piattaforma. I difensori che non hanno EDR di solito hanno questo.
+Questo è il singolo controllo difensivo gratuito più utile sulla piattaforma. I difensori che non hanno EDR di solito hanno questo.
 
-## Triage del 4104 su larga scala
+## Triage 4104 su scala
 
 I pattern ad alto segnale in un corpus di record 4104:
 
-- `DownloadString`, `DownloadFile`, `Invoke-WebRequest`, `Net.WebClient` — fetch di contenuto remoto.
-- `IEX`, `Invoke-Expression` — esecuzione dinamica.
-- `FromBase64String`, `[System.Convert]::FromBase64String` — payload encoded.
-- `Add-MpPreference -ExclusionPath` — tampering Defender.
-- `Set-MpPreference -DisableRealtimeMonitoring` — tampering Defender.
-- `[System.Reflection.Assembly]::Load`, `[Reflection.Emit]` — caricamento di assembly in memoria.
-- `Invoke-Mimikatz`, `Invoke-Kerberoast`, `Invoke-BloodHound` — tooling offensivo noto.
+- `DownloadString`, `DownloadFile`, `Invoke-WebRequest`, `Net.WebClient`. Fetch di contenuto remoto.
+- `IEX`, `Invoke-Expression`. Esecuzione dinamica.
+- `FromBase64String`, `[System.Convert]::FromBase64String`. Payload encodato.
+- `Add-MpPreference -ExclusionPath`. Tampering di Defender.
+- `Set-MpPreference -DisableRealtimeMonitoring`. Tampering di Defender.
+- `[System.Reflection.Assembly]::Load`, `[Reflection.Emit]`. Caricamento di assembly in memoria.
+- `Invoke-Mimikatz`, `Invoke-Kerberoast`, `Invoke-BloodHound`, `DCSync`. Tooling offensivo conosciuto.
 
-Un singolo match da solo non è sempre malizioso (gli admin usano `DownloadString` anche loro), ma le combinazioni lo sono. Pivota dal 4104 al [Sysmon evento 1](/it/blog/sysmon-event-id-1-process-create) / 4688 corrispondente per timestamp + processo per recuperare il contesto completo di invocazione.
+Una singola corrispondenza da sola non è sempre maligna (gli admin usano `DownloadString` anche). Le combinazioni sì. Pivotate da 4104 al corrispondente [Sysmon event 1](/en/blog/sysmon-event-id-1-process-create) o [4688](/en/blog/event-id-4688-process-creation) per timestamp + processo per recuperare il contesto completo di invocazione.
 
-## Esempio di regola Sigma — tooling offensivo PowerShell in scriptblock
+## Sigma: tooling offensivo PowerShell
 
 ```yaml
-title: Suspicious PowerShell Scriptblock — Offensive Tool Indicators
+title: Suspicious PowerShell Scriptblock - Offensive Tool Indicators
 id: 4f1a3b8d-2c5e-4d8f-9a3b-1c2d3e4f5a6b
 status: stable
 description: PowerShell scriptblock body contains strings characteristic of offensive tooling, encoded payloads, or in-memory reflection.
@@ -93,7 +97,7 @@ tags:
   - attack.defense_evasion
 ```
 
-## Esempio KQL — PowerShell encoded da utente low-priv
+## KQL: PowerShell encodato da un utente a bassi privilegi
 
 ```kusto
 let encoded =
@@ -111,7 +115,7 @@ encoded
 | order by TimeGenerated desc
 ```
 
-## Esempio Splunk — tamper Defender da PowerShell
+## Splunk: tampering di Defender da PowerShell
 
 ```spl
 index=powershell EventCode=4104
@@ -121,22 +125,30 @@ index=powershell EventCode=4104
 | table _time host UserID ScriptBlockText
 ```
 
-## Mappatura ATT&CK
+## Mapping ATT&CK
 
-- **T1059.001 — Command and Scripting Interpreter: PowerShell**: ogni 4104 offensivo mappa qui. PowerShell è una delle tecniche di esecuzione più citate nelle intrusioni moderne.
-- **T1027 — Obfuscated Files or Information**: pattern encoded / Base64 / `FromBase64String`.
-- **T1059.001 + T1140 — Deobfuscate/Decode Files or Information**: l'engine logga la forma *decodificata*, che è il valore che il 4104 dà sopra il [4688](/it/blog/event-id-4688-process-creation).
-- **T1562.001 — Impair Defenses: Disable or Modify Tools**: `Set-MpPreference -DisableRealtimeMonitoring`, `Add-MpPreference -ExclusionPath`.
-- **T1003.001 — OS Credential Dumping: LSASS Memory**: pattern `Invoke-Mimikatz`, `MiniDump`, `comsvcs.dll` nei corpi degli script.
-- **T1558.003 — Kerberoasting**: pattern `Invoke-Kerberoast`, `Rubeus kerberoast`.
+- T1059.001 Command and Scripting Interpreter: PowerShell. Ogni 4104 offensivo si mappa qui. PowerShell è una delle tecniche di esecuzione più citate nelle intrusioni moderne.
+- T1027 Obfuscated Files or Information. Pattern Encoded, Base64, `FromBase64String`.
+- T1140 Deobfuscate/Decode Files or Information. L'engine logga la forma *decodata*, che è il valore che 4104 fornisce rispetto a [4688](/en/blog/event-id-4688-process-creation).
+- T1562.001 Impair Defenses: Disable or Modify Tools. `Set-MpPreference -DisableRealtimeMonitoring`, `Add-MpPreference -ExclusionPath`.
+- T1003.001 LSASS Memory. Pattern `Invoke-Mimikatz`, `MiniDump`, `comsvcs.dll` nei corpi di script.
+- T1558.003 Kerberoasting. Pattern `Invoke-Kerberoast`, Rubeus kerberoast.
 
 ## Falsi positivi che sembrano esattamente attacchi
 
-- **Runbook admin** a volte usano `Invoke-Expression` legittimamente per configurazione templated. La combinazione è di solito breve, ripetibile e da sessioni admin note.
-- **Script di management Defender** (IT aziendale) chiamano `Set-MpPreference` legittimamente per spingere liste di esclusione. Whitelist per certificato di signing dello script o SID dell'host.
-- **Installer Chocolatey / WinGet / package** usano PowerShell Base64-encoded legittimamente. Pattern: breve, diurno, da host build/admin.
-- **Attività red-team / pentest** sembrerà identica ad attacchi reali. Coordina le finestre di engagement e tagga gli IP sorgente dell'operatore.
+- I runbook admin a volte usano `Invoke-Expression` legittimamente per configurazione template. La combinazione di solito è corta, ripetibile, e da sessioni admin conosciute.
+- Gli script di gestione Defender (IT aziendale) chiamano `Set-MpPreference` legittimamente per pushare liste di esclusione. Whitelistate per certificato di firma dello script o SID host.
+- Chocolatey, WinGet, installer di pacchetti usano PowerShell Base64-encodato legittimamente. Pattern: corto, di giorno, da host di build o admin.
+- Attività red-team o pentest sembrerà identica ad attacchi reali. Coordinate finestre di engagement e taggate IP sorgente operatore.
 
 ## Il punto cieco
 
-Il 4104 logga il *corpo* dello script. Non logga esecuzione per-statement, return di funzioni o valori di variabili. Per quello serve la transcription (evento 4103, «Module logging») o un EDR vero. Il 4104 ti dice cosa è girato; il resto ti dice cosa ha fatto.
+4104 logga il *corpo* dello script. Non logga esecuzione per statement, ritorni di funzione, o valori di variabile. Per quello vi serve 4103 (Module logging) o un EDR vero. 4104 vi dice cosa è girato. Il resto vi dice cosa ha fatto.
+
+Se 4104 era spento quando è avvenuto l'attacco (il caso più comune che vedo negli incidenti su parchi datati), il corpo dello script è perso. L'invocazione wrapper potrebbe essere ancora in [4688](/en/blog/event-id-4688-process-creation), il timbro binario in [AmCache](https://www.amcacheparser.com), e la working directory in [prefetch](https://www.prefetchparser.com), ma il codice effettivo è perso a meno che non possiate carvarlo da [pagefile.sys](https://www.pagefilesysparser.com) o da un [dump RAM](https://www.ramparser.com). Accendetelo ora così non avrete quell'argomento con voi stessi la prossima volta.
+
+## Per approfondire
+
+- [Documentazione Microsoft: PowerShell script block logging](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_logging_windows)
+- [FireEye/Mandiant: Greater Visibility Through PowerShell Logging](https://www.mandiant.com/resources/blog/greater-visibility)
+- [Daniel Bohannon: Invoke-Obfuscation e detection](https://github.com/danielbohannon/Invoke-Obfuscation)

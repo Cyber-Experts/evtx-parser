@@ -1,12 +1,12 @@
 ---
 title: "Event ID 7045 explicado: instalación de servicio como señal de persistencia"
-description: "La creación de servicios es una de las técnicas de persistencia más ruidosas. El evento 7045 captura cada instalación — lee estos tres campos y atraparás la mayor parte."
+description: "La creación de servicios es una de las técnicas de persistencia más ruidosas. El evento 7045 captura cada instalación. Lee estos tres campos y atrapas la mayoría."
 date: "2026-05-17"
 ---
 
-El Event ID **7045** — «Se instaló un servicio en el sistema» — se dispara en el [canal `System`](/es/blog/what-is-an-evtx-file) siempre que el Service Control Manager registra un nuevo servicio. Es ruidoso en un build de stock (instalaciones de drivers, actualizaciones) pero en entornos corporativos en estado estable es lo suficientemente tranquilo como para que las anomalías destaquen. También es una de las técnicas de persistencia más citadas de MITRE ATT&CK: T1543.003.
+El event ID **7045**, "Se ha instalado un servicio en el sistema", se dispara en el [canal `System`](/en/blog/what-is-an-evtx-file) cada vez que el Service Control Manager registra un nuevo servicio. Es ruidoso en una build estándar (instalaciones de drivers, Windows Updates), pero en un entorno corporativo en estado estacionario se vuelve lo suficientemente silencioso como para que las anomalías destaquen. Es también una de las técnicas de persistencia más citadas de MITRE ATT&CK: T1543.003. Vale la pena conocerlo de memoria.
 
-## Qué contiene el registro
+## Qué hay en el registro
 
 ```xml
 <Data Name="ServiceName">UpdateSrv</Data>
@@ -16,43 +16,43 @@ El Event ID **7045** — «Se instaló un servicio en el sistema» — se dispar
 <Data Name="AccountName">LocalSystem</Data>
 ```
 
-Cinco campos, tres de los cuales importan para IR.
+Cinco campos. Tres importan para IR.
 
 ## Los tres campos a leer primero
 
-**`ImagePath`** es el campo individualmente más útil. Los servicios legítimos viven bajo `C:\Windows\System32\`, `C:\Program Files\`, o `C:\Program Files (x86)\`. Cualquier servicio cuyo binario se sienta en `C:\Windows\Temp\`, `C:\Users\<user>\AppData\`, `C:\ProgramData\`, o un directorio con nombre aleatorio merece una mirada más cercana. `ImagePath` también puede ser una línea `cmd.exe /c …` o `powershell.exe -e …` — esas casi siempre son maliciosas; los servicios legítimos no salen a una shell.
+**`ImagePath`** es el campo más útil. Los servicios legítimos viven bajo `C:\Windows\System32\`, `C:\Program Files\` o `C:\Program Files (x86)\`. Cualquier servicio cuyo binario esté en `C:\Windows\Temp\`, `C:\Users\<user>\AppData\`, `C:\ProgramData\` o un directorio con nombre aleatorio merece una mirada más cercana. `ImagePath` también puede ser `cmd.exe /c ...` o `powershell.exe -e ...`. Esos son casi siempre maliciosos. Los servicios legítimos no salen a shell.
 
-**`AccountName`** suele ser `LocalSystem`. Un servicio instalado bajo un usuario de dominio o una cuenta de servicio específica que no coincide con el patrón de la organización es inusual.
+**`AccountName`** usualmente es `LocalSystem`. Un servicio instalado bajo un usuario de dominio, o una cuenta de servicio específica que no coincida con el patrón de la organización, es inusual.
 
-**`StartType`** de `auto start` significa que el servicio corre en cada arranque. `demand start` significa manual. La persistencia casi siempre quiere `auto start`; la ejecución lateral de un solo disparo puede usar `demand start` y limpiar tras sí — haciendo que el 7045 sea el único artefacto que queda.
+**`StartType`** de `auto start` significa que el servicio corre en cada arranque. `demand start` significa manual. La persistencia casi siempre quiere `auto start`. Una ejecución lateral one-shot puede usar `demand start` y limpiarse después. Eso hace que el 7045 sea el único artefacto que queda.
 
 ## El patrón de ejecución lateral
 
-Cuando un atacante ejecuta `PsExec` o cualquier herramienta que use el SCM para ejecución remota en otro host, obtienes un 7045 en el host *objetivo* con un `ImagePath` como `%SystemRoot%\PSEXESVC.exe` (default) o un equivalente renombrado. El servicio aparece, corre, y a menudo se elimina en segundos. El 7045 es la huella digital superviviente mucho después de que el servicio mismo se ha ido.
+Cuando un atacante corre PsExec o cualquier herramienta que usa el SCM para ejecutar remotamente en otro host, obtienes un 7045 en el host *destino* con un `ImagePath` como `%SystemRoot%\PSEXESVC.exe` (por defecto) o un equivalente renombrado. El servicio aparece, corre y a menudo se borra en segundos. El 7045 es la huella superviviente mucho después de que el servicio mismo se haya ido.
 
-Un 7045 con `ImagePath` terminando en `.exe` seguido segundos después por [4624 LogonType **3**](/es/blog/understanding-event-id-4624) desde un host de origen específico es la firma de libro de PsExec. Variantes como SMBExec, WMIExec, y el `psexec.py` de Impacket producen valores `ImagePath` ligeramente diferentes pero el mismo patrón general.
+Un 7045 con `ImagePath` terminando en `.exe` seguido segundos después por un [4624 LogonType **3**](/en/blog/understanding-event-id-4624) desde un host fuente específico es la firma de libro de PsExec. Las variantes como Impacket `psexec.py`, `smbexec.py`, `wmiexec.py` producen valores de `ImagePath` ligeramente diferentes pero el mismo patrón general. La variante Impacket renombrada usualmente es el delator: un nombre de servicio como `wfDsaQbA` (ocho letras aleatorias) no viene de un sysadmin.
 
 ## Lo que 7045 no te dice
 
-7045 se dispara en la *instalación*, no en cada arranque subsiguiente. Para ver el servicio realmente corriendo necesitas 7036 («service entered the running state»). Para ver el proceso subyacente necesitas [Sysmon event 1](/es/blog/sysmon-event-id-1-process-create) o [4688](/es/blog/event-id-4688-process-creation) con la ruta `Image` coincidente.
+7045 se dispara en *instalación*, no en cada arranque subsiguiente. Para ver el servicio realmente corriendo necesitas [7036](/en/blog/event-id-7036-service-state) ("el servicio entró en el estado running"). Para ver el proceso subyacente necesitas [Sysmon evento 1](/en/blog/sysmon-event-id-1-process-create) o [4688](/en/blog/event-id-4688-process-creation) con el path `Image` correspondiente.
 
-Para servicios instalados *antes* de que el audit log empiece (p.ej., durante la instalación del SO), no hay 7045 — existen en el registro bajo `HKLM\SYSTEM\CurrentControlSet\Services\` y tienen que enumerarse desde ahí, no desde event logs.
+Para servicios instalados *antes* de que comience el audit log (por ejemplo, durante la instalación del SO), no hay 7045. Existen en el [registro](https://www.registryparser.com) bajo `HKLM\SYSTEM\CurrentControlSet\Services\` y tienen que enumerarse ahí, no desde event logs. El hive [AmCache](https://www.amcacheparser.com) y la caché [prefetch](https://www.prefetchparser.com) a menudo corroboran ejecuciones que no produjeron un 4688.
 
-## Workflow de triage
+## Flujo de triaje
 
 1. Filtra el canal System por `EventID:7045`.
-2. Ordena o pivota por `ImagePath` — cualquier cosa fuera de las rutas de instalación estándar es sospechosa.
-3. Para cada sospechoso, saca el 4624 correspondiente por timestamp + host de origen — encuentra la credencial que lo instaló.
-4. Saca el evento Sysmon 1 con `Image` coincidiendo con `ImagePath` para ver ejecuciones reales.
-5. Anota si una secuencia [**7036**](/es/blog/event-id-7036-service-state) / 7034 / 7035 muestra una ejecución de un solo disparo o un servicio persistente.
+2. Ordena o pivota por `ImagePath`. Cualquier cosa fuera de las rutas de instalación estándar es sospechosa.
+3. Para cada sospechoso, tira el 4624 correspondiente por timestamp y host origen. Encuentra la credencial que lo instaló.
+4. Tira Sysmon 1 por `Image` coincidiendo con el `ImagePath` para ver ejecuciones reales.
+5. Nota si una secuencia [7036](/en/blog/event-id-7036-service-state) / 7034 / 7035 muestra una corrida one-shot o un servicio persistente.
 
-## Regla Sigma de ejemplo — servicio instalado desde ruta no estándar
+## Sigma: servicio instalado desde ruta no estándar
 
 ```yaml
 title: Service Installed from Non-Standard Path
 id: 9e1c2f3a-7d3c-4a5f-8a3b-1d2e3f4a5b6c
 status: stable
-description: A new service was registered whose ImagePath sits in a user-writable directory — common for persistence and PsExec-style execution.
+description: A new service was registered whose ImagePath sits in a user-writable directory. Common for persistence and PsExec-style execution.
 references:
   - https://attack.mitre.org/techniques/T1543/003/
   - https://attack.mitre.org/techniques/T1569/002/
@@ -88,7 +88,7 @@ tags:
   - attack.t1543.003
 ```
 
-## KQL de ejemplo — huella digital de ejecución lateral PsExec
+## KQL: huella de ejecución lateral PsExec
 
 ```kusto
 let installs =
@@ -113,7 +113,7 @@ installs
 
 Un 4624 LogonType-3 dentro de 30 segundos de un 7045 en el mismo host es la firma de libro de PsExec.
 
-## Splunk de ejemplo — instalador de servicio anómalo
+## Splunk: instalador de servicio anómalo
 
 ```spl
 index=wineventlog SourceName="Service Control Manager" EventCode=7045
@@ -124,16 +124,22 @@ index=wineventlog SourceName="Service Control Manager" EventCode=7045
 
 ## Mapeo ATT&CK
 
-- **T1543.003 — Create or Modify System Process: Windows Service**: el mapeo titular. Servicios de larga duración iniciados bajo binarios controlados por el atacante.
-- **T1569.002 — System Services: Service Execution**: servicios de corta duración usados puramente como vehículo para ejecución remota (PsExec, SMBExec, movimiento lateral basado en SCM).
-- **T1078 — Valid Accounts**: cuando el principal instalador es un domain admin cuyas credenciales fueron robadas.
-- **T1036.005 — Masquerading: Match Legitimate Name or Location**: servicios con nombres mostrados imitando servicios Microsoft reales pero binarios en otra parte.
+- T1543.003 Create or Modify System Process: Windows Service. Servicios de larga duración iniciados bajo binarios controlados por el atacante.
+- T1569.002 System Services: Service Execution. Servicios de corta vida usados puramente como vehículo para ejecución remota (PsExec, SMBExec, lateral movement basado en SCM).
+- T1078 Valid Accounts. Cuando el principal que instala es un admin de dominio cuyas credenciales fueron robadas.
+- T1036.005 Masquerading: Match Legitimate Name or Location. Servicios con nombres de display imitando servicios reales de Microsoft pero binarios en otra parte.
 
-## Falsos positivos que parecen exactamente ataques
+## Falsos positivos que se ven exactamente como ataques
 
-- **Instaladores de software** (Chocolatey, bootstrappers MSI) frecuentemente instalan servicios desde un directorio de staging antes de mover el binario. El 7045 se dispara desde la ruta de staging aunque la instalación final esté limpia.
-- **Agentes EDR / AV** instalan servicios como parte de su setup. El `ImagePath` del vendor será estable y firmado; baseline.
-- **Algunas actualizaciones de Microsoft** instalan servicios de servicing temporales; estos son de corta duración y desde `LocalSystem`.
-- **Workloads Container / Hyper-V** a veces registran servicios transitorios por-VM.
+- Los instaladores de software (Chocolatey, bootstrappers MSI) frecuentemente instalan servicios desde un directorio de staging antes de mover el binario. El 7045 se dispara desde la ruta de staging aunque la instalación final sea limpia.
+- Los agentes EDR y AV instalan servicios como parte de su setup. El `ImagePath` del vendor será estable y firmado. Baseline.
+- Algunas actualizaciones de Microsoft instalan servicios de servicing temporales. Cortos, desde `LocalSystem`.
+- Las cargas de contenedor o Hyper-V a veces registran servicios transitorios por VM.
 
-La señal es instalaciones *de un solo disparo* a rutas escribibles por el usuario por instaladores *no-admin o no-estándar*. Un servicio instalador firmado en `C:\Program Files\` no es el ataque.
+La señal son instalaciones *one-off* a rutas escribibles por usuario por instaladores *no-admin o no-estándar*. Un servicio de instalador firmado en `C:\Program Files\` no es el ataque.
+
+## Lecturas adicionales
+
+- [Documentación Microsoft para 7045](https://learn.microsoft.com/en-us/troubleshoot/windows-server/system-management-components/event-id-7045)
+- [MITRE ATT&CK T1543.003](https://attack.mitre.org/techniques/T1543/003/)
+- [JPCERT/CC: Detecting Lateral Movement through Tracking Event Logs](https://jpcertcc.github.io/ToolAnalysisResultSheet/)

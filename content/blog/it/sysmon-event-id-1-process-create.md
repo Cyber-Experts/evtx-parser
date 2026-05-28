@@ -1,14 +1,16 @@
 ---
-title: "Sysmon Event ID 1 spiegato: process creation per il triage DFIR"
-description: "L'evento 1 di Sysmon è il record di process creation più ricco che Windows possa produrre. Ecco cosa contiene e come triarlo velocemente."
+title: "Sysmon Event ID 1 spiegato: creazione processo per triage DFIR"
+description: "L'evento 1 di Sysmon è il record di creazione processo più ricco che Windows può produrre. Ecco cosa contiene e come fare triage velocemente."
 date: "2026-05-17"
 ---
 
-Sysmon è un tool Microsoft gratuito che arricchisce il [Windows Event Log](/it/blog/what-is-an-evtx-file) con telemetria che il SO di base non cattura in forma usabile. Il suo Event ID 1 — `ProcessCreate` — è il record Sysmon più citato nei playbook IR. Se devi mai estrarre un solo canale Sysmon da un host, è questo.
+Sysmon è uno strumento gratuito Microsoft che aumenta il [Windows Event Log](/en/blog/what-is-an-evtx-file) con telemetria che l'OS base non cattura in forma usabile. Il suo event ID 1, `ProcessCreate`, è il record Sysmon più citato nei playbook IR. Se estraete un solo canale Sysmon da un host, è questo.
+
+Dirò ciò che dico in ogni writeup Sysmon: un deployment senza una config vera è per lo più teatro. Leggete [sysmon-modular](https://github.com/olafhartong/sysmon-modular) o `sysmon-config` di SwiftOnSecurity prima di decidere cosa i vostri record event 1 contengono davvero.
 
 ## Dove vive e cosa cattura
 
-Sysmon scrive sul canale `Microsoft-Windows-Sysmon/Operational` (su disco: `Microsoft-Windows-Sysmon%4Operational.evtx`). Un record ProcessCreate contiene:
+Sysmon scrive a `Microsoft-Windows-Sysmon/Operational` (su disco: `Microsoft-Windows-Sysmon%4Operational.evtx`). Un record ProcessCreate contiene:
 
 ```xml
 <Data Name="UtcTime">2026-05-17 14:02:11.123</Data>
@@ -25,21 +27,25 @@ Sysmon scrive sul canale `Microsoft-Windows-Sysmon/Operational` (su disco: `Micr
 <Data Name="ParentCommandLine">"winword.exe" /n /dde</Data>
 ```
 
-I campi che guidano le indagini: `CommandLine` (l'argv completo, non solo il binario), `Image` + `Hashes` (il binario esatto che è girato, hash utilizzabile in VT/Hybrid Analysis) e il set `Parent*` (il processo chiamante — critico per trovare catene di macro e LOLBin).
+I campi che guidano le indagini:
+
+- `CommandLine`. L'argv completo, non solo il binario.
+- `Image` e `Hashes`. Il binario esatto che è girato, hash usabile in VirusTotal o Hybrid Analysis.
+- Il set `Parent*`. Il processo chiamante. Critico per trovare catene macro e LOLBin. `ParentCommandLine` in particolare è ciò che [4688](/en/blog/event-id-4688-process-creation) non può darvi.
 
 ## Triage in tre pivot
 
-Quando hai un file Sysmon di triage, tre query coprono la maggior parte dei casi:
+Tre query coprono la maggior parte dei casi:
 
-1. **Parent sospetti**: filtra per `ParentImage` che finisce in `winword.exe`, `excel.exe`, `outlook.exe`, `mshta.exe` o un browser, con `Image` che è una shell (`cmd.exe`, `powershell.exe`, `pwsh.exe`, `wscript.exe`, `cscript.exe`, `rundll32.exe`). Un'app documento che spawna una shell è quasi sempre maliziosa.
-2. **PowerShell encoded**: `Image` che finisce in `powershell.exe` e `CommandLine` che contiene `-enc`, `-encodedcommand` o `FromBase64String`. Decodifica il payload, controlla cosa fa — e cross-check il record [PowerShell 4104 scriptblock](/it/blog/powershell-4104-scriptblock) sullo stesso host per vedere cosa è effettivamente eseguito.
-3. **LOLBin da posizioni strane**: binari Microsoft firmati (`certutil`, `regsvr32`, `mshta`, `installutil`, `bitsadmin`) in esecuzione da `C:\Users\`, `%TEMP%` o `C:\ProgramData\`.
+1. **Padri sospetti.** Filtrate per `ParentImage` che finisce in `winword.exe`, `excel.exe`, `outlook.exe`, `mshta.exe`, o un browser, con `Image` che è una shell (`cmd.exe`, `powershell.exe`, `pwsh.exe`, `wscript.exe`, `cscript.exe`, `rundll32.exe`). Un'app documento che spawna una shell è quasi sempre malevola.
+2. **PowerShell encodato.** `Image` che finisce in `powershell.exe` e `CommandLine` che contiene `-enc`, `-encodedcommand`, o `FromBase64String`. Decodate il payload, controllate cosa fa. Cross-check lo [scriptblock PowerShell 4104](/en/blog/powershell-4104-scriptblock) sullo stesso host per vedere cosa è eseguito davvero.
+3. **LOLBin da posti strani.** Binari Microsoft firmati (`certutil`, `regsvr32`, `mshta`, `installutil`, `bitsadmin`) che girano da `C:\Users\`, `%TEMP%`, o `C:\ProgramData\`.
 
-## Perché la catena dei parent conta
+## Perché la catena padre conta
 
-Un singolo ProcessCreate è un'istantanea; la catena è la storia. `ProcessGuid` e `ParentProcessGuid` sono GUID che Sysmon assegna per tracciare la lineage attraverso gli exit di processo — sono più affidabili dei PID perché i PID vengono riutilizzati. Ricostruisci l'albero (il `ParentProcessGuid` di ciascun record è il `ProcessGuid` di qualche altro record) e la kill-chain diventa ovvia: Outlook → Word → PowerShell → cmd → certutil → mshta.
+Un singolo ProcessCreate è uno snapshot. La catena è la storia. `ProcessGuid` e `ParentProcessGuid` sono GUID che Sysmon assegna per tracciare il lineage attraverso le uscite di processo. Sono più affidabili dei PID perché i PID vengono riutilizzati. Ricostruite l'albero (il `ParentProcessGuid` di ogni record è il `ProcessGuid` di qualche altro record) e la kill chain diventa ovvia: Outlook a Word a PowerShell a cmd a certutil a mshta. Leggere l'albero in ordine cronologico è di solito come un writeup si scrive da solo.
 
-## Esempio di regola Sigma — app Office che spawna shell
+## Sigma: app Office che spawna shell
 
 ```yaml
 title: Office Application Spawning Shell or Scripting Host (Sysmon)
@@ -83,7 +89,7 @@ tags:
   - attack.t1566.001
 ```
 
-## Esempio KQL — PowerShell encoded con contesto parent
+## KQL: PowerShell encodato con contesto padre
 
 ```kusto
 DeviceProcessEvents
@@ -95,9 +101,9 @@ DeviceProcessEvents
 | order by Timestamp desc
 ```
 
-`InitiatingProcessCommandLine` è l'equivalente Defender XDR del `ParentCommandLine` di Sysmon 1 — che il [4688](/it/blog/event-id-4688-process-creation) non fornisce.
+`InitiatingProcessCommandLine` è l'equivalente Defender XDR di `ParentCommandLine` di Sysmon 1, che [4688](/en/blog/event-id-4688-process-creation) non fornisce.
 
-## Esempio Splunk — LOLBin da path scrivibili dall'utente
+## Splunk: LOLBin da path scrivibili dall'utente
 
 ```spl
 sourcetype=xmlwineventlog source="*Sysmon/Operational"
@@ -109,21 +115,29 @@ sourcetype=xmlwineventlog source="*Sysmon/Operational"
 | table _time Computer User ParentImage Image CommandLine Hashes
 ```
 
-## Mappatura ATT&CK
+## Mapping ATT&CK
 
-- **T1059 — Command and Scripting Interpreter** e sub-techniques `.001` PowerShell, `.003` Windows Command Shell, `.005` Visual Basic, `.007` JavaScript.
-- **T1566.001 — Phishing: Spearphishing Attachment**: catene Office → shell.
-- **T1218 — System Binary Proxy Execution** e sub-techniques `.005` Mshta, `.010` Regsvr32, `.011` Rundll32, `.007` Msiexec.
-- **T1036.003 — Masquerading: Rename System Utilities**: `OriginalFileName` ≠ filename di `Image`.
-- **T1055 — Process Injection**: `IntegrityLevel` di Sysmon 1 e la catena dei parent aiutano a individuare parent anomali per processi come `lsass.exe` o `services.exe`.
+- T1059 Command and Scripting Interpreter e sotto-tecniche `.001` PowerShell, `.003` Windows Command Shell, `.005` Visual Basic, `.007` JavaScript.
+- T1566.001 Phishing: Spearphishing Attachment. Catene Office a shell.
+- T1218 System Binary Proxy Execution e sotto-tecniche `.005` Mshta, `.010` Regsvr32, `.011` Rundll32, `.007` Msiexec.
+- T1036.003 Masquerading: Rename System Utilities. `OriginalFileName` != nome del file di `Image`.
+- T1055 Process Injection. L'`IntegrityLevel` e la catena padre di Sysmon 1 aiutano a individuare padri anomali per processi come `lsass.exe` o `services.exe`.
 
 ## Falsi positivi che sembrano attacchi
 
-- **Agenti di aggiornamento software** spawnano di routine shell sotto SYSTEM (Chocolatey, WinGet, MSI di vendor). Tagga gli host auto-update noti.
-- **Vulnerability scanner** mimano alberi di processo offensivi durante scansioni autenticate. Tagga gli IP degli scanner.
-- **Host multi-sessione Citrix / RDS** generano traffico denso di process-create che si sovrappone a pattern di attaccante. Filtra per range sorgente.
-- **Scan Defender / EDR** eseguono binari Microsoft firmati da path inusuali durante scan on-demand.
+- Gli agenti di aggiornamento software regolarmente spawnano shell sotto SYSTEM (Chocolatey, WinGet, MSI vendor). Taggate host auto-update conosciuti.
+- I vulnerability scanner imitano alberi di processo offensivi durante scan autenticati. Taggate IP scanner.
+- Host Citrix e RDS multi-sessione generano traffico denso di creazione processi che si sovrappone con pattern di attaccante. Filtrate per range sorgente.
+- Scan Defender o EDR eseguono binari Microsoft firmati da path inusuali durante scan on-demand.
 
 ## Caveat di copertura
 
-Sysmon cattura solo ciò che la sua config gli dice. La config di default non logga nulla; le reference canoniche sono `sysmon-config` di SwiftOnSecurity e `sysmon-modular` di Olaf Hartong. Senza una config reale in posto, i tuoi record evento 1 saranno scarsi, il campo `CommandLine` può essere redatto e gli `Hashes` possono mancare. Leggi la config Sysmon dell'host insieme ai suoi log.
+Sysmon cattura solo ciò che la sua config gli dice. La config di default logga quasi niente. I riferimenti canonici sono `sysmon-config` di SwiftOnSecurity e `sysmon-modular` di Olaf Hartong. Senza una config vera in posto, i vostri record event 1 saranno scarsi, `CommandLine` può essere redatto da una regola `<CommandLine onmatch="exclude">`, e `Hashes` può mancare. Leggete la config Sysmon dell'host accanto ai suoi log. Il disallineamento tra ciò che un analista pensa che Sysmon stia loggando e ciò che logga davvero mi è costato ore più di una volta.
+
+Quando Sysmon non è installato affatto, ripiegate su [4688](/en/blog/event-id-4688-process-creation) con auditing di command line, poi [prefetch](https://www.prefetchparser.com), [AmCache](https://www.amcacheparser.com), e l'[USN journal](https://www.usnparser.com) per evidenza di esecuzione.
+
+## Per approfondire
+
+- [Documentazione Sysmon](https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon)
+- [olafhartong/sysmon-modular](https://github.com/olafhartong/sysmon-modular)
+- [SwiftOnSecurity/sysmon-config](https://github.com/SwiftOnSecurity/sysmon-config)

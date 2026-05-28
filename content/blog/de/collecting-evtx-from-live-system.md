@@ -1,66 +1,76 @@
 ---
-title: ".evtx-Logs vom laufenden Windows-System holen (4 Methoden)"
-description: "Vier Wege, .evtx von einem laufenden Windows-Host zu ziehen — wevtutil, FTK Imager, KAPE, rohes NTFS — mit den jeweiligen Chain-of-Custody-Trade-offs und den Befehlen, die du wirklich brauchst."
+title: "Wie man .evtx-Logs von einem laufenden Windows-System sammelt (4 Methoden)"
+description: "Vier Wege, .evtx von einem Live-Windows-Host zu ziehen: wevtutil, FTK Imager, KAPE, Roh-NTFS. Mit den Beweisketten-Kompromissen für jede und den Befehlen, die du tatsächlich tippst."
 date: "2026-05-17"
 howto:
-  name: ".evtx-Logs von einem laufenden Windows-System sammeln"
+  name: "Wie man .evtx-Logs von einem laufenden Windows-System sammelt"
   steps:
-    - name: "Export mit wevtutil"
-      text: "Führe wevtutil epl Security C:\\triage\\Security.evtx als Administrator aus, um eine portable Kopie des aktiven Security-Kanals zu sichern, ohne die Live-Datei anzufassen."
-    - name: "Acquisition mit FTK Imager"
-      text: "FTK Imager öffnen, Add Evidence Item → Physical or Logical Drive, zu \\Windows\\System32\\winevt\\Logs\\ navigieren, die Kanaldateien (inklusive archivierter *.evtx) auswählen und Export Files. FTK liest NTFS direkt und umgeht die Datei-Sperren des EventLog-Dienstes."
-    - name: "Massenerfassung mit KAPE"
-      text: "Führe kape.exe --tsource C: --target EventLogs --tdest C:\\triage aus, um alle .evtx unter winevt\\Logs\\ in einem Durchgang mit Chain-of-Custody-Metadaten zu ziehen. Kombiniere es mit dem WindowsEventLogs-Modul, um direkt bei der Erfassung zu parsen."
-    - name: "Rohes NTFS-Lesen"
-      text: "Wenn Manipulation vermutet wird, öffne mit RawCopy oder tsk_recover den Datenträger unterhalb der Dateisystem-Ebene (\\\\.\\PhysicalDriveN oder \\\\.\\C:) und lies jede .evtx-Datei Byte für Byte aus der MFT. Der EventLog-Dienst kann diesen Pfad nicht blockieren."
+    - name: "Mit wevtutil exportieren"
+      text: "Führe als Administrator wevtutil epl Security C:\\triage\\Security.evtx aus, um eine portable Kopie des aktiven Security-Kanals zu versiegeln, ohne die Live-Datei zu nehmen."
+    - name: "Mit FTK Imager erfassen"
+      text: "Öffne FTK Imager, Add Evidence Item, navigiere zu \\Windows\\System32\\winevt\\Logs\\, wähle die Kanaldateien (einschließlich archivierter *.evtx) und Export Files. FTK liest NTFS direkt und umgeht die Datei-Locks des EventLog-Diensts."
+    - name: "Bulk-Sammlung mit KAPE"
+      text: "Führe kape.exe --tsource C: --target EventLogs --tdest C:\\triage aus, um in einem Durchgang jede .evtx unter winevt\\Logs\\ zu ziehen, mit Beweisketten-Metadaten. Kombiniere mit dem WindowsEventLogs-Modul, um beim Sammeln zu parsen."
+    - name: "Roh-NTFS-Lesen"
+      text: "Wenn Manipulation vermutet wird, verwende RawCopy oder tsk_recover, um das Volume unter der Dateisystem-Schicht zu öffnen (\\\\.\\PhysicalDriveN oder \\\\.\\C:) und jede .evtx Byte für Byte aus der MFT zu lesen. Der EventLog-Dienst kann diesen Pfad nicht blockieren."
 ---
 
-Das erste schwierige Problem in einer Event-Log-Untersuchung ist nicht das Parsen, sondern *die Dateien zu bekommen*. Auf einem laufenden Windows-Host hält der EventLog-Dienst offene Handles auf die aktiven [`.evtx`-Dateien](/de/blog/what-is-an-evtx-file) in `C:\Windows\System32\winevt\Logs\`, was bedeutet, dass ein naives `copy` scheitert. Vier Ansätze decken nahezu jeden Fall ab.
+Das erste schwere Problem in einem Event-Log-Job ist nicht das Parsen. Es ist, die Dateien vom Host zu bekommen, ohne dass der EventLog-Dienst dir auf die Finger haut. Auf einer laufenden Windows-Kiste hält der Dienst offene Handles zu den aktiven [`.evtx`-Dateien](/de/blog/what-is-an-evtx-file) in `C:\Windows\System32\winevt\Logs\`, also gibt ein naives `copy` Sharing-Violation-Fehler zurück. Vier Methoden decken fast jeden Fall ab, den ich erlebt habe.
 
-## Bordmittel: wevtutil / Get-WinEvent
+## wevtutil und Get-WinEvent: integriert, am schnellsten
 
-Die einfachste Methode exportiert Datensätze (nicht die Datei) über die dokumentierte API:
+Der billigste Weg nutzt die von Microsoft dokumentierte API:
 
 ```cmd
 wevtutil epl Security C:\triage\Security.evtx
 ```
 
-Das erzeugt eine versiegelte `.evtx`, die jeden Datensatz enthält, der aktuell im Log steht. Schnell, ohne Drittanbieter-Tools, läuft als Administrator. Nachteil: archivierte (rotierte) `.evtx`-Dateien werden nicht erfasst, nur die aktive.
+Das erzeugt eine versiegelte `.evtx` mit jedem Datensatz, der aktuell im Kanal ist. Kein Drittanbieter-Tooling, Admin-Shell erforderlich. Der Haken, den man laut aussprechen sollte: `epl` erfasst nur das aktive Log. Rotierte `Archive-Security-*.evtx`-Dateien im selben Verzeichnis werden zurückgelassen. Wenn die Rotation kürzlich passiert ist und die Datensätze, die du willst, in einem Archiv liegen, verfehlt diese Methode sie.
 
-PowerShell-Äquivalent:
+PowerShell macht stattdessen geparste Datensätze:
 
 ```powershell
-Get-WinEvent -LogName Security |
-  Export-Csv triage.csv
+Get-WinEvent -Path C:\Windows\System32\winevt\Logs\Security.evtx |
+  Export-Csv triage.csv -NoTypeInformation
 ```
 
-`Get-WinEvent` liefert geparste Datensätze, nicht die Datei. Nützlich für eine schnelle Triage-CSV, verliert aber die binäre Treue, die für tiefere Forensik nötig ist — [Chunk-Level-Recovery, Inspektion von Dirty Chunks, Carving](/de/blog/evtx-file-format-chunks).
+Das gibt dir eine CSV, kein `.evtx`. Bequem für Ad-hoc-Triage auf der Kiste. Nutzlos für [Chunk-Level-Recovery, Dirty-Chunk-Inspektion oder Carving aus nicht zugewiesenem Speicher](/de/blog/evtx-file-format-chunks), weil du die binäre Treue weggeworfen hast.
 
-## FTK Imager
+## FTK Imager: NTFS-Level-Akquise
 
-Für die Akquise auf Volldatenträger- oder Dateisystem-Ebene ist FTK Imager der Standard. Füge das Live-Laufwerk als Beweisstück hinzu (Physical Drive oder Logical Drive), navigiere zu `\Windows\System32\winevt\Logs\`, Rechtsklick auf die Kanal-Dateien, Export Files. FTK liest die zugrundeliegenden NTFS-Strukturen direkt und umgeht damit die Dateisystem-Sperre, die der EventLog-Dienst hält. Er exportiert auch archivierte `*.evtx`-Dateien (die mit Zeitstempeln im Namen), die `wevtutil` nicht anrührt.
+Wenn du die Datei willst, nicht die Datensätze, ist FTK Imager das Arbeitspferd. Füge das Live-Laufwerk als Beweis hinzu (Physical Drive oder Logical Drive), navigiere zu `\Windows\System32\winevt\Logs\`, Rechtsklick auf die Kanaldateien und Export Files. FTK liest die zugrunde liegenden NTFS-Strukturen direkt, was das Dateisystem-Lock umgeht, das der EventLog-Dienst hält. Es erfasst auch die archivierten `Archive-*.evtx`-Dateien, die `wevtutil epl` überspringt.
 
-Der Trade-off: FTK liest Dateien, die mitten im Schreibvorgang sein können — die resultierende `.evtx` kann einen Dirty-Trailing-Chunk haben. Die meisten Parser ([auch dieser](/de/blog/how-to-open-an-evtx-file)) gehen damit sauber um, aber es lohnt sich zu verifizieren.
+Kompromiss: FTK liest Dateien, die mitten im Schreiben sein können. Der nachfolgende Chunk auf dem aktiven Kanal kann dirty sein. Die meisten Parser gehen damit elegant um (einschließlich des [Browser-Parsers auf dieser Seite](/de/blog/how-to-open-an-evtx-file)), aber verifiziere es auf der Werkbank, bevor du es in einen Bericht schreibst. Die entsprechenden [USN-Journal](https://www.usnparser.com)-Einträge sind nützliche Bestätigung, wenn du vermutest, dass der EventLog-Dienst während der Akquise etwas Außergewöhnliches getan hat.
 
-## KAPE
+## KAPE: Bulk-Sammlung bei IR-Geschwindigkeit
 
-Für Incident Response im großen Maßstab automatisiert der Kroll Artifact Parser and Extractor (KAPE) die Sammlung jeder forensisch relevanten Datei in einem Durchgang:
+Wenn der Auftrag mehr als einen Host hat, zahlt sich der Kroll Artifact Parser and Extractor binnen einer Stunde aus.
 
 ```cmd
 kape.exe --tsource C: --target EventLogs --tdest C:\triage
 ```
 
-Das `EventLogs`-Target zieht jede `.evtx` unter `winevt\Logs\` plus die zugehörigen Event-Tracing-Dateien. Kombiniert mit dem `WindowsEventLogs`-Modul läuft auch ein sofortiger Parser und produziert eine CSV neben den Rohdateien. Empfehlung für jede IR-Aufgabe, die mehr als einen Host betrifft.
+Das `EventLogs`-Target fegt jede `.evtx` unter `winevt\Logs\` plus die zugehörigen ETW-Dateien. Kombiniere es mit dem `!EZParser`- oder `WindowsEventLogs`-Modul, und KAPE wird beim Hinausgehen auch EvtxECmd gegen die Sammlung laufen lassen, was dir geparste CSVs neben den Rohbeweisen liefert. Während du dabei bist, holen die `RegistryHives`- und `FileSystem`-Targets die [Registry](https://www.registryparser.com)-, [MFT](https://www.mftparser.com)-, [USN-Journal](https://www.usnparser.com)- und [Prefetch](https://www.prefetchparser.com)-Daten ab, die du sowieso willst.
 
-## Roh-NTFS-Read
+KAPEs Ausgabe wird mit Copy-Log-Metadaten ausgeliefert. Das zählt für die Beweiskette mehr, als die Leute ihm zugutehalten.
 
-Für maximale Treue — nützlich, wenn du vermutest, dass die Live-Dateisystem-APIs abgefangen werden, oder wenn du eine Bit-für-Bit-Akquise willst — liest du das Volume unterhalb der Dateisystem-Ebene. Tools wie [The Sleuth Kit](https://www.sleuthkit.org/) (`tsk_recover`, `icat`) oder Eric Zimmermans `RawCopy.exe` öffnen das Volume über `\\.\PhysicalDriveN` oder `\\.\C:`, laufen über die MFT und geben den Dateiinhalt Byte für Byte aus. Der EventLog-Dienst kann das nicht blockieren, weil der Read die Dateisystem-Ebene komplett umgeht.
+## Roh-NTFS-Lesen: wenn du Manipulation vermutest
 
-## Wann was
+Für maximale Treue fall unter die Dateisystem-Schicht. The Sleuth Kits `tsk_recover` und `icat` oder Eric Zimmermans `RawCopy.exe` öffnen das Volume über `\\.\PhysicalDriveN` oder `\\.\C:`, gehen durch die MFT und geben den Dateiinhalt Byte für Byte aus. Der EventLog-Dienst kann das nicht blockieren, weil das Lesen nicht durch die Win32-Datei-API geht.
 
-- **Schnelle Triage auf einem Host, du hast Admin**: `wevtutil`.
-- **Volle forensische Akquise, du hast bereits ein Disk-Image**: FTK Imager oder `tsk_recover` gegen das Image.
-- **IR-Einsatz, mehrere Hosts**: KAPE.
-- **Verdacht auf Rootkit oder Live-Tampering**: rohes NTFS via RawCopy oder TSK auf dem Live-Volume, mit netzwerk-isoliertem Host.
+Nutze das, wenn ein Rootkit im Spiel ist, wenn du Grund hast zu denken, dass ein Kernel-Filtertreiber `\winevt\Logs\`-Lesevorgänge abfängt, oder wenn du dem laufenden OS einfach nicht traust. Kombiniere das Ergebnis mit einem zur selben Zeit genommenen [RAM-Dump](https://www.ramparser.com). Der Event-Log-Dienst cacht aktuelle Datensätze im Speicher, und ein Snapshot, der Minuten vor der Manipulation genommen wurde, enthält manchmal Datensätze, die es nie auf die Festplatte geschafft haben.
 
-Was immer du wählst, dokumentiere es. Die Provenienzkette zählt in Incident Reports — eine geparste CSV sagt nichts darüber, ob sie von einem Live-Host mit laufendem EventLog-Dienst oder von einem versiegelten Image stammt.
+## Welche wann
+
+- Ein Host, du hast Admin-Rechte, du hast eine Stunde: `wevtutil epl` für jeden Kanal, der zählt, Verzeichnis zippen, fertig.
+- Disk-Image schon in der Hand: FTK Imager oder `tsk_recover` gegen das Image. Schneller als der Live-Host, und du musst dich nicht mit dem SOC koordinieren.
+- Mehrere Hosts, echter IR-Auftrag: KAPE. Bei Durchsatz kommt nichts anderes nahe heran.
+- Vermutete Live-Manipulation oder Rootkit: RawCopy oder TSK gegen das Volume, mit isoliertem Host-Netzwerk.
+
+Welche du auch wählst, dokumentiere es. Geparste CSVs sagen nichts über Herkunft. Eine Zeile in den Fallnotizen, die `KAPE 1.3.0.2 EventLogs target, hash file attached` lautet, ist der Unterschied zwischen einem Beweisstück und einer Meinung.
+
+## Weiterführende Lektüre
+
+- [KAPE-Dokumentation](https://ericzimmerman.github.io/KapeDocs/)
+- [The Sleuth Kit](https://www.sleuthkit.org/)
+- [FTK Imager](https://www.exterro.com/digital-forensics-software/ftk-imager)

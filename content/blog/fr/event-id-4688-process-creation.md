@@ -1,24 +1,24 @@
 ---
 title: "Event ID 4688 expliqué : audit de création de processus Windows pour le DFIR"
-description: "4688 est l'enregistrement de création de processus de l'OS — à condition d'activer l'audit de ligne de commande. Contenu, différences avec Sysmon 1 et patterns de triage."
+description: "4688 est l'enregistrement de création de processus du système de base, à condition que l'audit de la ligne de commande soit activé. Voici ce qu'il contient, en quoi il diffère de Sysmon 1 et les motifs de triage qui gagnent leur place."
 date: "2026-05-24"
 ---
 
-L'Event ID **4688** — « Un nouveau processus a été créé » — se déclenche sur le [canal `Security`](/fr/blog/what-is-an-evtx-file) chaque fois qu'un processus est lancé. C'est ce qui se rapproche le plus, côté OS de base, de la télémétrie que fournit [Sysmon event 1](/fr/blog/sysmon-event-id-1-process-create) — et sur les hôtes où Sysmon n'est pas déployé, c'est la seule source de `CommandLine` dont vous disposez. Sur un parc correctement configuré, chaque création de processus est l'un de ces enregistrements. Bien lu, vous pouvez répondre à « qu'est-ce qui a tourné ? » sans jamais ouvrir un EDR.
+L'Event ID **4688**, « Un nouveau processus a été créé », se déclenche sur le [canal `Security`](/fr/blog/what-is-an-evtx-file) chaque fois qu'un processus est lancé. C'est ce qui se rapproche le plus, dans l'OS de base, de la télémétrie que fournit [Sysmon event 1](/fr/blog/sysmon-event-id-1-process-create), et sur les hôtes où Sysmon n'est pas déployé, c'est la seule source de `CommandLine` dont vous disposez. Sur un parc bien configuré, chaque création de processus est l'un d'eux. Lisez-le bien et vous pouvez répondre à « qu'est-ce qui a tourné » sans jamais ouvrir un EDR.
 
-## L'activer (parce que le défaut est à moitié aveugle)
+## L'activer, parce que le défaut est à moitié aveugle
 
-Par défaut, 4688 est activé mais `CommandLine` n'est **pas** capturé. Sans `CommandLine`, l'enregistrement vous dit le chemin d'un binaire, un PID, un PID parent — et rien sur les arguments. Pour le triage, c'est presque inutile : `powershell.exe` n'est pas un problème ; `powershell.exe -enc SQBFAFgA…` en est un.
+Par défaut, 4688 est activé et `CommandLine` n'est **pas** capturé. Sans les lignes de commande, l'enregistrement vous indique un chemin de binaire, un PID, un PID parent et rien sur les arguments. Pour le triage, c'est presque inutile. `powershell.exe` est OK. `powershell.exe -enc SQBFAFgA...` non.
 
-Le remède est un paramètre Group Policy :
+Le correctif est un paramètre de stratégie de groupe :
 
-*Configuration ordinateur → Modèles d'administration → Système → Audit Process Creation → Inclure la ligne de commande dans les événements de création de processus*
+*Configuration ordinateur / Modèles d'administration / Système / Audit de la création de processus / Inclure la ligne de commande dans les événements de création de processus*
 
-Ou l'équivalent registre : `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit\ProcessCreationIncludeCmdLine_Enabled = 1`. Une fois activé, chaque 4688 porte le champ `CommandLine` complet. Le coût est le volume de logs ; le bénéfice est toute la surface d'investigation qui existe sous le nom de binaire. Activez-le.
+Ou l'équivalent registre : `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit\ProcessCreationIncludeCmdLine_Enabled = 1`. Une fois posé, chaque 4688 porte le champ `CommandLine` complet. Le coût est le volume de logs. Le bénéfice est toute la surface d'enquête qui existe sous le nom du binaire. Activez-le.
 
-Il faut aussi que la politique d'audit sous-jacente soit active : `auditpol /set /subcategory:"Process Creation" /success:enable`. Beaucoup d'hôtes ont la politique on mais command-line off — vérifiez les deux.
+Il vous faut aussi la sous-stratégie d'audit activée : `auditpol /set /subcategory:"Process Creation" /success:enable`. Beaucoup d'hôtes ont la stratégie activée et la ligne de commande éteinte. Vérifiez les deux.
 
-## Ce que contient l'enregistrement
+## Ce que l'enregistrement contient
 
 ```xml
 <Data Name="SubjectUserSid">S-1-5-21-1234-...-1107</Data>
@@ -36,46 +36,44 @@ Il faut aussi que la politique d'audit sous-jacente soit active : `auditpol /set
 <Data Name="MandatoryLabel">S-1-16-12288</Data>
 ```
 
-Champs qui pilotent chaque investigation :
+Les champs qui pilotent toute enquête :
 
-- **`CommandLine`** — argv complet (quand le GPO est on).
-- **`NewProcessName`** — le chemin du binaire. Combiné à `CommandLine`, c'est l'exécution complète.
-- **`ParentProcessName`** — le processus appelant. Office → cmd, navigateur → powershell, services → unsigned.exe sont les chaînes textbook.
-- **`SubjectUserName` / `SubjectLogonId`** — qui l'a lancé, sous quelle session. `SubjectLogonId` pivote vers le [4624](/fr/blog/understanding-event-id-4624) qui a créé la session et vers les autres enregistrements de la même session.
-- **`TokenElevationType`** — `%%1936` Default (pas d'élévation), `%%1937` Full (consentement UAC accordé), `%%1938` Limited (filtré). Un `1937` dans une session non-admin est une transition de privilège qui mérite un regard.
-- **`MandatoryLabel`** — SID de niveau d'intégrité. `S-1-16-12288` est High (élevé), `8192` est Medium, `16384` System.
+- `CommandLine`. argv complet (quand la GPO est activée).
+- `NewProcessName`. Le chemin du binaire. Combiné à `CommandLine` c'est l'exécution complète.
+- `ParentProcessName`. Le processus appelant. Office vers cmd, navigateur vers powershell, services vers unsigned.exe sont les chaînes de manuel.
+- `SubjectUserName` et `SubjectLogonId`. Qui l'a lancé, sous quelle session. `SubjectLogonId` pivote vers le [4624](/fr/blog/understanding-event-id-4624) qui a créé la session.
+- `TokenElevationType`. `%%1936` Default (pas d'élévation), `%%1937` Full (consentement UAC), `%%1938` Limited (filtré). Un `1937` dans une session non-admin est une transition de privilège qui mérite un regard plus attentif.
+- `MandatoryLabel`. SID du niveau d'intégrité. `S-1-16-12288` est High (élevé), `8192` Medium, `16384` System.
 
-## 4688 vs. Sysmon 1
+## 4688 contre Sysmon 1
 
-Ils se recouvrent ; ils ne sont pas identiques.
+Ils se recoupent. Ils ne sont pas identiques.
 
 | Champ | 4688 | Sysmon 1 |
 |---|---|---|
-| CommandLine | Oui (si GPO on) | Oui |
+| CommandLine | Oui (si GPO activée) | Oui |
 | Image / NewProcessName | Oui | Oui |
-| Image parent | Oui (chemin) | Oui (chemin + CommandLine) |
+| Image parente | Oui (chemin) | Oui (chemin + CommandLine) |
 | ParentCommandLine | Non | Oui |
-| ImageHash (SHA/MD5/IMPHASH) | Non | Oui |
-| ProcessGuid (stable cross-host) | Non (PID seuls, réutilisés) | Oui |
-| User SID + nom | Oui | Oui |
-| Logon ID | Oui | Oui |
+| Hashes d'image (SHA/MD5/IMPHASH) | Non | Oui |
+| ProcessGuid (stable cross-host) | Non (PIDs réutilisés) | Oui |
+| SID + nom utilisateur | Oui | Oui |
+| LogonId | Oui | Oui |
 | CurrentDirectory | Non | Oui |
 | Niveau d'intégrité | Oui | Oui |
-| Disponible sans installation | Oui | Requiert Sysmon |
+| Disponible sans installation | Oui | Nécessite Sysmon |
 
-Quand les deux sont présents, [Sysmon 1](/fr/blog/sysmon-event-id-1-process-create) est l'enregistrement le plus riche — `ParentCommandLine`, hashes d'image, ProcessGuid pour des chaînes parent-enfant stables. Quand seul 4688 est présent, vous construisez des chaînes avec les PID (que Windows réutilise), donc une longue timeline peut contenir de faux matches ; vérifiez toujours les liens parent-enfant contre les timestamps.
+Quand les deux sont présents, [Sysmon 1](/fr/blog/sysmon-event-id-1-process-create) est l'enregistrement le plus riche. `ParentCommandLine`, hashes d'image, `ProcessGuid` pour des chaînes parent-enfant stables. Quand seul 4688 est présent, vous construisez des chaînes avec des PIDs, que Windows réutilise, donc une longue timeline peut contenir de faux appariements. Vérifiez toujours les liens parent-enfant par horodatage. Quand vous n'avez ni l'un ni l'autre (pas de Sysmon, pas d'audit de ligne de commande), [AmCache](https://www.amcacheparser.com), le [prefetch](https://www.prefetchparser.com) et le [journal USN](https://www.usnparser.com) sont la meilleure preuve d'exécution suivante.
 
-## Les patterns de triage
+## Les motifs qui gagnent leur place
 
-Dans un corpus d'enregistrements 4688, ces patterns gagnent leur place :
+1. **Office vers shell**. `ParentProcessName` finissant par `winword.exe`, `excel.exe`, `outlook.exe`, `powerpnt.exe`, ou `mshta.exe`, avec `NewProcessName` étant `cmd.exe`, `powershell.exe`, `pwsh.exe`, `wscript.exe`, `cscript.exe`, `rundll32.exe`, ou `regsvr32.exe`. Les applications de documents engendrant des shells, c'est la chaîne macro/phishing classique.
+2. **PowerShell encodé**. `NewProcessName` finissant par `powershell.exe` et `CommandLine` correspondant à `-enc`, `-encodedcommand`, `-e ` (lettre unique), `frombase64string`, `iex `, ou `invoke-expression`. Décodez la payload. Croisez avec l'[enregistrement scriptblock 4104](/fr/blog/powershell-4104-scriptblock) pour la même session.
+3. **LOLBins depuis des chemins inscriptibles par l'utilisateur**. Des binaires Microsoft signés (`certutil`, `regsvr32`, `mshta`, `installutil`, `bitsadmin`, `msbuild`, `csc`) lancés depuis `C:\Users\`, `%TEMP%`, ou `C:\ProgramData\`. L'usage légitime à ces endroits est rare.
+4. **Orphelins svchost**. `svchost.exe` avec un `ParentProcessName` autre que `services.exe` (ou `wininit.exe` pour le boot très précoce). Le vrai `svchost` est toujours engendré par `services.exe`. Les imposteurs ressortent.
+5. **Binaires renommés**. `NewProcessName` finissant par quelque chose de neutre (`update.exe`, `svc.exe`, `data.exe`) sous des chemins non standard. Associez au champ `OriginalFileName` de Sysmon 1 quand disponible. Ce champ attrape les binaires PsExec, Mimikatz, Impacket renommés qui contournent la détection simple basée sur le nom.
 
-1. **Office → shell** : `ParentProcessName` finissant par `winword.exe`, `excel.exe`, `outlook.exe`, `powerpnt.exe` ou `mshta.exe`, avec `NewProcessName` étant `cmd.exe`, `powershell.exe`, `pwsh.exe`, `wscript.exe`, `cscript.exe`, `rundll32.exe` ou `regsvr32.exe`. Des applications documentaires spawnant des shells est la chaîne classique macro / phishing.
-2. **PowerShell encodé** : `NewProcessName` finissant par `powershell.exe` et `CommandLine` correspondant à `-enc`, `-encodedcommand`, `-e ` (une lettre), `frombase64string`, `iex ` ou `invoke-expression`. Décodez la payload ; croisez avec l'[enregistrement scriptblock 4104](/fr/blog/powershell-4104-scriptblock) pour la même session.
-3. **LOLBins depuis des chemins utilisateurs** : binaires Microsoft signés (`certutil`, `regsvr32`, `mshta`, `installutil`, `bitsadmin`, `msbuild`, `csc`) lancés depuis `C:\Users\`, `%TEMP%` ou `C:\ProgramData\`. Un usage légitime de ceux-ci dans ces emplacements est rare.
-4. **Orphelins de service host** : `svchost.exe` avec `ParentProcessName` ≠ `services.exe` (ou `wininit.exe` pour un boot très précoce). Le vrai `svchost` est toujours spawné par `services.exe` ; les imposteurs sortent du lot.
-5. **Binaires renommés** : `NewProcessName` finissant par quelque chose de neutre (`update.exe`, `svc.exe`, `data.exe`) sous des chemins non standard. Couplez avec le champ `OriginalFileName` de Sysmon 1 quand disponible — c'est celui qui attrape les PsExec, Mimikatz, etc. renommés.
-
-## Exemple de règle Sigma (office → shell)
+## Sigma : Office vers shell
 
 ```yaml
 title: Office Application Spawning Shell
@@ -106,7 +104,7 @@ detection:
       - '\regsvr32.exe'
   condition: selection
 falsepositives:
-  - Legitimate macros in Office add-ins running scripts
+  - Office add-ins running approved scripts
   - Document conversion pipelines
 level: high
 tags:
@@ -114,9 +112,7 @@ tags:
   - attack.t1059
 ```
 
-## Exemple KQL / Splunk
-
-KQL (Defender XDR / Sentinel via `SecurityEvent`) :
+## KQL et Splunk
 
 ```kusto
 SecurityEvent
@@ -131,8 +127,6 @@ SecurityEvent
 | order by TimeGenerated asc
 ```
 
-Splunk :
-
 ```spl
 index=wineventlog EventCode=4688
    ( ParentProcessName="*\\winword.exe" OR ParentProcessName="*\\excel.exe" OR ParentProcessName="*\\outlook.exe" )
@@ -140,30 +134,36 @@ index=wineventlog EventCode=4688
 | table _time host SubjectUserName ParentProcessName NewProcessName CommandLine
 ```
 
-## Cartographie ATT&CK
+## Mapping ATT&CK
 
-Le gros de la couverture de détection 4688 tombe sous **T1059 — Command and Scripting Interpreter** et ses sous-techniques (`.001` PowerShell, `.003` Windows Command Shell, `.005` Visual Basic, `.007` JavaScript). Les patterns LOLBin correspondent à **T1218 — System Binary Proxy Execution** (`.005` Mshta, `.010` Regsvr32, `.011` Rundll32). Les chaînes Office → shell correspondent à **T1566.001 — Phishing: Spearphishing Attachment** combinées à T1059. Les détections de binaires renommés tombent sous **T1036.003 — Masquerading: Rename System Utilities**.
+La majorité de la couverture 4688 tombe sous T1059 Command and Scripting Interpreter et ses sous-techniques (.001 PowerShell, .003 Windows Command Shell, .005 Visual Basic, .007 JavaScript). Les motifs LOLBin mappent à T1218 System Binary Proxy Execution (.005 Mshta, .010 Regsvr32, .011 Rundll32). Les chaînes Office-vers-shell mappent à T1566.001 Phishing: Spearphishing Attachment combiné à T1059. Les détections de binaires renommés mappent à T1036.003 Masquerading: Rename System Utilities.
 
-## Faux positifs (lisez ceci avant d'alerter)
+## Faux positifs, à lire avant d'alerter
 
-- **Agents de mise à jour logicielle** spawnent légitimement des shells : Chocolatey, WinGet, wrappers MSI fournisseurs. Whitelistez par `SubjectUserSid` (LocalSystem) plus motifs stables de `ParentProcessName` plutôt que par comptes utilisateurs.
-- **Scanners de vulnérabilités et produits EDR** génèrent des arbres de processus qui ressemblent exactement à un attaquant faisant de la reco : net.exe, whoami.exe, systeminfo.exe. Taguez les IP/hôtes scanners et excluez.
-- **Boîtes Citrix / RDS multi-sessions** voient des chaînes `runas /netonly` légitimes pour l'accès cross-domain. Investiguez l'utilisateur, pas le pattern.
-- **Scripts de logon** (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`) se déclenchent à chaque logon et apparaîtront comme une chaîne récurrente. Identifiez et baselinez avant d'alerter.
+- Les agents de mise à jour logicielle engendrent légitimement des shells : Chocolatey, WinGet, wrappers MSI vendeurs. Whitelistez par `SubjectUserSid` (LocalSystem) plus des motifs `ParentProcessName` stables plutôt que par compte utilisateur.
+- Les scanners de vulnérabilités et les produits EDR génèrent des arborescences de processus qui ressemblent exactement à un attaquant faisant de la recon : `net.exe`, `whoami.exe`, `systeminfo.exe`. Étiquetez les IP et hôtes de scanner.
+- Les boîtiers Citrix et RDS multi-sessions voient des chaînes légitimes `runas /netonly` pour l'accès cross-domain. Enquêtez sur l'utilisateur, pas sur le motif.
+- Les scripts de logon (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`) se déclenchent à chaque logon et apparaissent comme une chaîne récurrente. Baselinez avant d'alerter.
 
-## Ce que 4688 ne dit pas
+## Ce que 4688 ne vous dit pas
 
-Pas de hash de fichier. Pas de `ParentCommandLine`. Pas d'`ImageLoaded` (l'injection de DLL n'est pas une création de processus). Pas de comportement réseau. Pour ceux-là il faut [Sysmon event 1](/fr/blog/sysmon-event-id-1-process-create) (le 4688 enrichi), Sysmon 7 (image load), Sysmon 3/22 (réseau/DNS) et, quand présent, les données comportementales d'un EDR. 4688 est le plancher de la visibilité processus — le minimum que chaque hôte Windows devrait avoir. Ce n'est pas un substitut à un vrai EDR + Sysmon sur les hôtes qui comptent.
+Pas de hash de fichier. Pas de `ParentCommandLine`. Pas d'`ImageLoaded` (l'injection DLL n'est pas une création de processus). Pas de comportement réseau. Pour ces choses, il vous faut [Sysmon event 1](/fr/blog/sysmon-event-id-1-process-create) (le 4688 plus riche), Sysmon 7 (chargement d'image), Sysmon 3/22 (réseau/DNS), et la télémétrie comportementale d'un EDR. 4688 est le plancher de la visibilité processus. Le minimum que tout hôte Windows devrait avoir. Pas un substitut à un EDR correct plus Sysmon sur les hôtes qui comptent.
 
-## Où 4688 s'inscrit dans une timeline
+## Où 4688 s'insère dans une timeline
 
-Pour une chaîne typique post-exploitation sur un hôte sans Sysmon, votre timeline se lira :
+Pour une chaîne post-exploitation typique sur un hôte sans Sysmon :
 
-1. [**4624**](/fr/blog/understanding-event-id-4624) — connexion initiale, LogonType 3 depuis une IP externe.
-2. **4624** — seconde connexion, LogonType 9 (`runas /netonly`) sous le même `SubjectLogonId` — pivot de credentials.
-3. **4688** — `powershell.exe -enc ...` sous cette session.
-4. [**4104**](/fr/blog/powershell-4104-scriptblock) — corps de script décodé, fetchant une payload second-stage.
-5. **4688** — binaire second-stage tournant depuis `%TEMP%`.
-6. [**7045**](/fr/blog/service-creation-event-id-7045) — service installé pour la persistance.
+1. [4624](/fr/blog/understanding-event-id-4624). Logon initial, LogonType 3 depuis une IP externe.
+2. 4624 à nouveau. LogonType 9 (`runas /netonly`) sous le même `SubjectLogonId`. Pivot d'identifiant.
+3. **4688**. `powershell.exe -enc ...` sous cette session.
+4. [4104](/fr/blog/powershell-4104-scriptblock). Corps de script décodé, allant chercher une payload de seconde étape.
+5. **4688**. Binaire de seconde étape tournant depuis `%TEMP%`.
+6. [7045](/fr/blog/service-creation-event-id-7045). Service installé pour la persistance.
 
-Six enregistrements racontent toute l'histoire. Les PID en (3) et (5) se connectent via `ProcessId`/`NewProcessId` de 4688 — mais vérifiez par timestamp parce que Windows recycle les PID. Avec Sysmon présent, la chaîne `ProcessGuid` remplace ce match fragile.
+Six enregistrements racontent toute l'histoire. Les PIDs en (3) et (5) se connectent via `ProcessId` et `NewProcessId` de 4688, mais vérifiez par horodatage parce que Windows recycle les PIDs. Avec Sysmon présent, la chaîne `ProcessGuid` remplace cet appariement fragile.
+
+## Pour aller plus loin
+
+- [Documentation Microsoft pour 4688](https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4688)
+- [MITRE ATT&CK T1059](https://attack.mitre.org/techniques/T1059/)
+- [SwiftOnSecurity sysmon-config](https://github.com/SwiftOnSecurity/sysmon-config)
