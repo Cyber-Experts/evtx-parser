@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { track } from "@vercel/analytics";
 
 import {
   EvtxClient,
@@ -61,6 +62,16 @@ function formatBytes(bytes: number): string {
     i++;
   }
   return `${n.toFixed(1)} ${units[i]}`;
+}
+
+// Coarse file-size bucket for analytics. We never send the byte count, file
+// name, or any record content — only which order-of-magnitude bracket the
+// upload fell into, so we can understand typical workload sizes.
+function sizeBucket(bytes: number): string {
+  if (bytes < 1024 * 1024) return "<1MB";
+  if (bytes < 10 * 1024 * 1024) return "1-10MB";
+  if (bytes < 100 * 1024 * 1024) return "10-100MB";
+  return ">100MB";
 }
 
 function levelClass(level: number | null): string {
@@ -328,6 +339,13 @@ export function EvtxUploader({
           topEventIds,
           pairs,
         });
+        // High-intent event: the visitor actually parsed a log. Only coarse,
+        // non-identifying signal — size bucket + record count. No file name,
+        // no bytes, no record content ever leaves the browser.
+        track("parse_file", {
+          size_bucket: sizeBucket(file.size),
+          records: rows.length,
+        });
       } catch (err) {
         setStatus({
           kind: "error",
@@ -537,6 +555,14 @@ export function EvtxUploader({
             xmls = idxs.map(() => "");
           }
         }
+        // High-intent event: the visitor exported their triage results.
+        // Only format, row count, and the include-XML toggle — never the
+        // file name or any exported record content.
+        track("export_events", {
+          format: kind,
+          rows: filteredRows.length,
+          include_xml: kind === "json" ? true : includeXml,
+        });
         const base = exportBaseName(status.fileName);
         if (kind === "csv") {
           download(
