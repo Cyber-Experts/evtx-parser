@@ -27,6 +27,8 @@ export const ja: Dict = {
     includeXml: "生 XML 列",
     exporting: "エクスポート中…",
     clearTime: "時間範囲をクリア",
+    clearAll: "すべてクリア",
+    removeFile: "ファイルを削除",
   },
   table: {
     record: "レコード #",
@@ -38,6 +40,7 @@ export const ja: Dict = {
     provider: "プロバイダ",
     channel: "チャネル",
     computer: "コンピュータ",
+    source: "ソース",
     viewDetails: "詳細",
     closeDetails: "閉じる",
     eventData: "イベントデータ",

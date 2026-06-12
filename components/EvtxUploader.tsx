@@ -32,20 +32,27 @@ const LEVELS: Array<{ value: number; key: keyof Dict["levels"] }> = [
   { value: 5, key: "verbose" },
 ];
 
-type IndexedRow = EventRow & { _idx: number };
+// One parsed EVTX file kept in the session. `id` addresses the file's handle
+// in the worker (lazy XML); `rows`/`pairs` are the file-local parse results.
+type LoadedFile = {
+  id: number;
+  name: string;
+  size: number;
+  rows: EventRow[];
+  pairs: [string, string][][];
+  topEventIds: EventIdCount[];
+};
 
-type Status =
-  | { kind: "idle" }
-  | { kind: "loading"; label: string }
-  | {
-      kind: "ready";
-      fileName: string;
-      fileSize: number;
-      rows: IndexedRow[];
-      topEventIds: EventIdCount[];
-      pairs: [string, string][][];
-    }
-  | { kind: "error"; message: string };
+// A row in the merged, cross-file view. `_g` is the global index into the
+// merged `allRows`/`allPairs` arrays (React key + EventData lookup); `_fileId`
+// + `_idx` address the source file's worker handle for lazy XML; `_file` is the
+// source file name (Source column / export).
+type IndexedRow = EventRow & {
+  _g: number;
+  _fileId: number;
+  _idx: number;
+  _file: string;
+};
 
 // Hard cap on how many dynamic EventData columns we render when the filter
 // narrows to a single Event ID. Most useful events have <8 fields; anything
@@ -108,13 +115,14 @@ function levelLabel(level: number | null, dict: Dict): string {
   }
 }
 
-function rowMatchesText(row: EventRow, needle: string): boolean {
+function rowMatchesText(row: IndexedRow, needle: string): boolean {
   if (!needle) return true;
   const n = needle.toLowerCase();
   if (row.event_id != null && String(row.event_id).includes(n)) return true;
   if (row.provider?.toLowerCase().includes(n)) return true;
   if (row.channel?.toLowerCase().includes(n)) return true;
   if (row.computer?.toLowerCase().includes(n)) return true;
+  if (row._file.toLowerCase().includes(n)) return true;
   const name = eventName(row.event_id, row.provider);
   if (name?.toLowerCase().includes(n)) return true;
   return false;
@@ -142,11 +150,12 @@ function csvEscape(value: string | number | null | undefined): string {
 }
 
 function buildCsv(
-  rows: EventRow[],
+  rows: IndexedRow[],
   parsed: Record<string, string>[],
   dict: Dict,
   includeXml: boolean,
   xmls: string[],
+  includeSource: boolean,
 ): string {
   const keySet = new Set<string>();
   for (const p of parsed) for (const k of Object.keys(p)) keySet.add(k);
@@ -160,6 +169,7 @@ function buildCsv(
     dict.table.provider,
     dict.table.channel,
     dict.table.computer,
+    ...(includeSource ? [dict.table.source] : []),
     ...dataKeys,
     ...(includeXml ? ["RawXml"] : []),
   ];
@@ -173,6 +183,7 @@ function buildCsv(
       r.provider ?? "",
       r.channel ?? "",
       r.computer ?? "",
+      ...(includeSource ? [r._file] : []),
       ...dataKeys.map((k) => p[k] ?? ""),
       ...(includeXml ? [xmls[i] ?? ""] : []),
     ]
@@ -183,9 +194,10 @@ function buildCsv(
 }
 
 function buildJson(
-  rows: EventRow[],
+  rows: IndexedRow[],
   parsed: Record<string, string>[],
   xmls: string[],
+  includeSource: boolean,
 ): string {
   return JSON.stringify(
     rows.map((r, i) => ({
@@ -196,6 +208,7 @@ function buildJson(
       provider: r.provider,
       channel: r.channel,
       computer: r.computer,
+      ...(includeSource ? { source_file: r._file } : {}),
       event_data: parsed[i] ?? {},
       xml: xmls[i] ?? "",
     })),
@@ -228,7 +241,8 @@ type SortField =
   | "name"
   | "provider"
   | "channel"
-  | "computer";
+  | "computer"
+  | "source";
 type SortDir = "asc" | "desc";
 
 function sortKey(r: EventRow, field: SortField): number | string {
@@ -249,6 +263,10 @@ function sortKey(r: EventRow, field: SortField): number | string {
       return (r.channel ?? "").toLowerCase();
     case "computer":
       return (r.computer ?? "").toLowerCase();
+    case "source":
+      // Source is compared directly in compareRows (needs the row's file name),
+      // never via sortKey; this case only satisfies exhaustiveness.
+      return "";
   }
 }
 
@@ -258,12 +276,18 @@ function compareRows(
   field: SortField,
   dir: SortDir,
 ): number {
-  const ka = sortKey(a, field);
-  const kb = sortKey(b, field);
   let cmp: number;
-  if (typeof ka === "number" && typeof kb === "number") cmp = ka - kb;
-  else cmp = String(ka).localeCompare(String(kb));
-  if (cmp === 0) cmp = Number(a.record_id) - Number(b.record_id);
+  if (field === "source") {
+    cmp = a._file.localeCompare(b._file);
+  } else {
+    const ka = sortKey(a, field);
+    const kb = sortKey(b, field);
+    if (typeof ka === "number" && typeof kb === "number") cmp = ka - kb;
+    else cmp = String(ka).localeCompare(String(kb));
+  }
+  // Stable tiebreak by global order (file order, then record order within file)
+  // so rows from the same file stay grouped and the sort never jitters.
+  if (cmp === 0) cmp = a._g - b._g;
   return dir === "asc" ? cmp : -cmp;
 }
 
@@ -276,12 +300,19 @@ export function EvtxUploader({
 }) {
   const t = dict;
   const clientRef = useRef<EvtxClient | null>(null);
-  const [status, setStatus] = useState<Status>({ kind: "idle" });
+  // Files accumulate across uploads (multi-file import): each pick/drop appends
+  // to the session. `loading` holds the current progress label while parsing.
+  const [files, setFiles] = useState<LoadedFile[]>([]);
+  const fileIdRef = useRef(1);
+  const [loading, setLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [filter, setFilter] = useState("");
   const [activeLevels, setActiveLevels] = useState<Set<number>>(new Set());
   const [openRow, setOpenRow] = useState<{
-    idx: number;
+    g: number;
+    fileId: number;
+    localIdx: number;
     pairs: [string, string][];
     xml: string | null;
     showXml: boolean;
@@ -301,84 +332,112 @@ export function EvtxUploader({
     };
   }, []);
 
-  const handleFile = useCallback(
-    async (file: File) => {
-      setStatus({
-        kind: "loading",
-        label: t.home.statusReading.replace("{name}", file.name),
-      });
-      setFilter("");
-      setActiveLevels(new Set());
+  // Parse one or more files and append them to the session. Files are parsed
+  // sequentially (the worker holds one WASM instance) and each becomes its own
+  // handle so later XML lookups stay lazy and per-file.
+  const handleFiles = useCallback(
+    async (incoming: File[]) => {
+      const evtxFiles = incoming.filter((f) => /\.evtx$/i.test(f.name));
+      if (evtxFiles.length === 0) return;
+      setError(null);
+      // A new upload changes the dataset, so drop transient view state but keep
+      // the user's text/level filters — they still make sense across files.
       setOpenRow(null);
       setTimeRange(null);
-      setSortField("record_id");
-      setSortDir("asc");
       setScrollTop(0);
       if (scrollRef.current) scrollRef.current.scrollTop = 0;
       try {
-        const buffer = await file.arrayBuffer();
         if (!clientRef.current) clientRef.current = new EvtxClient();
-        setStatus({ kind: "loading", label: t.home.statusParsing });
-        const { rows, topEventIds } = await clientRef.current.load(buffer);
-        const indexed: IndexedRow[] = rows.map((r, i) => ({ ...r, _idx: i }));
-        let pairs: [string, string][][] = [];
-        if (rows.length > 0) {
-          try {
-            const indices = Array.from({ length: rows.length }, (_, i) => i);
-            const res = await clientRef.current.eventDataBatch(indices);
-            pairs = res.pairs;
-          } catch {
-            pairs = rows.map(() => []);
+        const client = clientRef.current;
+        for (const file of evtxFiles) {
+          setLoading(t.home.statusReading.replace("{name}", file.name));
+          const buffer = await file.arrayBuffer();
+          setLoading(t.home.statusParsing);
+          const id = fileIdRef.current++;
+          const { rows, topEventIds } = await client.load(id, buffer);
+          let pairs: [string, string][][] = [];
+          if (rows.length > 0) {
+            try {
+              const indices = Array.from({ length: rows.length }, (_, i) => i);
+              const res = await client.eventDataBatch(id, indices);
+              pairs = res.pairs;
+            } catch {
+              pairs = rows.map(() => []);
+            }
           }
+          setFiles((prev) => [
+            ...prev,
+            { id, name: file.name, size: file.size, rows, pairs, topEventIds },
+          ]);
+          // High-intent event: the visitor actually parsed a log. Only coarse,
+          // non-identifying signal — size bucket + record count, once per file.
+          // No file name, no bytes, no record content ever leaves the browser.
+          track("parse_file", {
+            size_bucket: sizeBucket(file.size),
+            records: rows.length,
+          });
         }
-        setStatus({
-          kind: "ready",
-          fileName: file.name,
-          fileSize: file.size,
-          rows: indexed,
-          topEventIds,
-          pairs,
-        });
-        // High-intent event: the visitor actually parsed a log. Only coarse,
-        // non-identifying signal — size bucket + record count. No file name,
-        // no bytes, no record content ever leaves the browser.
-        track("parse_file", {
-          size_bucket: sizeBucket(file.size),
-          records: rows.length,
-        });
       } catch (err) {
-        setStatus({
-          kind: "error",
-          message: err instanceof Error ? err.message : String(err),
-        });
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setLoading(null);
       }
     },
     [t.home.statusReading, t.home.statusParsing],
   );
 
+  const removeFile = useCallback((id: number) => {
+    setFiles((prev) => prev.filter((f) => f.id !== id));
+    clientRef.current?.free(id);
+    setOpenRow(null);
+    setTimeRange(null);
+  }, []);
+
+  const clearAll = useCallback(() => {
+    setFiles((prev) => {
+      for (const f of prev) clientRef.current?.free(f.id);
+      return [];
+    });
+    setOpenRow(null);
+    setTimeRange(null);
+    setFilter("");
+    setActiveLevels(new Set());
+    setError(null);
+  }, []);
+
   const onDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       setDragOver(false);
-      const file = e.dataTransfer.files?.[0];
-      if (file) handleFile(file);
+      const dropped = Array.from(e.dataTransfer.files ?? []);
+      if (dropped.length) handleFiles(dropped);
     },
-    [handleFile],
+    [handleFiles],
   );
 
-  const allPairs = useMemo<[string, string][][]>(
-    () => (status.kind === "ready" ? status.pairs : []),
-    [status],
-  );
+  // Merge every loaded file's EventData into one array aligned with `allRows`
+  // by global index (`_g`), so lazy lookups index straight into it.
+  const allPairs = useMemo<[string, string][][]>(() => {
+    const out: [string, string][][] = [];
+    for (const f of files) for (const p of f.pairs) out.push(p);
+    return out;
+  }, [files]);
 
   const toggleDetailsFor = useCallback(
-    (idx: number) => {
-      if (openRow?.idx === idx) {
+    (row: IndexedRow) => {
+      if (openRow?.g === row._g) {
         setOpenRow(null);
         return;
       }
-      const pairs = allPairs[idx] ?? [];
-      setOpenRow({ idx, pairs, xml: null, showXml: false });
+      const pairs = allPairs[row._g] ?? [];
+      setOpenRow({
+        g: row._g,
+        fileId: row._fileId,
+        localIdx: row._idx,
+        pairs,
+        xml: null,
+        showXml: false,
+      });
     },
     [openRow, allPairs],
   );
@@ -393,7 +452,7 @@ export function EvtxUploader({
     const client = clientRef.current;
     if (!client) return;
     try {
-      const { xml } = await client.xml(current.idx);
+      const { xml } = await client.xml(current.fileId, current.localIdx);
       setOpenRow({ ...current, xml, showXml: true });
     } catch (err) {
       setOpenRow({
@@ -438,10 +497,39 @@ export function EvtxUploader({
     [locale],
   );
 
-  const allRows = useMemo<IndexedRow[]>(
-    () => (status.kind === "ready" ? status.rows : []),
-    [status],
+  // Merge every loaded file's rows into one cross-file view. `_g` is the global
+  // position (and React key); `_fileId`/`_idx` keep the link back to the source
+  // file's worker handle for lazy XML.
+  const allRows = useMemo<IndexedRow[]>(() => {
+    const out: IndexedRow[] = [];
+    let g = 0;
+    for (const f of files) {
+      for (let i = 0; i < f.rows.length; i++) {
+        out.push({ ...f.rows[i], _g: g++, _fileId: f.id, _idx: i, _file: f.name });
+      }
+    }
+    return out;
+  }, [files]);
+
+  const ready = files.length > 0;
+  const multiFile = files.length > 1;
+  const totalSize = useMemo(
+    () => files.reduce((s, f) => s + f.size, 0),
+    [files],
   );
+
+  // Top Event IDs across all files. Each file's list is pre-capped at 50, so the
+  // long tail is approximate, but the high-count IDs that matter are exact.
+  const topEventIds = useMemo<EventIdCount[]>(() => {
+    if (files.length <= 1) return files[0]?.topEventIds ?? [];
+    const m = new Map<number, number>();
+    for (const f of files) {
+      for (const [id, c] of f.topEventIds) m.set(id, (m.get(id) ?? 0) + c);
+    }
+    return [...m.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 50) as EventIdCount[];
+  }, [files]);
 
   const topProviders = useMemo<Array<[string, number]>>(() => {
     if (allRows.length === 0) return [];
@@ -514,7 +602,7 @@ export function EvtxUploader({
       // Variable height from the expand panel breaks scroll-driven math, so
       // when a row is open we pin the rendered window to a chunk centered on
       // the open row. Users still see the open row plus nearby context.
-      const openIdx = sortedRows.findIndex((r) => r._idx === openRow.idx);
+      const openIdx = sortedRows.findIndex((r) => r._g === openRow.g);
       if (openIdx === -1) {
         return { start: 0, end: Math.min(total, OPEN_ROW_WINDOW) };
       }
@@ -539,49 +627,68 @@ export function EvtxUploader({
 
   const runExport = useCallback(
     async (kind: "csv" | "json") => {
-      if (status.kind !== "ready") return;
+      if (!ready) return;
       const client = clientRef.current;
       if (!client) return;
       setExporting(true);
       try {
-        const idxs = filteredRows.map((r) => r._idx);
-        const parsed = idxs.map((i) => pairsToRecord(allPairs[i] ?? []));
+        const parsed = filteredRows.map((r) =>
+          pairsToRecord(allPairs[r._g] ?? []),
+        );
         let xmls: string[] = [];
         if (includeXml || kind === "json") {
-          try {
-            const res = await client.xmlBatch(idxs);
-            xmls = res.xmls;
-          } catch {
-            xmls = idxs.map(() => "");
+          // XML lives in per-file handles, so fetch one batch per source file
+          // then reassemble in the filtered-row order the export expects.
+          const byFile = new Map<number, number[]>();
+          for (const r of filteredRows) {
+            const arr = byFile.get(r._fileId) ?? [];
+            arr.push(r._idx);
+            byFile.set(r._fileId, arr);
           }
+          const lookup = new Map<number, Map<number, string>>();
+          for (const [fileId, localIdxs] of byFile) {
+            const m = new Map<number, string>();
+            try {
+              const res = await client.xmlBatch(fileId, localIdxs);
+              localIdxs.forEach((li, k) => m.set(li, res.xmls[k] ?? ""));
+            } catch {
+              // leave this file's rows with empty XML
+            }
+            lookup.set(fileId, m);
+          }
+          xmls = filteredRows.map(
+            (r) => lookup.get(r._fileId)?.get(r._idx) ?? "",
+          );
         }
         // High-intent event: the visitor exported their triage results.
-        // Only format, row count, and the include-XML toggle — never the
-        // file name or any exported record content.
+        // Only format, row count, file count, and the include-XML toggle —
+        // never the file name or any exported record content.
         track("export_events", {
           format: kind,
           rows: filteredRows.length,
+          files: files.length,
           include_xml: kind === "json" ? true : includeXml,
         });
-        const base = exportBaseName(status.fileName);
+        const base =
+          files.length === 1 ? exportBaseName(files[0].name) : "evtx-events";
         if (kind === "csv") {
           download(
             `${base}.csv`,
             "text/csv;charset=utf-8",
-            buildCsv(filteredRows, parsed, t, includeXml, xmls),
+            buildCsv(filteredRows, parsed, t, includeXml, xmls, multiFile),
           );
         } else {
           download(
             `${base}.json`,
             "application/json",
-            buildJson(filteredRows, parsed, xmls),
+            buildJson(filteredRows, parsed, xmls, multiFile),
           );
         }
       } finally {
         setExporting(false);
       }
     },
-    [status, filteredRows, t, includeXml, allPairs],
+    [ready, files, multiFile, filteredRows, t, includeXml, allPairs],
   );
 
   // If every visible (filtered) row shares the same event_id we surface the
@@ -598,7 +705,7 @@ export function EvtxUploader({
     const seen = new Set<string>();
     const ordered: string[] = [];
     for (const r of filteredRows) {
-      const pairs = allPairs[r._idx];
+      const pairs = allPairs[r._g];
       if (!pairs) continue;
       for (const [k] of pairs) {
         if (!seen.has(k)) {
@@ -613,8 +720,9 @@ export function EvtxUploader({
 
   const extraColCount = dynamicKeys ? dynamicKeys.length : 1;
   // Base columns: record, time, level, eventId, name, provider, channel, computer = 8
-  // + extra (summary or dynamic) + 1 details button
-  const tableColCount = 8 + extraColCount + 1;
+  // (+ source when multiple files) + extra (summary or dynamic) + 1 details button
+  const baseColCount = multiFile ? 9 : 8;
+  const tableColCount = baseColCount + extraColCount + 1;
 
   return (
     <section aria-label={t.home.dropArea} className="flex flex-col gap-4">
@@ -636,34 +744,70 @@ export function EvtxUploader({
         <input
           type="file"
           accept=".evtx"
+          multiple
           className="hidden"
           onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) handleFile(f);
+            const picked = Array.from(e.target.files ?? []);
+            // Reset so re-selecting the same file still fires onChange.
+            e.target.value = "";
+            if (picked.length) handleFiles(picked);
           }}
         />
       </label>
 
-      {status.kind === "loading" && (
+      {loading && (
         <div className="text-sm text-zinc-600 dark:text-zinc-400">
-          {status.label}
+          {loading}
         </div>
       )}
 
-      {status.kind === "error" && (
+      {error && (
         <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
-          {status.message}
+          {error}
         </div>
       )}
 
-      {status.kind === "ready" && (
+      {ready && (
         <>
-          <div className="flex flex-wrap items-baseline justify-between gap-3 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {files.map((f) => (
+                <span
+                  key={f.id}
+                  className="flex items-center gap-1.5 rounded-md border border-zinc-300 bg-zinc-50 py-1 pl-2 pr-1 text-xs dark:border-zinc-700 dark:bg-zinc-900"
+                >
+                  <span
+                    className="max-w-[24ch] truncate font-mono text-zinc-900 dark:text-zinc-100"
+                    title={f.name}
+                  >
+                    {f.name}
+                  </span>
+                  <span className="font-mono text-zinc-400">
+                    {numberFmt.format(f.rows.length)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(f.id)}
+                    aria-label={t.home.removeFile}
+                    title={t.home.removeFile}
+                    className="rounded px-1 leading-none text-zinc-400 hover:bg-zinc-200 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              {multiFile && (
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="rounded-md border border-zinc-200 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                >
+                  {t.home.clearAll}
+                </button>
+              )}
+            </div>
             <div className="text-zinc-600 dark:text-zinc-400">
-              <span className="font-mono text-zinc-900 dark:text-zinc-100">
-                {status.fileName}
-              </span>{" "}
-              · {formatBytes(status.fileSize)} ·{" "}
+              {formatBytes(totalSize)} ·{" "}
               <span className="font-mono">
                 {numberFmt.format(filteredRows.length)}
               </span>{" "}
@@ -760,10 +904,10 @@ export function EvtxUploader({
             </div>
           </div>
 
-          {status.topEventIds.length > 0 && (
+          {topEventIds.length > 0 && (
             <div className="flex flex-wrap gap-1.5 font-mono text-xs text-zinc-500">
               <span className="text-zinc-400">{t.home.topIds}:</span>
-              {status.topEventIds.slice(0, 12).map(([id, count]) => (
+              {topEventIds.slice(0, 12).map(([id, count]) => (
                 <button
                   key={id}
                   type="button"
@@ -831,6 +975,9 @@ export function EvtxUploader({
                   <SortHeader field="provider" label={t.table.provider} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
                   <SortHeader field="channel" label={t.table.channel} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
                   <SortHeader field="computer" label={t.table.computer} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                  {multiFile && (
+                    <SortHeader field="source" label={t.table.source} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                  )}
                   {dynamicKeys ? (
                     dynamicKeys.map((k) => (
                       <th key={k} className="px-3 py-2">
@@ -863,11 +1010,11 @@ export function EvtxUploader({
                   </tr>
                 )}
                 {visibleRows.map((r) => {
-                  const isOpen = openRow?.idx === r._idx;
+                  const isOpen = openRow?.g === r._g;
                   const resolvedName = eventName(r.event_id, r.provider);
-                  const pairs = allPairs[r._idx] ?? [];
+                  const pairs = allPairs[r._g] ?? [];
                   return (
-                    <Fragment key={r._idx}>
+                    <Fragment key={r._g}>
                       <tr
                         className={`border-t border-zinc-100 dark:border-zinc-800 ${
                           isOpen ? "bg-zinc-50 dark:bg-zinc-950" : ""
@@ -900,6 +1047,12 @@ export function EvtxUploader({
                           value={r.computer}
                           onFilter={setFilterAndResetScroll}
                         />
+                        {multiFile && (
+                          <FilterableCell
+                            value={r._file}
+                            onFilter={setFilterAndResetScroll}
+                          />
+                        )}
                         {dynamicKeys ? (
                           <DynamicCells
                             keys={dynamicKeys}
@@ -918,7 +1071,7 @@ export function EvtxUploader({
                         <td className="px-3 py-1.5">
                           <button
                             type="button"
-                            onClick={() => toggleDetailsFor(r._idx)}
+                            onClick={() => toggleDetailsFor(r)}
                             aria-expanded={isOpen}
                             className={`rounded border px-1.5 py-0.5 ${
                               isOpen

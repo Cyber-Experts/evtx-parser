@@ -27,6 +27,8 @@ export const pt: Dict = {
     includeXml: "Coluna XML bruto",
     exporting: "Exportando…",
     clearTime: "Limpar intervalo",
+    clearAll: "Limpar tudo",
+    removeFile: "Remover arquivo",
   },
   table: {
     record: "Reg. #",
@@ -38,6 +40,7 @@ export const pt: Dict = {
     provider: "Provedor",
     channel: "Canal",
     computer: "Computador",
+    source: "Origem",
     viewDetails: "Detalhes",
     closeDetails: "Fechar",
     eventData: "Dados do evento",

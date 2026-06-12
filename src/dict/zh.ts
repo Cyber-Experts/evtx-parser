@@ -27,6 +27,8 @@ export const zh: Dict = {
     includeXml: "原始 XML 列",
     exporting: "导出中…",
     clearTime: "清除时间范围",
+    clearAll: "全部清除",
+    removeFile: "移除文件",
   },
   table: {
     record: "记录 #",
@@ -38,6 +40,7 @@ export const zh: Dict = {
     provider: "提供程序",
     channel: "通道",
     computer: "计算机",
+    source: "来源",
     viewDetails: "详情",
     closeDetails: "关闭",
     eventData: "事件数据",
