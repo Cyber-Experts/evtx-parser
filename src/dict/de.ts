@@ -27,6 +27,8 @@ export const de: Dict = {
     includeXml: "Rohe-XML-Spalte",
     exporting: "Export läuft…",
     clearTime: "Zeitraum leeren",
+    clearAll: "Alle entfernen",
+    removeFile: "Datei entfernen",
   },
   table: {
     record: "Eintrag #",
@@ -38,6 +40,7 @@ export const de: Dict = {
     provider: "Anbieter",
     channel: "Kanal",
     computer: "Computer",
+    source: "Quelle",
     viewDetails: "Details",
     closeDetails: "Schließen",
     eventData: "Ereignisdaten",

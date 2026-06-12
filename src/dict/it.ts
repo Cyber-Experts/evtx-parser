@@ -27,6 +27,8 @@ export const it: Dict = {
     includeXml: "Colonna XML grezzo",
     exporting: "Esportazione…",
     clearTime: "Pulisci intervallo",
+    clearAll: "Rimuovi tutto",
+    removeFile: "Rimuovi file",
   },
   table: {
     record: "Rec. #",
@@ -38,6 +40,7 @@ export const it: Dict = {
     provider: "Provider",
     channel: "Canale",
     computer: "Computer",
+    source: "Origine",
     viewDetails: "Dettagli",
     closeDetails: "Chiudi",
     eventData: "Dati evento",

@@ -23,6 +23,8 @@ export type Dict = {
     includeXml: string;
     exporting: string;
     clearTime: string;
+    clearAll: string;
+    removeFile: string;
   };
   table: {
     record: string;
@@ -34,6 +36,7 @@ export type Dict = {
     provider: string;
     channel: string;
     computer: string;
+    source: string;
     viewDetails: string;
     closeDetails: string;
     eventData: string;

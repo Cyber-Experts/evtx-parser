@@ -49,28 +49,40 @@ export class EvtxClient {
     });
   }
 
+  // Each parsed file is addressed by a caller-chosen `fileId` so a single
+  // worker can hold several loaded EVTX files at once (multi-file import).
   load(
+    fileId: number,
     buffer: ArrayBuffer,
   ): Promise<{ count: number; rows: EventRow[]; topEventIds: EventIdCount[] }> {
-    return this.send({ type: "load", buffer }, [buffer]);
+    return this.send({ type: "load", fileId, buffer }, [buffer]);
   }
 
-  xml(index: number): Promise<{ xml: string }> {
-    return this.send({ type: "xml", index });
+  xml(fileId: number, index: number): Promise<{ xml: string }> {
+    return this.send({ type: "xml", fileId, index });
   }
 
-  xmlBatch(indices: number[]): Promise<{ xmls: string[] }> {
-    return this.send({ type: "xml_batch", indices });
+  xmlBatch(fileId: number, indices: number[]): Promise<{ xmls: string[] }> {
+    return this.send({ type: "xml_batch", fileId, indices });
   }
 
-  eventData(index: number): Promise<{ pairs: [string, string][] }> {
-    return this.send({ type: "event_data", index });
+  eventData(
+    fileId: number,
+    index: number,
+  ): Promise<{ pairs: [string, string][] }> {
+    return this.send({ type: "event_data", fileId, index });
   }
 
   eventDataBatch(
+    fileId: number,
     indices: number[],
   ): Promise<{ pairs: [string, string][][] }> {
-    return this.send({ type: "event_data_batch", indices });
+    return this.send({ type: "event_data_batch", fileId, indices });
+  }
+
+  // Release a single file's handle when the user removes it from the session.
+  free(fileId: number): Promise<unknown> {
+    return this.send({ type: "free", fileId });
   }
 
   terminate() {
