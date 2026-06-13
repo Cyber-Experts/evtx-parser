@@ -2,9 +2,9 @@ import type { Dict } from "./types";
 
 export const fr: Dict = {
   meta: {
-    title: "EVTX parser — analyse des journaux d'événements Windows dans le navigateur",
+    title: "Visionneuse et analyseur EVTX en ligne — journaux d'événements Windows",
     description:
-      "Analysez vos fichiers .evtx Windows entièrement dans votre navigateur. Forensique propulsé par WebAssembly — vos fichiers ne quittent jamais votre appareil.",
+      "Visionneuse et analyseur EVTX en ligne et gratuit. Ouvrez vos journaux .evtx Windows dans le navigateur — sans envoi, sans installation. Filtrez, inspectez le XML et exportez en CSV, JSON ou XML.",
     siteName: "EVTX parser",
   },
   home: {
