@@ -2,7 +2,7 @@ import type { Dict } from "./types";
 
 export const pt: Dict = {
   meta: {
-    title: "EVTX parser — forense de logs de eventos Windows no navegador",
+    title: "Visualizador e parser EVTX online — logs de eventos do Windows",
     description:
       "Analise arquivos .evtx do Windows inteiramente no navegador. Forense em WebAssembly — os arquivos nunca saem do seu dispositivo.",
     siteName: "EVTX parser",

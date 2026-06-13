@@ -2,9 +2,9 @@ import type { Dict } from "./types";
 
 export const en: Dict = {
   meta: {
-    title: "EVTX parser — browser-side Windows Event Log forensics",
+    title: "EVTX Viewer & Parser Online — open Windows Event Logs in your browser",
     description:
-      "Free in-browser .evtx parser for Windows Event Log forensics. No upload, no install — drop a file and triage logons, services and PowerShell in seconds.",
+      "Free online EVTX viewer and parser. Open .evtx Windows Event Logs in your browser — no upload, no install. Filter, inspect the raw XML and export logons, services and PowerShell to CSV, JSON or XML.",
     siteName: "EVTX parser",
   },
   home: {

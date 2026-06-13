@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { EvtxUploader } from "@/components/EvtxUploader";
 import { Faq } from "@/components/Faq";
+import { HomeSeo } from "@/components/HomeSeo";
 import { Logo } from "@/components/Logo";
 import { JsonLd } from "@/components/seo/json-ld";
 import { blog, site } from "@/next-md-blog.config";
@@ -40,7 +41,9 @@ export async function generateMetadata({
   const dict = getDict(lang as Locale);
   return {
     metadataBase: new URL(siteConfig.url),
-    title: dict.meta.title,
+    // Absolute so the root page isn't suffixed with "| EVTX parser" by the
+    // layout template (the title already leads with the brand cluster).
+    title: { absolute: dict.meta.title },
     description: dict.meta.description,
     alternates: {
       canonical: `${siteConfig.url}/${lang}`,
@@ -137,6 +140,8 @@ export default async function Home({
             </ul>
           </section>
         )}
+
+        <HomeSeo locale={locale} />
 
         <Faq dict={dict} />
       </main>

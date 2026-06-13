@@ -2,9 +2,9 @@ import type { Dict } from "./types";
 
 export const ja: Dict = {
   meta: {
-    title: "EVTX parser — ブラウザで動く Windows イベントログ解析",
+    title: "EVTX ビューアー＆パーサー オンライン — Windows イベントログをブラウザで解析",
     description:
-      "Windows の .evtx イベントログをブラウザだけで解析。WebAssembly によるフォレンジック — ファイルはあなたの端末から外に出ません。",
+      "無料のオンライン EVTX ビューアー＆パーサー。Windows の .evtx イベントログをブラウザだけで開いて解析 — アップロード不要・インストール不要。フィルター、XML 確認、CSV/JSON/XML エクスポートに対応。",
     siteName: "EVTX parser",
   },
   home: {
