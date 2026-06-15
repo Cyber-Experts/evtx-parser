@@ -309,6 +309,9 @@ export function EvtxUploader({
   const [dragOver, setDragOver] = useState(false);
   const [filter, setFilter] = useState("");
   const [activeLevels, setActiveLevels] = useState<Set<number>>(new Set());
+  const [activeEventIds, setActiveEventIds] = useState<Set<number>>(new Set());
+  const [activeProviders, setActiveProviders] = useState<Set<string>>(new Set());
+  const [activeChannels, setActiveChannels] = useState<Set<string>>(new Set());
   const [openRow, setOpenRow] = useState<{
     g: number;
     fileId: number;
@@ -402,6 +405,9 @@ export function EvtxUploader({
     setTimeRange(null);
     setFilter("");
     setActiveLevels(new Set());
+    setActiveEventIds(new Set());
+    setActiveProviders(new Set());
+    setActiveChannels(new Set());
     setError(null);
   }, []);
 
@@ -463,16 +469,27 @@ export function EvtxUploader({
     }
   }, [openRow]);
 
-  const toggleLevel = useCallback((value: number) => {
-    setActiveLevels((prev) => {
-      const next = new Set(prev);
-      if (next.has(value)) next.delete(value);
-      else next.add(value);
-      return next;
-    });
-    setOpenRow(null);
-    if (scrollRef.current) scrollRef.current.scrollTop = 0;
-  }, []);
+  // Faceted multi-select: each chip toggles its value in a Set. Rows match if
+  // they satisfy ANY value within a category (OR) and EVERY active category
+  // (AND), matching the long-standing behaviour of the level buttons.
+  const toggleFacet = useCallback(
+    <T,>(setter: React.Dispatch<React.SetStateAction<Set<T>>>, value: T) => {
+      setter((prev) => {
+        const next = new Set(prev);
+        if (next.has(value)) next.delete(value);
+        else next.add(value);
+        return next;
+      });
+      setOpenRow(null);
+      if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    },
+    [],
+  );
+
+  const toggleLevel = useCallback(
+    (value: number) => toggleFacet(setActiveLevels, value),
+    [toggleFacet],
+  );
 
   const toggleSort = useCallback((field: SortField) => {
     setSortField((prev) => {
@@ -556,9 +573,26 @@ export function EvtxUploader({
   }, [allRows]);
 
   const filteredRows = useMemo(() => {
-    if (!filter && activeLevels.size === 0 && !timeRange) return allRows;
+    if (
+      !filter &&
+      activeLevels.size === 0 &&
+      activeEventIds.size === 0 &&
+      activeProviders.size === 0 &&
+      activeChannels.size === 0 &&
+      !timeRange
+    )
+      return allRows;
     return allRows.filter((r) => {
       if (activeLevels.size > 0 && (r.level == null || !activeLevels.has(r.level)))
+        return false;
+      if (
+        activeEventIds.size > 0 &&
+        (r.event_id == null || !activeEventIds.has(r.event_id))
+      )
+        return false;
+      if (activeProviders.size > 0 && (!r.provider || !activeProviders.has(r.provider)))
+        return false;
+      if (activeChannels.size > 0 && (!r.channel || !activeChannels.has(r.channel)))
         return false;
       if (filter && !rowMatchesText(r, filter)) return false;
       if (timeRange) {
@@ -567,7 +601,15 @@ export function EvtxUploader({
       }
       return true;
     });
-  }, [allRows, filter, activeLevels, timeRange]);
+  }, [
+    allRows,
+    filter,
+    activeLevels,
+    activeEventIds,
+    activeProviders,
+    activeChannels,
+    timeRange,
+  ]);
 
   const setFilterAndResetScroll = useCallback((next: string) => {
     setFilter(next);
@@ -907,54 +949,84 @@ export function EvtxUploader({
           {topEventIds.length > 0 && (
             <div className="flex flex-wrap gap-1.5 font-mono text-xs text-zinc-500">
               <span className="text-zinc-400">{t.home.topIds}:</span>
-              {topEventIds.slice(0, 12).map(([id, count]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setFilterAndResetScroll(String(id))}
-                  className="rounded border border-zinc-200 px-1.5 py-0.5 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
-                  title={`${count} events`}
-                >
-                  {id}
-                  <span className="ml-1 text-zinc-400">×{count}</span>
-                </button>
-              ))}
+              {topEventIds.slice(0, 12).map(([id, count]) => {
+                const active = activeEventIds.has(id);
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => toggleFacet(setActiveEventIds, id)}
+                    aria-pressed={active}
+                    className={`rounded border px-1.5 py-0.5 transition-colors ${
+                      active
+                        ? "border-zinc-900 bg-zinc-900 text-zinc-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                        : "border-zinc-200 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+                    }`}
+                    title={`${count} events`}
+                  >
+                    {id}
+                    <span className={`ml-1 ${active ? "text-zinc-300 dark:text-zinc-600" : "text-zinc-400"}`}>
+                      ×{count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
           {topProviders.length > 0 && (
             <div className="flex flex-wrap gap-1.5 font-mono text-xs text-zinc-500">
               <span className="text-zinc-400">{t.table.provider}:</span>
-              {topProviders.map(([name, count]) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => setFilterAndResetScroll(name)}
-                  className="max-w-[20ch] truncate rounded border border-zinc-200 px-1.5 py-0.5 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
-                  title={`${name} · ${count} events`}
-                >
-                  {name}
-                  <span className="ml-1 text-zinc-400">×{count}</span>
-                </button>
-              ))}
+              {topProviders.map(([name, count]) => {
+                const active = activeProviders.has(name);
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => toggleFacet(setActiveProviders, name)}
+                    aria-pressed={active}
+                    className={`max-w-[20ch] truncate rounded border px-1.5 py-0.5 transition-colors ${
+                      active
+                        ? "border-zinc-900 bg-zinc-900 text-zinc-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                        : "border-zinc-200 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+                    }`}
+                    title={`${name} · ${count} events`}
+                  >
+                    {name}
+                    <span className={`ml-1 ${active ? "text-zinc-300 dark:text-zinc-600" : "text-zinc-400"}`}>
+                      ×{count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
           {topChannels.length > 0 && (
             <div className="flex flex-wrap gap-1.5 font-mono text-xs text-zinc-500">
               <span className="text-zinc-400">{t.table.channel}:</span>
-              {topChannels.map(([name, count]) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => setFilterAndResetScroll(name)}
-                  className="max-w-[24ch] truncate rounded border border-zinc-200 px-1.5 py-0.5 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
-                  title={`${name} · ${count} events`}
-                >
-                  {name}
-                  <span className="ml-1 text-zinc-400">×{count}</span>
-                </button>
-              ))}
+              {topChannels.map(([name, count]) => {
+                const active = activeChannels.has(name);
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => toggleFacet(setActiveChannels, name)}
+                    aria-pressed={active}
+                    className={`max-w-[24ch] truncate rounded border px-1.5 py-0.5 transition-colors ${
+                      active
+                        ? "border-zinc-900 bg-zinc-900 text-zinc-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                        : "border-zinc-200 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+                    }`}
+                    title={`${name} · ${count} events`}
+                  >
+                    {name}
+                    <span className={`ml-1 ${active ? "text-zinc-300 dark:text-zinc-600" : "text-zinc-400"}`}>
+                      ×{count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
