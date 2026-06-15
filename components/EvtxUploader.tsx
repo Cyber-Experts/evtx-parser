@@ -10,6 +10,13 @@ import {
 } from "@/lib/evtx-client";
 import { eventName, summaryFieldsFor } from "@/lib/event-info";
 import { Timeline } from "@/components/Timeline";
+import { FilterBuilder, type FilterFacets } from "@/components/FilterBuilder";
+import {
+  type Group,
+  emptyRoot,
+  evaluateNode,
+  hasConditions,
+} from "@/lib/filter-query";
 import type { Dict } from "@/src/dict/types";
 
 // Virtualization: render only the rows the user can actually see plus a
@@ -312,6 +319,10 @@ export function EvtxUploader({
   const [activeEventIds, setActiveEventIds] = useState<Set<number>>(new Set());
   const [activeProviders, setActiveProviders] = useState<Set<string>>(new Set());
   const [activeChannels, setActiveChannels] = useState<Set<string>>(new Set());
+  // Structured query builder (EventData + nested AND/OR), ANDed on top of the
+  // quick chips/text/timeline above.
+  const [query, setQuery] = useState<Group>(() => emptyRoot());
+  const [showBuilder, setShowBuilder] = useState(false);
   const [openRow, setOpenRow] = useState<{
     g: number;
     fileId: number;
@@ -408,6 +419,7 @@ export function EvtxUploader({
     setActiveEventIds(new Set());
     setActiveProviders(new Set());
     setActiveChannels(new Set());
+    setQuery(emptyRoot());
     setError(null);
   }, []);
 
@@ -572,6 +584,53 @@ export function EvtxUploader({
       .slice(0, CHANNEL_CHIP_LIMIT);
   }, [allRows]);
 
+  // Distinct values for the query builder's autocomplete. Capped so a wildly
+  // heterogeneous file can't blow up the suggestion lists.
+  const facets = useMemo<FilterFacets>(() => {
+    const providers = new Set<string>();
+    const channels = new Set<string>();
+    const computers = new Set<string>();
+    const fileNames = new Set<string>();
+    const eventNames = new Set<string>();
+    for (const r of allRows) {
+      if (r.provider) providers.add(r.provider);
+      if (r.channel) channels.add(r.channel);
+      if (r.computer) computers.add(r.computer);
+      fileNames.add(r._file);
+      const name = eventName(r.event_id, r.provider);
+      if (name) eventNames.add(name);
+    }
+    const keys = new Set<string>();
+    for (const pairs of allPairs) {
+      for (const [k] of pairs) {
+        keys.add(k);
+        if (keys.size >= 200) break;
+      }
+      if (keys.size >= 200) break;
+    }
+    return {
+      providers: [...providers].sort(),
+      channels: [...channels].sort(),
+      computers: [...computers].sort(),
+      files: [...fileNames].sort(),
+      eventNames: [...eventNames].sort(),
+      eventDataKeys: [...keys].sort(),
+      valuesForKey: (key: string) => {
+        const k = key.toLowerCase();
+        const vals = new Set<string>();
+        for (const pairs of allPairs) {
+          for (const [pk, pv] of pairs) {
+            if (pk.toLowerCase() === k && pv) vals.add(pv);
+          }
+          if (vals.size >= 100) break;
+        }
+        return [...vals].sort();
+      },
+    };
+  }, [allRows, allPairs]);
+
+  const queryActive = hasConditions(query);
+
   const filteredRows = useMemo(() => {
     if (
       !filter &&
@@ -579,7 +638,8 @@ export function EvtxUploader({
       activeEventIds.size === 0 &&
       activeProviders.size === 0 &&
       activeChannels.size === 0 &&
-      !timeRange
+      !timeRange &&
+      !queryActive
     )
       return allRows;
     return allRows.filter((r) => {
@@ -599,20 +659,30 @@ export function EvtxUploader({
         const t = Date.parse(r.timestamp);
         if (t < timeRange[0] || t >= timeRange[1]) return false;
       }
+      if (queryActive && !evaluateNode(query, r, allPairs[r._g] ?? [])) return false;
       return true;
     });
   }, [
     allRows,
+    allPairs,
     filter,
     activeLevels,
     activeEventIds,
     activeProviders,
     activeChannels,
     timeRange,
+    query,
+    queryActive,
   ]);
 
   const setFilterAndResetScroll = useCallback((next: string) => {
     setFilter(next);
+    setOpenRow(null);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, []);
+
+  const handleQueryChange = useCallback((next: Group) => {
+    setQuery(next);
     setOpenRow(null);
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, []);
@@ -1029,6 +1099,33 @@ export function EvtxUploader({
               })}
             </div>
           )}
+
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => setShowBuilder((v) => !v)}
+              aria-expanded={showBuilder}
+              className="flex w-fit items-center gap-1.5 text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
+              <span className="text-zinc-400">{showBuilder ? "▾" : "▸"}</span>
+              {t.filter.advanced}
+              {queryActive && (
+                <span className="rounded-full bg-zinc-900 px-1.5 text-[10px] text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900">
+                  ●
+                </span>
+              )}
+            </button>
+            {showBuilder && (
+              <div className="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
+                <FilterBuilder
+                  query={query}
+                  onChange={handleQueryChange}
+                  facets={facets}
+                  dict={t}
+                />
+              </div>
+            )}
+          </div>
 
           <div
             ref={scrollRef}

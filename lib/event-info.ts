@@ -6,7 +6,7 @@
 // 1), so everything is keyed by both the provider hint and the numeric
 // Event ID.
 
-type ProviderHint =
+export type ProviderHint =
   | "sysmon"
   | "security"
   | "system"
@@ -25,7 +25,28 @@ type ProviderHint =
   | "wlan"
   | "other";
 
-function providerHint(provider: string | null): ProviderHint {
+// All provider categories, in the order shown in the filter UI.
+export const CATEGORY_IDS: ProviderHint[] = [
+  "security",
+  "system",
+  "sysmon",
+  "powershell",
+  "defender",
+  "appLocker",
+  "taskScheduler",
+  "rdpLocal",
+  "rdpRemote",
+  "rdpCore",
+  "wmiActivity",
+  "firewall",
+  "bits",
+  "smbServer",
+  "smbClient",
+  "wlan",
+  "other",
+];
+
+export function providerHint(provider: string | null): ProviderHint {
   if (!provider) return "other";
   const p = provider.toLowerCase();
   if (p.includes("sysmon")) return "sysmon";
