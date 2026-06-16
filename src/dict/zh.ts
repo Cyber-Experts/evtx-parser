@@ -28,6 +28,7 @@ export const zh: Dict = {
     exporting: "导出中…",
     clearTime: "清除时间范围",
     clearAll: "全部清除",
+    clearFilters: "清除筛选",
     removeFile: "移除文件",
   },
   table: {

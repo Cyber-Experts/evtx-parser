@@ -28,6 +28,7 @@ export const ja: Dict = {
     exporting: "エクスポート中…",
     clearTime: "時間範囲をクリア",
     clearAll: "すべてクリア",
+    clearFilters: "フィルターをクリア",
     removeFile: "ファイルを削除",
   },
   table: {

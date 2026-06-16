@@ -298,6 +298,29 @@ function compareRows(
   return dir === "asc" ? cmp : -cmp;
 }
 
+// Shared toggle-chip styling. Active = signal-amber wash so the eye lands on
+// exactly what's filtering the view; idle is quiet until hovered.
+const CHIP_ACTIVE =
+  "border-amber-500 bg-amber-500/15 text-amber-700 dark:border-amber-400/60 dark:bg-amber-400/10 dark:text-amber-300";
+const CHIP_IDLE =
+  "border-zinc-200 text-zinc-500 hover:border-amber-400 dark:border-zinc-800 dark:hover:border-amber-400/60";
+
+// "Scanning" indicator shown while a file parses — animated brand bars plus an
+// indeterminate sweep, so large files never look like a hung tab.
+function ScanningIndicator() {
+  return (
+    <span className="flex items-end gap-[3px]" aria-hidden="true">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <span
+          key={i}
+          className="animate-scanbar w-[3px] rounded-sm bg-amber-500 dark:bg-amber-400"
+          style={{ height: 14, animationDelay: `${i * 0.12}s` }}
+        />
+      ))}
+    </span>
+  );
+}
+
 export function EvtxUploader({
   dict,
   locale,
@@ -313,7 +336,7 @@ export function EvtxUploader({
   const fileIdRef = useRef(1);
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [dragOver, setDragOver] = useState(false);
+  const [windowDrag, setWindowDrag] = useState(false);
   const [filter, setFilter] = useState("");
   const [activeLevels, setActiveLevels] = useState<Set<number>>(new Set());
   const [activeEventIds, setActiveEventIds] = useState<Set<number>>(new Set());
@@ -338,6 +361,7 @@ export function EvtxUploader({
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [scrollTop, setScrollTop] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     return () => {
@@ -423,15 +447,59 @@ export function EvtxUploader({
     setError(null);
   }, []);
 
-  const onDrop = useCallback(
-    (e: React.DragEvent) => {
+  // Drop a .evtx anywhere on the page — not just on the box. We track enter/leave
+  // depth so the overlay doesn't flicker as the cursor crosses child elements.
+  useEffect(() => {
+    const carriesFiles = (e: DragEvent) =>
+      Array.from(e.dataTransfer?.types ?? []).includes("Files");
+    let depth = 0;
+    const onEnter = (e: DragEvent) => {
+      if (!carriesFiles(e)) return;
+      depth++;
+      setWindowDrag(true);
+    };
+    const onLeave = () => {
+      depth = Math.max(0, depth - 1);
+      if (depth === 0) setWindowDrag(false);
+    };
+    const onOver = (e: DragEvent) => {
+      if (carriesFiles(e)) e.preventDefault();
+    };
+    const onDropWin = (e: DragEvent) => {
+      if (!carriesFiles(e)) return;
       e.preventDefault();
-      setDragOver(false);
-      const dropped = Array.from(e.dataTransfer.files ?? []);
+      depth = 0;
+      setWindowDrag(false);
+      const dropped = Array.from(e.dataTransfer?.files ?? []);
       if (dropped.length) handleFiles(dropped);
-    },
-    [handleFiles],
-  );
+    };
+    window.addEventListener("dragenter", onEnter);
+    window.addEventListener("dragleave", onLeave);
+    window.addEventListener("dragover", onOver);
+    window.addEventListener("drop", onDropWin);
+    return () => {
+      window.removeEventListener("dragenter", onEnter);
+      window.removeEventListener("dragleave", onLeave);
+      window.removeEventListener("dragover", onOver);
+      window.removeEventListener("drop", onDropWin);
+    };
+  }, [handleFiles]);
+
+  // Reset every view filter (text, level/ID/provider/channel chips, time range,
+  // structured query) in one action — but keep the loaded files in the session.
+  const clearFilters = useCallback(() => {
+    setFilter("");
+    setActiveLevels(new Set());
+    setActiveEventIds(new Set());
+    setActiveProviders(new Set());
+    setActiveChannels(new Set());
+    setQuery(emptyRoot());
+    setTimeRange(null);
+    setOpenRow(null);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, []);
+
+  const openFilePicker = useCallback(() => fileInputRef.current?.click(), []);
 
   // Merge every loaded file's EventData into one array aligned with `allRows`
   // by global index (`_g`), so lazy lookups index straight into it.
@@ -630,6 +698,18 @@ export function EvtxUploader({
   }, [allRows, allPairs]);
 
   const queryActive = hasConditions(query);
+
+  // Total active constraints across every filter surface — drives the
+  // "Clear filters (N)" affordance and the empty-state reset.
+  const activeFilterCount =
+    (filter ? 1 : 0) +
+    activeLevels.size +
+    activeEventIds.size +
+    activeProviders.size +
+    activeChannels.size +
+    (timeRange ? 1 : 0) +
+    (queryActive ? 1 : 0);
+  const anyFilter = activeFilterCount > 0;
 
   const filteredRows = useMemo(() => {
     if (
@@ -838,38 +918,79 @@ export function EvtxUploader({
 
   return (
     <section aria-label={t.home.dropArea} className="flex flex-col gap-4">
-      <label
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={onDrop}
-        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-8 text-center text-sm transition-colors sm:px-6 sm:py-12 ${
-          dragOver
-            ? "border-zinc-900 bg-zinc-100 dark:border-zinc-100 dark:bg-zinc-900"
-            : "border-zinc-300 hover:border-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-500"
-        }`}
-      >
-        <span className="font-medium">{t.home.dropArea}</span>
-        <span className="text-zinc-500">{t.home.privacyNote}</span>
-        <input
-          type="file"
-          accept=".evtx"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            const picked = Array.from(e.target.files ?? []);
-            // Reset so re-selecting the same file still fires onChange.
-            e.target.value = "";
-            if (picked.length) handleFiles(picked);
+      {windowDrag && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/70 p-6 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-amber-400 bg-zinc-900/80 px-10 py-12 text-center">
+            <span className="flex items-end gap-1.5" aria-hidden="true">
+              {[14, 22, 30, 18, 12].map((h, i) => (
+                <span
+                  key={i}
+                  className={`w-2 rounded-sm ${i === 2 ? "bg-amber-400" : "bg-zinc-500"}`}
+                  style={{ height: h }}
+                />
+              ))}
+            </span>
+            <span className="font-mono text-lg font-medium text-amber-300">
+              {t.home.dropArea}
+            </span>
+            <span className="font-mono text-xs text-zinc-400">
+              {t.home.privacyNote}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {!ready && (
+        <label
+          tabIndex={0}
+          role="button"
+          aria-label={t.home.dropArea}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              openFilePicker();
+            }
           }}
-        />
-      </label>
+          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-zinc-300 px-4 py-10 text-center text-sm transition-colors hover:border-amber-400 hover:bg-amber-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 sm:px-6 sm:py-14 dark:border-zinc-700 dark:hover:border-amber-400/60 dark:hover:bg-amber-400/[0.04]"
+        >
+          <span className="mb-1 flex items-end gap-1" aria-hidden="true">
+            {[10, 16, 22, 14, 9].map((h, i) => (
+              <span
+                key={i}
+                className={`w-1.5 rounded-sm ${i === 2 ? "bg-amber-500" : "bg-zinc-300 dark:bg-zinc-600"}`}
+                style={{ height: h }}
+              />
+            ))}
+          </span>
+          <span className="font-medium">{t.home.dropArea}</span>
+          <span className="text-zinc-500">{t.home.privacyNote}</span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".evtx"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const picked = Array.from(e.target.files ?? []);
+              // Reset so re-selecting the same file still fires onChange.
+              e.target.value = "";
+              if (picked.length) handleFiles(picked);
+            }}
+          />
+        </label>
+      )}
 
       {loading && (
-        <div className="text-sm text-zinc-600 dark:text-zinc-400">
-          {loading}
+        <div className="flex flex-col gap-2 rounded-lg border border-amber-500/30 bg-amber-50/40 px-4 py-3 dark:border-amber-400/20 dark:bg-amber-400/[0.06]">
+          <div className="flex items-center gap-3">
+            <ScanningIndicator />
+            <span className="font-mono text-sm text-zinc-700 dark:text-zinc-300">
+              {loading}
+            </span>
+          </div>
+          <div className="relative h-0.5 w-full overflow-hidden rounded-full bg-amber-500/15">
+            <div className="animate-scanline absolute inset-y-0 left-0 w-1/4 rounded-full bg-amber-500 dark:bg-amber-400" />
+          </div>
         </div>
       )}
 
@@ -917,14 +1038,45 @@ export function EvtxUploader({
                   {t.home.clearAll}
                 </button>
               )}
+              <label
+                title={t.home.dropArea}
+                className="cursor-pointer rounded-md border border-zinc-300 px-2 py-1 font-mono text-xs text-zinc-600 transition-colors hover:border-amber-400 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-amber-400/60 dark:hover:text-zinc-100"
+              >
+                + .evtx
+                <input
+                  type="file"
+                  accept=".evtx"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const picked = Array.from(e.target.files ?? []);
+                    e.target.value = "";
+                    if (picked.length) handleFiles(picked);
+                  }}
+                />
+              </label>
             </div>
-            <div className="text-zinc-600 dark:text-zinc-400">
-              {formatBytes(totalSize)} ·{" "}
-              <span className="font-mono">
-                {numberFmt.format(filteredRows.length)}
-              </span>{" "}
-              / <span className="font-mono">{numberFmt.format(allRows.length)}</span>{" "}
-              {t.home.eventsLabel}
+            <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
+              <span>
+                {formatBytes(totalSize)} ·{" "}
+                <span className="font-mono text-foreground">
+                  {numberFmt.format(filteredRows.length)}
+                </span>{" "}
+                / <span className="font-mono">{numberFmt.format(allRows.length)}</span>{" "}
+                {t.home.eventsLabel}
+              </span>
+              {anyFilter && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-300"
+                >
+                  {t.home.clearFilters}
+                  <span className="rounded-full bg-amber-500/20 px-1.5 font-mono text-[10px] tabular-nums">
+                    {activeFilterCount}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -956,7 +1108,7 @@ export function EvtxUploader({
               placeholder={t.home.filterPlaceholder}
               value={filter}
               onChange={(e) => setFilterAndResetScroll(e.target.value)}
-              className="w-full min-w-0 flex-1 basis-full rounded-md border border-zinc-300 bg-transparent px-3 py-1.5 font-mono text-xs outline-none focus:border-zinc-500 sm:basis-64 dark:border-zinc-700 dark:focus:border-zinc-400"
+              className="w-full min-w-0 flex-1 basis-full rounded-md border border-zinc-300 bg-transparent px-3 py-1.5 font-mono text-xs outline-none focus:border-amber-500 sm:basis-64 dark:border-zinc-700 dark:focus:border-amber-400"
             />
             {filter && (
               <button
@@ -977,9 +1129,7 @@ export function EvtxUploader({
                     onClick={() => toggleLevel(value)}
                     aria-pressed={active}
                     className={`rounded border px-1.5 py-0.5 font-mono text-xs transition-colors ${
-                      active
-                        ? "border-zinc-900 bg-zinc-900 text-zinc-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                        : "border-zinc-200 text-zinc-500 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+                      active ? CHIP_ACTIVE : CHIP_IDLE
                     }`}
                   >
                     {t.levels[key]}
@@ -993,7 +1143,7 @@ export function EvtxUploader({
                   type="checkbox"
                   checked={includeXml}
                   onChange={(e) => setIncludeXml(e.target.checked)}
-                  className="accent-zinc-900 dark:accent-zinc-100"
+                  className="accent-amber-500 dark:accent-amber-400"
                 />
                 {t.home.includeXml}
               </label>
@@ -1003,7 +1153,9 @@ export function EvtxUploader({
                 disabled={filteredRows.length === 0 || exporting}
                 className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
               >
-                {exporting ? t.home.exporting : t.home.exportCsv}
+                {exporting
+                  ? t.home.exporting
+                  : `${t.home.exportCsv} (${numberFmt.format(filteredRows.length)})`}
               </button>
               <button
                 type="button"
@@ -1011,7 +1163,9 @@ export function EvtxUploader({
                 disabled={filteredRows.length === 0 || exporting}
                 className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
               >
-                {exporting ? t.home.exporting : t.home.exportJson}
+                {exporting
+                  ? t.home.exporting
+                  : `${t.home.exportJson} (${numberFmt.format(filteredRows.length)})`}
               </button>
             </div>
           </div>
@@ -1028,14 +1182,12 @@ export function EvtxUploader({
                     onClick={() => toggleFacet(setActiveEventIds, id)}
                     aria-pressed={active}
                     className={`rounded border px-1.5 py-0.5 transition-colors ${
-                      active
-                        ? "border-zinc-900 bg-zinc-900 text-zinc-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                        : "border-zinc-200 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+                      active ? CHIP_ACTIVE : CHIP_IDLE
                     }`}
                     title={`${count} events`}
                   >
                     {id}
-                    <span className={`ml-1 ${active ? "text-zinc-300 dark:text-zinc-600" : "text-zinc-400"}`}>
+                    <span className={`ml-1 ${active ? "text-amber-600/70 dark:text-amber-400/70" : "text-zinc-400"}`}>
                       ×{count}
                     </span>
                   </button>
@@ -1056,14 +1208,12 @@ export function EvtxUploader({
                     onClick={() => toggleFacet(setActiveProviders, name)}
                     aria-pressed={active}
                     className={`max-w-[20ch] truncate rounded border px-1.5 py-0.5 transition-colors ${
-                      active
-                        ? "border-zinc-900 bg-zinc-900 text-zinc-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                        : "border-zinc-200 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+                      active ? CHIP_ACTIVE : CHIP_IDLE
                     }`}
                     title={`${name} · ${count} events`}
                   >
                     {name}
-                    <span className={`ml-1 ${active ? "text-zinc-300 dark:text-zinc-600" : "text-zinc-400"}`}>
+                    <span className={`ml-1 ${active ? "text-amber-600/70 dark:text-amber-400/70" : "text-zinc-400"}`}>
                       ×{count}
                     </span>
                   </button>
@@ -1084,14 +1234,12 @@ export function EvtxUploader({
                     onClick={() => toggleFacet(setActiveChannels, name)}
                     aria-pressed={active}
                     className={`max-w-[24ch] truncate rounded border px-1.5 py-0.5 transition-colors ${
-                      active
-                        ? "border-zinc-900 bg-zinc-900 text-zinc-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                        : "border-zinc-200 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+                      active ? CHIP_ACTIVE : CHIP_IDLE
                     }`}
                     title={`${name} · ${count} events`}
                   >
                     {name}
-                    <span className={`ml-1 ${active ? "text-zinc-300 dark:text-zinc-600" : "text-zinc-400"}`}>
+                    <span className={`ml-1 ${active ? "text-amber-600/70 dark:text-amber-400/70" : "text-zinc-400"}`}>
                       ×{count}
                     </span>
                   </button>
@@ -1110,9 +1258,10 @@ export function EvtxUploader({
               <span className="text-zinc-400">{showBuilder ? "▾" : "▸"}</span>
               {t.filter.advanced}
               {queryActive && (
-                <span className="rounded-full bg-zinc-900 px-1.5 text-[10px] text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900">
-                  ●
-                </span>
+                <span
+                  className="h-1.5 w-1.5 rounded-full bg-amber-500 dark:bg-amber-400"
+                  aria-hidden="true"
+                />
               )}
             </button>
             {showBuilder && (
@@ -1164,9 +1313,20 @@ export function EvtxUploader({
                   <tr>
                     <td
                       colSpan={tableColCount}
-                      className="px-3 py-6 text-center text-zinc-400"
+                      className="px-3 py-8 text-center"
                     >
-                      {t.home.noMatches}
+                      <div className="flex flex-col items-center gap-2 text-zinc-400">
+                        <span>{t.home.noMatches}</span>
+                        {anyFilter && (
+                          <button
+                            type="button"
+                            onClick={clearFilters}
+                            className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-300"
+                          >
+                            {t.home.clearFilters}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -1243,9 +1403,7 @@ export function EvtxUploader({
                             onClick={() => toggleDetailsFor(r)}
                             aria-expanded={isOpen}
                             className={`rounded border px-1.5 py-0.5 ${
-                              isOpen
-                                ? "border-zinc-900 bg-zinc-900 text-zinc-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                                : "border-zinc-200 text-zinc-500 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+                              isOpen ? CHIP_ACTIVE : CHIP_IDLE
                             }`}
                           >
                             {isOpen ? t.table.closeDetails : t.table.viewDetails}
@@ -1331,7 +1489,7 @@ function SortHeader({
         type="button"
         onClick={() => onSort(field)}
         className={`flex items-center gap-1 text-left hover:text-zinc-900 dark:hover:text-zinc-100 ${
-          active ? "text-zinc-900 dark:text-zinc-100" : ""
+          active ? "text-amber-700 dark:text-amber-300" : ""
         }`}
       >
         <span>{label}</span>

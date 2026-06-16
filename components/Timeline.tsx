@@ -162,7 +162,7 @@ export function Timeline({
               aria-label={`${rangeLabel}: ${b.total} events`}
               title={`${rangeLabel}\n${b.total} events`}
               className={`flex h-full min-w-[2px] flex-1 cursor-pointer flex-col-reverse overflow-hidden rounded-sm transition-opacity hover:opacity-70 ${
-                selected ? "ring-2 ring-zinc-900 dark:ring-zinc-100" : ""
+                selected ? "ring-2 ring-amber-500 dark:ring-amber-400" : ""
               } ${empty ? "bg-zinc-100 dark:bg-zinc-900" : ""}`}
               style={{ alignSelf: "flex-end" }}
             >
