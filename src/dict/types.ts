@@ -24,6 +24,7 @@ export type Dict = {
     exporting: string;
     clearTime: string;
     clearAll: string;
+    clearFilters: string;
     removeFile: string;
   };
   table: {

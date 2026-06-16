@@ -28,6 +28,7 @@ export const it: Dict = {
     exporting: "Esportazione…",
     clearTime: "Pulisci intervallo",
     clearAll: "Rimuovi tutto",
+    clearFilters: "Cancella filtri",
     removeFile: "Rimuovi file",
   },
   table: {

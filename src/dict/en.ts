@@ -28,6 +28,7 @@ export const en: Dict = {
     exporting: "Exporting…",
     clearTime: "Clear time range",
     clearAll: "Clear all",
+    clearFilters: "Clear filters",
     removeFile: "Remove file",
   },
   table: {
