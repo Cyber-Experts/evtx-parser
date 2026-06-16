@@ -8,9 +8,11 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-heading: var(--font-space-grotesk);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -50,77 +52,84 @@
 }
 
 /*
- * Minimal palette mirroring the original evtx-parser look. We keep shadcn's
- * token names so the primitives keep working, but tune values to a flat
- * grayscale — no tinted shadcn neutral, no rounded muted accents.
+ * "Signal" identity — a forensic event-log console. A cool slate "screen"
+ * neutral ramp with a single warm signal-amber accent (--brand / --ring),
+ * the colour the eye is meant to land on. shadcn's token names are kept so
+ * the primitives keep working; red is reserved strictly for destructive.
  */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0d1117;
   --card: #ffffff;
-  --card-foreground: #171717;
+  --card-foreground: #0d1117;
   --popover: #ffffff;
-  --popover-foreground: #171717;
-  --primary: #171717;
+  --popover-foreground: #0d1117;
+  --primary: #0d1117;
   --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #171717;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #171717;
+  --secondary: #f2f4f7;
+  --secondary-foreground: #0d1117;
+  --muted: #f2f4f7;
+  --muted-foreground: #5b6575;
+  --accent: #f2f4f7;
+  --accent-foreground: #0d1117;
   --destructive: #dc2626;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #a1a1aa;
-  --chart-1: #d4d4d8;
-  --chart-2: #71717a;
-  --chart-3: #52525b;
-  --chart-4: #3f3f46;
-  --chart-5: #18181b;
+  --border: #e4e7ec;
+  --input: #e4e7ec;
+  --ring: #f59e0b;
+  /* Signal-amber accent. -600 keeps legible contrast on white surfaces. */
+  --brand: #d97706;
+  --brand-foreground: #0d1117;
+  --chart-1: #f59e0b;
+  --chart-2: #0ea5e9;
+  --chart-3: #64748b;
+  --chart-4: #94a3b8;
+  --chart-5: #334155;
   --radius: 0.375rem;
   --sidebar: #fafafa;
-  --sidebar-foreground: #171717;
-  --sidebar-primary: #171717;
+  --sidebar-foreground: #0d1117;
+  --sidebar-primary: #0d1117;
   --sidebar-primary-foreground: #fafafa;
-  --sidebar-accent: #f4f4f5;
-  --sidebar-accent-foreground: #171717;
-  --sidebar-border: #e4e4e7;
-  --sidebar-ring: #a1a1aa;
+  --sidebar-accent: #f2f4f7;
+  --sidebar-accent-foreground: #0d1117;
+  --sidebar-border: #e4e7ec;
+  --sidebar-ring: #f59e0b;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --card: #18181b;
-  --card-foreground: #ededed;
-  --popover: #18181b;
-  --popover-foreground: #ededed;
-  --primary: #ededed;
-  --primary-foreground: #18181b;
-  --secondary: #27272a;
-  --secondary-foreground: #ededed;
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-  --accent: #27272a;
-  --accent-foreground: #ededed;
+  --background: #0a0d14;
+  --foreground: #e7e9ee;
+  --card: #121826;
+  --card-foreground: #e7e9ee;
+  --popover: #121826;
+  --popover-foreground: #e7e9ee;
+  --primary: #e7e9ee;
+  --primary-foreground: #121826;
+  --secondary: #1a2030;
+  --secondary-foreground: #e7e9ee;
+  --muted: #1a2030;
+  --muted-foreground: #9aa4b2;
+  --accent: #1a2030;
+  --accent-foreground: #e7e9ee;
   --destructive: #ef4444;
-  --border: rgb(255 255 255 / 10%);
-  --input: rgb(255 255 255 / 15%);
-  --ring: #71717a;
-  --chart-1: #d4d4d8;
-  --chart-2: #71717a;
-  --chart-3: #52525b;
-  --chart-4: #3f3f46;
-  --chart-5: #27272a;
-  --sidebar: #18181b;
-  --sidebar-foreground: #ededed;
-  --sidebar-primary: #4338ca;
-  --sidebar-primary-foreground: #fafafa;
-  --sidebar-accent: #27272a;
-  --sidebar-accent-foreground: #ededed;
-  --sidebar-border: rgb(255 255 255 / 10%);
-  --sidebar-ring: #71717a;
+  --border: rgb(255 255 255 / 9%);
+  --input: rgb(255 255 255 / 12%);
+  --ring: #fbbf24;
+  /* On the slate canvas the amber glows brighter (-400). */
+  --brand: #fbbf24;
+  --brand-foreground: #0a0d14;
+  --chart-1: #fbbf24;
+  --chart-2: #38bdf8;
+  --chart-3: #94a3b8;
+  --chart-4: #64748b;
+  --chart-5: #cbd5e1;
+  --sidebar: #121826;
+  --sidebar-foreground: #e7e9ee;
+  --sidebar-primary: #fbbf24;
+  --sidebar-primary-foreground: #0a0d14;
+  --sidebar-accent: #1a2030;
+  --sidebar-accent-foreground: #e7e9ee;
+  --sidebar-border: rgb(255 255 255 / 9%);
+  --sidebar-ring: #fbbf24;
 }
 
 @layer base {
@@ -129,12 +138,20 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   }
   html {
     @apply font-sans;
     /* Stable scrollbar gutter to avoid CLS when content overflows */
     scrollbar-gutter: stable;
+  }
+  /*
+   * Display layer — Space Grotesk on every heading gives the forensic
+   * console its voice. The tight tracking keeps the technical, dense feel.
+   */
+  h1, h2, h3, h4, .font-heading {
+    font-family: var(--font-space-grotesk), var(--font-geist-sans), sans-serif;
+    letter-spacing: -0.02em;
   }
 }
 
@@ -177,6 +194,30 @@
 .prose :where(code):not(:where([class~="not-prose"] *))::before,
 .prose :where(code):not(:where([class~="not-prose"] *))::after {
   content: none;
+}
+
+/*
+ * "Scanning" loading affordance for the parser. An indeterminate amber
+ * segment sweeps the track while a file is read/parsed, and the brand bars
+ * pulse — so a large Security.evtx never reads as a frozen UI.
+ */
+@keyframes evtx-scanline {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(560%); }
+}
+.animate-scanline {
+  animation: evtx-scanline 1.1s ease-in-out infinite;
+}
+@keyframes evtx-scanbar {
+  0%, 100% { transform: scaleY(0.35); opacity: 0.55; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+.animate-scanbar {
+  animation: evtx-scanbar 0.9s ease-in-out infinite;
+  transform-origin: bottom;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-scanline, .animate-scanbar { animation: none; }
 }
 
 /*
