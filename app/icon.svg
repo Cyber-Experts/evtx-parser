@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="8" fill="#0a0a0a"/>
-  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central"
-        font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
-        font-size="20" font-weight="700" fill="#fafafa"
-        letter-spacing="-1px">.evtx</text>
+  <rect width="64" height="64" rx="13" fill="#0a0d14"/>
+  <!-- event-frequency histogram; the amber bar is the anomaly the parser surfaces -->
+  <g>
+    <rect x="7"  y="34" width="7" height="14" rx="1.5" fill="#e7e9ee" opacity="0.45"/>
+    <rect x="18" y="24" width="7" height="24" rx="1.5" fill="#e7e9ee" opacity="0.55"/>
+    <rect x="29" y="12" width="7" height="36" rx="1.5" fill="#f59e0b"/>
+    <rect x="40" y="28" width="7" height="20" rx="1.5" fill="#e7e9ee" opacity="0.55"/>
+    <rect x="51" y="36" width="7" height="12" rx="1.5" fill="#e7e9ee" opacity="0.45"/>
+  </g>
 </svg>
