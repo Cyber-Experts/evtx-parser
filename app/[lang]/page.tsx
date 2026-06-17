@@ -19,6 +19,7 @@ import { hasLocale } from "./dictionaries";
  * root and gives every page a hub of inbound internal links.
  */
 const FEATURED_SLUGS = [
+  "windows-event-id-cheat-sheet-dfir",
   "understanding-event-id-4624",
   "event-id-4688-process-creation",
   "event-id-4769-kerberoasting",
