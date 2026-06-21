@@ -54,6 +54,23 @@ Full constellation: [RDP forensics](/en/blog/rdp-forensics-event-logs) · invest
 
 Background: [PowerShell logging for forensics](/en/blog/powershell-logging-forensics).
 
+## Endpoint telemetry (Sysmon)
+
+Sysmon must be installed and configured — the IDs below are the high-value subset. See [Sysmon configuration for real adversaries](/en/blog/sysmon-configuration-real-adversaries).
+
+| ID | Meaning |
+|---:|---------|
+| **1** | [Process create](/en/blog/sysmon-event-id-1-process-create) — hashes, parent, command line |
+| **3** | [Network connection](/en/blog/sysmon-network-connection-event-id-3) — process-attributed (C2/beaconing) |
+| **7** | [Image/DLL loaded](/en/blog/sysmon-image-load-event-id-7) — sideloading, unsigned modules |
+| **8** | [CreateRemoteThread](/en/blog/sysmon-process-injection-event-id-8-10) — process injection |
+| **10** | [ProcessAccess](/en/blog/sysmon-process-injection-event-id-8-10) — LSASS handle access (`GrantedAccess`) |
+| **11** | [FileCreate](/en/blog/sysmon-file-registry-events) — dropped files |
+| 12–14 | [Registry](/en/blog/sysmon-file-registry-events) create / set / rename — persistence keys |
+| 15 | [FileCreateStreamHash](/en/blog/sysmon-file-registry-events) — alternate data streams |
+| **22** | [DNS query](/en/blog/sysmon-dns-query-event-id-22) — C2 / DGA / tunnelling |
+| 23 / 26 | [FileDelete](/en/blog/sysmon-file-registry-events) — self-deletion / anti-forensics |
+
 ## Privilege & account management
 
 | ID | Channel | Meaning |
@@ -95,6 +112,8 @@ Background: [PowerShell logging for forensics](/en/blog/powershell-logging-foren
 | **1102** | Security | [Security audit log cleared](/en/blog/event-id-1102-cleared-log) — who & when |
 | 104 | System | A different log was cleared |
 | 1100 | Security | Event Log service shut down |
+| **4719** | Security | [Audit policy changed](/en/blog/audit-policy-tampering-4719) — auditing disabled (go dark) |
+| **4616** | Security | [System time changed](/en/blog/system-time-change-4616) — timestomping |
 
 Reading what survives tampering: [tampered logs and what survives](/en/blog/evtx-tampering-what-survives) · [log clearing as evidence](/en/blog/event-log-clearing-evidence) · [carving deleted records](/en/blog/carve-deleted-evtx-records).
 
