@@ -11,7 +11,7 @@ tags:
 author: "Florian Amette"
 ---
 
-O log de Security de um controlador de domínio movimentado roda em horas, não em dias. O tamanho de canal predefinido é 20 MB, o que dá uns milhares de registos num host ruidoso. Quando faz a imagem do disco em resposta a um incidente que começou há três semanas, os eventos que realmente queria já saíram do ficheiro ativo e estão em espaço não alocado, no pagefile e possivelmente em hibernação. Recuperá-los por carving é parte rotineira de qualquer investigação assente em EVTX, e a maioria dos defensores salta-o porque trata o ficheiro ativo como fonte da verdade.
+O log de Security de um controlador de domínio movimentado roda em horas, não em dias. O tamanho de canal predefinido é 20 MB, o que dá uns milhares de registos num host ruidoso. Quando [faz a imagem do disco](https://www.diskimageparser.com) em resposta a um incidente que começou há três semanas, os eventos que realmente queria já saíram do ficheiro ativo e estão em espaço não alocado, no pagefile e possivelmente em hibernação. Recuperá-los por carving é parte rotineira de qualquer investigação assente em EVTX, e a maioria dos defensores salta-o porque trata o ficheiro ativo como fonte da verdade.
 
 Não é. O ficheiro ativo são os últimos 20 MB. O disco tem o resto.
 

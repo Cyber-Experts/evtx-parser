@@ -11,7 +11,7 @@ tags:
 author: "Florian Amette"
 ---
 
-Le journal Security d'un contrôleur de domaine chargé s'enroule en heures, pas en jours. La taille de canal par défaut est 20 Mo, soit quelques milliers d'enregistrements sur un hôte bavard. Le temps que vous imagiez le disque en réponse à un incident qui a débuté il y a trois semaines, les événements que vous vouliez vraiment ont déjà déroulé hors du fichier vivant et se trouvent dans l'espace non alloué, le pagefile et possiblement l'hibernation. Les recarver fait partie de la routine de toute enquête pilotée par EVTX, et la plupart des défenseurs sautent cette étape parce qu'ils traitent le fichier vivant comme source de vérité.
+Le journal Security d'un contrôleur de domaine chargé s'enroule en heures, pas en jours. La taille de canal par défaut est 20 Mo, soit quelques milliers d'enregistrements sur un hôte bavard. Le temps que vous [imagiez le disque](https://www.diskimageparser.com) en réponse à un incident qui a débuté il y a trois semaines, les événements que vous vouliez vraiment ont déjà déroulé hors du fichier vivant et se trouvent dans l'espace non alloué, le pagefile et possiblement l'hibernation. Les recarver fait partie de la routine de toute enquête pilotée par EVTX, et la plupart des défenseurs sautent cette étape parce qu'ils traitent le fichier vivant comme source de vérité.
 
 Il ne l'est pas. Le fichier vivant, ce sont les derniers 20 Mo. Le disque a le reste.
 

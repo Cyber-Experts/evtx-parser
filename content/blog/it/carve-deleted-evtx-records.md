@@ -11,7 +11,7 @@ tags:
 author: "Florian Amette"
 ---
 
-Il log Security su un domain controller carico si avvolge in ore, non in giorni. La dimensione di canale predefinita è 20 MB, che su un host rumoroso fanno qualche migliaio di record. Quando immagini il disco in risposta a un incidente iniziato tre settimane fa, gli eventi che volevi davvero sono già usciti dal file vivo e si trovano nello spazio non allocato, nel pagefile e possibilmente nell'hibernation. Recuperarli con carving fa parte della routine di ogni indagine guidata da EVTX, e la maggior parte dei difensori salta questo passaggio perché tratta il file vivo come fonte di verità.
+Il log Security su un domain controller carico si avvolge in ore, non in giorni. La dimensione di canale predefinita è 20 MB, che su un host rumoroso fanno qualche migliaio di record. Quando [immagini il disco](https://www.diskimageparser.com) in risposta a un incidente iniziato tre settimane fa, gli eventi che volevi davvero sono già usciti dal file vivo e si trovano nello spazio non allocato, nel pagefile e possibilmente nell'hibernation. Recuperarli con carving fa parte della routine di ogni indagine guidata da EVTX, e la maggior parte dei difensori salta questo passaggio perché tratta il file vivo come fonte di verità.
 
 Non lo è. Il file vivo sono gli ultimi 20 MB. Il disco ha il resto.
 

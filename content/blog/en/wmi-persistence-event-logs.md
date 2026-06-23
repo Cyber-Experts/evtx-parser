@@ -11,7 +11,7 @@ tags:
 author: "Florian Amette"
 ---
 
-WMI event-subscription persistence is a favourite of more capable intruders because it is fileless, runs as `SYSTEM`, and survives reboots without a registry Run key or a scheduled task to find. It is also less understood than [scheduled tasks](/en/blog/scheduled-task-persistence-4698) or [services](/en/blog/service-creation-event-id-7045) — so it gets missed. The good news: modern Windows logs the registration. This post is about finding it.
+[WMI event-subscription persistence](https://www.reverseengineering.app/en/techniques/wmi-event-subscription) is a favourite of more capable intruders because it is fileless, runs as `SYSTEM`, and survives reboots without a registry Run key or a scheduled task to find. It is also less understood than [scheduled tasks](/en/blog/scheduled-task-persistence-4698) or [services](/en/blog/service-creation-event-id-7045) — so it gets missed. The good news: modern Windows logs the registration. This post is about finding it.
 
 ## How the persistence works
 

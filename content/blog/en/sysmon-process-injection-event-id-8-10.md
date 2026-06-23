@@ -26,7 +26,7 @@ Fires when a process creates a thread in **another** process — the textbook in
 Hunt for:
 
 - A user-land or odd-path `SourceImage` creating threads in `explorer.exe`, `svchost.exe`, `lsass.exe`, or browsers.
-- A `StartModule` that is **blank/unbacked** (memory not backed by a file on disk) — shellcode injection often shows no module.
+- A `StartModule` that is **blank/unbacked** (memory not backed by a file on disk) — [shellcode](https://www.reverseengineering.app/en/glossary/shellcode) injection often shows no module.
 - Office apps or script hosts (`winword.exe`, `wscript.exe`, `powershell.exe`) as the `SourceImage`.
 
 Legitimate software does inject (some AV/EDR, debuggers), so baseline your environment — but `SourceImage` → `TargetImage` pairs that don't match known tooling are leads.

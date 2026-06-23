@@ -63,7 +63,7 @@ Nutze das, wenn ein Rootkit im Spiel ist, wenn du Grund hast zu denken, dass ein
 ## Welche wann
 
 - Ein Host, du hast Admin-Rechte, du hast eine Stunde: `wevtutil epl` für jeden Kanal, der zählt, Verzeichnis zippen, fertig.
-- Disk-Image schon in der Hand: FTK Imager oder `tsk_recover` gegen das Image. Schneller als der Live-Host, und du musst dich nicht mit dem SOC koordinieren.
+- [Disk-Image schon in der Hand](https://www.diskimageparser.com): FTK Imager oder `tsk_recover` gegen das Image. Schneller als der Live-Host, und du musst dich nicht mit dem SOC koordinieren.
 - Mehrere Hosts, echter IR-Auftrag: KAPE. Bei Durchsatz kommt nichts anderes nahe heran.
 - Vermutete Live-Manipulation oder Rootkit: RawCopy oder TSK gegen das Volume, mit isoliertem Host-Netzwerk.
 

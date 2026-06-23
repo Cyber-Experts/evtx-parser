@@ -44,7 +44,7 @@ Module logging is older and noisier than script block logging. It hooks the pipe
 In modern IR, `4103` is most useful in three cases:
 
 - The attacker used cmdlets that bind interesting parameters (`Invoke-WebRequest -Uri ...`, `New-Object Net.Sockets.TcpClient ...`, `Get-WmiObject -Class Win32_ShadowCopy`). `4104` shows the source; `4103` shows the resolved parameter values after variable expansion.
-- The attacker used encoded commands. `powershell -enc <base64>` produces a `4103` with the decoded text in the payload before the corresponding `4104` is emitted.
+- The attacker used [encoded commands](https://www.reverseengineering.app/en/techniques/powershell-encoded-command). `powershell -enc <base64>` produces a `4103` with the decoded text in the payload before the corresponding `4104` is emitted.
 - The attacker disabled `4104` (it is achievable by registry edit if they have local admin). `4103` lives under a separate logging path and is sometimes left on when `4104` is silenced.
 
 The catch: module logging logs only modules that are explicitly enabled. The GPO setting wants either `*` (log everything) or a list of module names. `*` is the answer in any environment that takes logging seriously. The "performance impact" objection you will hear is real for very heavy PowerShell workloads and is wrong for ordinary fleet desktops.

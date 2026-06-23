@@ -30,7 +30,7 @@ While you are in there, enable Module Logging and transcription as well. Module 
 
 The PowerShell engine logs the script *after* any encoding, compression, or in-memory reflection. That means:
 
-- A `-EncodedCommand` invocation logs both the encoded launcher (in the corresponding [4688](/en/blog/event-id-4688-process-creation) or [Sysmon 1](/en/blog/sysmon-event-id-1-process-create)) and the decoded body (in 4104).
+- A [`-EncodedCommand`](https://www.reverseengineering.app/en/techniques/powershell-encoded-command) invocation logs both the encoded launcher (in the corresponding [4688](/en/blog/event-id-4688-process-creation) or [Sysmon 1](/en/blog/sysmon-event-id-1-process-create)) and the decoded body (in 4104).
 - A script that downloads and `Invoke-Expression`s a remote payload logs the *executed* body, not the wrapper.
 - An attacker using AMSI bypasses still leaves the 4104 record. The bypass affects scanning, not logging. The bypass itself often shows up as 4104 lines containing `amsiInitFailed` or `amsiScanBuffer`.
 

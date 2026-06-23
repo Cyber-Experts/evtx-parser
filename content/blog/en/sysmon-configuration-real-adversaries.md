@@ -33,7 +33,7 @@ The next tier worth turning on:
 - **EID 13 — Registry value set**. Persistence via registry. Tune to the run keys, services, image file execution options, and the COM hijack paths.
 - **EID 17/18 — Named pipe created/connected**. Cobalt Strike beacons and many post-exploitation frameworks use named pipes for SMB and inter-process comms. The pipe names are often defaults that survive engagement-to-engagement.
 - **EID 22 — DNS query**. Outbound DNS with the requesting process. Catches DNS-based C2 (DGA, DNS tunnel) when EID 3 missed the connection because it never opened a TCP/UDP socket.
-- **EID 25 — Process tampering**. Image manipulation events (process hollowing, doppelganging). Sysmon 13+.
+- **EID 25 — Process tampering**. Image manipulation events ([process hollowing](https://www.reverseengineering.app/en/techniques/process-hollowing), [doppelganging](https://www.reverseengineering.app/en/techniques/process-doppelganging)). Sysmon 13+.
 
 EID 12 (registry key/value create), 14 (registry key/value renamed), 15 (file stream created with FileCreateStreamHash) and 23 (file delete with archive) are useful in specific investigations but produce too much volume to log everywhere by default. Turn them on for a host you are watching closely or for specific paths.
 

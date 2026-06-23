@@ -63,7 +63,7 @@ Use this when a rootkit is in scope, when you have reason to think a kernel filt
 ## Which one when
 
 - One host, you have admin, you have an hour: `wevtutil epl` for every channel that matters, zip the directory, done.
-- Disk image already in hand: FTK Imager or `tsk_recover` against the image. Faster than the live host, and you do not have to coordinate with the SOC.
+- [Disk image already in hand](https://www.diskimageparser.com): FTK Imager or `tsk_recover` against the image. Faster than the live host, and you do not have to coordinate with the SOC.
 - Multiple hosts, real IR engagement: KAPE. Nothing else comes close on throughput.
 - Suspected live tampering or rootkit: RawCopy or TSK against the volume, with the host network isolated.
 

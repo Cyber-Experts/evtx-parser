@@ -11,7 +11,7 @@ tags:
 author: "Florian Amette"
 ---
 
-El log de Security de un controlador de dominio cargado se sobrescribe en horas, no en días. El tamaño de canal por defecto son 20 MB, lo que en un host ruidoso son unos pocos miles de registros. Para cuando imagenes el disco en respuesta a un incidente que empezó hace tres semanas, los eventos que realmente querías ya han salido del archivo vivo y están en espacio no asignado, en el pagefile y posiblemente en la hibernación. Recuperarlos por carving es parte rutinaria de cualquier investigación basada en EVTX, y la mayoría de defensores lo saltan porque tratan el archivo vivo como fuente de la verdad.
+El log de Security de un controlador de dominio cargado se sobrescribe en horas, no en días. El tamaño de canal por defecto son 20 MB, lo que en un host ruidoso son unos pocos miles de registros. Para cuando [imagenes el disco](https://www.diskimageparser.com) en respuesta a un incidente que empezó hace tres semanas, los eventos que realmente querías ya han salido del archivo vivo y están en espacio no asignado, en el pagefile y posiblemente en la hibernación. Recuperarlos por carving es parte rutinaria de cualquier investigación basada en EVTX, y la mayoría de defensores lo saltan porque tratan el archivo vivo como fuente de la verdad.
 
 No lo es. El archivo vivo son los últimos 20 MB. El disco tiene el resto.
 
