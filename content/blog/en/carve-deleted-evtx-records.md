@@ -11,7 +11,7 @@ tags:
 author: "Florian Amette"
 ---
 
-The Security log on a busy domain controller wraps in hours, not days. The default channel size is 20 MB, which is a few thousand records on a noisy host. By the time you image the disk in response to an incident that started three weeks ago, the events you actually wanted have rolled off the live file and are sitting in unallocated space, pagefile, and possibly hibernation. Carving them back is a routine part of any EVTX-driven investigation, and most defenders skip it because they treat the live file as the source of truth.
+The Security log on a busy domain controller wraps in hours, not days. The default channel size is 20 MB, which is a few thousand records on a noisy host. By the time you [image the disk](https://www.diskimageparser.com) in response to an incident that started three weeks ago, the events you actually wanted have rolled off the live file and are sitting in unallocated space, pagefile, and possibly hibernation. Carving them back is a routine part of any EVTX-driven investigation, and most defenders skip it because they treat the live file as the source of truth.
 
 It is not. The live file is the last 20 MB. The disk has the rest.
 

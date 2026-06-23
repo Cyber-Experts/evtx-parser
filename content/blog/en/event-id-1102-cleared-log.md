@@ -4,7 +4,7 @@ description: "1102 is the one event you cannot suppress without leaving more evi
 date: "2026-05-17"
 ---
 
-Event ID **1102** is what Windows writes to the [`Security` channel](/en/blog/what-is-an-evtx-file) when somebody clears the audit log. It is, by design, one of the harder records for an attacker to suppress. Suppressing it cleanly requires either replacing the EventLog service binary before it boots, or accepting that the act of clearing leaves a 1102 of its own. Most operators take the second option, hoping nobody is paying attention.
+Event ID **1102** is what Windows writes to the [`Security` channel](/en/blog/what-is-an-evtx-file) when somebody clears the audit log via [event log clearing](https://www.reverseengineering.app/en/techniques/event-log-clearing). It is, by design, one of the harder records for an attacker to suppress. Suppressing it cleanly requires either replacing the EventLog service binary before it boots, or accepting that the act of clearing leaves a 1102 of its own. Most operators take the second option, hoping nobody is paying attention.
 
 If you see 1102, somebody with sufficient privilege deliberately wiped the audit trail. That is essentially never a routine admin action, and when it is, it should be ticketed. Treat every 1102 outside an approved maintenance window as an incident until proven otherwise.
 

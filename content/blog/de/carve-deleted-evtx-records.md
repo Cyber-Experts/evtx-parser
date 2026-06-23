@@ -11,7 +11,7 @@ tags:
 author: "Florian Amette"
 ---
 
-Das Security-Log eines belasteten Domain Controllers rollt in Stunden, nicht in Tagen. Die Standard-Kanalgröße ist 20 MB, was auf einem lauten Host ein paar tausend Datensätze sind. Wenn du die Festplatte als Reaktion auf einen Vorfall sicherst, der vor drei Wochen begann, sind die Ereignisse, die du eigentlich wolltest, längst aus der Live-Datei gerollt und liegen in nicht zugewiesenem Speicher, im Pagefile und möglicherweise im Hibernation-File. Sie zurückzucarven gehört zur Routine jeder EVTX-getriebenen Untersuchung, und die meisten Verteidiger lassen es weg, weil sie die Live-Datei als Quelle der Wahrheit behandeln.
+Das Security-Log eines belasteten Domain Controllers rollt in Stunden, nicht in Tagen. Die Standard-Kanalgröße ist 20 MB, was auf einem lauten Host ein paar tausend Datensätze sind. Wenn du [die Festplatte](https://www.diskimageparser.com) als Reaktion auf einen Vorfall sicherst, der vor drei Wochen begann, sind die Ereignisse, die du eigentlich wolltest, längst aus der Live-Datei gerollt und liegen in nicht zugewiesenem Speicher, im Pagefile und möglicherweise im Hibernation-File. Sie zurückzucarven gehört zur Routine jeder EVTX-getriebenen Untersuchung, und die meisten Verteidiger lassen es weg, weil sie die Live-Datei als Quelle der Wahrheit behandeln.
 
 Das ist sie nicht. Die Live-Datei sind die letzten 20 MB. Die Festplatte hat den Rest.
 

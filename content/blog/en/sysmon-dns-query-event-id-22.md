@@ -28,8 +28,8 @@ DNS is where most C2 starts (resolve the domain) and where a surprising amount o
 ## What to hunt
 
 - **LOLBins resolving domains.** `powershell.exe`, `rundll32.exe`, `mshta.exe`, `regsvr32.exe`, `certutil.exe` issuing DNS queries is abnormal and a strong download/C2 indicator — the DNS counterpart to the [EID 3 network signal](/en/blog/sysmon-network-connection-event-id-3).
-- **DGA domains.** High-entropy, random-looking `QueryName`s, often many in a short window with lots of `QueryStatus` NXDOMAIN failures as malware cycles through generated domains.
-- **DNS tunnelling / exfil.** Long, frequent, high-entropy subdomain labels under one parent domain (`<base32-data>.tunnel.example.com`), high query volume from one process — data smuggled inside DNS.
+- **[DGA domains](https://www.reverseengineering.app/en/techniques/domain-generation-algorithm).** High-entropy, random-looking `QueryName`s, often many in a short window with lots of `QueryStatus` NXDOMAIN failures as malware cycles through generated domains.
+- **[DNS tunnelling](https://www.reverseengineering.app/en/techniques/dns-tunneling) / exfil.** Long, frequent, high-entropy subdomain labels under one parent domain (`<base32-data>.tunnel.example.com`), high query volume from one process — data smuggled inside DNS.
 - **Newly-seen / low-reputation domains** queried by non-browser processes.
 - **Beacon cadence.** The same domain resolved on a regular interval = C2 keep-alive; pair with EID 3 connection timing.
 

@@ -4,7 +4,7 @@ description: "Service creation is one of the loudest persistence techniques. Eve
 date: "2026-05-17"
 ---
 
-Event ID **7045**, "A service was installed in the system", fires on the [`System` channel](/en/blog/what-is-an-evtx-file) whenever the Service Control Manager registers a new service. It is noisy on a stock build (driver installs, Windows updates) but in a steady-state corporate environment it goes quiet enough that anomalies stand out. It is also one of MITRE ATT&CK's most-cited persistence techniques: T1543.003. Worth knowing cold.
+Event ID **7045**, "A service was installed in the system", fires on the [`System` channel](/en/blog/what-is-an-evtx-file) whenever the Service Control Manager registers a new service. It is noisy on a stock build (driver installs, Windows updates) but in a steady-state corporate environment it goes quiet enough that anomalies stand out. It is also one of MITRE ATT&CK's most-cited persistence techniques — [Windows service persistence](https://www.reverseengineering.app/en/techniques/windows-service-persistence), T1543.003. Worth knowing cold.
 
 ## What is in the record
 

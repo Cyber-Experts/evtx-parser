@@ -11,7 +11,7 @@ tags:
 author: "Florian Amette"
 ---
 
-Event log clearing is the anti-forensic technique every operator learns first and the one that leaves the most usable trail. That second part is counter-intuitive. The whole point of clearing logs is to remove evidence, and an attacker who manages to clear `Security.evtx` has removed thousands of events you wanted to read. But the act of clearing is itself loud, the techniques that try to be quieter leave a different and equally diagnostic signature, and the channels most operators forget about preserve enough to reconstruct what was cleared.
+[Event log clearing](https://www.reverseengineering.app/en/techniques/event-log-clearing) is the anti-forensic technique every operator learns first and the one that leaves the most usable trail. That second part is counter-intuitive. The whole point of clearing logs is to remove evidence, and an attacker who manages to clear `Security.evtx` has removed thousands of events you wanted to read. But the act of clearing is itself loud, the techniques that try to be quieter leave a different and equally diagnostic signature, and the channels most operators forget about preserve enough to reconstruct what was cleared.
 
 Knowing what survives matters because it changes the question you ask the host. "What is in the Security log" becomes "what is missing from the Security log, and where else did those events go".
 

@@ -11,7 +11,7 @@ tags:
 author: "Florian Amette"
 ---
 
-Scheduled tasks are one of the most common persistence mechanisms in Windows, precisely because they are mundane — every host has dozens of legitimate ones. The job in DFIR is separating the attacker's task from the noise, and the event logs give you two independent records to do it with. This sits in the [persistence theme](/en/blog/service-creation-event-id-7045) alongside service creation.
+[Scheduled tasks](https://www.reverseengineering.app/en/techniques/scheduled-task-persistence) are one of the most common persistence mechanisms in Windows, precisely because they are mundane — every host has dozens of legitimate ones. The job in DFIR is separating the attacker's task from the noise, and the event logs give you two independent records to do it with. This sits in the [persistence theme](/en/blog/service-creation-event-id-7045) alongside service creation.
 
 ## Two logs, two views
 

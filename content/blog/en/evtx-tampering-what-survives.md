@@ -17,7 +17,7 @@ author: "Florian Amette"
 
 From loudest to quietest:
 
-1. **Clear the log** — `wevtutil cl`, `Clear-EventLog`, or the Event Viewer GUI. Easy, complete, and **noisy**: it generates an event.
+1. **[Clear the log](https://www.reverseengineering.app/en/techniques/event-log-clearing)** — `wevtutil cl`, `Clear-EventLog`, or the Event Viewer GUI. Easy, complete, and **noisy**: it generates an event.
 2. **Stop or starve logging** — stop the EventLog service, shrink the max size so events roll instantly, or disable an audit subcategory. Quieter; leaves gaps rather than a clearing event.
 3. **Surgically remove records** — edit the `.evtx` offline to drop specific events. Rare, hard, and it breaks the file's internal consistency in detectable ways.
 4. **Suppress at the source** — tooling like Phant0m suspends the EventLog service's threads so events are simply never written. Leaves the existing file untouched; the tell is the *absence* of expected events plus the process artifacts.

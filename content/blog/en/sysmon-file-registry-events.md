@@ -25,7 +25,7 @@ Hunt for:
 - **Script-host / Office** (`wscript`, `powershell`, `winword`) creating executables or scripts.
 - **Tooling drops** — `.exe`/`.dll`/`.ps1`/`.bat` from a process that has no business writing them.
 
-`CreationUtcTime` is also a timestomping reference: if `$STANDARD_INFORMATION` on disk later disagrees with Sysmon's recorded creation time, you have evidence of timestamp manipulation.
+`CreationUtcTime` is also a [timestomping](https://www.reverseengineering.app/en/techniques/timestomping) reference: if `$STANDARD_INFORMATION` on disk later disagrees with Sysmon's recorded creation time, you have evidence of timestamp manipulation.
 
 ## Event IDs 12, 13, 14 — Registry
 
