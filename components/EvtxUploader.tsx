@@ -9,6 +9,7 @@ import {
   type EventRow,
 } from "@/lib/evtx-client";
 import { eventName, summaryFieldsFor } from "@/lib/event-info";
+import { runDetections, type Finding, type Severity } from "@/lib/detections";
 import { Timeline } from "@/components/Timeline";
 import { FilterBuilder, type FilterFacets } from "@/components/FilterBuilder";
 import {
@@ -305,6 +306,13 @@ const CHIP_ACTIVE =
 const CHIP_IDLE =
   "border-zinc-200 text-zinc-500 hover:border-amber-400 dark:border-zinc-800 dark:hover:border-amber-400/60";
 
+// Severity dot colours for the triage Findings panel.
+const SEV_DOT: Record<Severity, string> = {
+  high: "bg-red-500",
+  medium: "bg-amber-500 dark:bg-amber-400",
+  low: "bg-zinc-400",
+};
+
 // "Scanning" indicator shown while a file parses — animated brand bars plus an
 // indeterminate sweep, so large files never look like a hung tab.
 function ScanningIndicator() {
@@ -362,6 +370,20 @@ export function EvtxUploader({
   const [scrollTop, setScrollTop] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  // Built-in triage: when a finding is selected, the table is restricted to the
+  // exact rows it matched (by global index).
+  const [findingFilter, setFindingFilter] = useState<{
+    key: string;
+    gids: Set<number>;
+  } | null>(null);
+  const [showFindings, setShowFindings] = useState(true);
+  // Power-user workflow state.
+  const [regexMode, setRegexMode] = useState(false);
+  const [excludeTerms, setExcludeTerms] = useState<string[]>([]);
+  const [bookmarks, setBookmarks] = useState<Set<number>>(new Set());
+  const [bookmarkOnly, setBookmarkOnly] = useState(false);
+  const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
 
   useEffect(() => {
     return () => {
@@ -495,11 +517,53 @@ export function EvtxUploader({
     setActiveChannels(new Set());
     setQuery(emptyRoot());
     setTimeRange(null);
+    setFindingFilter(null);
+    setExcludeTerms([]);
+    setBookmarkOnly(false);
     setOpenRow(null);
+    setFocusedIdx(null);
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, []);
 
   const openFilePicker = useCallback(() => fileInputRef.current?.click(), []);
+
+  // Jump the table to exactly the rows a finding matched. Clears other filters
+  // for an unambiguous view; clicking the active finding again toggles it off.
+  const viewFinding = useCallback((f: Finding) => {
+    setFilter("");
+    setActiveLevels(new Set());
+    setActiveEventIds(new Set());
+    setActiveProviders(new Set());
+    setActiveChannels(new Set());
+    setQuery(emptyRoot());
+    setTimeRange(null);
+    setExcludeTerms([]);
+    setBookmarkOnly(false);
+    setOpenRow(null);
+    setFocusedIdx(null);
+    setFindingFilter((prev) =>
+      prev?.key === f.key ? null : { key: f.key, gids: new Set(f.gids) },
+    );
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, []);
+
+  const toggleBookmark = useCallback((g: number) => {
+    setBookmarks((prev) => {
+      const next = new Set(prev);
+      if (next.has(g)) next.delete(g);
+      else next.add(g);
+      return next;
+    });
+  }, []);
+
+  const addExclude = useCallback((value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    setExcludeTerms((prev) => (prev.includes(v) ? prev : [...prev, v]));
+    setOpenRow(null);
+    setFocusedIdx(null);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, []);
 
   // Merge every loaded file's EventData into one array aligned with `allRows`
   // by global index (`_g`), so lazy lookups index straight into it.
@@ -561,6 +625,7 @@ export function EvtxUploader({
         return next;
       });
       setOpenRow(null);
+      setFocusedIdx(null);
       if (scrollRef.current) scrollRef.current.scrollTop = 0;
     },
     [],
@@ -580,6 +645,7 @@ export function EvtxUploader({
       setSortDir("asc");
       return field;
     });
+    setFocusedIdx(null);
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, []);
 
@@ -699,6 +765,23 @@ export function EvtxUploader({
 
   const queryActive = hasConditions(query);
 
+  // Built-in triage detections — recomputed only when the dataset changes.
+  const findings = useMemo<Finding[]>(
+    () => (ready ? runDetections(allRows, allPairs) : []),
+    [ready, allRows, allPairs],
+  );
+
+  // Is the current regex term syntactically invalid? Drives the red input
+  // border and the "matches nothing" behaviour below.
+  let regexInvalid = false;
+  if (filter && regexMode) {
+    try {
+      new RegExp(filter);
+    } catch {
+      regexInvalid = true;
+    }
+  }
+
   // Total active constraints across every filter surface — drives the
   // "Clear filters (N)" affordance and the empty-state reset.
   const activeFilterCount =
@@ -708,7 +791,10 @@ export function EvtxUploader({
     activeProviders.size +
     activeChannels.size +
     (timeRange ? 1 : 0) +
-    (queryActive ? 1 : 0);
+    (queryActive ? 1 : 0) +
+    (findingFilter ? 1 : 0) +
+    excludeTerms.length +
+    (bookmarkOnly ? 1 : 0);
   const anyFilter = activeFilterCount > 0;
 
   const filteredRows = useMemo(() => {
@@ -719,10 +805,39 @@ export function EvtxUploader({
       activeProviders.size === 0 &&
       activeChannels.size === 0 &&
       !timeRange &&
-      !queryActive
+      !queryActive &&
+      !findingFilter &&
+      excludeTerms.length === 0 &&
+      !bookmarkOnly
     )
       return allRows;
+    // Build the free-text matcher once: a compiled regex in regex mode
+    // (invalid pattern matches nothing), else the substring matcher.
+    let matcher: ((r: IndexedRow) => boolean) | null = null;
+    if (filter) {
+      if (regexMode) {
+        let re: RegExp | null = null;
+        try {
+          re = new RegExp(filter, "i");
+        } catch {
+          re = null;
+        }
+        matcher = re
+          ? (r) =>
+              re.test(String(r.event_id ?? "")) ||
+              re.test(r.provider ?? "") ||
+              re.test(r.channel ?? "") ||
+              re.test(r.computer ?? "") ||
+              re.test(r._file) ||
+              re.test(eventName(r.event_id, r.provider) ?? "")
+          : () => false;
+      } else {
+        matcher = (r) => rowMatchesText(r, filter);
+      }
+    }
     return allRows.filter((r) => {
+      if (findingFilter && !findingFilter.gids.has(r._g)) return false;
+      if (bookmarkOnly && !bookmarks.has(r._g)) return false;
       if (activeLevels.size > 0 && (r.level == null || !activeLevels.has(r.level)))
         return false;
       if (
@@ -734,7 +849,11 @@ export function EvtxUploader({
         return false;
       if (activeChannels.size > 0 && (!r.channel || !activeChannels.has(r.channel)))
         return false;
-      if (filter && !rowMatchesText(r, filter)) return false;
+      if (matcher && !matcher(r)) return false;
+      if (excludeTerms.length > 0) {
+        for (const term of excludeTerms)
+          if (rowMatchesText(r, term)) return false;
+      }
       if (timeRange) {
         const t = Date.parse(r.timestamp);
         if (t < timeRange[0] || t >= timeRange[1]) return false;
@@ -746,6 +865,7 @@ export function EvtxUploader({
     allRows,
     allPairs,
     filter,
+    regexMode,
     activeLevels,
     activeEventIds,
     activeProviders,
@@ -753,23 +873,30 @@ export function EvtxUploader({
     timeRange,
     query,
     queryActive,
+    findingFilter,
+    excludeTerms,
+    bookmarkOnly,
+    bookmarks,
   ]);
 
   const setFilterAndResetScroll = useCallback((next: string) => {
     setFilter(next);
     setOpenRow(null);
+    setFocusedIdx(null);
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, []);
 
   const handleQueryChange = useCallback((next: Group) => {
     setQuery(next);
     setOpenRow(null);
+    setFocusedIdx(null);
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, []);
 
   const handleSelectTimeRange = useCallback((range: [number, number]) => {
     setTimeRange(range);
     setOpenRow(null);
+    setFocusedIdx(null);
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, []);
 
@@ -816,6 +943,76 @@ export function EvtxUploader({
     () => sortedRows.slice(visibleWindow.start, visibleWindow.end),
     [sortedRows, visibleWindow],
   );
+
+  // --- Keyboard navigation ---------------------------------------------------
+  // A ref mirrors the focused index so the document-level handler reads the
+  // current value without re-subscribing on every keystroke.
+  const focusedIdxRef = useRef<number | null>(null);
+  useEffect(() => {
+    focusedIdxRef.current = focusedIdx;
+  }, [focusedIdx]);
+
+  const scrollRowIntoView = useCallback((idx: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const top = idx * ROW_HEIGHT;
+    if (top < el.scrollTop) {
+      el.scrollTop = top;
+      setScrollTop(top);
+    } else if (top + ROW_HEIGHT > el.scrollTop + el.clientHeight) {
+      const next = top + ROW_HEIGHT - el.clientHeight;
+      el.scrollTop = next;
+      setScrollTop(next);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    const onKey = (e: KeyboardEvent) => {
+      const el = document.activeElement as HTMLElement | null;
+      const tag = el?.tagName;
+      const typing =
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        !!el?.isContentEditable;
+      if (e.key === "/" && !typing) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        return;
+      }
+      if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+      const total = sortedRows.length;
+      const i = focusedIdxRef.current;
+      if (e.key === "ArrowDown" || e.key === "j") {
+        if (total === 0) return;
+        e.preventDefault();
+        const n = i == null ? 0 : Math.min(total - 1, i + 1);
+        setOpenRow(null);
+        setFocusedIdx(n);
+        scrollRowIntoView(n);
+      } else if (e.key === "ArrowUp" || e.key === "k") {
+        if (total === 0) return;
+        e.preventDefault();
+        const n = i == null ? 0 : Math.max(0, i - 1);
+        setOpenRow(null);
+        setFocusedIdx(n);
+        scrollRowIntoView(n);
+      } else if (e.key === "Enter") {
+        if (i != null && sortedRows[i]) {
+          e.preventDefault();
+          toggleDetailsFor(sortedRows[i]);
+        }
+      } else if (e.key === "b") {
+        if (i != null && sortedRows[i]) toggleBookmark(sortedRows[i]._g);
+      } else if (e.key === "Escape") {
+        setOpenRow(null);
+        setFocusedIdx(null);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [ready, sortedRows, scrollRowIntoView, toggleDetailsFor, toggleBookmark]);
 
   const runExport = useCallback(
     async (kind: "csv" | "json") => {
@@ -1080,6 +1277,61 @@ export function EvtxUploader({
             </div>
           </div>
 
+          {findings.length > 0 && (
+            <div className="rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setShowFindings((v) => !v)}
+                aria-expanded={showFindings}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium"
+              >
+                <span className="text-zinc-400">{showFindings ? "▾" : "▸"}</span>
+                <span>Findings</span>
+                <span className="rounded-full bg-amber-500/15 px-1.5 font-mono text-[11px] text-amber-700 dark:text-amber-300">
+                  {findings.length}
+                </span>
+                <span className="ml-auto text-xs font-normal text-zinc-500">
+                  Automated triage · click to filter
+                </span>
+              </button>
+              {showFindings && (
+                <div className="flex flex-col gap-1 border-t border-zinc-100 p-2 dark:border-zinc-800/70">
+                  {findings.map((f) => {
+                    const active = findingFilter?.key === f.key;
+                    return (
+                      <button
+                        key={f.key}
+                        type="button"
+                        onClick={() => viewFinding(f)}
+                        aria-pressed={active}
+                        title={f.detail}
+                        className={`flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 text-left text-xs transition-colors ${
+                          active
+                            ? "border-amber-500 bg-amber-500/10"
+                            : "border-transparent hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                        }`}
+                      >
+                        <span
+                          className={`h-2 w-2 shrink-0 rounded-full ${SEV_DOT[f.severity]}`}
+                          aria-hidden="true"
+                        />
+                        <span className="shrink-0 font-medium text-zinc-800 dark:text-zinc-200">
+                          {f.title}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-zinc-500">
+                          {f.detail}
+                        </span>
+                        <span className="ml-auto shrink-0 rounded bg-zinc-100 px-1.5 font-mono text-[10px] tabular-nums text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                          {numberFmt.format(f.gids.length)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           <Timeline
             rows={allRows}
             selectedRange={timeRange}
@@ -1104,12 +1356,28 @@ export function EvtxUploader({
 
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <input
+              ref={searchInputRef}
               type="search"
               placeholder={t.home.filterPlaceholder}
               value={filter}
               onChange={(e) => setFilterAndResetScroll(e.target.value)}
-              className="w-full min-w-0 flex-1 basis-full rounded-md border border-zinc-300 bg-transparent px-3 py-1.5 font-mono text-xs outline-none focus:border-amber-500 sm:basis-64 dark:border-zinc-700 dark:focus:border-amber-400"
+              className={`w-full min-w-0 flex-1 basis-full rounded-md border bg-transparent px-3 py-1.5 font-mono text-xs outline-none sm:basis-64 ${
+                regexInvalid
+                  ? "border-red-400 focus:border-red-500"
+                  : "border-zinc-300 focus:border-amber-500 dark:border-zinc-700 dark:focus:border-amber-400"
+              }`}
             />
+            <button
+              type="button"
+              onClick={() => setRegexMode((v) => !v)}
+              aria-pressed={regexMode}
+              title="Regular-expression search"
+              className={`rounded-md border px-2 py-1 font-mono text-xs transition-colors ${
+                regexMode ? CHIP_ACTIVE : CHIP_IDLE
+              }`}
+            >
+              .*
+            </button>
             {filter && (
               <button
                 type="button"
@@ -1138,6 +1406,23 @@ export function EvtxUploader({
               })}
             </div>
             <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+              {bookmarks.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBookmarkOnly((v) => !v);
+                    setOpenRow(null);
+                    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+                  }}
+                  aria-pressed={bookmarkOnly}
+                  title="Show bookmarked rows only"
+                  className={`rounded-md border px-2 py-1 text-xs transition-colors ${
+                    bookmarkOnly ? CHIP_ACTIVE : CHIP_IDLE
+                  }`}
+                >
+                  ★ {numberFmt.format(bookmarks.size)}
+                </button>
+              )}
               <label className="flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400">
                 <input
                   type="checkbox"
@@ -1169,6 +1454,26 @@ export function EvtxUploader({
               </button>
             </div>
           </div>
+
+          {excludeTerms.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="text-zinc-400">Excluding:</span>
+              {excludeTerms.map((term) => (
+                <button
+                  key={term}
+                  type="button"
+                  onClick={() =>
+                    setExcludeTerms((prev) => prev.filter((x) => x !== term))
+                  }
+                  title="Remove exclusion"
+                  className="inline-flex items-center gap-1 rounded border border-red-300 bg-red-50 px-1.5 py-0.5 font-mono text-red-700 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+                >
+                  <span className="max-w-[24ch] truncate">−{term}</span>
+                  <span aria-hidden="true">×</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {topEventIds.length > 0 && (
             <div className="flex flex-wrap gap-1.5 font-mono text-xs text-zinc-500">
@@ -1338,15 +1643,21 @@ export function EvtxUploader({
                     />
                   </tr>
                 )}
-                {visibleRows.map((r) => {
+                {visibleRows.map((r, vi) => {
                   const isOpen = openRow?.g === r._g;
+                  const isFocused = visibleWindow.start + vi === focusedIdx;
+                  const isBookmarked = bookmarks.has(r._g);
                   const resolvedName = eventName(r.event_id, r.provider);
                   const pairs = allPairs[r._g] ?? [];
                   return (
                     <Fragment key={r._g}>
                       <tr
                         className={`border-t border-zinc-100 dark:border-zinc-800 ${
-                          isOpen ? "bg-zinc-50 dark:bg-zinc-950" : ""
+                          isFocused
+                            ? "bg-amber-50 ring-1 ring-inset ring-amber-400 dark:bg-amber-400/10"
+                            : isOpen
+                              ? "bg-zinc-50 dark:bg-zinc-950"
+                              : ""
                         }`}
                       >
                         <td className="px-3 py-1.5 text-zinc-500">
@@ -1367,19 +1678,23 @@ export function EvtxUploader({
                         <FilterableCell
                           value={r.provider}
                           onFilter={setFilterAndResetScroll}
+                          onExclude={addExclude}
                         />
                         <FilterableCell
                           value={r.channel}
                           onFilter={setFilterAndResetScroll}
+                          onExclude={addExclude}
                         />
                         <FilterableCell
                           value={r.computer}
                           onFilter={setFilterAndResetScroll}
+                          onExclude={addExclude}
                         />
                         {multiFile && (
                           <FilterableCell
                             value={r._file}
                             onFilter={setFilterAndResetScroll}
+                            onExclude={addExclude}
                           />
                         )}
                         {dynamicKeys ? (
@@ -1387,6 +1702,7 @@ export function EvtxUploader({
                             keys={dynamicKeys}
                             pairs={pairs}
                             onFilter={setFilterAndResetScroll}
+                            onExclude={addExclude}
                           />
                         ) : (
                           <td className="px-3 py-1.5 text-zinc-700 dark:text-zinc-300">
@@ -1394,20 +1710,37 @@ export function EvtxUploader({
                               row={r}
                               pairs={pairs}
                               onFilter={setFilterAndResetScroll}
+                              onExclude={addExclude}
                             />
                           </td>
                         )}
                         <td className="px-3 py-1.5">
-                          <button
-                            type="button"
-                            onClick={() => toggleDetailsFor(r)}
-                            aria-expanded={isOpen}
-                            className={`rounded border px-1.5 py-0.5 ${
-                              isOpen ? CHIP_ACTIVE : CHIP_IDLE
-                            }`}
-                          >
-                            {isOpen ? t.table.closeDetails : t.table.viewDetails}
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => toggleBookmark(r._g)}
+                              aria-pressed={isBookmarked}
+                              aria-label="Bookmark row"
+                              title="Bookmark (b)"
+                              className={`rounded px-1 leading-none transition-colors ${
+                                isBookmarked
+                                  ? "text-amber-500"
+                                  : "text-zinc-300 hover:text-amber-400 dark:text-zinc-600"
+                              }`}
+                            >
+                              {isBookmarked ? "★" : "☆"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleDetailsFor(r)}
+                              aria-expanded={isOpen}
+                              className={`rounded border px-1.5 py-0.5 ${
+                                isOpen ? CHIP_ACTIVE : CHIP_IDLE
+                              }`}
+                            >
+                              {isOpen ? t.table.closeDetails : t.table.viewDetails}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                       {isOpen && openRow && (
@@ -1458,6 +1791,14 @@ export function EvtxUploader({
             </table>
           </div>
 
+          <p className="hidden text-[11px] text-zinc-400 sm:block">
+            <kbd className="font-mono">j</kbd>/<kbd className="font-mono">k</kbd>{" "}
+            or <kbd className="font-mono">↑</kbd>/<kbd className="font-mono">↓</kbd>{" "}
+            move · <kbd className="font-mono">Enter</kbd> details ·{" "}
+            <kbd className="font-mono">b</kbd> bookmark ·{" "}
+            <kbd className="font-mono">/</kbd> search · Shift-click a value to
+            exclude it
+          </p>
         </>
       )}
     </section>
@@ -1502,9 +1843,11 @@ function SortHeader({
 function FilterableCell({
   value,
   onFilter,
+  onExclude,
 }: {
   value: string | null | undefined;
   onFilter: (v: string) => void;
+  onExclude?: (v: string) => void;
 }) {
   if (!value) {
     return <td className="px-3 py-1.5 text-zinc-400">—</td>;
@@ -1513,8 +1856,10 @@ function FilterableCell({
     <td className="px-3 py-1.5 text-zinc-600 dark:text-zinc-400">
       <button
         type="button"
-        onClick={() => onFilter(value)}
-        title={value}
+        onClick={(e) =>
+          e.shiftKey && onExclude ? onExclude(value) : onFilter(value)
+        }
+        title={`${value}\nClick to filter · Shift-click to exclude`}
         className="max-w-[24ch] truncate text-left hover:text-zinc-900 hover:underline dark:hover:text-zinc-100"
       >
         {value}
@@ -1527,10 +1872,12 @@ function SummaryCell({
   row,
   pairs,
   onFilter,
+  onExclude,
 }: {
   row: EventRow;
   pairs: [string, string][];
   onFilter: (v: string) => void;
+  onExclude?: (v: string) => void;
 }) {
   const fields = summaryFieldsFor(row.event_id, row.provider);
   if (pairs.length === 0) {
@@ -1556,8 +1903,10 @@ function SummaryCell({
           <span className="text-zinc-400">{k}=</span>
           <button
             type="button"
-            onClick={() => onFilter(v)}
-            title={`Filter: ${v}`}
+            onClick={(e) =>
+              e.shiftKey && onExclude ? onExclude(v) : onFilter(v)
+            }
+            title={`${v}\nClick to filter · Shift-click to exclude`}
             className="hover:text-zinc-900 hover:underline dark:hover:text-zinc-100"
           >
             {truncate(v, 60)}
@@ -1572,10 +1921,12 @@ function DynamicCells({
   keys,
   pairs,
   onFilter,
+  onExclude,
 }: {
   keys: string[];
   pairs: [string, string][];
   onFilter: (v: string) => void;
+  onExclude?: (v: string) => void;
 }) {
   const map = new Map(pairs);
   return (
@@ -1591,8 +1942,10 @@ function DynamicCells({
             {v != null && v !== "" ? (
               <button
                 type="button"
-                onClick={() => onFilter(v)}
-                title={`Filter: ${v}`}
+                onClick={(e) =>
+                  e.shiftKey && onExclude ? onExclude(v) : onFilter(v)
+                }
+                title={`${v}\nClick to filter · Shift-click to exclude`}
                 className="max-w-[28ch] truncate text-left hover:text-zinc-900 hover:underline dark:hover:text-zinc-100"
               >
                 {truncate(v, 80)}
