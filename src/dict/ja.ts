@@ -31,6 +31,8 @@ export const ja: Dict = {
     clearAll: "すべてクリア",
     clearFilters: "フィルターをクリア",
     removeFile: "ファイルを削除",
+    enterFullscreen: "全画面表示",
+    exitFullscreen: "全画面表示を終了",
     whatIsHeading: "EVTX ファイルとは？",
     whatIsBody:
       ".evtx ファイルは Windows のイベントログです。Vista 以降の Windows がセキュリティ・システム・アプリケーションのイベントを記録するバイナリ形式で、C:\\Windows\\System32\\winevt\\Logs（Security.evtx、System.evtx、Application.evtx など）に保存されます。テキストではないためメモ帳では読めません。下にドロップすると内容を表示できます。",
@@ -39,7 +41,7 @@ export const ja: Dict = {
   fileLocation: {
     heading: ".evtx ファイルの場所",
     intro:
-      "対象ホストでは、イベントログのチャネルごとに個別の .evtx ファイルが 1 つのフォルダーにまとまっています。%SystemRoot% は通常 C:\\Windows です。",
+      "対象ホストでは、イベントログのチャネルごとに個別の .evtx ファイルが 1 つのフォルダーにまとまっています。パスは既定の Windows フォルダー C:\\Windows（%SystemRoot%）を前提としています。",
     allChannels: "ログフォルダー — 全チャネル",
     vistaPlus: "Windows Vista / Server 2008 以降",
     archived: "アーカイブ済みログ(自動バックアップ有効時の Archive-<チャネル>-<タイムスタンプ>.evtx)",

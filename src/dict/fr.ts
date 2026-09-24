@@ -31,6 +31,8 @@ export const fr: Dict = {
     clearAll: "Tout effacer",
     clearFilters: "Effacer les filtres",
     removeFile: "Retirer le fichier",
+    enterFullscreen: "Plein écran",
+    exitFullscreen: "Quitter le plein écran",
     whatIsHeading: "Qu'est-ce qu'un fichier EVTX ?",
     whatIsBody:
       "Un fichier .evtx est un journal d'événements Windows — le format binaire utilisé depuis Vista pour enregistrer les événements de sécurité, système et application. Ils se trouvent dans C:\\Windows\\System32\\winevt\\Logs (Security.evtx, System.evtx, Application.evtx…) et ne sont pas du texte brut : le Bloc-notes ne peut pas les lire. Déposez-en un ci-dessous pour l'afficher.",
@@ -39,7 +41,7 @@ export const fr: Dict = {
   fileLocation: {
     heading: "Où trouver les fichiers .evtx",
     intro:
-      "Sur la machine source, chaque canal du journal d'événements est un fichier .evtx distinct, tous dans le même dossier. %SystemRoot% correspond normalement à C:\\Windows.",
+      "Sur la machine source, chaque canal du journal d'événements est un fichier .evtx distinct, tous dans le même dossier. Les chemins supposent le dossier Windows par défaut, C:\\Windows (%SystemRoot%).",
     allChannels: "Dossier des journaux — tous les canaux",
     vistaPlus: "Windows Vista / Server 2008+",
     archived:

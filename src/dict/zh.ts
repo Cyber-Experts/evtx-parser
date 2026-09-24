@@ -31,6 +31,8 @@ export const zh: Dict = {
     clearAll: "全部清除",
     clearFilters: "清除筛选",
     removeFile: "移除文件",
+    enterFullscreen: "全屏",
+    exitFullscreen: "退出全屏",
     whatIsHeading: "什么是 EVTX 文件？",
     whatIsBody:
       ".evtx 文件是 Windows 事件日志 — Windows 自 Vista 起用于记录安全、系统和应用程序事件的二进制格式。它们位于 C:\\Windows\\System32\\winevt\\Logs（Security.evtx、System.evtx、Application.evtx 等），不是纯文本，记事本无法读取。将文件拖放到下方即可查看。",
@@ -39,7 +41,7 @@ export const zh: Dict = {
   fileLocation: {
     heading: "在哪里找到 .evtx 文件",
     intro:
-      "在源主机上,每个事件日志通道都是一个独立的 .evtx 文件,全部位于同一文件夹。%SystemRoot% 通常为 C:\\Windows。",
+      "在源主机上,每个事件日志通道都是一个独立的 .evtx 文件,全部位于同一文件夹。路径假定 Windows 安装在默认文件夹 C:\\Windows（%SystemRoot%）。",
     allChannels: "日志文件夹 — 所有通道",
     vistaPlus: "Windows Vista / Server 2008 及以上",
     archived: "已归档日志(启用自动备份时为 Archive-<通道>-<时间戳>.evtx)",

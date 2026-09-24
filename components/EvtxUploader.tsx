@@ -714,6 +714,34 @@ export function EvtxUploader({
   }, [files]);
 
   const ready = files.length > 0;
+
+  // Full-screen workspace: the viewer takes over the window as soon as the
+  // first file is loaded, and drops back to the page when the last one goes.
+  const [fullscreen, setFullscreen] = useState(false);
+  const [prevReady, setPrevReady] = useState(ready);
+  if (ready !== prevReady) {
+    setPrevReady(ready);
+    setFullscreen(ready);
+  }
+  useEffect(() => {
+    if (!fullscreen) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [fullscreen]);
+  // In full screen the table fills the remaining height, so the virtual
+  // window has to follow the measured viewport instead of the fixed default.
+  const [viewportHeight, setViewportHeight] = useState(SCROLL_HEIGHT_PX);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !ready) return;
+    const ro = new ResizeObserver(() =>
+      setViewportHeight(el.clientHeight || SCROLL_HEIGHT_PX),
+    );
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ready, fullscreen]);
   const multiFile = files.length > 1;
   const totalSize = useMemo(
     () => files.reduce((s, f) => s + f.size, 0),
@@ -969,14 +997,14 @@ export function EvtxUploader({
       const end = Math.min(total, start + OPEN_ROW_WINDOW);
       return { start, end };
     }
-    const visibleCount = Math.ceil(SCROLL_HEIGHT_PX / ROW_HEIGHT);
+    const visibleCount = Math.ceil(viewportHeight / ROW_HEIGHT);
     const start = Math.max(
       0,
       Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN,
     );
     const end = Math.min(total, start + visibleCount + OVERSCAN * 2);
     return { start, end };
-  }, [sortedRows, scrollTop, openRow]);
+  }, [sortedRows, scrollTop, openRow, viewportHeight]);
 
   const visibleRows = useMemo(
     () => sortedRows.slice(visibleWindow.start, visibleWindow.end),
@@ -1045,13 +1073,16 @@ export function EvtxUploader({
       } else if (e.key === "b") {
         if (i != null && sortedRows[i]) toggleBookmark(sortedRows[i]._g);
       } else if (e.key === "Escape") {
+        if (openRow == null && focusedIdxRef.current == null) {
+          setFullscreen(false);
+        }
         setOpenRow(null);
         setFocusedIdx(null);
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [ready, sortedRows, scrollRowIntoView, toggleDetailsFor, toggleBookmark]);
+  }, [ready, sortedRows, scrollRowIntoView, toggleDetailsFor, toggleBookmark, openRow]);
 
   const runExport = useCallback(
     async (kind: "csv" | "json" | "txt") => {
@@ -1159,7 +1190,14 @@ export function EvtxUploader({
   const tableColCount = baseColCount + extraColCount + 1;
 
   return (
-    <section aria-label={t.home.dropArea} className="flex flex-col gap-4">
+    <section
+      aria-label={t.home.dropArea}
+      className={
+        ready && fullscreen
+          ? "fixed inset-0 z-40 flex flex-col gap-3 overflow-y-auto bg-white p-3 sm:p-4 dark:bg-zinc-950"
+          : "flex flex-col gap-4"
+      }
+    >
       {windowDrag && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/70 p-6 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-amber-400 bg-zinc-900/80 px-10 py-12 text-center">
@@ -1321,6 +1359,16 @@ export function EvtxUploader({
                   </span>
                 </button>
               )}
+              <button
+                type="button"
+                onClick={() => setFullscreen((v) => !v)}
+                aria-pressed={fullscreen}
+                title={fullscreen ? `${t.home.exitFullscreen} (Esc)` : t.home.enterFullscreen}
+                className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+              >
+                <span aria-hidden="true">{fullscreen ? "⤡" : "⤢"}</span>
+                {fullscreen ? t.home.exitFullscreen : t.home.enterFullscreen}
+              </button>
             </div>
           </div>
 
@@ -1641,8 +1689,10 @@ export function EvtxUploader({
           <div
             ref={scrollRef}
             onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
-            style={{ maxHeight: SCROLL_HEIGHT_PX }}
-            className="-mx-4 overflow-auto border-y border-zinc-200 sm:mx-0 sm:rounded-md sm:border dark:border-zinc-800"
+            style={fullscreen ? undefined : { maxHeight: SCROLL_HEIGHT_PX }}
+            className={`-mx-4 overflow-auto border-y border-zinc-200 sm:mx-0 sm:rounded-md sm:border dark:border-zinc-800 ${
+              fullscreen ? "min-h-[320px] flex-1" : ""
+            }`}
           >
             <table className="w-full text-left font-mono text-xs">
               <thead className="sticky top-0 z-10 bg-zinc-50 text-zinc-500 shadow-[0_1px_0_var(--tw-shadow-color)] shadow-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:shadow-zinc-800">

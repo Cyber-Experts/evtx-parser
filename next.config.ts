@@ -9,7 +9,8 @@ import { join } from "node:path";
  * - `worker-src 'self' blob:` lets the parser's Web Worker run.
  * - `'unsafe-inline'` on script-src covers Next.js's per-page hydration
  *   script and the inline JSON-LD blocks emitted by @next-md-blog/core.
- * - Vercel Analytics + Speed Insights connect/script-src entries.
+ * - Vercel Analytics + Speed Insights and Ahrefs Web Analytics
+ *   connect/script-src entries.
  */
 const csp = [
   "default-src 'self'",
@@ -19,8 +20,8 @@ const csp = [
   "img-src 'self' data: https:",
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
-  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://va.vercel-scripts.com",
-  "connect-src 'self' https://va.vercel-scripts.com https://*.vercel-insights.com",
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://va.vercel-scripts.com https://analytics.ahrefs.com",
+  "connect-src 'self' https://va.vercel-scripts.com https://*.vercel-insights.com https://analytics.ahrefs.com",
   "worker-src 'self' blob:",
   "object-src 'none'",
   "upgrade-insecure-requests",
