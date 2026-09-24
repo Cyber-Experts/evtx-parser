@@ -33,6 +33,34 @@ export type Dict = {
     whatIsBody: string;
     whatIsMore: string;
   };
+  /** Power-user viewer: search syntax, field sidebar, pivots. */
+  viewer: {
+    fields: string;
+    hideFields: string;
+    top: string;
+    rare: string;
+    filterValues: string;
+    showMore: string;
+    showLess: string;
+    addField: string;
+    include: string;
+    exclude: string;
+    remove: string;
+    pivots: string;
+    pivotTime: string;
+    pivotLogon: string;
+    pivotProcess: string;
+    syntaxHelp: string;
+    helpFree: string;
+    helpField: string;
+    helpWildcard: string;
+    helpNot: string;
+    helpOr: string;
+    helpCompare: string;
+    helpPivot: string;
+    noValues: string;
+    suggestions: string;
+  };
   /** "Where to find .evtx files" panel under the home-page drop zone.
    *  Paths themselves live in components/EvtxLocations.tsx (not translated).
    *  In `howTo` bullets, text wrapped in `backticks` renders as <code>. */
