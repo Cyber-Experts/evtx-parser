@@ -66,6 +66,20 @@ export type Dict = {
     copyJson: string;
     copyXml: string;
     timeZoneToggle: string;
+    hunts: string;
+    huntsHint: string;
+    catCredential: string;
+    catLateral: string;
+    catPersistence: string;
+    catExecution: string;
+    catEvasion: string;
+    note: string;
+    notePlaceholder: string;
+    report: string;
+    reportTitle: string;
+    reportGenerated: string;
+    copyLink: string;
+    linkCopied: string;
   };
   /** "Where to find .evtx files" panel under the home-page drop zone.
    *  Paths themselves live in components/EvtxLocations.tsx (not translated).

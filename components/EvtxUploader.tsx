@@ -38,6 +38,8 @@ import {
   withoutClause,
 } from "@/lib/search-query";
 import { SearchBox } from "@/components/viewer/SearchBox";
+import { HuntsMenu } from "@/components/viewer/HuntsMenu";
+import type { Locale } from "@/src/dict/locales";
 import { FacetSidebar } from "@/components/viewer/FacetSidebar";
 import {
   HighlightContext,
@@ -324,6 +326,69 @@ function buildTxt(
   return blocks.join("\n\n") + "\n";
 }
 
+function readHash(): { q: string; re: boolean } {
+  if (typeof window === "undefined") return { q: "", re: false };
+  const p = new URLSearchParams(window.location.hash.slice(1));
+  return { q: p.get("q") ?? "", re: p.get("re") === "1" };
+}
+
+function shareLink(q: string, regex: boolean): string {
+  const p = new URLSearchParams({ q });
+  if (regex) p.set("re", "1");
+  return `${window.location.origin}${window.location.pathname}#${p}`;
+}
+
+const mdCell = (s: string) => s.replace(/\|/g, "\\|").replace(/\s+/g, " ").trim();
+
+/** Markdown timeline of the bookmarked events, for the case file. */
+function buildReport(
+  rows: IndexedRow[],
+  allPairs: [string, string][][],
+  notes: Record<number, string>,
+  fileNames: string[],
+  dict: Dict,
+): string {
+  const v = dict.viewer;
+  const lines = [
+    `# ${v.reportTitle}`,
+    "",
+    `${v.reportGenerated}: ${new Date().toISOString()} · ${fileNames.join(", ")} · ${rows.length} ★`,
+    "",
+    `| ${dict.table.time} | ${dict.table.computer} | ${dict.table.eventId} | ${v.description} | ${v.note} |`,
+    "|---|---|---|---|---|",
+  ];
+  for (const r of rows) {
+    const pairs = allPairs[r._g] ?? [];
+    const name = eventName(r.event_id, r.provider);
+    const desc = describeEvent(r.event_id, r.provider, pairs) ?? "";
+    lines.push(
+      `| ${formatTimestamp(r.timestamp, "utc")} | ${mdCell(r.computer ?? "")} | ${r.event_id ?? ""}${name ? ` ${mdCell(name)}` : ""} | ${mdCell(desc)} | ${mdCell(notes[r._g] ?? "")} |`,
+    );
+  }
+  lines.push("");
+  for (const r of rows) {
+    const pairs = allPairs[r._g] ?? [];
+    lines.push(
+      `## ${formatTimestamp(r.timestamp, "utc")} · ${r.event_id ?? ""} · ${r.computer ?? ""}`,
+      "",
+    );
+    if (notes[r._g]?.trim()) lines.push(`> ${notes[r._g].trim().replace(/\n/g, "\n> ")}`, "");
+    lines.push(
+      "```",
+      `${dict.table.provider}: ${r.provider ?? ""}`,
+      `${dict.table.channel}: ${r.channel ?? ""}`,
+      `${dict.table.record}${Number(r.record_id)} · ${r._file}`,
+      ...pairs.map(([k, val]) => {
+        const d = decodeValue(k, val);
+        return `${k}: ${val}${d ? `  (${d})` : ""}`;
+      }),
+      "```",
+      "",
+    );
+  }
+  return lines.join("\n");
+}
+
 function download(filename: string, mime: string, body: string) {
   const blob = new Blob([body], { type: mime });
   const url = URL.createObjectURL(blob);
@@ -448,7 +513,9 @@ export function EvtxUploader({
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [windowDrag, setWindowDrag] = useState(false);
-  const [filter, setFilter] = useState("");
+  // A shared link (#q=…&re=1) pre-fills the search; the file itself is never
+  // part of the link.
+  const [filter, setFilter] = useState(() => readHash().q);
   const [activeLevels, setActiveLevels] = useState<Set<number>>(new Set());
   // Structured query builder (EventData + nested AND/OR), ANDed on top of the
   // quick chips/text/timeline above.
@@ -479,9 +546,11 @@ export function EvtxUploader({
   } | null>(null);
   const [showFindings, setShowFindings] = useState(true);
   // Power-user workflow state.
-  const [regexMode, setRegexMode] = useState(false);
+  const [regexMode, setRegexMode] = useState(() => readHash().re);
   const [showFacets, setShowFacets] = useState(true);
   const [bookmarks, setBookmarks] = useState<Set<number>>(new Set());
+  // Analyst notes by global row index; noting an event also bookmarks it.
+  const [notes, setNotes] = useState<Record<number, string>>({});
   const [bookmarkOnly, setBookmarkOnly] = useState(false);
   const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
 
@@ -1172,6 +1241,24 @@ export function EvtxUploader({
     return () => document.removeEventListener("keydown", onKey);
   }, [ready, sortedRows, scrollRowIntoView, toggleDetailsFor, toggleBookmark, openRow]);
 
+  const setNote = useCallback((g: number, text: string) => {
+    setNotes((prev) => ({ ...prev, [g]: text }));
+    if (text.trim()) {
+      setBookmarks((prev) => (prev.has(g) ? prev : new Set(prev).add(g)));
+    }
+  }, []);
+
+  const downloadReport = useCallback(() => {
+    const picked = allRows
+      .filter((r) => bookmarks.has(r._g))
+      .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+    download(
+      "evtx-report.md",
+      "text/markdown;charset=utf-8",
+      buildReport(picked, allPairs, notes, files.map((f) => f.name), t),
+    );
+  }, [allRows, allPairs, bookmarks, notes, files, t]);
+
   const runExport = useCallback(
     async (kind: "csv" | "json" | "txt") => {
       if (!ready) return;
@@ -1578,6 +1665,25 @@ export function EvtxUploader({
             >
               .*
             </button>
+            <HuntsMenu
+              rows={allRows}
+              allPairs={allPairs}
+              haystackOf={haystackOf}
+              locale={locale as Locale}
+              dict={t}
+              activeQuery={regexMode ? "" : filter}
+              onRun={(q) => pivotTo({ search: q })}
+            />
+            {filter && (
+              <span className="rounded-md border border-zinc-200 dark:border-zinc-800">
+                <CopyPathButton
+                  value={() => shareLink(filter, regexMode)}
+                  label={t.viewer.copyLink}
+                  copiedLabel={t.viewer.linkCopied}
+                  text="🔗"
+                />
+              </span>
+            )}
             {filter && (
               <button
                 type="button"
@@ -1621,6 +1727,15 @@ export function EvtxUploader({
                   }`}
                 >
                   ★ {numberFmt.format(bookmarks.size)}
+                </button>
+              )}
+              {bookmarks.size > 0 && (
+                <button
+                  type="button"
+                  onClick={downloadReport}
+                  className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                >
+                  {t.viewer.report}
                 </button>
               )}
               <label className="flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400">
@@ -1893,6 +2008,8 @@ export function EvtxUploader({
                             <div className="flex flex-col gap-3">
                               <DetailsPanel
                                 row={r}
+                                note={notes[r._g] ?? ""}
+                                onNote={(text) => setNote(r._g, text)}
                                 pairs={openRow.pairs}
                                 dict={t}
                                 onInclude={includeValue}
@@ -2142,6 +2259,8 @@ const PIVOT_WINDOW_MS = 5 * 60 * 1000;
 
 function DetailsPanel({
   row,
+  note,
+  onNote,
   pairs,
   dict,
   onInclude,
@@ -2149,6 +2268,8 @@ function DetailsPanel({
   onPivot,
 }: {
   row: EventRow;
+  note: string;
+  onNote: (text: string) => void;
   pairs: [string, string][];
   dict: Dict;
   onInclude: ValueAction;
@@ -2247,6 +2368,19 @@ function DetailsPanel({
           />
         </span>
       </div>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-[10px] uppercase tracking-wide text-zinc-400">
+          {v.note}
+        </span>
+        <textarea
+          value={note}
+          onChange={(e) => onNote(e.target.value)}
+          placeholder={v.notePlaceholder}
+          rows={2}
+          className="max-w-2xl rounded-md border border-zinc-200 bg-white px-2 py-1 font-sans text-xs text-zinc-800 outline-none focus:border-amber-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+        />
+      </label>
 
       {pairs.length === 0 ? (
         <div className="text-xs italic text-zinc-500">
