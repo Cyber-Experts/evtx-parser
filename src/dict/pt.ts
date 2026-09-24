@@ -31,6 +31,26 @@ export const pt: Dict = {
     clearFilters: "Limpar filtros",
     removeFile: "Remover arquivo",
   },
+  fileLocation: {
+    heading: "Onde encontrar os arquivos .evtx",
+    intro:
+      "No sistema de origem, cada canal do log de eventos é um arquivo .evtx separado, todos na mesma pasta. %SystemRoot% normalmente é C:\\Windows.",
+    allChannels: "Pasta de logs — todos os canais",
+    vistaPlus: "Windows Vista / Server 2008+",
+    archived:
+      "Logs arquivados (Archive-<canal>-<timestamp>.evtx, se o arquivamento automático estiver ativo)",
+    legacy:
+      "Formato legado .evt (também AppEvent.Evt, SysEvent.Evt) — não suportado aqui",
+    howToHeading: "Como obter",
+    howTo: [
+      "O serviço EventLog mantém os logs ativos abertos, então uma cópia comum falha. Num shell de administrador, `wevtutil epl Security C:\\triage\\Security.evtx` exporta uma cópia limpa (apenas o log ativo — arquivos Archive-* ficam de fora).",
+      "Para copiar a pasta inteira como está: KAPE (`--target EventLogs`), FTK Imager ou RawCopy — ou leia offline a partir de uma imagem E01 montada ou de uma cópia de sombra de volume (VSS).",
+      "Cada .evtx é autocontido, sem arquivos complementares. Um canal pode estar redirecionado: confirme o caminho real com `wevtutil gl <canal>` (logFileName).",
+    ],
+    readMore: "Guia de coleta: 4 métodos comparados",
+    copy: "Copiar caminho",
+    copied: "Copiado",
+  },
   table: {
     record: "Reg. #",
     time: "Hora (UTC)",

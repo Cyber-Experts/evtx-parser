@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { EvtxLocations } from "@/components/EvtxLocations";
 import { EvtxUploader } from "@/components/EvtxUploader";
 import { Faq } from "@/components/Faq";
 import { HomeSeo } from "@/components/HomeSeo";
@@ -107,7 +108,11 @@ export default async function Home({
           </p>
         </header>
 
-        <EvtxUploader dict={dict} locale={locale} />
+        <EvtxUploader
+          dict={dict}
+          locale={locale}
+          emptyStateAside={<EvtxLocations dict={dict} locale={locale} />}
+        />
 
         {featured.length > 0 && (
           <section

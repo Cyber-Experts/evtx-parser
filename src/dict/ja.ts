@@ -31,6 +31,24 @@ export const ja: Dict = {
     clearFilters: "フィルターをクリア",
     removeFile: "ファイルを削除",
   },
+  fileLocation: {
+    heading: ".evtx ファイルの場所",
+    intro:
+      "対象ホストでは、イベントログのチャネルごとに個別の .evtx ファイルが 1 つのフォルダーにまとまっています。%SystemRoot% は通常 C:\\Windows です。",
+    allChannels: "ログフォルダー — 全チャネル",
+    vistaPlus: "Windows Vista / Server 2008 以降",
+    archived: "アーカイブ済みログ(自動バックアップ有効時の Archive-<チャネル>-<タイムスタンプ>.evtx)",
+    legacy: "旧形式 .evt(AppEvent.Evt、SysEvent.Evt も)— 本ツールは非対応",
+    howToHeading: "取得方法",
+    howTo: [
+      "EventLog サービスが稼働中のログを開いたままにするため、通常のコピーは失敗します。管理者シェルで `wevtutil epl Security C:\\triage\\Security.evtx` を実行するとクリーンなコピーをエクスポートできます(アクティブなログのみ。Archive-* ファイルは含まれません)。",
+      "フォルダーをそのまま取得するには KAPE(`--target EventLogs`)、FTK Imager、RawCopy を使うか、マウントした E01 イメージやボリュームシャドウコピー(VSS)からオフラインで読み出します。",
+      "各 .evtx は単体で完結しており、付随ファイルは不要です。チャネルの保存先が変更されている場合があるため、`wevtutil gl <チャネル>`(logFileName)で実際のパスを確認してください。",
+    ],
+    readMore: "収集ガイド:4 つの方法を比較",
+    copy: "パスをコピー",
+    copied: "コピーしました",
+  },
   table: {
     record: "レコード #",
     time: "時刻 (UTC)",

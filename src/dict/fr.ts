@@ -31,6 +31,26 @@ export const fr: Dict = {
     clearFilters: "Effacer les filtres",
     removeFile: "Retirer le fichier",
   },
+  fileLocation: {
+    heading: "Où trouver les fichiers .evtx",
+    intro:
+      "Sur la machine source, chaque canal du journal d'événements est un fichier .evtx distinct, tous dans le même dossier. %SystemRoot% correspond normalement à C:\\Windows.",
+    allChannels: "Dossier des journaux — tous les canaux",
+    vistaPlus: "Windows Vista / Server 2008+",
+    archived:
+      "Journaux archivés (Archive-<canal>-<horodatage>.evtx, si l'archivage auto est activé)",
+    legacy:
+      "Ancien format .evt (aussi AppEvent.Evt, SysEvent.Evt) — non pris en charge ici",
+    howToHeading: "Comment le récupérer",
+    howTo: [
+      "Le service EventLog garde les journaux actifs ouverts : une simple copie échoue. Dans un shell administrateur, `wevtutil epl Security C:\\triage\\Security.evtx` exporte une copie propre (journal actif uniquement — les fichiers Archive-* sont ignorés).",
+      "Pour récupérer le dossier entier tel quel : KAPE (`--target EventLogs`), FTK Imager ou RawCopy — ou lecture hors ligne depuis une image E01 montée ou un cliché instantané (VSS).",
+      "Chaque .evtx est autonome, aucun fichier compagnon n'est requis. Un canal peut être redirigé : vérifiez le chemin réel avec `wevtutil gl <canal>` (logFileName).",
+    ],
+    readMore: "Guide de collecte : 4 méthodes comparées",
+    copy: "Copier le chemin",
+    copied: "Copié",
+  },
   table: {
     record: "Enr. #",
     time: "Heure (UTC)",
