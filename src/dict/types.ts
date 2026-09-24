@@ -27,6 +27,8 @@ export type Dict = {
     clearAll: string;
     clearFilters: string;
     removeFile: string;
+    enterFullscreen: string;
+    exitFullscreen: string;
     whatIsHeading: string;
     whatIsBody: string;
     whatIsMore: string;

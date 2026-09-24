@@ -31,6 +31,8 @@ export const it: Dict = {
     clearAll: "Rimuovi tutto",
     clearFilters: "Cancella filtri",
     removeFile: "Rimuovi file",
+    enterFullscreen: "Schermo intero",
+    exitFullscreen: "Esci da schermo intero",
     whatIsHeading: "Cos'è un file EVTX?",
     whatIsBody:
       "Un file .evtx è un registro eventi di Windows — il formato binario che Windows usa da Vista per registrare eventi di sicurezza, di sistema e delle applicazioni. Si trovano in C:\\Windows\\System32\\winevt\\Logs (Security.evtx, System.evtx, Application.evtx…) e non sono testo semplice: il Blocco note non riesce a leggerli. Trascinane uno qui sotto per visualizzarlo.",
@@ -39,7 +41,7 @@ export const it: Dict = {
   fileLocation: {
     heading: "Dove trovare i file .evtx",
     intro:
-      "Sul sistema di origine ogni canale del registro eventi è un file .evtx separato, tutti nella stessa cartella. %SystemRoot% di norma è C:\\Windows.",
+      "Sul sistema di origine ogni canale del registro eventi è un file .evtx separato, tutti nella stessa cartella. I percorsi presuppongono la cartella di Windows predefinita, C:\\Windows (%SystemRoot%).",
     allChannels: "Cartella dei log — tutti i canali",
     vistaPlus: "Windows Vista / Server 2008+",
     archived:

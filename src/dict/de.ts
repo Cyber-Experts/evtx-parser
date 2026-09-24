@@ -31,6 +31,8 @@ export const de: Dict = {
     clearAll: "Alle entfernen",
     clearFilters: "Filter zurücksetzen",
     removeFile: "Datei entfernen",
+    enterFullscreen: "Vollbild",
+    exitFullscreen: "Vollbild beenden",
     whatIsHeading: "Was ist eine EVTX-Datei?",
     whatIsBody:
       "Eine .evtx-Datei ist ein Windows-Ereignisprotokoll — das Binärformat, mit dem Windows seit Vista Sicherheits-, System- und Anwendungsereignisse aufzeichnet. Sie liegen unter C:\\Windows\\System32\\winevt\\Logs (Security.evtx, System.evtx, Application.evtx…) und sind kein Klartext — Notepad kann sie nicht lesen. Legen Sie unten eine Datei ab, um sie anzuzeigen.",
@@ -39,7 +41,7 @@ export const de: Dict = {
   fileLocation: {
     heading: "Wo liegen die .evtx-Dateien?",
     intro:
-      "Auf dem Quellsystem ist jeder Ereignisprotokoll-Kanal eine eigene .evtx-Datei, alle im selben Ordner. %SystemRoot% ist normalerweise C:\\Windows.",
+      "Auf dem Quellsystem ist jeder Ereignisprotokoll-Kanal eine eigene .evtx-Datei, alle im selben Ordner. Die Pfade gehen vom Standard-Windows-Ordner C:\\Windows (%SystemRoot%) aus.",
     allChannels: "Protokollordner — alle Kanäle",
     vistaPlus: "Windows Vista / Server 2008+",
     archived:

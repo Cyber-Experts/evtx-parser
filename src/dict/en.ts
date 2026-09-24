@@ -31,6 +31,8 @@ export const en: Dict = {
     clearAll: "Clear all",
     clearFilters: "Clear filters",
     removeFile: "Remove file",
+    enterFullscreen: "Full screen",
+    exitFullscreen: "Exit full screen",
     whatIsHeading: "What is an EVTX file?",
     whatIsBody:
       "An .evtx file is a Windows Event Log — the binary format Windows has used since Vista to record security, system and application events. They live in C:\\Windows\\System32\\winevt\\Logs (Security.evtx, System.evtx, Application.evtx…) and are not plain text, so Notepad can't read them. Drop one below to view it.",
@@ -39,7 +41,7 @@ export const en: Dict = {
   fileLocation: {
     heading: "Where to find .evtx files",
     intro:
-      "On the source host each event log channel is its own .evtx file, all in one folder. %SystemRoot% is normally C:\\Windows.",
+      "On the source host each event log channel is its own .evtx file, all in one folder. Paths assume the default Windows folder, C:\\Windows (%SystemRoot%).",
     allChannels: "Logs folder — all channels",
     vistaPlus: "Windows Vista / Server 2008+",
     archived:

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { CopyPathButton } from "@/components/CopyPathButton";
 import type { Dict } from "@/src/dict/types";
 
-const LOGS = String.raw`%SystemRoot%\System32\winevt\Logs`;
+const LOGS = String.raw`C:\Windows\System32\winevt\Logs`;
 
 type PathRow = {
   /** Channel / file label. Either a literal (channel names are not
@@ -53,7 +53,7 @@ const PATHS: PathRow[] = [
   { label: { key: "archived" }, path: `${LOGS}\\Archive-Security-*.evtx` },
   {
     label: { key: "legacy" },
-    path: String.raw`%SystemRoot%\System32\config\SecEvent.Evt`,
+    path: String.raw`C:\Windows\System32\config\SecEvent.Evt`,
     os: "xp",
   },
 ];
