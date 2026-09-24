@@ -1,6 +1,6 @@
 ---
-title: "What is an .evtx file? Windows Event Log format explained"
-description: "An .evtx file is a binary Windows Event Log. Where they live, what is inside one, how they differ from .evt, and how to open them. No install required."
+title: "What is an EVTX file? Windows Event Log files explained"
+description: "An .evtx file is a Windows Event Log file. Where .evtx files are stored, what is inside (Security.evtx, System.evtx…), .evt vs .evtx, and how to open one on any OS."
 date: "2026-05-24"
 faq:
   - question: "What is an .evtx file?"

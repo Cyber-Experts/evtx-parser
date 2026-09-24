@@ -233,6 +233,33 @@ function buildJson(
   );
 }
 
+function buildTxt(
+  rows: IndexedRow[],
+  parsed: Record<string, string>[],
+  dict: Dict,
+  includeXml: boolean,
+  xmls: string[],
+  includeSource: boolean,
+): string {
+  // Plain-text export: one readable block per event, blank line between
+  // events — greppable and pasteable into a report or ticket.
+  const blocks = rows.map((r, i) => {
+    const lines = [
+      `${dict.table.record}${Number(r.record_id)} | ${r.timestamp} | ${levelLabel(r.level, dict)} | ${dict.table.eventId} ${r.event_id ?? ""}`,
+      `${dict.table.provider}: ${r.provider ?? ""}`,
+      `${dict.table.channel}: ${r.channel ?? ""}`,
+      `${dict.table.computer}: ${r.computer ?? ""}`,
+    ];
+    if (includeSource) lines.push(`${dict.table.source}: ${r._file}`);
+    for (const [k, v] of Object.entries(parsed[i] ?? {})) {
+      lines.push(`  ${k}: ${v.replace(/\r?\n/g, " ")}`);
+    }
+    if (includeXml && xmls[i]) lines.push(xmls[i]);
+    return lines.join("\n");
+  });
+  return blocks.join("\n\n") + "\n";
+}
+
 function download(filename: string, mime: string, body: string) {
   const blob = new Blob([body], { type: mime });
   const url = URL.createObjectURL(blob);
@@ -1027,7 +1054,7 @@ export function EvtxUploader({
   }, [ready, sortedRows, scrollRowIntoView, toggleDetailsFor, toggleBookmark]);
 
   const runExport = useCallback(
-    async (kind: "csv" | "json") => {
+    async (kind: "csv" | "json" | "txt") => {
       if (!ready) return;
       const client = clientRef.current;
       if (!client) return;
@@ -1077,6 +1104,12 @@ export function EvtxUploader({
             `${base}.csv`,
             "text/csv;charset=utf-8",
             buildCsv(filteredRows, parsed, t, includeXml, xmls, multiFile),
+          );
+        } else if (kind === "txt") {
+          download(
+            `${base}.txt`,
+            "text/plain;charset=utf-8",
+            buildTxt(filteredRows, parsed, t, includeXml, xmls, multiFile),
           );
         } else {
           download(
@@ -1465,6 +1498,16 @@ export function EvtxUploader({
                 {exporting
                   ? t.home.exporting
                   : `${t.home.exportJson} (${numberFmt.format(filteredRows.length)})`}
+              </button>
+              <button
+                type="button"
+                onClick={() => runExport("txt")}
+                disabled={filteredRows.length === 0 || exporting}
+                className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+              >
+                {exporting
+                  ? t.home.exporting
+                  : `${t.home.exportTxt} (${numberFmt.format(filteredRows.length)})`}
               </button>
             </div>
           </div>

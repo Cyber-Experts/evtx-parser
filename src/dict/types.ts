@@ -20,12 +20,16 @@ export type Dict = {
     topIds: string;
     exportCsv: string;
     exportJson: string;
+    exportTxt: string;
     includeXml: string;
     exporting: string;
     clearTime: string;
     clearAll: string;
     clearFilters: string;
     removeFile: string;
+    whatIsHeading: string;
+    whatIsBody: string;
+    whatIsMore: string;
   };
   /** "Where to find .evtx files" panel under the home-page drop zone.
    *  Paths themselves live in components/EvtxLocations.tsx (not translated).

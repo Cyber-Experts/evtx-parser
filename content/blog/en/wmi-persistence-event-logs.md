@@ -1,6 +1,6 @@
 ---
-title: "WMI event-subscription persistence in the event logs"
-description: "How attackers persist with permanent WMI event subscriptions (__EventFilter + __EventConsumer + __FilterToConsumerBinding) and what the WMI-Activity Operational log records — Event ID 5861 and friends."
+title: "Event ID 5861: WMI persistence in the WMI-Activity log"
+description: "Event ID 5861 (WMI-Activity/Operational) records permanent WMI event subscriptions, the __EventFilter/Consumer/Binding trio attackers use for persistence. How to read and hunt it."
 date: "2026-06-17"
 tags:
   - evtx

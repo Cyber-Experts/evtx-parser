@@ -1,6 +1,6 @@
 ---
-title: "Windows Security Event ID cheat sheet for DFIR"
-description: "The Windows event IDs that matter in an investigation, grouped by attack phase — with the log they live in, a one-line meaning, and a link to the deep-dive for each. A reference for incident response and threat hunting."
+title: "Windows Event ID Cheat Sheet (Security, Sysmon, PowerShell)"
+description: "Windows Event ID cheat sheet for DFIR and threat hunting: the Security, System, Sysmon and PowerShell IDs that matter, grouped by attack phase, each with a one-line meaning."
 date: "2026-06-17"
 tags:
   - evtx

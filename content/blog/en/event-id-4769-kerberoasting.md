@@ -1,6 +1,6 @@
 ---
-title: "Event ID 4769 explained: Kerberos service tickets and kerberoasting"
-description: "4769 is the DC's record of every service-ticket request. Read it through the encryption type and you spot kerberoasting. Read it with 4768 and you spot pass-the-ticket."
+title: "Event ID 4769: Kerberos service tickets and kerberoasting"
+description: "Event ID 4769: A Kerberos service ticket was requested. Which fields reveal kerberoasting (RC4 0x17 tickets), how to separate it from normal TGS noise, and how it pairs with 4768."
 date: "2026-05-24"
 ---
 

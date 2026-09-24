@@ -2,9 +2,9 @@ import type { Dict } from "./types";
 
 export const zh: Dict = {
   meta: {
-    title: "EVTX 在线查看器和解析器 — 在浏览器中打开 Windows 事件日志",
+    title: "EVTX 在线查看器和解析器 — 无需上传即可打开 .evtx 文件",
     description:
-      "在浏览器中完整解析 Windows .evtx 事件日志。基于 WebAssembly 的取证 — 文件不会离开你的设备。",
+      ".evtx 文件是 Windows 事件日志。在浏览器中免费打开 — 无需上传、无需安装 — 筛选事件并导出为 CSV、TXT、JSON 或 XML。",
     siteName: "EVTX parser",
   },
   home: {
@@ -24,12 +24,17 @@ export const zh: Dict = {
     topIds: "高频 ID",
     exportCsv: "导出 CSV",
     exportJson: "导出 JSON",
+    exportTxt: "导出 TXT",
     includeXml: "原始 XML 列",
     exporting: "导出中…",
     clearTime: "清除时间范围",
     clearAll: "全部清除",
     clearFilters: "清除筛选",
     removeFile: "移除文件",
+    whatIsHeading: "什么是 EVTX 文件？",
+    whatIsBody:
+      ".evtx 文件是 Windows 事件日志 — Windows 自 Vista 起用于记录安全、系统和应用程序事件的二进制格式。它们位于 C:\\Windows\\System32\\winevt\\Logs（Security.evtx、System.evtx、Application.evtx 等），不是纯文本，记事本无法读取。将文件拖放到下方即可查看。",
+    whatIsMore: "EVTX 格式完整指南",
   },
   fileLocation: {
     heading: "在哪里找到 .evtx 文件",

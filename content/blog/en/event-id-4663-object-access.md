@@ -1,6 +1,6 @@
 ---
-title: "Event ID 4663 explained: file and registry access auditing with SACLs"
-description: "4663 is the per-access object-audit record. Configure SACLs on the right files and keys and you get a per-byte log of who touched what. Useful for ransomware, exfil, and credential-store theft."
+title: "Event ID 4663: An attempt was made to access an object"
+description: "Event ID 4663 logs file, folder and registry access audited by a SACL: who touched what, with which access mask. Setup, key fields and hunts for ransomware and data theft."
 date: "2026-05-24"
 ---
 

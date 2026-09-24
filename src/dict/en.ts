@@ -2,9 +2,9 @@ import type { Dict } from "./types";
 
 export const en: Dict = {
   meta: {
-    title: "EVTX Viewer & Parser Online — open Windows Event Logs in your browser",
+    title: "EVTX Viewer & Parser — Open .evtx Files Online, No Upload",
     description:
-      "Free online EVTX viewer and parser. Open .evtx Windows Event Logs in your browser — no upload, no install. Filter, inspect the raw XML and export logons, services and PowerShell to CSV, JSON or XML.",
+      "An .evtx file is a Windows Event Log. Open it free in your browser — no upload, no install — filter events and export to CSV, TXT, JSON or XML.",
     siteName: "EVTX parser",
   },
   home: {
@@ -24,12 +24,17 @@ export const en: Dict = {
     topIds: "Top IDs",
     exportCsv: "Export CSV",
     exportJson: "Export JSON",
+    exportTxt: "Export TXT",
     includeXml: "Raw XML column",
     exporting: "Exporting…",
     clearTime: "Clear time range",
     clearAll: "Clear all",
     clearFilters: "Clear filters",
     removeFile: "Remove file",
+    whatIsHeading: "What is an EVTX file?",
+    whatIsBody:
+      "An .evtx file is a Windows Event Log — the binary format Windows has used since Vista to record security, system and application events. They live in C:\\Windows\\System32\\winevt\\Logs (Security.evtx, System.evtx, Application.evtx…) and are not plain text, so Notepad can't read them. Drop one below to view it.",
+    whatIsMore: "Full guide to the EVTX format",
   },
   fileLocation: {
     heading: "Where to find .evtx files",

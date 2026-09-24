@@ -2,9 +2,9 @@ import type { Dict } from "./types";
 
 export const ja: Dict = {
   meta: {
-    title: "EVTX ビューアー＆パーサー オンライン — Windows イベントログをブラウザで解析",
+    title: "EVTX ビューアー＆パーサー — .evtx ファイルをオンラインで開く（アップロード不要）",
     description:
-      "無料のオンライン EVTX ビューアー＆パーサー。Windows の .evtx イベントログをブラウザだけで開いて解析 — アップロード不要・インストール不要。フィルター、XML 確認、CSV/JSON/XML エクスポートに対応。",
+      ".evtx ファイルは Windows のイベントログです。ブラウザで無料で開けます — アップロード・インストール不要。フィルターして CSV・TXT・JSON・XML にエクスポート。",
     siteName: "EVTX parser",
   },
   home: {
@@ -24,12 +24,17 @@ export const ja: Dict = {
     topIds: "頻出 ID",
     exportCsv: "CSV をエクスポート",
     exportJson: "JSON をエクスポート",
+    exportTxt: "TXT をエクスポート",
     includeXml: "生 XML 列",
     exporting: "エクスポート中…",
     clearTime: "時間範囲をクリア",
     clearAll: "すべてクリア",
     clearFilters: "フィルターをクリア",
     removeFile: "ファイルを削除",
+    whatIsHeading: "EVTX ファイルとは？",
+    whatIsBody:
+      ".evtx ファイルは Windows のイベントログです。Vista 以降の Windows がセキュリティ・システム・アプリケーションのイベントを記録するバイナリ形式で、C:\\Windows\\System32\\winevt\\Logs（Security.evtx、System.evtx、Application.evtx など）に保存されます。テキストではないためメモ帳では読めません。下にドロップすると内容を表示できます。",
+    whatIsMore: "EVTX 形式の詳しいガイド",
   },
   fileLocation: {
     heading: ".evtx ファイルの場所",

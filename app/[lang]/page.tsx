@@ -106,6 +106,28 @@ export default async function Home({
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             {dict.home.intro}
           </p>
+          {/* "evtx" is a mostly-informational query and this page is the one
+              Google ranks for it, so answer "what is it" above the fold. */}
+          <section
+            aria-labelledby="what-is-evtx"
+            className="flex flex-col gap-1 rounded border border-zinc-200 p-3 text-sm leading-relaxed text-zinc-700 dark:border-zinc-800 dark:text-zinc-300"
+          >
+            <h2
+              id="what-is-evtx"
+              className="text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+            >
+              {dict.home.whatIsHeading}
+            </h2>
+            <p>
+              {dict.home.whatIsBody}{" "}
+              <Link
+                href={`/${locale}/blog/what-is-an-evtx-file`}
+                className="underline underline-offset-2 hover:text-zinc-900 dark:hover:text-zinc-100"
+              >
+                {dict.home.whatIsMore}
+              </Link>
+            </p>
+          </section>
         </header>
 
         <EvtxUploader
