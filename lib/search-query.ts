@@ -15,6 +15,7 @@
 // anything else is looked up in the event's EventData.
 
 import { eventName } from "@/lib/event-info";
+import { decodedText } from "@/lib/event-decode";
 
 export type SearchRow = {
   event_id: number | null;
@@ -307,6 +308,8 @@ export function haystackFor(row: SearchRow, pairs: [string, string][]): string {
     eventName(row.event_id, row.provider) ?? "",
   ];
   for (const [, v] of pairs) parts.push(v);
+  // Decoded codes too, so "RemoteInteractive" or "bad password" match.
+  parts.push(decodedText(pairs));
   return parts.join("\u0001").toLowerCase();
 }
 

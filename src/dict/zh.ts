@@ -64,6 +64,12 @@ export const zh: Dict = {
     helpPivot: "同一登录会话的全部事件",
     noValues: "无值",
     suggestions: "建议",
+    description: "描述",
+    copy: "复制",
+    copied: "已复制",
+    copyJson: "复制为 JSON",
+    copyXml: "复制 XML",
+    timeZoneToggle: "以 UTC 或本地时区显示时间",
   },
   fileLocation: {
     heading: "在哪里找到 .evtx 文件",

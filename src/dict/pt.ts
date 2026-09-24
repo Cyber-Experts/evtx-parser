@@ -64,6 +64,12 @@ export const pt: Dict = {
     helpPivot: "Todos os eventos de uma sessão de logon",
     noValues: "Sem valores",
     suggestions: "Sugestões",
+    description: "Descrição",
+    copy: "Copiar",
+    copied: "Copiado",
+    copyJson: "Copiar como JSON",
+    copyXml: "Copiar XML",
+    timeZoneToggle: "Mostrar horários em UTC ou no seu fuso horário",
   },
   fileLocation: {
     heading: "Onde encontrar os arquivos .evtx",

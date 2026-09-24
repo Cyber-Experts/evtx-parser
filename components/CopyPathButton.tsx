@@ -3,15 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 
+import { copyText } from "@/lib/clipboard";
+
 /** Small icon button that copies `value` and flashes a "Copied" state. */
 export function CopyPathButton({
   value,
   label,
   copiedLabel,
+  text,
 }: {
-  value: string;
+  /** Text to copy, or a function computing it at click time. */
+  value: string | (() => string);
   label: string;
   copiedLabel: string;
+  /** Optional visible label next to the icon. */
+  text?: string;
 }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -24,23 +30,7 @@ export function CopyPathButton({
   );
 
   async function copy() {
-    try {
-      await navigator.clipboard.writeText(value);
-    } catch {
-      // Fallback for non-secure contexts / older browsers.
-      const ta = document.createElement("textarea");
-      ta.value = value;
-      ta.setAttribute("readonly", "");
-      ta.style.position = "absolute";
-      ta.style.left = "-9999px";
-      document.body.appendChild(ta);
-      ta.select();
-      try {
-        document.execCommand("copy");
-      } finally {
-        document.body.removeChild(ta);
-      }
-    }
+    await copyText(typeof value === "function" ? value() : value);
     setCopied(true);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setCopied(false), 1500);
@@ -68,7 +58,10 @@ export function CopyPathButton({
           </span>
         </>
       ) : (
-        <Copy className="size-3.5" aria-hidden="true" />
+        <>
+          <Copy className="size-3.5" aria-hidden="true" />
+          {text && <span className="text-xs">{text}</span>}
+        </>
       )}
       <span className="sr-only" aria-live="polite">
         {copied ? copiedLabel : ""}
