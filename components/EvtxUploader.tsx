@@ -1,6 +1,14 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { track } from "@vercel/analytics";
 
 import {
@@ -332,9 +340,13 @@ function ScanningIndicator() {
 export function EvtxUploader({
   dict,
   locale,
+  emptyStateAside,
 }: {
   dict: Dict;
   locale: string;
+  /** Rendered directly under the drop zone while no file is loaded
+   *  (e.g. the "Where to find .evtx files" panel). */
+  emptyStateAside?: ReactNode;
 }) {
   const t = dict;
   const clientRef = useRef<EvtxClient | null>(null);
@@ -1176,6 +1188,8 @@ export function EvtxUploader({
           />
         </label>
       )}
+
+      {!ready && emptyStateAside}
 
       {loading && (
         <div className="flex flex-col gap-2 rounded-lg border border-amber-500/30 bg-amber-50/40 px-4 py-3 dark:border-amber-400/20 dark:bg-amber-400/[0.06]">

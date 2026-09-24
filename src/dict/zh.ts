@@ -31,6 +31,24 @@ export const zh: Dict = {
     clearFilters: "清除筛选",
     removeFile: "移除文件",
   },
+  fileLocation: {
+    heading: "在哪里找到 .evtx 文件",
+    intro:
+      "在源主机上,每个事件日志通道都是一个独立的 .evtx 文件,全部位于同一文件夹。%SystemRoot% 通常为 C:\\Windows。",
+    allChannels: "日志文件夹 — 所有通道",
+    vistaPlus: "Windows Vista / Server 2008 及以上",
+    archived: "已归档日志(启用自动备份时为 Archive-<通道>-<时间戳>.evtx)",
+    legacy: "旧版 .evt(另有 AppEvent.Evt、SysEvent.Evt)— 本工具不支持",
+    howToHeading: "如何获取",
+    howTo: [
+      "EventLog 服务会一直占用活动日志,直接复制会失败。在管理员命令行中运行 `wevtutil epl Security C:\\triage\\Security.evtx` 可导出干净副本(仅活动日志,不含 Archive-* 文件)。",
+      "要原样获取整个文件夹:使用 KAPE(`--target EventLogs`)、FTK Imager 或 RawCopy,或从挂载的 E01 镜像或卷影副本(VSS)离线读取。",
+      "每个 .evtx 都是自包含的,无需配套文件。通道可能被重定向:用 `wevtutil gl <通道>`(logFileName)确认实际路径。",
+    ],
+    readMore: "采集指南:4 种方法对比",
+    copy: "复制路径",
+    copied: "已复制",
+  },
   table: {
     record: "记录 #",
     time: "时间 (UTC)",

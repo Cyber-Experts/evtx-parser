@@ -27,6 +27,24 @@ export type Dict = {
     clearFilters: string;
     removeFile: string;
   };
+  /** "Where to find .evtx files" panel under the home-page drop zone.
+   *  Paths themselves live in components/EvtxLocations.tsx (not translated).
+   *  In `howTo` bullets, text wrapped in `backticks` renders as <code>. */
+  fileLocation: {
+    heading: string;
+    intro: string;
+    /** Label for the winevt\Logs folder row. */
+    allChannels: string;
+    /** OS qualifier, e.g. "Windows Vista / Server 2008+". */
+    vistaPlus: string;
+    archived: string;
+    legacy: string;
+    howToHeading: string;
+    howTo: string[];
+    readMore: string;
+    copy: string;
+    copied: string;
+  };
   table: {
     record: string;
     time: string;

@@ -31,6 +31,26 @@ export const de: Dict = {
     clearFilters: "Filter zurücksetzen",
     removeFile: "Datei entfernen",
   },
+  fileLocation: {
+    heading: "Wo liegen die .evtx-Dateien?",
+    intro:
+      "Auf dem Quellsystem ist jeder Ereignisprotokoll-Kanal eine eigene .evtx-Datei, alle im selben Ordner. %SystemRoot% ist normalerweise C:\\Windows.",
+    allChannels: "Protokollordner — alle Kanäle",
+    vistaPlus: "Windows Vista / Server 2008+",
+    archived:
+      "Archivierte Protokolle (Archive-<Kanal>-<Zeitstempel>.evtx, wenn automatische Archivierung aktiv ist)",
+    legacy:
+      "Altes .evt-Format (auch AppEvent.Evt, SysEvent.Evt) — hier nicht unterstützt",
+    howToHeading: "So kommen Sie an die Datei",
+    howTo: [
+      "Der EventLog-Dienst hält aktive Protokolle geöffnet, ein normales Kopieren schlägt fehl. In einer Admin-Shell exportiert `wevtutil epl Security C:\\triage\\Security.evtx` eine saubere Kopie (nur das aktive Protokoll — Archive-*-Dateien fehlen).",
+      "Den ganzen Ordner unverändert sichern: KAPE (`--target EventLogs`), FTK Imager oder RawCopy — oder offline aus einem eingebundenen E01-Image bzw. einer Schattenkopie (VSS) lesen.",
+      "Jede .evtx ist eigenständig, Begleitdateien sind nicht nötig. Kanäle können umgeleitet sein: den tatsächlichen Pfad mit `wevtutil gl <Kanal>` (logFileName) prüfen.",
+    ],
+    readMore: "Sicherungsleitfaden: 4 Methoden im Vergleich",
+    copy: "Pfad kopieren",
+    copied: "Kopiert",
+  },
   table: {
     record: "Eintrag #",
     time: "Zeit (UTC)",
