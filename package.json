@@ -27,10 +27,10 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "gray-matter": "^4.0.3",
-    "image-size": "^2.0.2",
+    "image-size": "^2.0.4",
     "lucide-react": "^1.16.0",
     "negotiator": "^1.0.0",
-    "next": "16.2.6",
+    "next": "16.3.6",
     "next-themes": "^0.4.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -58,11 +58,21 @@
     "@types/react-dom": "^19",
     "@types/unist": "^3.0.3",
     "eslint": "^9",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "16.3.6",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.5",
     "tailwindcss": "^4",
     "tsx": "^4.22.3",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@vercel/og": {
+      "sharp": "^0.35.4"
+    }
+  },
+  "pnpm": {
+    "overrides": {
+      "@vercel/og>sharp": "^0.35.4"
+    }
   }
 }
