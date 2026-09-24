@@ -7,7 +7,7 @@ import {
   landingMetadata,
 } from "@/components/landing/LandingPage";
 
-const PATH = "/evtx-to-xml";
+const PATH = "/evtx-dump-online";
 
 export async function generateMetadata({
   params,

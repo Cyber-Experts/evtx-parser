@@ -1,6 +1,6 @@
 ---
-title: "How to open an .evtx file (5 methods, no install required)"
-description: "Five ways to open a Windows .evtx file: in your browser, in Event Viewer, with wevtutil, with EvtxECmd, or with python-evtx. Pick by host OS and how much friction you can stomach."
+title: "How to open an EVTX file (Windows, Mac, Linux: 5 ways)"
+description: "How to open a .evtx file: in your browser, Event Viewer, wevtutil, EvtxECmd or python-evtx. Works on Windows, macOS and Linux; pick by OS and how much you want to install."
 date: "2026-05-24"
 howto:
   name: "How to open an .evtx file"

@@ -4,7 +4,11 @@ import type { Metadata } from "next";
 
 import { getDict } from "@/src/dict";
 import { isLocale, locales, type Locale } from "@/src/dict/locales";
-import { allEventIdParams, getEventId } from "@/lib/event-id-data";
+import {
+  allEventIdParams,
+  getEventId,
+  isEventIdIndexable,
+} from "@/lib/event-id-data";
 import { blog } from "@/next-md-blog.config";
 import { jsonLdScript } from "@/lib/schema";
 import { Breadcrumbs } from "@/components/BreadcrumbsEvtx";
@@ -58,8 +62,13 @@ export async function generateMetadata({
     description,
     alternates: {
       canonical: url,
-      languages: localeAlternates(subPath),
+      // Only /en is indexed (see isEventIdIndexable), so there are no
+      // translated alternates to advertise.
+      languages: localeAlternates(subPath, ["en"]),
     },
+    ...(isEventIdIndexable(entry, locale)
+      ? {}
+      : { robots: { index: false, follow: true } }),
     openGraph: {
       type: "article",
       siteName: dict.meta.siteName,

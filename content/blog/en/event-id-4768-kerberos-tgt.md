@@ -1,6 +1,6 @@
 ---
-title: "Event ID 4768 explained: Kerberos TGT requests and AS-REP roasting"
-description: "4768 is the DC's record of every TGT issued. Read it through the result code and pre-auth flag and you spot AS-REP roasting, brute force, and unconstrained-delegation abuse."
+title: "Event ID 4768: Kerberos TGT requests and AS-REP roasting"
+description: "Event ID 4768: A Kerberos authentication ticket (TGT) was requested. How result codes and the pre-auth flag reveal AS-REP roasting, password spraying and delegation abuse."
 date: "2026-05-24"
 ---
 

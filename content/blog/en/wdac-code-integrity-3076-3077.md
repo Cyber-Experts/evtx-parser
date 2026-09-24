@@ -1,6 +1,6 @@
 ---
-title: "WDAC and Code Integrity events: 3076 and 3077"
-description: "Reading the CodeIntegrity Operational log for application-control and driver-blocking evidence — audit blocks (3076) vs enforced blocks (3077), what they reveal about unsigned and untrusted code, and how they fit alongside AppLocker."
+title: "Event ID 3076 & 3077: WDAC Code Integrity blocks explained"
+description: "Event ID 3076 is a WDAC / Smart App Control audit-mode block, 3077 an enforced block, both in CodeIntegrity/Operational. What they mean, the fields that matter and how to triage them."
 date: "2026-06-21"
 tags:
   - evtx

@@ -3,7 +3,7 @@ import { composeSitemap } from "@next-md-blog/core";
 import { blog, glossary } from "@/next-md-blog.config";
 import { siteConfig } from "@/site.config";
 import { LOCALES, DEFAULT_LOCALE, hreflangFor } from "@/lib/i18n";
-import { allEventIdParams } from "@/lib/event-id-data";
+import { allEventIds, isEventIdIndexable } from "@/lib/event-id-data";
 
 const STATIC_PATHS = [
   "",
@@ -12,6 +12,11 @@ const STATIC_PATHS = [
   "/event-ids",
   "/tools",
   "/evtx-to-xml",
+  "/evtx-to-csv",
+  "/evtx-to-txt",
+  "/evtx-to-json",
+  "/evtx-dump-online",
+  "/evtx-viewer-mac-linux",
   "/security-evtx",
   "/system-evtx",
   "/authors",
@@ -37,17 +42,19 @@ function staticEntry(
 }
 
 /**
- * Per-Event-ID landing pages — curated, finite, available in every locale.
- * Each gets a sitemap row with the full hreflang map.
+ * Per-Event-ID landing pages — English only, and only for IDs without a
+ * dedicated blog post (see isEventIdIndexable). The other variants are
+ * noindex, so they stay out of the sitemap.
  */
 function eventIdEntries(): MetadataRoute.Sitemap {
-  const out: MetadataRoute.Sitemap = [];
-  for (const { id } of allEventIdParams()) {
-    out.push(
-      staticEntry(`/event-id/${id}`, "monthly", 0.6),
-    );
-  }
-  return out;
+  return allEventIds()
+    .filter((e) => isEventIdIndexable(e, DEFAULT_LOCALE))
+    .map((e) => ({
+      url: `${siteConfig.url}/${DEFAULT_LOCALE}/event-id/${e.id}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    }));
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

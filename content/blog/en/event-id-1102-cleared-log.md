@@ -1,6 +1,6 @@
 ---
-title: "Event ID 1102 explained: Security audit log cleared (and what survives)"
-description: "1102 is the one event you cannot suppress without leaving more evidence behind. Here is what it tells you, what survives the clear, and where to look once you see it."
+title: "Event ID 1102: The audit log was cleared (what survives)"
+description: "Event ID 1102 means someone cleared the Windows Security log. Who did it, which fields prove it, what evidence survives the clear and where to look next."
 date: "2026-05-17"
 ---
 

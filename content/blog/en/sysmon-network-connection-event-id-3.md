@@ -1,6 +1,6 @@
 ---
-title: "Sysmon Event ID 3: network connections and C2 detection"
-description: "How to use Sysmon's network-connection event for threat hunting — the fields it records, spotting beaconing and LOLBin network activity, and why it's off by default and noisy."
+title: "Sysmon Event ID 3: Network connection detected (C2 hunting)"
+description: "Sysmon Event ID 3 logs each TCP/UDP connection with the process that made it. Fields explained, how to spot beaconing and LOLBin traffic, and how to tame the noise."
 date: "2026-06-21"
 tags:
   - evtx

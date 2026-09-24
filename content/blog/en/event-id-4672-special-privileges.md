@@ -1,6 +1,6 @@
 ---
-title: "Event ID 4672 explained: detecting privileged logons in Windows"
-description: "4672 fires whenever a logon is granted sensitive privileges like SeDebugPrivilege or SeTcbPrivilege. Read it as the 'this logon is admin-equivalent' signal and the rest of audit policy falls into place."
+title: "Event ID 4672: Special privileges assigned to new logon"
+description: "Event ID 4672 fires when a logon gets admin-equivalent privileges like SeDebugPrivilege. What it means, why it pairs with 4624, and how to track privileged sessions with it."
 date: "2026-05-24"
 ---
 

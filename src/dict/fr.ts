@@ -2,9 +2,9 @@ import type { Dict } from "./types";
 
 export const fr: Dict = {
   meta: {
-    title: "Visionneuse et analyseur EVTX en ligne — journaux d'événements Windows",
+    title: "Visionneuse EVTX en ligne — ouvrir un fichier .evtx sans envoi",
     description:
-      "Visionneuse et analyseur EVTX en ligne et gratuit. Ouvrez vos journaux .evtx Windows dans le navigateur — sans envoi, sans installation. Filtrez, inspectez le XML et exportez en CSV, JSON ou XML.",
+      "Un fichier .evtx est un journal d'événements Windows. Ouvrez-le gratuitement dans le navigateur — sans envoi ni installation — filtrez et exportez en CSV, TXT, JSON ou XML.",
     siteName: "EVTX parser",
   },
   home: {
@@ -24,12 +24,17 @@ export const fr: Dict = {
     topIds: "IDs fréquents",
     exportCsv: "Exporter CSV",
     exportJson: "Exporter JSON",
+    exportTxt: "Exporter TXT",
     includeXml: "Colonne XML brut",
     exporting: "Export en cours…",
     clearTime: "Effacer la plage horaire",
     clearAll: "Tout effacer",
     clearFilters: "Effacer les filtres",
     removeFile: "Retirer le fichier",
+    whatIsHeading: "Qu'est-ce qu'un fichier EVTX ?",
+    whatIsBody:
+      "Un fichier .evtx est un journal d'événements Windows — le format binaire utilisé depuis Vista pour enregistrer les événements de sécurité, système et application. Ils se trouvent dans C:\\Windows\\System32\\winevt\\Logs (Security.evtx, System.evtx, Application.evtx…) et ne sont pas du texte brut : le Bloc-notes ne peut pas les lire. Déposez-en un ci-dessous pour l'afficher.",
+    whatIsMore: "Guide complet du format EVTX",
   },
   fileLocation: {
     heading: "Où trouver les fichiers .evtx",

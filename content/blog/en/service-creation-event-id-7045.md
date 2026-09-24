@@ -1,6 +1,6 @@
 ---
-title: "Event ID 7045 explained: service installation as a persistence signal"
-description: "Service creation is one of the loudest persistence techniques. Event 7045 captures every install. Read these three fields and you catch most of it."
+title: "Event ID 7045: A service was installed in the system"
+description: "Event ID 7045 (System log) records every new Windows service. The three fields that expose a malicious service (ImagePath, account, start type) and how attackers abuse it for persistence."
 date: "2026-05-17"
 ---
 

@@ -346,3 +346,17 @@ export function allEventIds(): ResolvedEventId[] {
 export function allEventIdParams(): { id: string }[] {
   return allEventIds().map((r) => ({ id: String(r.id) }));
 }
+
+/**
+ * Whether a per-ID page should be indexed. Only English pages qualify: the
+ * row names and notes are English-only, so the /fr, /zh… copies were
+ * near-duplicates that Google ranked for English queries in place of /en.
+ * IDs with a dedicated blog post are left to the post, which is the stronger
+ * page — two URLs on one Event ID split the ranking.
+ */
+export function isEventIdIndexable(
+  entry: EventIdRow,
+  locale: string,
+): boolean {
+  return locale === "en" && !entry.postSlug;
+}

@@ -1,6 +1,6 @@
 ---
-title: "Event ID 4688 explained: Windows process creation auditing for DFIR"
-description: "4688 is the base-OS process create record, provided command-line auditing is on. Here is what is in it, how it differs from Sysmon 1, and the triage patterns that earn their keep."
+title: "Event ID 4688: A new process has been created (command line)"
+description: "Event ID 4688 logs every process creation in the Security log. How to enable command-line auditing, the fields that matter, how it compares to Sysmon Event ID 1, and triage patterns."
 date: "2026-05-24"
 ---
 

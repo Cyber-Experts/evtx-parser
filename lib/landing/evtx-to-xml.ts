@@ -1,18 +1,7 @@
+import type { LandingContent } from "./landing";
 import type { LocaleContent } from "./locale-content";
 
-export type EvtxToXml = {
-  metaTitle: string;
-  metaDescription: string;
-  h1: string;
-  intro: string;
-  ctaLabel: string;
-  formatsHeading: string;
-  formats: { name: string; body: string }[];
-  stepsHeading: string;
-  steps: { title: string; body: string }[];
-  faqHeading: string;
-  faq: { q: string; a: string }[];
-};
+export type EvtxToXml = LandingContent;
 
 export const EVTX_TO_XML: LocaleContent<EvtxToXml> = {
   en: {
