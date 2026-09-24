@@ -26,6 +26,24 @@ import {
   evaluateNode,
   hasConditions,
 } from "@/lib/filter-query";
+import {
+  META_FIELD_NAMES,
+  MULTI_FIELDS,
+  PREFERRED_FIELDS,
+  compileSearch,
+  haystackFor,
+  highlightTerms,
+  parseSearch,
+  withClause,
+  withoutClause,
+} from "@/lib/search-query";
+import { SearchBox } from "@/components/viewer/SearchBox";
+import { FacetSidebar } from "@/components/viewer/FacetSidebar";
+import {
+  HighlightContext,
+  Hl,
+  buildHighlightRegExp,
+} from "@/components/viewer/Highlight";
 import type { Dict } from "@/src/dict/types";
 
 // Virtualization: render only the rows the user can actually see plus a
@@ -37,8 +55,6 @@ const SCROLL_HEIGHT_PX = 640; // events-table viewport height
 // height, so we widen the window around the open row instead.
 const OPEN_ROW_WINDOW = 200;
 
-const PROVIDER_CHIP_LIMIT = 8;
-const CHANNEL_CHIP_LIMIT = 6;
 
 const LEVELS: Array<{ value: number; key: keyof Dict["levels"] }> = [
   { value: 1, key: "critical" },
@@ -131,17 +147,47 @@ function levelLabel(level: number | null, dict: Dict): string {
   }
 }
 
-function rowMatchesText(row: IndexedRow, needle: string): boolean {
-  if (!needle) return true;
-  const n = needle.toLowerCase();
-  if (row.event_id != null && String(row.event_id).includes(n)) return true;
-  if (row.provider?.toLowerCase().includes(n)) return true;
-  if (row.channel?.toLowerCase().includes(n)) return true;
-  if (row.computer?.toLowerCase().includes(n)) return true;
-  if (row._file.toLowerCase().includes(n)) return true;
-  const name = eventName(row.event_id, row.provider);
-  if (name?.toLowerCase().includes(n)) return true;
-  return false;
+// Lazily built, per-dataset caches for search. Kept outside the component so
+// the memoized closures own their mutable cache.
+function makeHaystackIndex(allPairs: [string, string][][]) {
+  const cache: string[] = [];
+  return (r: IndexedRow): string =>
+    (cache[r._g] ??= haystackFor(r, allPairs[r._g] ?? []));
+}
+
+const META_VALUE: Record<string, (r: IndexedRow) => string | null> = {
+  eventid: (r) => (r.event_id == null ? null : String(r.event_id)),
+  level: (r) => (r.level == null ? null : String(r.level)),
+  provider: (r) => r.provider,
+  channel: (r) => r.channel,
+  computer: (r) => r.computer,
+  file: (r) => r._file,
+};
+
+/** Distinct values of a field (lower-cased name), most frequent first. */
+function makeValueIndex(rows: IndexedRow[], allPairs: [string, string][][]) {
+  const cache = new Map<string, [string, number][]>();
+  return (field: string): [string, number][] => {
+    const hit = cache.get(field);
+    if (hit) return hit;
+    const counts = new Map<string, number>();
+    const bump = (v: string | null | undefined) => {
+      if (v) counts.set(v, (counts.get(v) ?? 0) + 1);
+    };
+    const meta = META_VALUE[field];
+    if (meta) {
+      for (const r of rows) bump(meta(r));
+    } else {
+      const keys = MULTI_FIELDS[field] ?? [field];
+      for (const pairs of allPairs)
+        for (const [k, v] of pairs) if (keys.includes(k.toLowerCase())) bump(v);
+    }
+    const out = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 200);
+    cache.set(field, out);
+    return out;
+  };
 }
 
 // Cap the number of EventData-derived columns so a heterogeneous file
@@ -386,9 +432,6 @@ export function EvtxUploader({
   const [windowDrag, setWindowDrag] = useState(false);
   const [filter, setFilter] = useState("");
   const [activeLevels, setActiveLevels] = useState<Set<number>>(new Set());
-  const [activeEventIds, setActiveEventIds] = useState<Set<number>>(new Set());
-  const [activeProviders, setActiveProviders] = useState<Set<string>>(new Set());
-  const [activeChannels, setActiveChannels] = useState<Set<string>>(new Set());
   // Structured query builder (EventData + nested AND/OR), ANDed on top of the
   // quick chips/text/timeline above.
   const [query, setQuery] = useState<Group>(() => emptyRoot());
@@ -419,7 +462,7 @@ export function EvtxUploader({
   const [showFindings, setShowFindings] = useState(true);
   // Power-user workflow state.
   const [regexMode, setRegexMode] = useState(false);
-  const [excludeTerms, setExcludeTerms] = useState<string[]>([]);
+  const [showFacets, setShowFacets] = useState(true);
   const [bookmarks, setBookmarks] = useState<Set<number>>(new Set());
   const [bookmarkOnly, setBookmarkOnly] = useState(false);
   const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
@@ -501,9 +544,6 @@ export function EvtxUploader({
     setTimeRange(null);
     setFilter("");
     setActiveLevels(new Set());
-    setActiveEventIds(new Set());
-    setActiveProviders(new Set());
-    setActiveChannels(new Set());
     setQuery(emptyRoot());
     setError(null);
   }, []);
@@ -551,13 +591,9 @@ export function EvtxUploader({
   const clearFilters = useCallback(() => {
     setFilter("");
     setActiveLevels(new Set());
-    setActiveEventIds(new Set());
-    setActiveProviders(new Set());
-    setActiveChannels(new Set());
     setQuery(emptyRoot());
     setTimeRange(null);
     setFindingFilter(null);
-    setExcludeTerms([]);
     setBookmarkOnly(false);
     setOpenRow(null);
     setFocusedIdx(null);
@@ -571,12 +607,8 @@ export function EvtxUploader({
   const viewFinding = useCallback((f: Finding) => {
     setFilter("");
     setActiveLevels(new Set());
-    setActiveEventIds(new Set());
-    setActiveProviders(new Set());
-    setActiveChannels(new Set());
     setQuery(emptyRoot());
     setTimeRange(null);
-    setExcludeTerms([]);
     setBookmarkOnly(false);
     setOpenRow(null);
     setFocusedIdx(null);
@@ -593,15 +625,6 @@ export function EvtxUploader({
       else next.add(g);
       return next;
     });
-  }, []);
-
-  const addExclude = useCallback((value: string) => {
-    const v = value.trim();
-    if (!v) return;
-    setExcludeTerms((prev) => (prev.includes(v) ? prev : [...prev, v]));
-    setOpenRow(null);
-    setFocusedIdx(null);
-    if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, []);
 
   // Merge every loaded file's EventData into one array aligned with `allRows`
@@ -748,43 +771,6 @@ export function EvtxUploader({
     [files],
   );
 
-  // Top Event IDs across all files. Each file's list is pre-capped at 50, so the
-  // long tail is approximate, but the high-count IDs that matter are exact.
-  const topEventIds = useMemo<EventIdCount[]>(() => {
-    if (files.length <= 1) return files[0]?.topEventIds ?? [];
-    const m = new Map<number, number>();
-    for (const f of files) {
-      for (const [id, c] of f.topEventIds) m.set(id, (m.get(id) ?? 0) + c);
-    }
-    return [...m.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 50) as EventIdCount[];
-  }, [files]);
-
-  const topProviders = useMemo<Array<[string, number]>>(() => {
-    if (allRows.length === 0) return [];
-    const counts = new Map<string, number>();
-    for (const r of allRows) {
-      if (!r.provider) continue;
-      counts.set(r.provider, (counts.get(r.provider) ?? 0) + 1);
-    }
-    return [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, PROVIDER_CHIP_LIMIT);
-  }, [allRows]);
-
-  const topChannels = useMemo<Array<[string, number]>>(() => {
-    if (allRows.length === 0) return [];
-    const counts = new Map<string, number>();
-    for (const r of allRows) {
-      if (!r.channel) continue;
-      counts.set(r.channel, (counts.get(r.channel) ?? 0) + 1);
-    }
-    return [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, CHANNEL_CHIP_LIMIT);
-  }, [allRows]);
-
   // Distinct values for the query builder's autocomplete. Capped so a wildly
   // heterogeneous file can't blow up the suggestion lists.
   const facets = useMemo<FilterFacets>(() => {
@@ -849,18 +835,54 @@ export function EvtxUploader({
     }
   }
 
+  // Parsed search box (ignored in regex mode) and what to highlight.
+  const parsedSearch = useMemo(
+    () => (regexMode ? null : parseSearch(filter)),
+    [filter, regexMode],
+  );
+  const compiledSearch = useMemo(
+    () => (parsedSearch ? compileSearch(parsedSearch) : null),
+    [parsedSearch],
+  );
+  const highlightRe = useMemo(
+    () =>
+      buildHighlightRegExp(
+        parsedSearch ? highlightTerms(parsedSearch) : [],
+        regexMode && filter && !regexInvalid ? filter : null,
+      ),
+    [parsedSearch, regexMode, filter, regexInvalid],
+  );
+  // Lower-cased "everything" string per row for free-text search, built on
+  // first use and cached for the lifetime of the dataset.
+  const haystackOf = useMemo(() => makeHaystackIndex(allPairs), [allPairs]);
+
+  // Search-box autocomplete: field names, then each field's values by count.
+  const searchFieldNames = useMemo(() => {
+    // Investigation fields first, so "Targ" + Tab gives TargetUserName.
+    const present = new Set(facets.eventDataKeys.map((k) => k.toLowerCase()));
+    const preferred = PREFERRED_FIELDS.filter((f) => present.has(f.toLowerCase()));
+    const pref = new Set(preferred.map((f) => f.toLowerCase()));
+    return [
+      ...META_FIELD_NAMES,
+      "logonid",
+      "processguid",
+      ...preferred,
+      ...facets.eventDataKeys.filter((k) => !pref.has(k.toLowerCase())),
+    ];
+  }, [facets.eventDataKeys]);
+  const valuesFor = useMemo(
+    () => makeValueIndex(allRows, allPairs),
+    [allRows, allPairs],
+  );
+
   // Total active constraints across every filter surface — drives the
   // "Clear filters (N)" affordance and the empty-state reset.
   const activeFilterCount =
     (filter ? 1 : 0) +
     activeLevels.size +
-    activeEventIds.size +
-    activeProviders.size +
-    activeChannels.size +
     (timeRange ? 1 : 0) +
     (queryActive ? 1 : 0) +
     (findingFilter ? 1 : 0) +
-    excludeTerms.length +
     (bookmarkOnly ? 1 : 0);
   const anyFilter = activeFilterCount > 0;
 
@@ -868,18 +890,14 @@ export function EvtxUploader({
     if (
       !filter &&
       activeLevels.size === 0 &&
-      activeEventIds.size === 0 &&
-      activeProviders.size === 0 &&
-      activeChannels.size === 0 &&
       !timeRange &&
       !queryActive &&
       !findingFilter &&
-      excludeTerms.length === 0 &&
       !bookmarkOnly
     )
       return allRows;
-    // Build the free-text matcher once: a compiled regex in regex mode
-    // (invalid pattern matches nothing), else the substring matcher.
+    // Search box: a regex over every field in regex mode (invalid pattern
+    // matches nothing), otherwise the field-aware query language.
     let matcher: ((r: IndexedRow) => boolean) | null = null;
     if (filter) {
       if (regexMode) {
@@ -889,17 +907,10 @@ export function EvtxUploader({
         } catch {
           re = null;
         }
-        matcher = re
-          ? (r) =>
-              re.test(String(r.event_id ?? "")) ||
-              re.test(r.provider ?? "") ||
-              re.test(r.channel ?? "") ||
-              re.test(r.computer ?? "") ||
-              re.test(r._file) ||
-              re.test(eventName(r.event_id, r.provider) ?? "")
-          : () => false;
-      } else {
-        matcher = (r) => rowMatchesText(r, filter);
+        matcher = re ? (r) => re.test(haystackOf(r)) : () => false;
+      } else if (compiledSearch) {
+        matcher = (r) =>
+          compiledSearch(r, allPairs[r._g] ?? [], () => haystackOf(r));
       }
     }
     return allRows.filter((r) => {
@@ -907,20 +918,7 @@ export function EvtxUploader({
       if (bookmarkOnly && !bookmarks.has(r._g)) return false;
       if (activeLevels.size > 0 && (r.level == null || !activeLevels.has(r.level)))
         return false;
-      if (
-        activeEventIds.size > 0 &&
-        (r.event_id == null || !activeEventIds.has(r.event_id))
-      )
-        return false;
-      if (activeProviders.size > 0 && (!r.provider || !activeProviders.has(r.provider)))
-        return false;
-      if (activeChannels.size > 0 && (!r.channel || !activeChannels.has(r.channel)))
-        return false;
       if (matcher && !matcher(r)) return false;
-      if (excludeTerms.length > 0) {
-        for (const term of excludeTerms)
-          if (rowMatchesText(r, term)) return false;
-      }
       if (timeRange) {
         const t = Date.parse(r.timestamp);
         if (t < timeRange[0] || t >= timeRange[1]) return false;
@@ -934,16 +932,14 @@ export function EvtxUploader({
     filter,
     regexMode,
     activeLevels,
-    activeEventIds,
-    activeProviders,
-    activeChannels,
     timeRange,
     query,
     queryActive,
     findingFilter,
-    excludeTerms,
     bookmarkOnly,
     bookmarks,
+    compiledSearch,
+    haystackOf,
   ]);
 
   const setFilterAndResetScroll = useCallback((next: string) => {
@@ -952,6 +948,47 @@ export function EvtxUploader({
     setFocusedIdx(null);
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, []);
+
+  // Click-to-filter from any cell, facet or detail row: append a
+  // `Field:value` clause (or its negation) to the search box.
+  const applyClause = useCallback(
+    (update: (q: string) => string) => {
+      // A regex can't be combined with clauses; start a fresh query.
+      const base = regexMode ? "" : filter;
+      if (regexMode) setRegexMode(false);
+      setFilterAndResetScroll(update(base));
+    },
+    [filter, regexMode, setFilterAndResetScroll],
+  );
+  const includeValue = useCallback(
+    (field: string, value: string) =>
+      applyClause((q) => withClause(q, field, value)),
+    [applyClause],
+  );
+  const excludeValue = useCallback(
+    (field: string, value: string) =>
+      applyClause((q) => withClause(q, field, value, true)),
+    [applyClause],
+  );
+  const removeValue = useCallback(
+    (field: string, value: string) =>
+      applyClause((q) => withoutClause(q, field, value)),
+    [applyClause],
+  );
+
+  // Pivots from an event: replace every filter with a focused view.
+  const pivotTo = useCallback(
+    (opts: { search?: string; range?: [number, number] }) => {
+      setActiveLevels(new Set());
+      setQuery(emptyRoot());
+      setFindingFilter(null);
+      setBookmarkOnly(false);
+      setRegexMode(false);
+      setTimeRange(opts.range ?? null);
+      setFilterAndResetScroll(opts.search ?? "");
+    },
+    [setFilterAndResetScroll],
+  );
 
   const handleQueryChange = useCallback((next: Group) => {
     setQuery(next);
@@ -1361,6 +1398,16 @@ export function EvtxUploader({
               )}
               <button
                 type="button"
+                onClick={() => setShowFacets((v) => !v)}
+                aria-pressed={showFacets}
+                className={`rounded-md border px-2 py-1 text-xs transition-colors ${
+                  showFacets ? CHIP_ACTIVE : CHIP_IDLE
+                }`}
+              >
+                {showFacets ? t.viewer.hideFields : t.viewer.fields}
+              </button>
+              <button
+                type="button"
                 onClick={() => setFullscreen((v) => !v)}
                 aria-pressed={fullscreen}
                 title={fullscreen ? `${t.home.exitFullscreen} (Esc)` : t.home.enterFullscreen}
@@ -1450,17 +1497,15 @@ export function EvtxUploader({
           )}
 
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <input
-              ref={searchInputRef}
-              type="search"
-              placeholder={t.home.filterPlaceholder}
+            <SearchBox
               value={filter}
-              onChange={(e) => setFilterAndResetScroll(e.target.value)}
-              className={`w-full min-w-0 flex-1 basis-full rounded-md border bg-transparent px-3 py-1.5 font-mono text-xs outline-none sm:basis-64 ${
-                regexInvalid
-                  ? "border-red-400 focus:border-red-500"
-                  : "border-zinc-300 focus:border-amber-500 dark:border-zinc-700 dark:focus:border-amber-400"
-              }`}
+              onChange={setFilterAndResetScroll}
+              inputRef={searchInputRef}
+              dict={t}
+              regexMode={regexMode}
+              invalid={regexInvalid}
+              fieldNames={searchFieldNames}
+              valuesFor={valuesFor}
             />
             <button
               type="button"
@@ -1560,104 +1605,6 @@ export function EvtxUploader({
             </div>
           </div>
 
-          {excludeTerms.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 text-xs">
-              <span className="text-zinc-400">Excluding:</span>
-              {excludeTerms.map((term) => (
-                <button
-                  key={term}
-                  type="button"
-                  onClick={() =>
-                    setExcludeTerms((prev) => prev.filter((x) => x !== term))
-                  }
-                  title="Remove exclusion"
-                  className="inline-flex items-center gap-1 rounded border border-red-300 bg-red-50 px-1.5 py-0.5 font-mono text-red-700 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
-                >
-                  <span className="max-w-[24ch] truncate">−{term}</span>
-                  <span aria-hidden="true">×</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {topEventIds.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 font-mono text-xs text-zinc-500">
-              <span className="text-zinc-400">{t.home.topIds}:</span>
-              {topEventIds.slice(0, 12).map(([id, count]) => {
-                const active = activeEventIds.has(id);
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => toggleFacet(setActiveEventIds, id)}
-                    aria-pressed={active}
-                    className={`rounded border px-1.5 py-0.5 transition-colors ${
-                      active ? CHIP_ACTIVE : CHIP_IDLE
-                    }`}
-                    title={`${count} events`}
-                  >
-                    {id}
-                    <span className={`ml-1 ${active ? "text-amber-600/70 dark:text-amber-400/70" : "text-zinc-400"}`}>
-                      ×{count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {topProviders.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 font-mono text-xs text-zinc-500">
-              <span className="text-zinc-400">{t.table.provider}:</span>
-              {topProviders.map(([name, count]) => {
-                const active = activeProviders.has(name);
-                return (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => toggleFacet(setActiveProviders, name)}
-                    aria-pressed={active}
-                    className={`max-w-[20ch] truncate rounded border px-1.5 py-0.5 transition-colors ${
-                      active ? CHIP_ACTIVE : CHIP_IDLE
-                    }`}
-                    title={`${name} · ${count} events`}
-                  >
-                    {name}
-                    <span className={`ml-1 ${active ? "text-amber-600/70 dark:text-amber-400/70" : "text-zinc-400"}`}>
-                      ×{count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {topChannels.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 font-mono text-xs text-zinc-500">
-              <span className="text-zinc-400">{t.table.channel}:</span>
-              {topChannels.map(([name, count]) => {
-                const active = activeChannels.has(name);
-                return (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => toggleFacet(setActiveChannels, name)}
-                    aria-pressed={active}
-                    className={`max-w-[24ch] truncate rounded border px-1.5 py-0.5 transition-colors ${
-                      active ? CHIP_ACTIVE : CHIP_IDLE
-                    }`}
-                    title={`${name} · ${count} events`}
-                  >
-                    {name}
-                    <span className={`ml-1 ${active ? "text-amber-600/70 dark:text-amber-400/70" : "text-zinc-400"}`}>
-                      ×{count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
           <div className="flex flex-col gap-2">
             <button
               type="button"
@@ -1686,13 +1633,36 @@ export function EvtxUploader({
             )}
           </div>
 
+          <HighlightContext.Provider value={highlightRe}>
+          <div
+            className={`flex flex-col gap-3 lg:flex-row ${
+              fullscreen ? "min-h-[320px] flex-1" : ""
+            }`}
+          >
+          {showFacets && (
+            <aside
+              aria-label={t.viewer.fields}
+              style={fullscreen ? undefined : { maxHeight: SCROLL_HEIGHT_PX }}
+              className="max-h-72 shrink-0 overflow-y-auto lg:max-h-none lg:w-72"
+            >
+              <FacetSidebar
+                rows={filteredRows}
+                allPairs={allPairs}
+                query={regexMode ? "" : filter}
+                dict={t}
+                multiFile={multiFile}
+                levelLabel={(l) => levelLabel(l, t)}
+                onInclude={includeValue}
+                onExclude={excludeValue}
+                onRemove={removeValue}
+              />
+            </aside>
+          )}
           <div
             ref={scrollRef}
             onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
             style={fullscreen ? undefined : { maxHeight: SCROLL_HEIGHT_PX }}
-            className={`-mx-4 overflow-auto border-y border-zinc-200 sm:mx-0 sm:rounded-md sm:border dark:border-zinc-800 ${
-              fullscreen ? "min-h-[320px] flex-1" : ""
-            }`}
+            className="-mx-4 min-w-0 flex-1 overflow-auto border-y border-zinc-200 sm:mx-0 sm:rounded-md sm:border dark:border-zinc-800"
           >
             <table className="w-full text-left font-mono text-xs">
               <thead className="sticky top-0 z-10 bg-zinc-50 text-zinc-500 shadow-[0_1px_0_var(--tw-shadow-color)] shadow-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:shadow-zinc-800">
@@ -1783,41 +1753,45 @@ export function EvtxUploader({
                           )}
                         </td>
                         <FilterableCell
+                          field="Provider"
                           value={r.provider}
-                          onFilter={setFilterAndResetScroll}
-                          onExclude={addExclude}
+                          onFilter={includeValue}
+                          onExclude={excludeValue}
                         />
                         <FilterableCell
+                          field="Channel"
                           value={r.channel}
-                          onFilter={setFilterAndResetScroll}
-                          onExclude={addExclude}
+                          onFilter={includeValue}
+                          onExclude={excludeValue}
                         />
                         <FilterableCell
+                          field="Computer"
                           value={r.computer}
-                          onFilter={setFilterAndResetScroll}
-                          onExclude={addExclude}
+                          onFilter={includeValue}
+                          onExclude={excludeValue}
                         />
                         {multiFile && (
                           <FilterableCell
+                            field="File"
                             value={r._file}
-                            onFilter={setFilterAndResetScroll}
-                            onExclude={addExclude}
+                            onFilter={includeValue}
+                            onExclude={excludeValue}
                           />
                         )}
                         {dynamicKeys ? (
                           <DynamicCells
                             keys={dynamicKeys}
                             pairs={pairs}
-                            onFilter={setFilterAndResetScroll}
-                            onExclude={addExclude}
+                            onFilter={includeValue}
+                            onExclude={excludeValue}
                           />
                         ) : (
                           <td className="px-3 py-1.5 text-zinc-700 dark:text-zinc-300">
                             <SummaryCell
                               row={r}
                               pairs={pairs}
-                              onFilter={setFilterAndResetScroll}
-                              onExclude={addExclude}
+                              onFilter={includeValue}
+                              onExclude={excludeValue}
                             />
                           </td>
                         )}
@@ -1855,9 +1829,12 @@ export function EvtxUploader({
                           <td colSpan={tableColCount} className="p-3">
                             <div className="flex flex-col gap-3">
                               <DetailsPanel
+                                row={r}
                                 pairs={openRow.pairs}
                                 dict={t}
-                                onFilter={setFilterAndResetScroll}
+                                onInclude={includeValue}
+                                onExclude={excludeValue}
+                                onPivot={pivotTo}
                               />
                               <div>
                                 <button
@@ -1897,6 +1874,8 @@ export function EvtxUploader({
               </tbody>
             </table>
           </div>
+          </div>
+          </HighlightContext.Provider>
 
           <p className="hidden text-[11px] text-zinc-400 sm:block">
             <kbd className="font-mono">j</kbd>/<kbd className="font-mono">k</kbd>{" "}
@@ -1947,14 +1926,18 @@ function SortHeader({
   );
 }
 
+type ValueAction = (field: string, value: string) => void;
+
 function FilterableCell({
+  field,
   value,
   onFilter,
   onExclude,
 }: {
+  field: string;
   value: string | null | undefined;
-  onFilter: (v: string) => void;
-  onExclude?: (v: string) => void;
+  onFilter: ValueAction;
+  onExclude: ValueAction;
 }) {
   if (!value) {
     return <td className="px-3 py-1.5 text-zinc-400">—</td>;
@@ -1964,12 +1947,12 @@ function FilterableCell({
       <button
         type="button"
         onClick={(e) =>
-          e.shiftKey && onExclude ? onExclude(value) : onFilter(value)
+          e.shiftKey ? onExclude(field, value) : onFilter(field, value)
         }
         title={`${value}\nClick to filter · Shift-click to exclude`}
         className="max-w-[24ch] truncate text-left hover:text-zinc-900 hover:underline dark:hover:text-zinc-100"
       >
-        {value}
+        <Hl text={value} />
       </button>
     </td>
   );
@@ -1983,8 +1966,8 @@ function SummaryCell({
 }: {
   row: EventRow;
   pairs: [string, string][];
-  onFilter: (v: string) => void;
-  onExclude?: (v: string) => void;
+  onFilter: ValueAction;
+  onExclude: ValueAction;
 }) {
   const fields = summaryFieldsFor(row.event_id, row.provider);
   if (pairs.length === 0) {
@@ -2011,12 +1994,12 @@ function SummaryCell({
           <button
             type="button"
             onClick={(e) =>
-              e.shiftKey && onExclude ? onExclude(v) : onFilter(v)
+              e.shiftKey ? onExclude(k, v) : onFilter(k, v)
             }
             title={`${v}\nClick to filter · Shift-click to exclude`}
             className="hover:text-zinc-900 hover:underline dark:hover:text-zinc-100"
           >
-            {truncate(v, 60)}
+            <Hl text={truncate(v, 60)} />
           </button>
         </span>
       ))}
@@ -2032,8 +2015,8 @@ function DynamicCells({
 }: {
   keys: string[];
   pairs: [string, string][];
-  onFilter: (v: string) => void;
-  onExclude?: (v: string) => void;
+  onFilter: ValueAction;
+  onExclude: ValueAction;
 }) {
   const map = new Map(pairs);
   return (
@@ -2050,12 +2033,12 @@ function DynamicCells({
               <button
                 type="button"
                 onClick={(e) =>
-                  e.shiftKey && onExclude ? onExclude(v) : onFilter(v)
+                  e.shiftKey ? onExclude(k, v) : onFilter(k, v)
                 }
                 title={`${v}\nClick to filter · Shift-click to exclude`}
                 className="max-w-[28ch] truncate text-left hover:text-zinc-900 hover:underline dark:hover:text-zinc-100"
               >
-                {truncate(v, 80)}
+                <Hl text={truncate(v, 80)} />
               </button>
             ) : (
               <span className="text-zinc-400">—</span>
@@ -2067,57 +2050,142 @@ function DynamicCells({
   );
 }
 
+// Keys that tie events of one logon session / one process together.
+const LOGON_KEYS = ["TargetLogonId", "SubjectLogonId", "LogonId"];
+const PROCESS_KEYS = ["ProcessGuid", "ParentProcessGuid"];
+const PIVOT_WINDOW_MS = 5 * 60 * 1000;
+
 function DetailsPanel({
+  row,
   pairs,
   dict,
-  onFilter,
+  onInclude,
+  onExclude,
+  onPivot,
 }: {
+  row: EventRow;
   pairs: [string, string][];
   dict: Dict;
-  onFilter: (v: string) => void;
+  onInclude: ValueAction;
+  onExclude: ValueAction;
+  onPivot: (opts: { search?: string; range?: [number, number] }) => void;
 }) {
-  if (pairs.length === 0) {
-    return (
-      <div className="text-xs italic text-zinc-500">
-        {dict.table.noEventData}
-      </div>
-    );
-  }
+  const v = dict.viewer;
+  const t = Date.parse(row.timestamp);
+  // Distinct session / process ids on this event. 0x0 and SYSTEM's 0x3e7
+  // are too common to be a useful pivot.
+  const pick = (keys: string[], skip: string[] = []) => {
+    const out = new Set<string>();
+    for (const [k, val] of pairs) {
+      if (keys.some((x) => x.toLowerCase() === k.toLowerCase()) && val) {
+        if (!skip.includes(val.toLowerCase())) out.add(val);
+      }
+    }
+    return [...out];
+  };
+  const logonIds = pick(LOGON_KEYS, ["0x0", "0x3e7"]);
+  const processGuids = pick(PROCESS_KEYS);
+  const pivotBtn =
+    "rounded-md border border-zinc-200 px-2 py-1 text-xs text-zinc-700 hover:border-amber-400 hover:bg-amber-500/10 dark:border-zinc-800 dark:text-zinc-300";
+
   return (
-    <div className="flex flex-col gap-1">
-      <div className="text-[10px] uppercase tracking-wide text-zinc-400">
-        {dict.table.eventData}
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[10px] uppercase tracking-wide text-zinc-400">
+          {v.pivots}
+        </span>
+        {!Number.isNaN(t) && (
+          <button
+            type="button"
+            className={pivotBtn}
+            onClick={() =>
+              onPivot({ range: [t - PIVOT_WINDOW_MS, t + PIVOT_WINDOW_MS] })
+            }
+          >
+            {v.pivotTime}
+          </button>
+        )}
+        {logonIds.map((id) => (
+          <button
+            key={id}
+            type="button"
+            className={pivotBtn}
+            onClick={() => onPivot({ search: `logonid:${id}` })}
+          >
+            {v.pivotLogon} <span className="font-mono text-zinc-400">{id}</span>
+          </button>
+        ))}
+        {processGuids.map((g) => (
+          <button
+            key={g}
+            type="button"
+            className={pivotBtn}
+            onClick={() => onPivot({ search: `processguid:${g}` })}
+          >
+            {v.pivotProcess}{" "}
+            <span className="font-mono text-zinc-400">{truncate(g, 14)}</span>
+          </button>
+        ))}
       </div>
-      <div className="overflow-x-auto rounded border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-        <table className="w-full border-collapse text-left font-mono text-[11px]">
-          <tbody>
-            {pairs.map(([k, v], i) => (
-              <tr
-                key={`${k}-${i}`}
-                className="border-b border-zinc-100 last:border-b-0 dark:border-zinc-900"
-              >
-                <td className="w-1 whitespace-nowrap px-2 py-1 align-top text-zinc-500">
-                  {k}
-                </td>
-                <td className="break-all px-2 py-1 align-top text-zinc-800 dark:text-zinc-200">
-                  {v ? (
-                    <button
-                      type="button"
-                      onClick={() => onFilter(v)}
-                      title={`Filter: ${v}`}
-                      className="text-left hover:underline"
-                    >
-                      {v}
-                    </button>
-                  ) : (
-                    <span className="text-zinc-400">—</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+
+      {pairs.length === 0 ? (
+        <div className="text-xs italic text-zinc-500">
+          {dict.table.noEventData}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1">
+          <div className="text-[10px] uppercase tracking-wide text-zinc-400">
+            {dict.table.eventData}
+          </div>
+          <div className="overflow-x-auto rounded border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+            <table className="w-full border-collapse text-left font-mono text-[11px]">
+              <tbody>
+                {pairs.map(([k, val], i) => (
+                  <tr
+                    key={`${k}-${i}`}
+                    className="group border-b border-zinc-100 last:border-b-0 dark:border-zinc-900"
+                  >
+                    <td className="w-1 whitespace-nowrap px-2 py-1 align-top text-zinc-500">
+                      {k}
+                    </td>
+                    <td className="break-all px-2 py-1 align-top text-zinc-800 select-text dark:text-zinc-200">
+                      {val ? (
+                        <Hl text={val} />
+                      ) : (
+                        <span className="text-zinc-400">—</span>
+                      )}
+                    </td>
+                    <td className="w-1 whitespace-nowrap px-1 py-0.5 align-top">
+                      {val && (
+                        <span className="flex gap-0.5 opacity-40 group-hover:opacity-100 focus-within:opacity-100">
+                          <button
+                            type="button"
+                            onClick={() => onInclude(k, val)}
+                            title={v.include}
+                            aria-label={`${v.include}: ${k}`}
+                            className="rounded px-1.5 text-zinc-500 hover:bg-amber-500/15 hover:text-amber-700 dark:hover:text-amber-300"
+                          >
+                            +
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onExclude(k, val)}
+                            title={v.exclude}
+                            aria-label={`${v.exclude}: ${k}`}
+                            className="rounded px-1.5 text-zinc-500 hover:bg-red-500/15 hover:text-red-700 dark:hover:text-red-300"
+                          >
+                            −
+                          </button>
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
