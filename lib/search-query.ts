@@ -15,7 +15,7 @@
 // anything else is looked up in the event's EventData.
 
 import { eventName } from "@/lib/event-info";
-import { decodedText } from "@/lib/event-decode";
+import { decodeValue, decodedText } from "@/lib/event-decode";
 
 export type SearchRow = {
   event_id: number | null;
@@ -292,7 +292,12 @@ function fieldValues(
   const keys = MULTI_FIELDS[field] ?? [field];
   const out: string[] = [];
   for (const [k, v] of pairs) {
-    if (keys.includes(k.toLowerCase())) out.push(v);
+    if (!keys.includes(k.toLowerCase())) continue;
+    out.push(v);
+    // Also match the decoded meaning: LogonType:RemoteInteractive*,
+    // FailureReason:*bad password*.
+    const decoded = decodeValue(k, v);
+    if (decoded) out.push(decoded);
   }
   return out;
 }
