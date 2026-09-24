@@ -58,11 +58,14 @@ export function Timeline({
   selectedRange,
   onSelectBucket,
   locale,
+  utc = true,
 }: {
   rows: EventRow[];
   selectedRange: [number, number] | null;
   onSelectBucket: (range: [number, number]) => void;
   locale: string;
+  /** Label times in UTC (default) or in the viewer's local time. */
+  utc?: boolean;
 }) {
   const data = useMemo(() => {
     if (rows.length === 0) return null;
@@ -112,18 +115,18 @@ export function Timeline({
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
-        timeZone: "UTC",
+        timeZone: utc ? "UTC" : undefined,
       }),
-    [locale],
+    [locale, utc],
   );
   const tooltipFmt = useMemo(
     () =>
       new Intl.DateTimeFormat(locale, {
         dateStyle: "short",
         timeStyle: "medium",
-        timeZone: "UTC",
+        timeZone: utc ? "UTC" : undefined,
       }),
-    [locale],
+    [locale, utc],
   );
 
   if (!data) return null;

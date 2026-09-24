@@ -60,6 +60,12 @@ export type Dict = {
     helpPivot: string;
     noValues: string;
     suggestions: string;
+    description: string;
+    copy: string;
+    copied: string;
+    copyJson: string;
+    copyXml: string;
+    timeZoneToggle: string;
   };
   /** "Where to find .evtx files" panel under the home-page drop zone.
    *  Paths themselves live in components/EvtxLocations.tsx (not translated).

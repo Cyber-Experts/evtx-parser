@@ -44,6 +44,15 @@ import {
   Hl,
   buildHighlightRegExp,
 } from "@/components/viewer/Highlight";
+import { decodeValue, describeEvent } from "@/lib/event-decode";
+import {
+  formatEpoch,
+  formatTimestamp,
+  zoneLabel,
+  type TimeMode,
+} from "@/lib/time";
+import { CopyPathButton } from "@/components/CopyPathButton";
+import { copyText } from "@/lib/clipboard";
 import type { Dict } from "@/src/dict/types";
 
 // Virtualization: render only the rows the user can actually see plus a
@@ -196,6 +205,10 @@ function makeValueIndex(rows: IndexedRow[], allPairs: [string, string][][]) {
 // single Event ID first; this is just a guardrail.
 const MAX_DATA_COLUMNS = 256;
 
+function pairsOf(rec: Record<string, string>): [string, string][] {
+  return Object.entries(rec);
+}
+
 function pairsToRecord(pairs: [string, string][]): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [k, v] of pairs) out[k] = v;
@@ -232,6 +245,7 @@ function buildCsv(
     dict.table.channel,
     dict.table.computer,
     ...(includeSource ? [dict.table.source] : []),
+    dict.viewer.description,
     ...dataKeys,
     ...(includeXml ? ["RawXml"] : []),
   ];
@@ -246,6 +260,7 @@ function buildCsv(
       r.channel ?? "",
       r.computer ?? "",
       ...(includeSource ? [r._file] : []),
+      describeEvent(r.event_id, r.provider, pairsOf(p)) ?? "",
       ...dataKeys.map((k) => p[k] ?? ""),
       ...(includeXml ? [xmls[i] ?? ""] : []),
     ]
@@ -271,6 +286,7 @@ function buildJson(
       channel: r.channel,
       computer: r.computer,
       ...(includeSource ? { source_file: r._file } : {}),
+      description: describeEvent(r.event_id, r.provider, pairsOf(parsed[i] ?? {})),
       event_data: parsed[i] ?? {},
       xml: xmls[i] ?? "",
     })),
@@ -297,6 +313,8 @@ function buildTxt(
       `${dict.table.computer}: ${r.computer ?? ""}`,
     ];
     if (includeSource) lines.push(`${dict.table.source}: ${r._file}`);
+    const desc = describeEvent(r.event_id, r.provider, pairsOf(parsed[i] ?? {}));
+    if (desc) lines.push(`${dict.viewer.description}: ${desc}`);
     for (const [k, v] of Object.entries(parsed[i] ?? {})) {
       lines.push(`  ${k}: ${v.replace(/\r?\n/g, " ")}`);
     }
@@ -675,6 +693,25 @@ export function EvtxUploader({
     }
   }, [openRow]);
 
+  const [xmlCopied, setXmlCopied] = useState(false);
+  const copyOpenRowXml = useCallback(async () => {
+    const current = openRow;
+    const client = clientRef.current;
+    if (!current || !client) return;
+    let xml = current.xml;
+    if (xml == null) {
+      try {
+        ({ xml } = await client.xml(current.fileId, current.localIdx));
+        setOpenRow({ ...current, xml });
+      } catch {
+        return;
+      }
+    }
+    await copyText(xml ?? "");
+    setXmlCopied(true);
+    setTimeout(() => setXmlCopied(false), 1500);
+  }, [openRow]);
+
   // Faceted multi-select: each chip toggles its value in a Set. Rows match if
   // they satisfy ANY value within a category (OR) and EVERY active category
   // (AND), matching the long-standing behaviour of the level buttons.
@@ -712,15 +749,6 @@ export function EvtxUploader({
   }, []);
 
   const numberFmt = useMemo(() => new Intl.NumberFormat(locale), [locale]);
-  const dateFmt = useMemo(
-    () =>
-      new Intl.DateTimeFormat(locale, {
-        dateStyle: "short",
-        timeStyle: "medium",
-        timeZone: "UTC",
-      }),
-    [locale],
-  );
 
   // Merge every loaded file's rows into one cross-file view. `_g` is the global
   // position (and React key); `_fileId`/`_idx` keep the link back to the source
@@ -741,6 +769,29 @@ export function EvtxUploader({
   // Full-screen workspace: the viewer takes over the window as soon as the
   // first file is loaded, and drops back to the page when the last one goes.
   const [fullscreen, setFullscreen] = useState(false);
+  // UTC by default (what EVTX stores); local time is a per-viewer preference.
+  const [timeMode, setTimeMode] = useState<TimeMode>(() => {
+    try {
+      return localStorage.getItem("evtx-time-mode") === "local" ? "local" : "utc";
+    } catch {
+      return "utc";
+    }
+  });
+  const toggleTimeMode = useCallback(() => {
+    setTimeMode((m) => {
+      const next = m === "utc" ? "local" : "utc";
+      try {
+        localStorage.setItem("evtx-time-mode", next);
+      } catch {
+        // storage unavailable: keep the in-memory choice
+      }
+      return next;
+    });
+  }, []);
+  // Offset as of the log's first event (DST differs from "now" for old logs);
+  // each cell's tooltip keeps the original UTC timestamp.
+  const zone = zoneLabel(timeMode, allRows[0]?.timestamp);
+  const timeHeader = t.table.time.replace("UTC", zone);
   const [prevReady, setPrevReady] = useState(ready);
   if (ready !== prevReady) {
     setPrevReady(ready);
@@ -1398,6 +1449,14 @@ export function EvtxUploader({
               )}
               <button
                 type="button"
+                onClick={toggleTimeMode}
+                title={t.viewer.timeZoneToggle}
+                className="rounded-md border border-zinc-300 px-2 py-1 font-mono text-xs text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+              >
+                🕒 {zone}
+              </button>
+              <button
+                type="button"
                 onClick={() => setShowFacets((v) => !v)}
                 aria-pressed={showFacets}
                 className={`rounded-md border px-2 py-1 text-xs transition-colors ${
@@ -1479,12 +1538,13 @@ export function EvtxUploader({
             selectedRange={timeRange}
             onSelectBucket={handleSelectTimeRange}
             locale={locale}
+            utc={timeMode === "utc"}
           />
 
           {timeRange && (
             <div className="flex items-center gap-2 text-xs">
               <span className="rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 font-mono text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-                {dateFmt.format(new Date(timeRange[0]))} → {dateFmt.format(new Date(timeRange[1]))}
+                {formatEpoch(timeRange[0], timeMode)} → {formatEpoch(timeRange[1], timeMode)} ({zone})
               </span>
               <button
                 type="button"
@@ -1668,7 +1728,7 @@ export function EvtxUploader({
               <thead className="sticky top-0 z-10 bg-zinc-50 text-zinc-500 shadow-[0_1px_0_var(--tw-shadow-color)] shadow-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:shadow-zinc-800">
                 <tr>
                   <SortHeader field="record_id" label={t.table.record} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
-                  <SortHeader field="timestamp" label={t.table.time} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                  <SortHeader field="timestamp" label={timeHeader} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
                   <SortHeader field="level" label={t.table.level} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
                   <SortHeader field="event_id" label={t.table.eventId} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
                   <SortHeader field="name" label={t.table.name} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
@@ -1740,8 +1800,11 @@ export function EvtxUploader({
                         <td className="px-3 py-1.5 text-zinc-500">
                           {Number(r.record_id)}
                         </td>
-                        <td className="px-3 py-1.5 text-zinc-600 dark:text-zinc-400">
-                          {dateFmt.format(new Date(r.timestamp))}
+                        <td
+                          className="whitespace-nowrap px-3 py-1.5 text-zinc-600 dark:text-zinc-400"
+                          title={r.timestamp}
+                        >
+                          {formatTimestamp(r.timestamp, timeMode)}
                         </td>
                         <td className={`px-3 py-1.5 ${levelClass(r.level)}`}>
                           {levelLabel(r.level, t)}
@@ -1836,7 +1899,14 @@ export function EvtxUploader({
                                 onExclude={excludeValue}
                                 onPivot={pivotTo}
                               />
-                              <div>
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={copyOpenRowXml}
+                                  className="rounded-md border border-zinc-200 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                                >
+                                  {xmlCopied ? `✓ ${t.viewer.copied}` : t.viewer.copyXml}
+                                </button>
                                 <button
                                   type="button"
                                   onClick={toggleRawXml}
@@ -1969,10 +2039,19 @@ function SummaryCell({
   onFilter: ValueAction;
   onExclude: ValueAction;
 }) {
-  const fields = summaryFieldsFor(row.event_id, row.provider);
   if (pairs.length === 0) {
     return <span className="text-zinc-400">—</span>;
   }
+  // A readable sentence beats raw key=value pairs when we have a template.
+  const desc = describeEvent(row.event_id, row.provider, pairs);
+  if (desc) {
+    return (
+      <span title={desc} className="block max-w-[80ch] truncate">
+        <Hl text={desc} />
+      </span>
+    );
+  }
+  const fields = summaryFieldsFor(row.event_id, row.provider);
   const map = new Map(pairs);
   let picks: Array<[string, string]> = fields
     .map((k): [string, string] | null => {
@@ -2023,10 +2102,11 @@ function DynamicCells({
     <>
       {keys.map((k) => {
         const v = map.get(k);
+        const decoded = v ? decodeValue(k, v) : null;
         return (
           <td
             key={k}
-            className="px-3 py-1.5 text-zinc-700 dark:text-zinc-300"
+            className="whitespace-nowrap px-3 py-1.5 text-zinc-700 dark:text-zinc-300"
             title={v ?? ""}
           >
             {v != null && v !== "" ? (
@@ -2042,6 +2122,11 @@ function DynamicCells({
               </button>
             ) : (
               <span className="text-zinc-400">—</span>
+            )}
+            {decoded && (
+              <span className="ml-1 text-zinc-400">
+                · <Hl text={decoded} />
+              </span>
             )}
           </td>
         );
@@ -2087,9 +2172,36 @@ function DetailsPanel({
   const processGuids = pick(PROCESS_KEYS);
   const pivotBtn =
     "rounded-md border border-zinc-200 px-2 py-1 text-xs text-zinc-700 hover:border-amber-400 hover:bg-amber-500/10 dark:border-zinc-800 dark:text-zinc-300";
+  const desc = describeEvent(row.event_id, row.provider, pairs);
+  const asJson = () =>
+    JSON.stringify(
+      {
+        record_id: Number(row.record_id),
+        timestamp: row.timestamp,
+        event_id: row.event_id,
+        level: row.level,
+        provider: row.provider,
+        channel: row.channel,
+        computer: row.computer,
+        description: desc,
+        event_data: Object.fromEntries(pairs),
+      },
+      null,
+      2,
+    );
 
   return (
     <div className="flex flex-col gap-3">
+      {desc && (
+        <div className="flex flex-col gap-0.5">
+          <div className="text-[10px] uppercase tracking-wide text-zinc-400">
+            {v.description}
+          </div>
+          <p className="text-sm text-zinc-900 dark:text-zinc-100">
+            <Hl text={desc} />
+          </p>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-[10px] uppercase tracking-wide text-zinc-400">
           {v.pivots}
@@ -2126,6 +2238,14 @@ function DetailsPanel({
             <span className="font-mono text-zinc-400">{truncate(g, 14)}</span>
           </button>
         ))}
+        <span className="rounded-md border border-zinc-200 dark:border-zinc-800">
+          <CopyPathButton
+            value={asJson}
+            label={v.copyJson}
+            copiedLabel={v.copied}
+            text={v.copyJson}
+          />
+        </span>
       </div>
 
       {pairs.length === 0 ? (
@@ -2150,14 +2270,26 @@ function DetailsPanel({
                     </td>
                     <td className="break-all px-2 py-1 align-top text-zinc-800 select-text dark:text-zinc-200">
                       {val ? (
-                        <Hl text={val} />
+                        <>
+                          <Hl text={val} />
+                          {decodeValue(k, val) && (
+                            <span className="ml-2 text-zinc-500">
+                              → <Hl text={decodeValue(k, val) ?? ""} />
+                            </span>
+                          )}
+                        </>
                       ) : (
                         <span className="text-zinc-400">—</span>
                       )}
                     </td>
                     <td className="w-1 whitespace-nowrap px-1 py-0.5 align-top">
                       {val && (
-                        <span className="flex gap-0.5 opacity-40 group-hover:opacity-100 focus-within:opacity-100">
+                        <span className="flex items-center gap-0.5 opacity-40 group-hover:opacity-100 focus-within:opacity-100">
+                          <CopyPathButton
+                            value={val}
+                            label={`${v.copy}: ${k}`}
+                            copiedLabel={v.copied}
+                          />
                           <button
                             type="button"
                             onClick={() => onInclude(k, val)}

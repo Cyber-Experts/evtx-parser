@@ -64,6 +64,12 @@ export const ja: Dict = {
     helpPivot: "1 つのログオン セッションの全イベント",
     noValues: "値なし",
     suggestions: "候補",
+    description: "説明",
+    copy: "コピー",
+    copied: "コピーしました",
+    copyJson: "JSON としてコピー",
+    copyXml: "XML をコピー",
+    timeZoneToggle: "時刻を UTC とローカル タイム ゾーンで切り替え",
   },
   fileLocation: {
     heading: ".evtx ファイルの場所",

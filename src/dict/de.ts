@@ -64,6 +64,12 @@ export const de: Dict = {
     helpPivot: "Alle Ereignisse einer Anmeldesitzung",
     noValues: "Keine Werte",
     suggestions: "Vorschläge",
+    description: "Beschreibung",
+    copy: "Kopieren",
+    copied: "Kopiert",
+    copyJson: "Als JSON kopieren",
+    copyXml: "XML kopieren",
+    timeZoneToggle: "Zeiten in UTC oder in Ihrer lokalen Zeitzone anzeigen",
   },
   fileLocation: {
     heading: "Wo liegen die .evtx-Dateien?",
