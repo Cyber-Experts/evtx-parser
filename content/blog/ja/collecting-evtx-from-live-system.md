@@ -10,7 +10,7 @@ howto:
     - name: "FTK Imager で取得"
       text: "FTK Imager を開き、Add Evidence Item で \\Windows\\System32\\winevt\\Logs\\ に移動し、チャネル ファイル (アーカイブされた *.evtx を含む) を選択して Export Files を実行します。FTK は NTFS を直接読み取るので、EventLog サービスのファイル ロックを回避できます。"
     - name: "KAPE でまとめて収集"
-      text: "kape.exe --tsource C: --target EventLogs --tdest C:\\triage を実行し、winevt\\Logs\\ 配下のすべての .evtx を一括で取り出します。証拠連鎖メタデータも付きます。WindowsEventLogs モジュールと組み合わせれば、収集時にパースまで行います。"
+      text: "kape.exe --tsource C: --target EventLogs --tdest C:\\triage を実行し、winevt\\Logs\\ 配下のすべての .evtx を一括で取り出します。証拠連鎖メタデータも付きます。EvtxECmd モジュールと組み合わせれば、収集時にパースまで行います。"
     - name: "生 NTFS 読み取り"
       text: "改ざんが疑われる場合は、RawCopy または tsk_recover でファイルシステム層より下 (\\\\.\\PhysicalDriveN または \\\\.\\C:) からボリュームを開き、MFT から各 .evtx をバイト単位で読み取ります。EventLog サービスはこの経路をブロックできません。"
 ---
@@ -50,13 +50,13 @@ Get-WinEvent -Path C:\Windows\System32\winevt\Logs\Security.evtx |
 kape.exe --tsource C: --target EventLogs --tdest C:\triage
 ```
 
-`EventLogs` ターゲットは `winevt\Logs\` 配下のすべての `.evtx` と関連 ETW ファイルを一掃します。`!EZParser` または `WindowsEventLogs` モジュールと組み合わせると、KAPE は終了時にコレクションに対して EvtxECmd も実行し、生の証拠と並べてパース済み CSV も生成します。ついでに `RegistryHives` と `FileSystem` ターゲットで、どのみち欲しい [registry](https://www.registryparser.com)、[MFT](https://www.mftparser.com)、[USN journal](https://www.usnparser.com)、[prefetch](https://www.prefetchparser.com) データも取得します。
+`EventLogs` ターゲットは `winevt\Logs\` 配下のすべての `.evtx` (および旧形式の `.evt` と `Windows.old` 内のコピー) を一掃します。`!EZParser` または `EvtxECmd` モジュールと組み合わせると、KAPE は終了時にコレクションに対して EvtxECmd も実行し、生の証拠と並べてパース済み CSV も生成します。ついでに `RegistryHives`、`FileSystem`、`Prefetch` ターゲットで、どのみち欲しい [registry](https://www.registryparser.com)、[MFT](https://www.mftparser.com)、[USN journal](https://www.usnparser.com)、[prefetch](https://www.prefetchparser.com) データも取得します。
 
 KAPE の出力にはコピー ログ メタデータが付属します。これは、人々が評価する以上に証拠連鎖にとって重要です。
 
 ## 生 NTFS 読み取り: 改ざんが疑われるとき
 
-最大の忠実性が必要なら、ファイルシステム層より下に降ります。Sleuth Kit の `tsk_recover` と `icat`、または Eric Zimmerman の `RawCopy.exe` は、`\\.\PhysicalDriveN` または `\\.\C:` 経由でボリュームを開き、MFT を歩いて、ファイル内容をバイト単位で出力します。Win32 ファイル API を経由しないので、EventLog サービスはこれをブロックできません。
+最大の忠実性が必要なら、ファイルシステム層より下に降ります。Sleuth Kit の `tsk_recover` と `icat`、または Joakim Schicht の `RawCopy.exe` は、`\\.\PhysicalDriveN` または `\\.\C:` 経由でボリュームを開き、MFT を歩いて、ファイル内容をバイト単位で出力します。Win32 ファイル API を経由しないので、EventLog サービスはこれをブロックできません。
 
 ルートキットがスコープに含まれるとき、カーネル フィルタ ドライバが `\winevt\Logs\` の読み取りを傍受していると疑う理由があるとき、または単に動いている OS を信頼しないときに、これを使います。同時刻に取った [RAM dump](https://www.ramparser.com) と組み合わせてください。イベント ログ サービスは最近のレコードをメモリにキャッシュしており、改ざんの数分前のスナップショットには、ディスクに到達しなかったレコードが含まれていることがあります。
 

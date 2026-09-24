@@ -10,7 +10,7 @@ howto:
     - name: "Adquirir con FTK Imager"
       text: "Abre FTK Imager, Add Evidence Item, navega hasta \\Windows\\System32\\winevt\\Logs\\, selecciona los archivos de canal (incluidos los *.evtx archivados) y Export Files. FTK lee NTFS directamente, saltándose los bloqueos de archivo del servicio EventLog."
     - name: "Recolección masiva con KAPE"
-      text: "Ejecuta kape.exe --tsource C: --target EventLogs --tdest C:\\triage para sacar todos los .evtx bajo winevt\\Logs\\ en una pasada, con metadatos de cadena de custodia. Combínalo con el módulo WindowsEventLogs para parsear al recolectar."
+      text: "Ejecuta kape.exe --tsource C: --target EventLogs --tdest C:\\triage para sacar todos los .evtx bajo winevt\\Logs\\ en una pasada, con metadatos de cadena de custodia. Combínalo con el módulo EvtxECmd para parsear al recolectar."
     - name: "Lectura NTFS cruda"
       text: "Cuando se sospecha manipulación, usa RawCopy o tsk_recover para abrir el volumen por debajo de la capa del sistema de archivos (\\\\.\\PhysicalDriveN o \\\\.\\C:) y leer cada .evtx byte a byte desde la MFT. El servicio EventLog no puede bloquear esta ruta."
 ---
@@ -50,13 +50,13 @@ Cuando el engagement tiene más de un host, el Kroll Artifact Parser and Extract
 kape.exe --tsource C: --target EventLogs --tdest C:\triage
 ```
 
-El target `EventLogs` barre todos los `.evtx` bajo `winevt\Logs\` más los archivos ETW relacionados. Combínalo con el módulo `!EZParser` o `WindowsEventLogs` y KAPE también ejecutará EvtxECmd contra la colección al salir, dándote CSVs parseadas junto a la evidencia cruda. Ya que estás, los targets `RegistryHives` y `FileSystem` recogen los datos de [registro](https://www.registryparser.com), [MFT](https://www.mftparser.com), [diario USN](https://www.usnparser.com) y [prefetch](https://www.prefetchparser.com) que querrás de todos modos.
+El target `EventLogs` barre todos los `.evtx` bajo `winevt\Logs\` (más los `.evt` heredados y las copias en `Windows.old`). Combínalo con el módulo `!EZParser` o `EvtxECmd` y KAPE también ejecutará EvtxECmd contra la colección al salir, dándote CSVs parseadas junto a la evidencia cruda. Ya que estás, los targets `RegistryHives`, `FileSystem` y `Prefetch` recogen los datos de [registro](https://www.registryparser.com), [MFT](https://www.mftparser.com), [diario USN](https://www.usnparser.com) y [prefetch](https://www.prefetchparser.com) que querrás de todos modos.
 
 La salida de KAPE viene con metadatos de copy log. Eso importa para la cadena de custodia más de lo que la gente le reconoce.
 
 ## Lectura NTFS cruda: cuando sospechas manipulación
 
-Para máxima fidelidad, baja por debajo de la capa del sistema de archivos. `tsk_recover` e `icat` del Sleuth Kit, o `RawCopy.exe` de Eric Zimmerman, abren el volumen vía `\\.\PhysicalDriveN` o `\\.\C:`, recorren la MFT y emiten el contenido del archivo byte a byte. El servicio EventLog no puede bloquear esto porque la lectura no pasa por la API de archivos Win32.
+Para máxima fidelidad, baja por debajo de la capa del sistema de archivos. `tsk_recover` e `icat` del Sleuth Kit, o `RawCopy.exe` de Joakim Schicht, abren el volumen vía `\\.\PhysicalDriveN` o `\\.\C:`, recorren la MFT y emiten el contenido del archivo byte a byte. El servicio EventLog no puede bloquear esto porque la lectura no pasa por la API de archivos Win32.
 
 Usa esto cuando un rootkit esté en juego, cuando tengas razón para pensar que un driver filtro de kernel está interceptando lecturas de `\winevt\Logs\`, o cuando simplemente no confíes en el SO en marcha. Combina el resultado con un [volcado RAM](https://www.ramparser.com) tomado en el mismo momento. El servicio event log cachea registros recientes en memoria, y un snapshot tomado minutos antes de la manipulación a veces contiene registros que nunca llegaron al disco.
 

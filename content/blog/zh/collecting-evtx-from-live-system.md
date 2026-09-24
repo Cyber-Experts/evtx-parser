@@ -10,7 +10,7 @@ howto:
     - name: "用 FTK Imager 获取"
       text: "打开 FTK Imager，Add Evidence Item，导航到 \\Windows\\System32\\winevt\\Logs\\，选中通道文件（包括归档的 *.evtx）并 Export Files。FTK 直接读取 NTFS，绕过 EventLog 服务的文件锁。"
     - name: "用 KAPE 批量收集"
-      text: "运行 kape.exe --tsource C: --target EventLogs --tdest C:\\triage 一次性取出 winevt\\Logs\\ 下的所有 .evtx，并带上证据链元数据。配合 WindowsEventLogs 模块可在收集时就完成解析。"
+      text: "运行 kape.exe --tsource C: --target EventLogs --tdest C:\\triage 一次性取出 winevt\\Logs\\ 下的所有 .evtx，并带上证据链元数据。配合 EvtxECmd 模块可在收集时就完成解析。"
     - name: "原始 NTFS 读取"
       text: "怀疑被篡改时，使用 RawCopy 或 tsk_recover 在文件系统层之下打开卷（\\\\.\\PhysicalDriveN 或 \\\\.\\C:），从 MFT 按字节读取每个 .evtx。EventLog 服务无法阻断这条路径。"
 ---
@@ -50,13 +50,13 @@ Get-WinEvent -Path C:\Windows\System32\winevt\Logs\Security.evtx |
 kape.exe --tsource C: --target EventLogs --tdest C:\triage
 ```
 
-`EventLogs` target 会扫掉 `winevt\Logs\` 下的所有 `.evtx` 以及相关的 ETW 文件。配合 `!EZParser` 或 `WindowsEventLogs` 模块，KAPE 在收集结束时还会对收集内容跑一遍 EvtxECmd，在原始证据旁边再给你一份解析后的 CSV。顺手用 `RegistryHives` 与 `FileSystem` target 也能把你反正都想要的 [registry](https://www.registryparser.com)、[MFT](https://www.mftparser.com)、[USN journal](https://www.usnparser.com)、[prefetch](https://www.prefetchparser.com) 数据一并拿走。
+`EventLogs` target 会扫掉 `winevt\Logs\` 下的所有 `.evtx`（以及旧版 `.evt` 和 `Windows.old` 中的副本）。配合 `!EZParser` 或 `EvtxECmd` 模块，KAPE 在收集结束时还会对收集内容跑一遍 EvtxECmd，在原始证据旁边再给你一份解析后的 CSV。顺手用 `RegistryHives`、`FileSystem` 与 `Prefetch` target 也能把你反正都想要的 [registry](https://www.registryparser.com)、[MFT](https://www.mftparser.com)、[USN journal](https://www.usnparser.com)、[prefetch](https://www.prefetchparser.com) 数据一并拿走。
 
 KAPE 的输出附带 copy log 元数据。这对证据链的重要性，比人们普遍认知的要高。
 
 ## 原始 NTFS 读取：怀疑被篡改时
 
-要最大保真度，就降到文件系统层之下。Sleuth Kit 的 `tsk_recover` 与 `icat`，或者 Eric Zimmerman 的 `RawCopy.exe`，通过 `\\.\PhysicalDriveN` 或 `\\.\C:` 打开卷，沿 MFT 行走，按字节输出文件内容。EventLog 服务无法阻拦，因为读取不走 Win32 文件 API。
+要最大保真度，就降到文件系统层之下。Sleuth Kit 的 `tsk_recover` 与 `icat`，或者 Joakim Schicht 的 `RawCopy.exe`，通过 `\\.\PhysicalDriveN` 或 `\\.\C:` 打开卷，沿 MFT 行走，按字节输出文件内容。EventLog 服务无法阻拦，因为读取不走 Win32 文件 API。
 
 当 rootkit 在范围内、当你有理由认为内核过滤驱动正在拦截 `\winevt\Logs\` 的读取，或者你就是不信任运行中的操作系统时，使用这种方式。结果应与同一时刻采集的 [RAM dump](https://www.ramparser.com) 搭配。事件日志服务会在内存中缓存近期记录，篡改发生前几分钟拍下的快照，有时还包含从未落到磁盘的记录。
 
