@@ -58,6 +58,7 @@ export type Dict = {
     helpOr: string;
     helpCompare: string;
     helpPivot: string;
+    helpProcess: string;
     noValues: string;
     suggestions: string;
     description: string;
@@ -73,6 +74,11 @@ export type Dict = {
     catPersistence: string;
     catExecution: string;
     catEvasion: string;
+    catInitial: string;
+    catDiscovery: string;
+    catImpact: string;
+    huntsFilter: string;
+    hitsOnly: string;
     note: string;
     notePlaceholder: string;
     report: string;

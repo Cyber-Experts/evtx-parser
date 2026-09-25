@@ -182,6 +182,7 @@ export function SearchBox({
                 ["4624 OR 4625", v.helpOr],
                 ["EventID:>=4720", v.helpCompare],
                 ["logonid:0x3e7", v.helpPivot],
+                ["parent:*\\winword.exe", v.helpProcess],
               ] as const
             ).map(([code, desc]) => (
               <div key={code} className="contents">
