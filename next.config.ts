@@ -72,6 +72,9 @@ async function loadRedirects(): Promise<RedirectEntry[]> {
 }
 
 const nextConfig: NextConfig = {
+  // Self-contained server bundle for the Docker image (see Dockerfile);
+  // regular builds, including Vercel's, are unchanged.
+  ...(process.env.NEXT_OUTPUT_STANDALONE === "1" ? { output: "standalone" as const } : {}),
   poweredByHeader: false,
   trailingSlash: false,
   experimental: {

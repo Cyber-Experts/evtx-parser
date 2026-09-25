@@ -88,6 +88,25 @@ included, to the isolated one; `npm start` there needs no network.
 No Rust toolchain is needed: the compiled WebAssembly module is committed in
 `lib/evtx-wasm/` and `public/evtx_wasm_bg.wasm`.
 
+### With Docker
+
+The image is built in offline mode and runs as a non-root user:
+
+```bash
+docker build -t evtx-parser .                 # needs network once (npm + web fonts)
+docker run --rm -p 3000:3000 evtx-parser      # http://localhost:3000
+```
+
+For an air-gapped workstation, build on a connected machine and carry the
+image across as a single file:
+
+```bash
+docker save evtx-parser | gzip > evtx-parser.tar.gz
+# on the isolated machine
+docker load < evtx-parser.tar.gz
+docker run --rm -p 127.0.0.1:3000:3000 evtx-parser
+```
+
 ## Search syntax
 
 | Query | Meaning |

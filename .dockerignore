@@ -1,0 +1,11 @@
+.git
+.github
+.husky
+.next
+node_modules
+coverage
+crates/evtx-wasm/target
+tests/fixtures/evtx/*.evtx
+*.log
+.env*
+.DS_Store

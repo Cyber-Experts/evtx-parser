@@ -7,6 +7,7 @@ import type { Dict } from "@/src/dict/types";
 export const EVENTS_TABLE_ID = "evtx-events";
 const STORAGE_KEY = "evtx-columns";
 const MIN_WIDTH = 48;
+const MAX_FIT_WIDTH = 900;
 
 type Layout = { widths: Record<string, number>; pinned: string[] };
 
@@ -73,14 +74,27 @@ export function useColumnLayout(order: string[]) {
     window.addEventListener("pointerup", up);
   }, []);
 
-  /** Double-click on the handle: back to automatic width. */
+  /**
+   * Double-click on the handle: fit the column to its widest value among the
+   * rendered rows (Excel-style), so long values are shown untruncated.
+   */
   const autoSize = useCallback((col: string) => {
-    setLayout((l) => {
-      if (l.pinned.includes(col)) return l; // pinned columns need a width
-      const widths = { ...l.widths };
-      delete widths[col];
-      return { ...l, widths };
+    const cells = document.querySelectorAll<HTMLElement>(
+      `#${EVENTS_TABLE_ID} [data-col="${esc(col)}"]`,
+    );
+    let widest = MIN_WIDTH;
+    cells.forEach((cell) => {
+      const style = getComputedStyle(cell);
+      const pad = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+      // Truncated children still report their full width in scrollWidth.
+      let content = 0;
+      for (const child of Array.from(cell.children) as HTMLElement[]) {
+        content += child.scrollWidth;
+      }
+      widest = Math.max(widest, (content || cell.scrollWidth) + pad + 2);
     });
+    const width = Math.min(MAX_FIT_WIDTH, Math.ceil(widest));
+    setLayout((l) => ({ ...l, widths: { ...l.widths, [col]: width } }));
   }, []);
 
   const togglePin = useCallback((col: string) => {

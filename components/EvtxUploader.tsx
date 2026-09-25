@@ -588,6 +588,7 @@ export function EvtxUploader({
   const filesExpanded = filesOpen ?? files.length <= 8;
   // Findings/timeline panel in the full-screen split.
   const topPanelRef = useRef<PanelImperativeHandle | null>(null);
+  const topContentRef = useRef<HTMLDivElement | null>(null);
   const [controlsCollapsed, setControlsCollapsed] = useState(false);
   const [bookmarks, setBookmarks] = useState<Set<number>>(new Set());
   // Analyst notes by global row index; noting an event also bookmarks it.
@@ -928,6 +929,27 @@ export function EvtxUploader({
       document.body.style.overflow = "";
     };
   }, [fullscreen]);
+  // Full screen: the findings/timeline panel follows its content height —
+  // folding Findings shrinks it (the table gains the space), unfolding grows
+  // it back, capped at half the screen (then it scrolls). Only content
+  // changes trigger this, so a size set by dragging the handle is kept.
+  useEffect(() => {
+    if (!fullscreen || !ready) return;
+    const el = topContentRef.current;
+    if (!el) return;
+    const fit = () => {
+      const panel = topPanelRef.current;
+      if (!panel || panel.isCollapsed()) return;
+      const group = el.closest<HTMLElement>('[data-slot="resizable-panel-group"]');
+      const max = group ? group.getBoundingClientRect().height * 0.5 : Infinity;
+      const want = Math.min(Math.ceil(el.scrollHeight) + 8, max);
+      if (Math.abs(panel.getSize().inPixels - want) > 2) panel.resize(want);
+    };
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [fullscreen, ready]);
+
   // In full screen the table fills the remaining height, so the virtual
   // window has to follow the measured viewport instead of the fixed default.
   const [viewportHeight, setViewportHeight] = useState(SCROLL_HEIGHT_PX);
@@ -1319,10 +1341,8 @@ export function EvtxUploader({
   // Save the files + analysis state to this browser (IndexedDB) so the case
   // can be resumed later, even after a restart. Re-saving updates the same
   // entry and only rewrites the files if the set changed.
-  const saveCurrentSession = useCallback(async () => {
-    if (files.length === 0) return;
-    setSaveStatus("saving");
-    const snapshot: SessionSnapshot = {
+  const snapshot = useMemo<SessionSnapshot>(
+    () => ({
       filter,
       regexMode,
       levels: [...activeLevels],
@@ -1334,7 +1354,48 @@ export function EvtxUploader({
       sortDir,
       view,
       showFacets,
-    };
+      timeMode,
+      showFindings,
+      scrollTop,
+    }),
+    [
+      filter,
+      regexMode,
+      activeLevels,
+      timeRange,
+      query,
+      bookmarks,
+      notes,
+      sortField,
+      sortDir,
+      view,
+      showFacets,
+      timeMode,
+      showFindings,
+      scrollTop,
+    ],
+  );
+  // Once a session has been saved, keep it in sync as the analyst works.
+  // saveSession() only rewrites the file blobs when the file set changed,
+  // so this is a cheap state update in the common case.
+  useEffect(() => {
+    if (!savedId || files.length === 0) return;
+    const timer = setTimeout(() => {
+      saveSession({
+        id: savedId,
+        files: files.map((f) => f.file),
+        snapshot,
+        events: allRows.length,
+      }).catch(() => {
+        // Best effort; the explicit Save button reports errors.
+      });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [savedId, snapshot, files, allRows.length]);
+
+  const saveCurrentSession = useCallback(async () => {
+    if (files.length === 0) return;
+    setSaveStatus("saving");
     try {
       const meta = await saveSession({
         id: savedId ?? undefined,
@@ -1353,44 +1414,37 @@ export function EvtxUploader({
         setError(err instanceof Error ? err.message : String(err));
       }
     }
-  }, [
-    files,
-    filter,
-    regexMode,
-    activeLevels,
-    timeRange,
-    query,
-    bookmarks,
-    notes,
-    sortField,
-    sortDir,
-    view,
-    showFacets,
-    savedId,
-    allRows.length,
-  ]);
+  }, [files, snapshot, savedId, allRows.length]);
 
   const resumeSession = useCallback(
     async (id: string) => {
       setRestoring(true);
       setError(null);
       try {
-        const { meta, files: saved, snapshot } = await loadSession(id);
+        const { meta, files: saved, snapshot: snap } = await loadSession(id);
         await handleFiles(saved);
         // Same files in the same order → same global row indexes, so
         // bookmarks and notes land on the same events.
-        setFilter(snapshot.filter);
-        setRegexMode(snapshot.regexMode);
-        setActiveLevels(new Set(snapshot.levels));
-        setTimeRange(snapshot.timeRange);
-        setQuery(snapshot.query as Group);
-        setBookmarks(new Set(snapshot.bookmarks));
-        setNotes(snapshot.notes);
-        setSortField(snapshot.sortField as SortField);
-        setSortDir(snapshot.sortDir);
-        setView(snapshot.view);
-        setShowFacets(snapshot.showFacets);
+        setFilter(snap.filter);
+        setRegexMode(snap.regexMode);
+        setActiveLevels(new Set(snap.levels));
+        setTimeRange(snap.timeRange);
+        setQuery(snap.query as Group);
+        setBookmarks(new Set(snap.bookmarks));
+        setNotes(snap.notes);
+        setSortField(snap.sortField as SortField);
+        setSortDir(snap.sortDir);
+        setView(snap.view);
+        setShowFacets(snap.showFacets);
+        if (snap.timeMode) setTimeMode(snap.timeMode);
+        if (snap.showFindings != null) setShowFindings(snap.showFindings);
         setSavedId(meta.id);
+        // Put the table back where it was once the rows are rendered.
+        const top = snap.scrollTop ?? 0;
+        setTimeout(() => {
+          if (scrollRef.current) scrollRef.current.scrollTop = top;
+          setScrollTop(top);
+        }, 50);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
@@ -2353,14 +2407,16 @@ export function EvtxUploader({
                 type="button"
                 onClick={saveCurrentSession}
                 disabled={saveStatus === "saving"}
-                title={t.viewer.savedSessionsHint}
+                title={savedId ? t.viewer.autoSaveHint : t.viewer.savedSessionsHint}
                 className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
               >
                 {saveStatus === "saving"
                   ? t.viewer.savingSession
                   : saveStatus === "saved"
                     ? `✓ ${t.viewer.sessionSaved}`
-                    : `💾 ${t.viewer.saveSession}`}
+                    : savedId
+                      ? `✓ ${t.viewer.autoSaved}`
+                      : `💾 ${t.viewer.saveSession}`}
               </button>
               {saveStatus === "full" && (
                 <span className="text-xs text-red-600 dark:text-red-400">
@@ -2412,7 +2468,9 @@ export function EvtxUploader({
                 onResize={(size) => setControlsCollapsed(size.asPercentage < 1)}
                 className="flex flex-col gap-3 overflow-y-auto pb-2 pr-1"
               >
-                {topControls}
+                <div ref={topContentRef} className="flex flex-col gap-3">
+                  {topControls}
+                </div>
               </ResizablePanel>
               <ResizableHandle withHandle />
               <ResizablePanel
