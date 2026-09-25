@@ -103,8 +103,16 @@ const sameFiles = (a: SavedFileMeta[], files: File[]) =>
  * Save (or update) a session. Blobs are rewritten only when the file set
  * changed, so re-saving a large case after adding notes is instant.
  */
+/** Default name for a new session: first file, plus how many others. */
+export function defaultSessionName(files: { name: string }[]): string {
+  if (files.length === 0) return "session";
+  return files.length > 1 ? `${files[0].name} +${files.length - 1}` : files[0].name;
+}
+
 export async function saveSession(opts: {
   id?: string;
+  /** Keeps the saved name when omitted (auto-save never renames). */
+  name?: string;
   files: File[];
   snapshot: SessionSnapshot;
   events: number;
@@ -122,10 +130,7 @@ export async function saveSession(opts: {
 
     const meta: SavedSessionMeta = {
       id,
-      name:
-        opts.files.length > 1
-          ? `${opts.files[0].name} +${opts.files.length - 1}`
-          : (opts.files[0]?.name ?? "session"),
+      name: opts.name?.trim() || previous?.name || defaultSessionName(opts.files),
       savedAt: Date.now(),
       files: opts.files.map((f) => ({ name: f.name, size: f.size, lastModified: f.lastModified })),
       totalSize,
@@ -186,6 +191,23 @@ export async function loadSession(
         : new File([blob], m.name, { lastModified: m.lastModified });
     });
     return { meta, files, snapshot: snapshot as SessionSnapshot };
+  } finally {
+    db.close();
+  }
+}
+
+export async function renameSession(id: string, name: string): Promise<void> {
+  const clean = name.trim();
+  if (!clean) return;
+  const db = await open();
+  try {
+    const meta = (await request(db.transaction(META).objectStore(META).get(id))) as
+      | SavedSessionMeta
+      | undefined;
+    if (!meta) return;
+    const tx = db.transaction(META, "readwrite");
+    tx.objectStore(META).put({ ...meta, name: clean });
+    await done(tx);
   } finally {
     db.close();
   }

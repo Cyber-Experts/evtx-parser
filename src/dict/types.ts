@@ -96,6 +96,7 @@ export type Dict = {
     showSystemSessions: string;
     noSessions: string;
     filesLabel: string;
+    fileLabel: string;
     showFiles: string;
     hideFiles: string;
     showControls: string;
@@ -116,6 +117,15 @@ export type Dict = {
     savedSessionsHint: string;
     resumeSession: string;
     deleteSession: string;
+    confirmDeleteSession: string;
+    cancel: string;
+    sessionName: string;
+    saveSessionTitle: string;
+    saveSessionDescription: string;
+    renameSessionTitle: string;
+    renameSession: string;
+    saveAction: string;
+    deleteSessionTitle: string;
     restoringSession: string;
     storageFull: string;
     autoSaved: string;
