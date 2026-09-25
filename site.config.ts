@@ -43,12 +43,12 @@ export const siteConfig = {
   }>,
   defaultOgImage: "/opengraph-image",
   organization: {
-    legalName: "EVTX parser",
+    legalName: "Cyber Experts",
     logo: "/icon",
     foundingDate: "2025-01-01",
     founder: "Florian Amette" as string | undefined,
     wikidata: undefined as string | undefined,
-    sameAs: [] as string[],
+    sameAs: ["https://github.com/Cyber-Experts"] as string[],
     address: {
       streetAddress: undefined as string | undefined,
       addressLocality: undefined as string | undefined,
@@ -57,7 +57,7 @@ export const siteConfig = {
       addressCountry: undefined as string | undefined,
     },
     contactPoint: {
-      email: undefined as string | undefined,
+      email: "contact@cyberexperts.io" as string | undefined,
       telephone: undefined as string | undefined,
       contactType: "customer support",
       areaServed: [] as string[],

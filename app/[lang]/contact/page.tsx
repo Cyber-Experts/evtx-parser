@@ -85,11 +85,20 @@ export default async function ContactPage({
           ]}
         />
         <h1>Contact</h1>
-        <p>The fastest way to reach us:</p>
+        <p>
+          {siteConfig.name} is built by {siteConfig.organization.legalName}.
+          Feedback from people using it on real cases is what shapes the
+          roadmap — feature requests, bug reports and questions are all
+          welcome.
+        </p>
         <ul>
           <li>
             Email:{" "}
             <a href={`mailto:${contactPoint.email}`}>{contactPoint.email}</a>
+          </li>
+          <li>
+            GitHub:{" "}
+            <a href="https://github.com/Cyber-Experts">github.com/Cyber-Experts</a>
           </li>
           {contactPoint.telephone && (
             <li>
@@ -100,16 +109,26 @@ export default async function ContactPage({
             </li>
           )}
         </ul>
-        <h2>Postal address</h2>
-        <address className="not-italic">
-          {siteConfig.organization.legalName}
-          <br />
-          {address.streetAddress}
-          <br />
-          {address.postalCode} {address.addressLocality}
-          <br />
-          {address.addressCountry}
-        </address>
+        <h2>Security issues</h2>
+        <p>
+          If you find a vulnerability, please report it privately to{" "}
+          <a href={`mailto:${contactPoint.email}`}>{contactPoint.email}</a>{" "}
+          rather than opening a public issue.
+        </p>
+        {address.streetAddress && (
+          <>
+            <h2>Postal address</h2>
+            <address className="not-italic">
+              {siteConfig.organization.legalName}
+              <br />
+              {address.streetAddress}
+              <br />
+              {address.postalCode} {address.addressLocality}
+              <br />
+              {address.addressCountry}
+            </address>
+          </>
+        )}
       </main>
     </>
   );
