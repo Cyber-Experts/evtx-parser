@@ -30,7 +30,7 @@ export const pt: Dict = {
     ctaHeading: "Sua próxima investigação começa com um arrastar e soltar.",
     ctaBody: "Gratuito, open source e privado por design. Sem conta, sem upload, sem instalação.",
     features: [
-      { title: "Hunts ao abrir", body: "56 detecções — Kerberoasting, limpeza de logs, cradles de PowerShell, novos serviços, força bruta — rodam assim que o arquivo carrega." },
+      { title: "Hunts ao abrir", body: "{n} detecções — Kerberoasting, limpeza de logs, cradles de PowerShell, novos serviços, força bruta — rodam assim que o arquivo carrega." },
       { title: "Uma linguagem de consulta de analista", body: "Campo:valor, curingas, aspas e negação em todos os campos EventData, com facetas instantâneas e ordenação por valores raros." },
       { title: "Pivôs em um clique", body: "Vá de qualquer evento para o mesmo Logon ID, GUID de processo, processo pai ou uma janela de ±5 minutos." },
       { title: "Sessões de logon reconstruídas", body: "Quem fez logon, como, de onde, com quais privilégios e o que fez — de 4624 a 4634, uma linha por sessão." },
@@ -103,6 +103,7 @@ export const pt: Dict = {
     catInitial: "Acesso inicial",
     catDiscovery: "Descoberta",
     catImpact: "Impacto",
+    catC2: "Comando e controle / exfiltração",
     huntsFilter: "Filtrar hunts…",
     hitsOnly: "Somente hunts com resultados",
     eventsTab: "Eventos",

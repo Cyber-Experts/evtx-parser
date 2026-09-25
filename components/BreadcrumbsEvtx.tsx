@@ -16,28 +16,25 @@ export type Crumb = {
 // Visible breadcrumb trail. The JSON-LD BreadcrumbList lives in each page's
 // schema graph; this component is the HTML counterpart so users (and Google
 // for sitelink rendering) see the same hierarchy.
-export function Breadcrumbs({
-  dict,
-  items,
-}: {
-  dict: Dict;
-  items: Crumb[];
-}) {
+export function Breadcrumbs({ dict, items }: { dict: Dict; items: Crumb[] }) {
   if (items.length === 0) return null;
   return (
     <nav
       aria-label={dict.breadcrumb.label}
-      className="font-mono text-xs text-ink-500"
+      className="font-mono text-xs text-ink-500 dark:text-ink-400"
     >
-      <ol className="flex flex-wrap items-center gap-1">
+      <ol className="flex flex-wrap items-center gap-1.5">
         {items.map((item, i) => {
           const isLast = i === items.length - 1;
           return (
-            <li key={`${item.label}-${i}`} className="flex items-center gap-1">
+            <li
+              key={`${item.label}-${i}`}
+              className="flex items-center gap-1.5"
+            >
               {item.href && !isLast ? (
                 <Link
                   href={item.href}
-                  className="text-ink-500 underline-offset-2 hover:text-ink-800 hover:underline dark:hover:text-ink-300"
+                  className="text-ink-500 underline-offset-4 transition-colors hover:text-uv-700 hover:underline hover:decoration-uv-300 dark:text-ink-400 dark:hover:text-uv-300 dark:hover:decoration-uv-700"
                 >
                   {item.label}
                 </Link>
@@ -46,15 +43,18 @@ export function Breadcrumbs({
                   aria-current={isLast ? "page" : undefined}
                   className={
                     isLast
-                      ? "text-ink-700 dark:text-ink-300"
-                      : "text-ink-500"
+                      ? "text-ink-800 dark:text-ink-200"
+                      : "text-ink-500 dark:text-ink-400"
                   }
                 >
                   {item.label}
                 </span>
               )}
               {!isLast && (
-                <span aria-hidden="true" className="text-ink-400">
+                <span
+                  aria-hidden="true"
+                  className="text-ink-300 dark:text-ink-700"
+                >
                   /
                 </span>
               )}

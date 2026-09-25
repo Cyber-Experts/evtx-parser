@@ -13,15 +13,18 @@ import { LOCALES, type Locale } from "@/lib/i18n";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { TableOfContents } from "@/components/table-of-contents";
 import { ReadingProgress } from "@/components/reading-progress";
-import { PostCard } from "@/components/post-card";
+import { PostCard, TAG_CHIP } from "@/components/post-card";
+import { PageHero, SectionTitle } from "@/components/PageHero";
 import { JsonLd } from "@/components/seo/json-ld";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { markdownComponents } from "@/components/markdown/components";
 import { extractHeadings } from "@/lib/toc";
 import { getDictionary, hasLocale } from "../../dictionaries";
 
 type Params = { lang: string; slug: string };
+
+const SERIES_PILL =
+  "rounded-full border border-ink-200 bg-card/70 px-3 py-1 text-xs font-medium text-ink-700 transition-colors hover:border-uv-300 hover:text-uv-700 dark:border-ink-800 dark:text-ink-300 dark:hover:border-uv-400/40 dark:hover:text-uv-300";
 
 const fetchPost = cache((locale: Locale, slug: string) =>
   blog.getOne(slug, { locale }),
@@ -104,7 +107,9 @@ export default async function BlogPostPage({
   const seriesSlug = rawSeries ? slugifySeries(rawSeries) : null;
   const seriesTitle =
     (typeof fm.seriesTitle === "string" && fm.seriesTitle) || rawSeries;
-  const seriesPosts = seriesSlug ? await blog.getBySeries(seriesSlug, { locale }) : [];
+  const seriesPosts = seriesSlug
+    ? await blog.getBySeries(seriesSlug, { locale })
+    : [];
   const currentIndex = seriesSlug
     ? seriesPosts.findIndex((p) => p.slug === post.slug)
     : -1;
@@ -132,14 +137,9 @@ export default async function BlogPostPage({
       <ReadingProgress />
       <JsonLd data={jsonLd} />
       {heroImage && (
-        <link
-          rel="preload"
-          as="image"
-          href={heroImage}
-          fetchPriority="high"
-        />
+        <link rel="preload" as="image" href={heroImage} fetchPriority="high" />
       )}
-      <main id="main-content" className="container mx-auto px-4 py-10">
+      <main id="main-content" className="container mx-auto px-4 py-12">
         <Breadcrumbs
           items={[
             { name: dict.nav.home, href: `/${locale}` },
@@ -158,23 +158,23 @@ export default async function BlogPostPage({
 
         {seriesSlug && currentIndex >= 0 && (
           <aside
-            className="mt-6 rounded-md border bg-muted/40 px-4 py-3 text-sm flex flex-wrap gap-x-3 gap-y-1 items-center justify-between"
+            className="surface mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-3.5 text-sm"
             aria-label="Series"
           >
-            <span className="text-muted-foreground">
+            <span className="text-ink-600 dark:text-ink-400">
               Part {currentIndex + 1} of {seriesPosts.length} in{" "}
               <Link
                 href={`/${locale}/topics/${seriesSlug}`}
-                className="font-medium text-foreground underline underline-offset-2"
+                className="font-medium text-uv-700 underline decoration-uv-300 underline-offset-4 hover:decoration-uv-500 dark:text-uv-300 dark:decoration-uv-700"
               >
                 {seriesTitle ?? rawSeries}
               </Link>
             </span>
-            <span className="flex gap-3">
+            <span className="flex gap-2">
               {currentIndex > 0 && (
                 <Link
                   href={`/${locale}/blog/${seriesPosts[currentIndex - 1].slug}`}
-                  className="hover:underline"
+                  className={SERIES_PILL}
                   rel="prev"
                 >
                   ← {dict.blog.previous}
@@ -183,7 +183,7 @@ export default async function BlogPostPage({
               {currentIndex < seriesPosts.length - 1 && (
                 <Link
                   href={`/${locale}/blog/${seriesPosts[currentIndex + 1].slug}`}
-                  className="hover:underline"
+                  className={SERIES_PILL}
                   rel="next"
                 >
                   {dict.blog.next} →
@@ -193,16 +193,16 @@ export default async function BlogPostPage({
           </aside>
         )}
 
-        <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_240px]">
+        <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_260px]">
           <article>
-            <header className="space-y-4 mb-8">
-              <h1 className="text-3xl md:text-5xl font-semibold tracking-tight">
-                {fm.title ?? slug}
-              </h1>
-              {fm.description && (
-                <p className="text-lg text-muted-foreground">{fm.description as string}</p>
-              )}
-              <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-2 items-center">
+            <PageHero
+              eyebrow={seriesTitle ?? dict.metadata.blogTitle}
+              title={fm.title ?? slug}
+              intro={
+                fm.description ? <p>{fm.description as string}</p> : undefined
+              }
+            >
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-500 dark:text-ink-400">
                 {(() => {
                   // Resolve author display from the normalized array
                   // @next-md-blog/core returns. Prefer the Author object
@@ -223,7 +223,7 @@ export default async function BlogPostPage({
                           href={url}
                           target="_blank"
                           rel="author noopener"
-                          className="underline underline-offset-2"
+                          className="font-medium text-uv-700 underline decoration-uv-300 underline-offset-4 hover:decoration-uv-500 dark:text-uv-300 dark:decoration-uv-700"
                         >
                           {name}
                         </a>
@@ -258,18 +258,20 @@ export default async function BlogPostPage({
                 </span>
               </div>
               {tags.length > 0 && (
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1.5">
                   {tags.map((t) => (
-                    <Badge key={t} variant="secondary">
-                      <Link href={`/${locale}/blog/tags/${encodeURIComponent(t.toLowerCase())}`}>
-                        {t}
-                      </Link>
-                    </Badge>
+                    <Link
+                      key={t}
+                      href={`/${locale}/blog/tags/${encodeURIComponent(t.toLowerCase())}`}
+                      className={TAG_CHIP}
+                    >
+                      {t}
+                    </Link>
                   ))}
                 </div>
               )}
-            </header>
-            <Separator className="mb-8" />
+            </PageHero>
+            <Separator className="my-8 bg-ink-200 dark:bg-ink-800" />
             <div className="prose dark:prose-invert max-w-none prose-headings:scroll-mt-20">
               {/*
                 rehype-slug — heading anchors so in-page #links work.
@@ -293,16 +295,19 @@ export default async function BlogPostPage({
           </article>
 
           <aside className="hidden lg:block">
-            <div className="sticky top-20 space-y-6">
-              <TableOfContents items={headings} title={dict.blog.tableOfContents} />
+            <div className="sticky top-24 space-y-6">
+              <TableOfContents
+                items={headings}
+                title={dict.blog.tableOfContents}
+              />
             </div>
           </aside>
         </div>
 
         {related.length > 0 && (
-          <section className="mt-16">
-            <h2 className="text-2xl font-semibold mb-6">{dict.blog.relatedArticles}</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <section className="mt-20 flex flex-col gap-6">
+            <SectionTitle>{dict.blog.relatedArticles}</SectionTitle>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {related.map((r) => (
                 <PostCard key={r.slug} post={r} locale={locale} />
               ))}

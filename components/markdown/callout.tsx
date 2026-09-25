@@ -11,9 +11,15 @@ const ICONS: Record<Variant, typeof Info> = {
 };
 
 const STYLES: Record<Variant, string> = {
-  info: "border-l-blue-500/60 bg-blue-500/5",
-  warn: "border-l-orange-500/60 bg-orange-500/5",
-  tip: "border-l-emerald-500/60 bg-emerald-500/5",
+  info: "border-l-uv-500 bg-uv-50/60 dark:bg-uv-500/10",
+  warn: "border-l-orange-500 bg-orange-50/70 dark:bg-orange-500/10",
+  tip: "border-l-glow-500 bg-glow-50/70 dark:border-l-glow-400 dark:bg-glow-400/10",
+};
+
+const ICON_STYLES: Record<Variant, string> = {
+  info: "text-uv-600 dark:text-uv-300",
+  warn: "text-orange-600 dark:text-orange-400",
+  tip: "text-glow-700 dark:text-glow-400",
 };
 
 export function Callout({
@@ -30,13 +36,20 @@ export function Callout({
     <aside
       role="note"
       className={cn(
-        "my-6 border-l-4 rounded-r-md px-4 py-3 flex gap-3 items-start",
+        "my-6 flex items-start gap-3 rounded-xl border border-l-4 border-ink-200 px-4 py-3 dark:border-ink-800",
         STYLES[variant],
       )}
     >
-      <Icon className="h-4 w-4 mt-1 shrink-0" aria-hidden />
+      <Icon
+        className={cn("mt-1 h-4 w-4 shrink-0", ICON_STYLES[variant])}
+        aria-hidden
+      />
       <div className="flex-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-        {title && <p className="font-semibold mb-1">{title}</p>}
+        {title && (
+          <p className="mb-1 font-semibold text-ink-900 dark:text-ink-100">
+            {title}
+          </p>
+        )}
         {children}
       </div>
     </aside>

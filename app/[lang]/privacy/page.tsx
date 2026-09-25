@@ -2,11 +2,15 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { JsonLd } from "@/components/seo/json-ld";
+import { PageHero } from "@/components/PageHero";
 import { siteConfig } from "@/site.config";
 import { LOCALES, hreflangFor, type Locale } from "@/lib/i18n";
 import { getDictionary, hasLocale } from "../dictionaries";
 
 type Params = { lang: string };
+
+const PROSE =
+  "surface prose max-w-none px-6 py-8 sm:px-10 dark:prose-invert prose-p:leading-relaxed prose-p:text-ink-700 dark:prose-p:text-ink-300 prose-li:leading-relaxed prose-li:text-ink-700 dark:prose-li:text-ink-300 prose-h2:mt-10 prose-h2:mb-3 prose-h2:text-xl prose-h2:font-semibold prose-h2:tracking-[-0.01em] prose-h2:text-ink-950 dark:prose-h2:text-ink-50 prose-strong:text-ink-900 dark:prose-strong:text-ink-100 prose-a:font-medium prose-a:text-uv-700 prose-a:underline prose-a:decoration-uv-300 prose-a:underline-offset-4 prose-a:hover:decoration-uv-500 dark:prose-a:text-uv-300 dark:prose-a:decoration-uv-700 prose-code:rounded prose-code:bg-ink-100 prose-code:px-1 prose-code:py-0.5 prose-code:font-normal prose-code:text-ink-800 prose-code:before:content-none prose-code:after:content-none dark:prose-code:bg-ink-800 dark:prose-code:text-ink-200 [&>:first-child]:mt-0 [&>:last-child]:mb-0";
 
 export async function generateStaticParams() {
   return LOCALES.map((lang) => ({ lang }));
@@ -59,88 +63,99 @@ export default async function PrivacyPage({
       />
       <main
         id="main-content"
-        className="container mx-auto px-4 py-12 max-w-3xl prose dark:prose-invert"
+        className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-10 px-4 py-6 sm:px-6 sm:py-10"
       >
-        <Breadcrumbs
-          items={[
-            { name: dict.nav.home, href: `/${locale}` },
-            { name: "Privacy" },
-          ]}
-        />
-        <h1>Privacy Policy</h1>
-        <p>
-          <em>Last updated: 25 September 2026.</em>
-        </p>
-        <p>
-          {siteConfig.name} is operated by {siteConfig.organization.legalName} (
-          <a href="https://github.com/Cyber-Experts">github.com/Cyber-Experts</a>
-          ). This policy explains what data is processed when you use the site,
-          and what is not.
-        </p>
+        <PageHero
+          top={
+            <Breadcrumbs
+              items={[
+                { name: dict.nav.home, href: `/${locale}` },
+                { name: "Privacy" },
+              ]}
+            />
+          }
+          title="Privacy Policy"
+          size="md"
+        >
+          <p className="text-sm text-ink-500 dark:text-ink-400">
+            <em>Last updated: 25 September 2026.</em>
+          </p>
+        </PageHero>
+        <article className={PROSE}>
+          <p>
+            {siteConfig.name} is operated by {siteConfig.organization.legalName}{" "}
+            (
+            <a href="https://github.com/Cyber-Experts">
+              github.com/Cyber-Experts
+            </a>
+            ). This policy explains what data is processed when you use the
+            site, and what is not.
+          </p>
 
-        <h2>Your event log files never leave your device</h2>
-        <p>
-          The <code>.evtx</code> files you open are parsed inside your browser
-          by a WebAssembly module running in a web worker. Their content, file
-          names and parsed events are never uploaded to us or to anyone else.
-          Searching, filtering, hunts, exports and reports are all computed
-          locally. Once the page has loaded you can disconnect from the network
-          and the viewer keeps working.
-        </p>
+          <h2>Your event log files never leave your device</h2>
+          <p>
+            The <code>.evtx</code> files you open are parsed inside your browser
+            by a WebAssembly module running in a web worker. Their content, file
+            names and parsed events are never uploaded to us or to anyone else.
+            Searching, filtering, hunts, exports and reports are all computed
+            locally. Once the page has loaded you can disconnect from the
+            network and the viewer keeps working.
+          </p>
 
-        <h2>Data stored in your browser</h2>
-        <ul>
-          <li>
-            <strong>Saved sessions</strong> — only if you click{" "}
-            <em>Save session</em>: the files and your analysis state (search,
-            filters, bookmarks, notes) are stored in your browser&apos;s
-            IndexedDB on this device. They are not synchronised or sent
-            anywhere. Delete them from the start screen or by clearing this
-            site&apos;s data in your browser.
-          </li>
-          <li>
-            <strong>Preferences</strong> — theme, UTC/local time display and
-            column layout are kept in <code>localStorage</code>.
-          </li>
-        </ul>
-        <p>We do not use advertising or tracking cookies.</p>
+          <h2>Data stored in your browser</h2>
+          <ul>
+            <li>
+              <strong>Saved sessions</strong> — only if you click{" "}
+              <em>Save session</em>: the files and your analysis state (search,
+              filters, bookmarks, notes) are stored in your browser&apos;s
+              IndexedDB on this device. They are not synchronised or sent
+              anywhere. Delete them from the start screen or by clearing this
+              site&apos;s data in your browser.
+            </li>
+            <li>
+              <strong>Preferences</strong> — theme, UTC/local time display and
+              column layout are kept in <code>localStorage</code>.
+            </li>
+          </ul>
+          <p>We do not use advertising or tracking cookies.</p>
 
-        <h2>Analytics</h2>
-        <p>
-          To understand how the site is used, we collect aggregate, cookieless
-          statistics with Vercel Web Analytics, Vercel Speed Insights
-          (performance metrics) and Ahrefs Web Analytics: pages viewed,
-          referrer, country, browser and device type. Two usage events are
-          recorded: that a file was parsed (with a file-size bucket and the
-          number of records) and that an export was made (format and number of
-          rows). These events never include file names or any event content.
-        </p>
+          <h2>Analytics</h2>
+          <p>
+            To understand how the site is used, we collect aggregate, cookieless
+            statistics with Vercel Web Analytics, Vercel Speed Insights
+            (performance metrics) and Ahrefs Web Analytics: pages viewed,
+            referrer, country, browser and device type. Two usage events are
+            recorded: that a file was parsed (with a file-size bucket and the
+            number of records) and that an export was made (format and number of
+            rows). These events never include file names or any event content.
+          </p>
 
-        <h2>Hosting</h2>
-        <p>
-          The site is hosted by Vercel, which processes technical request data
-          (such as IP address and user agent) to deliver the site and protect
-          it against abuse.
-        </p>
+          <h2>Hosting</h2>
+          <p>
+            The site is hosted by Vercel, which processes technical request data
+            (such as IP address and user agent) to deliver the site and protect
+            it against abuse.
+          </p>
 
-        <h2>Self-hosted instances</h2>
-        <p>
-          The source code is available, so you can run your own instance. Built
-          with <code>NEXT_PUBLIC_OFFLINE=1</code>, it loads no third-party
-          script and sends no analytics at all.
-        </p>
+          <h2>Self-hosted instances</h2>
+          <p>
+            The source code is available, so you can run your own instance.
+            Built with <code>NEXT_PUBLIC_OFFLINE=1</code>, it loads no
+            third-party script and sends no analytics at all.
+          </p>
 
-        <h2>Your rights</h2>
-        <p>
-          Under the GDPR you can request access to, correction or deletion of
-          personal data we hold about you, or object to its processing, by
-          emailing{" "}
-          <a href={`mailto:${siteConfig.organization.contactPoint.email}`}>
-            {siteConfig.organization.contactPoint.email}
-          </a>
-          . Because log files are processed only on your device, we hold no
-          copy of them.
-        </p>
+          <h2>Your rights</h2>
+          <p>
+            Under the GDPR you can request access to, correction or deletion of
+            personal data we hold about you, or object to its processing, by
+            emailing{" "}
+            <a href={`mailto:${siteConfig.organization.contactPoint.email}`}>
+              {siteConfig.organization.contactPoint.email}
+            </a>
+            . Because log files are processed only on your device, we hold no
+            copy of them.
+          </p>
+        </article>
       </main>
     </>
   );

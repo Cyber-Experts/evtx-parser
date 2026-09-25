@@ -23,6 +23,7 @@ const CATEGORY_ORDER: HuntCategory[] = [
   "discovery",
   "lateral",
   "evasion",
+  "c2",
   "impact",
 ];
 
@@ -107,6 +108,7 @@ export function HuntsMenu<R extends Row>({
     persistence: v.catPersistence,
     execution: v.catExecution,
     evasion: v.catEvasion,
+    c2: v.catC2,
   };
 
   return (

@@ -30,7 +30,7 @@ export const de: Dict = {
     ctaHeading: "Ihre nächste Untersuchung beginnt mit einem Drop.",
     ctaBody: "Kostenlos, Open Source und privat by Design. Kein Konto, kein Upload, keine Installation.",
     features: [
-      { title: "Hunts beim Öffnen", body: "56 Erkennungen — Kerberoasting, Log-Löschung, PowerShell-Cradles, neue Dienste, Brute Force — laufen sofort beim Laden." },
+      { title: "Hunts beim Öffnen", body: "{n} Erkennungen — Kerberoasting, Log-Löschung, PowerShell-Cradles, neue Dienste, Brute Force — laufen sofort beim Laden." },
       { title: "Eine Abfragesprache für Analysten", body: "Feld:Wert, Wildcards, Anführungszeichen und Negation über alle EventData-Felder, mit Facetten und Sortierung nach seltenen Werten." },
       { title: "Pivots mit einem Klick", body: "Von jedem Ereignis zur gleichen Logon-ID, Prozess-GUID, zum Elternprozess oder in ein ±5-Minuten-Fenster." },
       { title: "Anmeldesitzungen rekonstruiert", body: "Wer sich wie und von wo angemeldet hat, mit welchen Rechten und was passiert ist — 4624 bis 4634, eine Zeile pro Sitzung." },
@@ -103,6 +103,7 @@ export const de: Dict = {
     catInitial: "Initialer Zugriff",
     catDiscovery: "Erkundung",
     catImpact: "Auswirkung",
+    catC2: "Command & Control / Exfiltration",
     huntsFilter: "Hunts filtern…",
     hitsOnly: "Nur Hunts mit Treffern",
     eventsTab: "Ereignisse",

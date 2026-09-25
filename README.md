@@ -32,7 +32,7 @@ the analyst's machine.
 - A small query language with autocomplete: `EventID:4624 LogonType:10
   -IpAddress:10.*` (see [Search syntax](#search-syntax)).
 - Field sidebar with value counts and a *Rare* sort for stack counting.
-- **56 ready-made hunts** mapped to MITRE ATT&CK — kerberoasting, AS-REP
+- **86 ready-made hunts** mapped to MITRE ATT&CK — kerberoasting, AS-REP
   roasting, DCSync, PsExec, WMI/WinRM lateral movement, Run keys, encoded
   PowerShell, AMSI bypass, cleared logs, shadow-copy deletion and more — each
   showing its hit count on your data.

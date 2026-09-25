@@ -184,6 +184,9 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+    /* Decorative hero glows are wider than small screens; clip (not hidden)
+       keeps position: sticky working. */
+    overflow-x: clip;
   }
   ::selection {
     background: rgb(123 76 255 / 0.28);

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { PageHero } from "@/components/PageHero";
 import { CollectionJsonLd } from "@/components/seo/collection-jsonld";
 import { glossary } from "@/next-md-blog.config";
 import { siteConfig } from "@/site.config";
@@ -56,32 +57,45 @@ export default async function GlossaryIndex({
           url: glossary.url(t.slug, locale),
         }))}
       />
-      <main id="main-content" className="container mx-auto px-4 py-12 max-w-3xl">
-        <Breadcrumbs
-          items={[
-            { name: dict.nav.home, href: `/${locale}` },
-            { name: "Glossary" },
-          ]}
+      <main
+        id="main-content"
+        className="container mx-auto flex max-w-3xl flex-col gap-12 px-4 py-12"
+      >
+        <PageHero
+          top={
+            <Breadcrumbs
+              items={[
+                { name: dict.nav.home, href: `/${locale}` },
+                { name: "Glossary" },
+              ]}
+            />
+          }
+          eyebrow="DFIR"
+          title="Glossary"
+          intro="Plain-language definitions of SEO terms used across the blog."
         />
-        <h1 className="mt-4 text-3xl md:text-4xl font-semibold tracking-tight">
-          Glossary
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          Plain-language definitions of SEO terms used across the blog.
-        </p>
-        <dl className="mt-10 space-y-6">
+        <dl className="grid gap-4 sm:grid-cols-2">
           {terms.map((term) => (
-            <div key={term.slug} className="border-b pb-6 last:border-b-0">
-              <dt className="text-lg font-semibold">
+            <div
+              key={term.slug}
+              className="surface surface-interactive group relative flex flex-col gap-2 p-5"
+            >
+              <dt className="flex items-center justify-between gap-3 text-lg font-semibold text-ink-950 dark:text-ink-50">
                 <Link
                   href={`/${locale}/glossary/${term.slug}`}
-                  className="hover:underline"
+                  className="after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none"
                 >
                   {(term.frontmatter.title as string) ?? term.slug}
                 </Link>
+                <span
+                  aria-hidden="true"
+                  className="text-uv-500 transition-transform group-hover:translate-x-0.5"
+                >
+                  →
+                </span>
               </dt>
               {term.frontmatter.description && (
-                <dd className="mt-1 text-muted-foreground">
+                <dd className="text-sm leading-relaxed text-ink-600 dark:text-ink-400">
                   {term.frontmatter.description as string}
                 </dd>
               )}

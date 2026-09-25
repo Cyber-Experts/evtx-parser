@@ -2,11 +2,20 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { JsonLd } from "@/components/seo/json-ld";
+import { GitHubMark } from "@/components/GitHubMark";
+import { PageHero } from "@/components/PageHero";
 import { siteConfig } from "@/site.config";
 import { LOCALES, hreflangFor, type Locale } from "@/lib/i18n";
 import { getDictionary, hasLocale } from "../dictionaries";
 
 type Params = { lang: string };
+
+const CARD =
+  "surface surface-interactive flex h-full flex-col gap-1.5 px-6 py-5";
+const CARD_LABEL = "eyebrow flex items-center gap-1.5";
+const CARD_VALUE = "font-medium break-all text-ink-950 dark:text-ink-50";
+const LINK =
+  "font-medium text-uv-700 underline decoration-uv-300 underline-offset-4 hover:decoration-uv-500 dark:text-uv-300 dark:decoration-uv-700";
 
 export async function generateStaticParams() {
   return LOCALES.map((lang) => ({ lang }));
@@ -76,59 +85,81 @@ export default async function ContactPage({
       />
       <main
         id="main-content"
-        className="container mx-auto px-4 py-12 max-w-3xl prose dark:prose-invert"
+        className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-10 px-4 py-6 sm:px-6 sm:py-10"
       >
-        <Breadcrumbs
-          items={[
-            { name: dict.nav.home, href: `/${locale}` },
-            { name: "Contact" },
-          ]}
+        <PageHero
+          top={
+            <Breadcrumbs
+              items={[
+                { name: dict.nav.home, href: `/${locale}` },
+                { name: "Contact" },
+              ]}
+            />
+          }
+          title="Contact"
+          size="md"
+          intro={
+            <p>
+              {siteConfig.name} is built by {siteConfig.organization.legalName}.
+              Feedback from people using it on real cases is what shapes the
+              roadmap — feature requests, bug reports and questions are all
+              welcome.
+            </p>
+          }
         />
-        <h1>Contact</h1>
-        <p>
-          {siteConfig.name} is built by {siteConfig.organization.legalName}.
-          Feedback from people using it on real cases is what shapes the
-          roadmap — feature requests, bug reports and questions are all
-          welcome.
-        </p>
-        <ul>
+        <ul className="grid gap-4 sm:grid-cols-2">
           <li>
-            Email:{" "}
-            <a href={`mailto:${contactPoint.email}`}>{contactPoint.email}</a>
+            <a href={`mailto:${contactPoint.email}`} className={CARD}>
+              <span className={CARD_LABEL}>Email</span>
+              <span className={CARD_VALUE}>{contactPoint.email}</span>
+            </a>
           </li>
           <li>
-            GitHub:{" "}
-            <a href="https://github.com/Cyber-Experts">github.com/Cyber-Experts</a>
+            <a href="https://github.com/Cyber-Experts" className={CARD}>
+              <span className={CARD_LABEL}>
+                <GitHubMark className="h-3.5 w-3.5" />
+                GitHub
+              </span>
+              <span className={CARD_VALUE}>github.com/Cyber-Experts</span>
+            </a>
           </li>
           {contactPoint.telephone && (
             <li>
-              Phone:{" "}
-              <a href={`tel:${contactPoint.telephone}`}>
-                {contactPoint.telephone}
+              <a href={`tel:${contactPoint.telephone}`} className={CARD}>
+                <span className={CARD_LABEL}>Phone</span>
+                <span className={CARD_VALUE}>{contactPoint.telephone}</span>
               </a>
             </li>
           )}
         </ul>
-        <h2>Security issues</h2>
-        <p>
-          If you find a vulnerability, please report it privately to{" "}
-          <a href={`mailto:${contactPoint.email}`}>{contactPoint.email}</a>{" "}
-          rather than opening a public issue.
-        </p>
-        {address.streetAddress && (
-          <>
-            <h2>Postal address</h2>
-            <address className="not-italic">
-              {siteConfig.organization.legalName}
-              <br />
-              {address.streetAddress}
-              <br />
-              {address.postalCode} {address.addressLocality}
-              <br />
-              {address.addressCountry}
-            </address>
-          </>
-        )}
+        <section className="surface flex flex-col gap-3 px-6 py-8 sm:px-10">
+          <h2 className="text-xl text-ink-950 dark:text-ink-50">
+            Security issues
+          </h2>
+          <p className="leading-relaxed text-ink-700 dark:text-ink-300">
+            If you find a vulnerability, please report it privately to{" "}
+            <a href={`mailto:${contactPoint.email}`} className={LINK}>
+              {contactPoint.email}
+            </a>{" "}
+            rather than opening a public issue.
+          </p>
+          {address.streetAddress && (
+            <>
+              <h2 className="mt-6 text-xl text-ink-950 dark:text-ink-50">
+                Postal address
+              </h2>
+              <address className="leading-relaxed text-ink-700 not-italic dark:text-ink-300">
+                {siteConfig.organization.legalName}
+                <br />
+                {address.streetAddress}
+                <br />
+                {address.postalCode} {address.addressLocality}
+                <br />
+                {address.addressCountry}
+              </address>
+            </>
+          )}
+        </section>
       </main>
     </>
   );

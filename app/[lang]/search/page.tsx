@@ -5,6 +5,7 @@ import { siteConfig } from "@/site.config";
 import { LOCALES, hreflangFor, type Locale } from "@/lib/i18n";
 import { getDictionary, hasLocale } from "../dictionaries";
 import { SearchClient } from "./search-client";
+import { PageHero } from "@/components/PageHero";
 
 type Params = { lang: string };
 
@@ -50,11 +51,15 @@ export default async function SearchPage({
     date: (p.frontmatter.date as string) ?? "",
   }));
   return (
-    <main id="main-content" className="container mx-auto px-4 py-12 max-w-3xl">
-      <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-        {dict.metadata.searchTitle}
-      </h1>
-      <p className="mt-2 text-muted-foreground">{dict.metadata.searchDescription}</p>
+    <main
+      id="main-content"
+      className="container mx-auto flex max-w-3xl flex-col gap-10 px-4 py-12"
+    >
+      <PageHero
+        title={dict.metadata.searchTitle}
+        intro={dict.metadata.searchDescription}
+        size="md"
+      />
       <SearchClient
         items={items}
         locale={locale}

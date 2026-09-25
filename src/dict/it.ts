@@ -30,7 +30,7 @@ export const it: Dict = {
     ctaHeading: "La tua prossima indagine inizia con un trascinamento.",
     ctaBody: "Gratuito, open source e privato per progettazione. Nessun account, nessun upload, nessuna installazione.",
     features: [
-      { title: "Hunt all'apertura", body: "56 rilevamenti — Kerberoasting, cancellazione dei log, cradle PowerShell, nuovi servizi, brute force — partono appena il file è caricato." },
+      { title: "Hunt all'apertura", body: "{n} rilevamenti — Kerberoasting, cancellazione dei log, cradle PowerShell, nuovi servizi, brute force — partono appena il file è caricato." },
       { title: "Un linguaggio di query da analista", body: "Campo:valore, caratteri jolly, virgolette e negazione su ogni campo EventData, con facet istantanei e ordinamento per valori rari." },
       { title: "Pivot con un clic", body: "Passa da qualsiasi evento allo stesso Logon ID, GUID di processo, processo padre o a una finestra di ±5 minuti." },
       { title: "Sessioni di accesso ricostruite", body: "Chi ha effettuato l'accesso, come, da dove, con quali privilegi e cosa ha fatto — da 4624 a 4634, una riga per sessione." },
@@ -103,6 +103,7 @@ export const it: Dict = {
     catInitial: "Accesso iniziale",
     catDiscovery: "Ricognizione",
     catImpact: "Impatto",
+    catC2: "Comando e controllo / esfiltrazione",
     huntsFilter: "Filtra hunt…",
     hitsOnly: "Solo hunt con risultati",
     eventsTab: "Eventi",

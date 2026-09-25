@@ -92,6 +92,7 @@ export type Dict = {
     catInitial: string;
     catDiscovery: string;
     catImpact: string;
+    catC2: string;
     huntsFilter: string;
     hitsOnly: string;
     eventsTab: string;

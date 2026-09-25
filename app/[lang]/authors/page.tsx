@@ -7,6 +7,7 @@ import { blog, site } from "@/next-md-blog.config";
 import { siteConfig } from "@/site.config";
 import { LOCALES, hreflangFor, type Locale } from "@/lib/i18n";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { PageHero } from "@/components/PageHero";
 import { CollectionJsonLd } from "@/components/seo/collection-jsonld";
 import { getDictionary, hasLocale } from "../dictionaries";
 
@@ -57,6 +58,15 @@ function readableBio(a: Author): string | undefined {
   return typeof a === "object" ? a.bio : undefined;
 }
 
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+}
+
 export default async function AuthorsIndexPage({
   params,
 }: {
@@ -91,42 +101,67 @@ export default async function AuthorsIndexPage({
           url: `${siteConfig.url}/${locale}/authors/${a.slug}`,
         }))}
       />
-      <main id="main-content" className="container mx-auto px-4 py-12">
-        <Breadcrumbs
-          items={[
-            { name: dict.nav.home, href: `/${locale}` },
-            { name: dict.metadata.blogTitle, href: `/${locale}/blog` },
-            { name: dict.authors.indexTitle },
-          ]}
+      <main
+        id="main-content"
+        className="container mx-auto flex flex-col gap-12 px-4 py-12"
+      >
+        <PageHero
+          top={
+            <Breadcrumbs
+              items={[
+                { name: dict.nav.home, href: `/${locale}` },
+                { name: dict.metadata.blogTitle, href: `/${locale}/blog` },
+                { name: dict.authors.indexTitle },
+              ]}
+            />
+          }
+          eyebrow={dict.metadata.blogTitle}
+          title={dict.authors.indexTitle}
+          intro={<p>{dict.authors.indexDescription}</p>}
         />
-        <header className="mt-6 space-y-3">
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-            {dict.authors.indexTitle}
-          </h1>
-          <p className="text-muted-foreground max-w-2xl">
-            {dict.authors.indexDescription}
-          </p>
-        </header>
 
         {cards.length === 0 ? (
-          <p className="mt-12 text-muted-foreground">{dict.blog.noPosts}</p>
+          <p className="surface p-8 text-center text-ink-500 dark:text-ink-400">
+            {dict.blog.noPosts}
+          </p>
         ) : (
-          <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {cards.map((a) => (
               <Link
                 key={a.slug}
                 href={`/${locale}/authors/${a.slug}`}
-                className="block rounded-lg border p-5 hover:bg-muted/40 transition-colors"
+                className="surface surface-interactive group flex flex-col gap-3 p-6"
               >
-                <h2 className="font-semibold text-lg">{a.name}</h2>
+                <div className="flex items-center gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-uv-200 bg-uv-50 text-sm font-semibold text-uv-700 dark:border-uv-400/30 dark:bg-uv-500/10 dark:text-uv-300"
+                  >
+                    {initials(a.name)}
+                  </span>
+                  <h2 className="text-lg font-semibold text-ink-950 dark:text-ink-50">
+                    {a.name}
+                  </h2>
+                </div>
                 {a.bio && (
-                  <p className="mt-2 text-sm text-muted-foreground line-clamp-3">
+                  <p className="line-clamp-3 text-sm leading-relaxed text-ink-600 dark:text-ink-400">
                     {a.bio}
                   </p>
                 )}
-                <p className="mt-3 text-xs text-muted-foreground">
-                  {dict.authors.postsCount.replace("{n}", String(a.postCount))}
-                </p>
+                <div className="mt-auto flex items-center justify-between pt-2">
+                  <span className="eyebrow">
+                    {dict.authors.postsCount.replace(
+                      "{n}",
+                      String(a.postCount),
+                    )}
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="text-uv-500 transition-transform group-hover:translate-x-1"
+                  >
+                    →
+                  </span>
+                </div>
               </Link>
             ))}
           </section>

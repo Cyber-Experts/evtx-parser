@@ -30,7 +30,7 @@ export const fr: Dict = {
     ctaHeading: "Votre prochaine investigation commence par un glisser-déposer.",
     ctaBody: "Gratuit, open source et privé par conception. Sans compte, sans envoi, sans installation.",
     features: [
-      { title: "Des chasses dès l'ouverture", body: "56 détections — Kerberoasting, effacement des journaux, cradles PowerShell, nouveaux services, force brute — lancées dès le chargement." },
+      { title: "Des chasses dès l'ouverture", body: "{n} détections — Kerberoasting, effacement des journaux, cradles PowerShell, nouveaux services, force brute — lancées dès le chargement." },
       { title: "Un langage de requête d'analyste", body: "Champ:valeur, jokers, guillemets et négation sur tous les champs EventData, avec facettes instantanées et tri des valeurs rares." },
       { title: "Pivots en un clic", body: "Passez de n'importe quel événement au même Logon ID, au même GUID de processus, au parent ou à une fenêtre de ±5 minutes." },
       { title: "Sessions de connexion reconstruites", body: "Qui s'est connecté, comment, d'où, avec quels privilèges et ce qu'il a fait — de 4624 à 4634, une ligne par session." },
@@ -103,6 +103,7 @@ export const fr: Dict = {
     catInitial: "Accès initial",
     catDiscovery: "Découverte",
     catImpact: "Impact",
+    catC2: "Commande et contrôle / exfiltration",
     huntsFilter: "Filtrer les chasses…",
     hitsOnly: "Seulement les chasses avec résultats",
     eventsTab: "Événements",

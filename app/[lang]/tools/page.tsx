@@ -6,6 +6,7 @@ import { getDict } from "@/src/dict";
 import { isLocale, type Locale } from "@/src/dict/locales";
 import { jsonLdScript } from "@/lib/schema";
 import { Breadcrumbs } from "@/components/BreadcrumbsEvtx";
+import { PageHero } from "@/components/PageHero";
 import {
   SITE_URL,
   canonicalFor,
@@ -41,19 +42,21 @@ const TOOLS: Tool[] = [
             href="https://github.com/omerbenamram/evtx"
             target="_blank"
             rel="external noopener"
-            className="underline-offset-2 hover:underline"
+            className="font-medium text-uv-700 underline decoration-uv-300 underline-offset-4 hover:decoration-uv-500 dark:text-uv-300 dark:decoration-uv-700"
           >
             omerbenamram/evtx
           </a>
           ) compiled to WebAssembly and run in a Web Worker — the same parser
-          used by SANS and CCDC blue teams when they need a non-Windows
-          parser. Files never leave the browser; useful when you're working on
-          a host you don't own (a customer laptop, a forensic image you can't
-          export) or when standing up tooling on a fresh workstation would
-          take longer than the triage.
+          used by SANS and CCDC blue teams when they need a non-Windows parser.
+          Files never leave the browser; useful when you're working on a host
+          you don't own (a customer laptop, a forensic image you can't export)
+          or when standing up tooling on a fresh workstation would take longer
+          than the triage.
         </p>
         <p className="mt-2">
-          <strong>Best for:</strong> one .evtx, one analyst, no install. Limited to what one browser tab can hold in memory; for {">"}1 GB collections, prefer evtx_dump.
+          <strong>Best for:</strong> one .evtx, one analyst, no install. Limited
+          to what one browser tab can hold in memory; for {">"}1 GB collections,
+          prefer evtx_dump.
         </p>
       </>
     ),
@@ -78,12 +81,13 @@ const TOOLS: Tool[] = [
         </p>
         <p className="mt-2">
           <strong>Best for:</strong> live-host collection where you need
-          forensically-sound copies plus immediate parsing. Not Linux/macOS-friendly. The community config repo (
+          forensically-sound copies plus immediate parsing. Not
+          Linux/macOS-friendly. The community config repo (
           <a
             href="https://github.com/EricZimmerman/KapeFiles"
             target="_blank"
             rel="external noopener"
-            className="underline-offset-2 hover:underline"
+            className="font-medium text-uv-700 underline decoration-uv-300 underline-offset-4 hover:decoration-uv-500 dark:text-uv-300 dark:decoration-uv-700"
           >
             EricZimmerman/KapeFiles
           </a>
@@ -104,13 +108,14 @@ const TOOLS: Tool[] = [
         <p>
           The classic free GUI for full-disk imaging (E01, RAW, AFF) and for
           pulling specific files out of a mounted or live system. Reads locked
-          system files (including the live <code>winevt\Logs\Security.evtx</code>
-          ) because it talks to the volume below the file lock. Use it when
-          you need a verifiable disk image, not just artifact copies.
+          system files (including the live{" "}
+          <code>winevt\Logs\Security.evtx</code>) because it talks to the volume
+          below the file lock. Use it when you need a verifiable disk image, not
+          just artifact copies.
         </p>
         <p className="mt-2">
-          <strong>Best for:</strong> court-admissible disk images, or pulling
-          a single locked file off a live host. Not a parser — feed the output
+          <strong>Best for:</strong> court-admissible disk images, or pulling a
+          single locked file off a live host. Not a parser — feed the output
           into KAPE/EvtxECmd or this site.
         </p>
       </>
@@ -127,17 +132,16 @@ const TOOLS: Tool[] = [
       <>
         <p>
           Microsoft's built-in CLI for the event log. The two commands you'll
-          actually use:{" "}
-          <code>wevtutil epl Security C:\out\Security.evtx</code> (export a
-          live channel to a portable file) and{" "}
-          <code>wevtutil qe Security /c:100 /rd:true /f:xml</code> (dump
-          records as XML for piping into a parser). Available on every
-          supported Windows version, no install.
+          actually use: <code>wevtutil epl Security C:\out\Security.evtx</code>{" "}
+          (export a live channel to a portable file) and{" "}
+          <code>wevtutil qe Security /c:100 /rd:true /f:xml</code> (dump records
+          as XML for piping into a parser). Available on every supported Windows
+          version, no install.
         </p>
         <p className="mt-2">
           <strong>Best for:</strong> scripted live-host collection where you
-          can't drop binaries on the system. Limited filtering syntax (XPath
-          1.0 subset) and slow on large channels.
+          can't drop binaries on the system. Limited filtering syntax (XPath 1.0
+          subset) and slow on large channels.
         </p>
       </>
     ),
@@ -154,9 +158,9 @@ const TOOLS: Tool[] = [
         <p>
           The Rust parser the EVTX format actually deserved.{" "}
           <code>evtx_dump --json file.evtx</code> emits one JSON document per
-          record; pipe into <code>jq</code>, <code>ripgrep</code>, or your
-          SIEM ingestion path. Multi-threaded, deterministic, handles partial
-          / corrupt chunks gracefully. The same code that powers this site's
+          record; pipe into <code>jq</code>, <code>ripgrep</code>, or your SIEM
+          ingestion path. Multi-threaded, deterministic, handles partial /
+          corrupt chunks gracefully. The same code that powers this site's
           in-browser parser.
         </p>
         <p className="mt-2">
@@ -178,10 +182,10 @@ const TOOLS: Tool[] = [
       <>
         <p>
           Willi Ballenthin's pure-Python EVTX parser. Slower than{" "}
-          <code>evtx_dump</code>, but trivial to embed in a Jupyter notebook
-          and to extend for unusual analyses (custom event-data field
-          extraction, cross-channel correlation). The reference Python
-          implementation for the format spec.
+          <code>evtx_dump</code>, but trivial to embed in a Jupyter notebook and
+          to extend for unusual analyses (custom event-data field extraction,
+          cross-channel correlation). The reference Python implementation for
+          the format spec.
         </p>
         <p className="mt-2">
           <strong>Best for:</strong> bespoke analysis in Python.
@@ -203,8 +207,8 @@ const TOOLS: Tool[] = [
         <p>
           A tiny, portable Windows utility that copies files directly through{" "}
           NTFS internals, bypassing the file lock that prevents normal{" "}
-          <code>copy</code> on live event logs. Useful when you only have
-          shell access on a host and can't deploy KAPE or FTK Imager.
+          <code>copy</code> on live event logs. Useful when you only have shell
+          access on a host and can't deploy KAPE or FTK Imager.
         </p>
         <p className="mt-2">
           <strong>Best for:</strong> minimum-footprint live-system copies.
@@ -231,9 +235,9 @@ const TOOLS: Tool[] = [
           an investigation surface.
         </p>
         <p className="mt-2">
-          <strong>Best for:</strong> confirming a single record's full
-          rendered message text on a live host. Almost any other workflow is
-          faster in another tool.
+          <strong>Best for:</strong> confirming a single record's full rendered
+          message text on a live host. Almost any other workflow is faster in
+          another tool.
         </p>
       </>
     ),
@@ -345,104 +349,138 @@ export default async function ToolsPage({
   const ld = buildToolsGraph(locale, url, dict);
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-4 py-6 sm:px-6 sm:py-10">
-      <Breadcrumbs
-        dict={dict}
-        items={[
-          { label: dict.breadcrumb.home, href: `/${locale}` },
-          { label: dict.tools.title },
-        ]}
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-12 px-4 py-6 sm:px-6 sm:py-10">
+      <PageHero
+        top={
+          <Breadcrumbs
+            dict={dict}
+            items={[
+              { label: dict.breadcrumb.home, href: `/${locale}` },
+              { label: dict.tools.title },
+            ]}
+          />
+        }
+        eyebrow="DFIR"
+        title={dict.tools.title}
+        intro={dict.tools.intro}
       />
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink-900 dark:text-ink-100 sm:text-3xl">
-          {dict.tools.title}
-        </h1>
-        <p className="text-sm text-ink-600 dark:text-ink-400">
-          {dict.tools.intro}
-        </p>
-      </header>
 
-      <section
-        aria-labelledby="tools-summary"
-        className="flex flex-col gap-3 border-t border-ink-200 pt-6 dark:border-ink-800"
-      >
+      <section aria-labelledby="tools-summary" className="flex flex-col gap-3">
         <h2 id="tools-summary" className="sr-only">
           {dict.tools.title}
         </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-ink-200 text-left text-xs font-medium text-ink-500 dark:border-ink-800">
-                <th className="py-2 pr-3">{dict.tools.columnTool}</th>
-                <th className="py-2 pr-3">{dict.tools.columnPlatform}</th>
-                <th className="py-2 pr-3">{dict.tools.columnUseCase}</th>
-                <th className="py-2">{dict.tools.columnLicense}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {TOOLS.map((t) => (
-                <tr
-                  key={t.id}
-                  className="border-b border-ink-100 align-top dark:border-ink-900"
-                >
-                  <td className="py-2 pr-3 font-medium text-ink-900 dark:text-ink-100">
-                    <a
-                      href={`#${t.id}`}
-                      className="underline-offset-2 hover:underline"
-                    >
-                      {t.name}
-                    </a>
-                  </td>
-                  <td className="py-2 pr-3 text-ink-700 dark:text-ink-300">
-                    {t.platform}
-                  </td>
-                  <td className="py-2 pr-3 text-ink-700 dark:text-ink-300">
-                    {t.useCase}
-                  </td>
-                  <td className="py-2 text-ink-700 dark:text-ink-300">
-                    {t.license}
-                  </td>
+        <div className="surface overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-ink-50/70 text-left font-mono text-[0.6875rem] tracking-[0.12em] text-ink-500 uppercase dark:bg-ink-900/60 dark:text-ink-400">
+                  <th className="px-4 py-2.5 font-medium">
+                    {dict.tools.columnTool}
+                  </th>
+                  <th className="px-4 py-2.5 font-medium">
+                    {dict.tools.columnPlatform}
+                  </th>
+                  <th className="px-4 py-2.5 font-medium">
+                    {dict.tools.columnUseCase}
+                  </th>
+                  <th className="px-4 py-2.5 font-medium">
+                    {dict.tools.columnLicense}
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-ink-100 dark:divide-ink-800">
+                {TOOLS.map((t) => (
+                  <tr
+                    key={t.id}
+                    className="align-top transition-colors hover:bg-uv-50/40 dark:hover:bg-uv-400/[0.04]"
+                  >
+                    <td className="px-4 py-3 font-medium text-ink-900 dark:text-ink-100">
+                      <a
+                        href={`#${t.id}`}
+                        className="underline-offset-4 hover:text-uv-700 hover:underline hover:decoration-uv-300 dark:hover:text-uv-300 dark:hover:decoration-uv-700"
+                      >
+                        {t.name}
+                      </a>
+                    </td>
+                    <td className="px-4 py-3 text-ink-600 dark:text-ink-400">
+                      {t.platform}
+                    </td>
+                    <td className="px-4 py-3 text-ink-600 dark:text-ink-400">
+                      {t.useCase}
+                    </td>
+                    <td className="px-4 py-3 text-ink-600 dark:text-ink-400">
+                      {t.license}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
-      {TOOLS.map((t) => (
-        <section
-          key={t.id}
-          id={t.id}
-          aria-labelledby={`${t.id}-heading`}
-          className="flex flex-col gap-3 border-t border-ink-200 pt-6 dark:border-ink-800"
-        >
-          <h2
-            id={`${t.id}-heading`}
-            className="font-mono text-base font-semibold"
+      <div className="flex flex-col gap-6">
+        {TOOLS.map((t) => (
+          <section
+            key={t.id}
+            id={t.id}
+            aria-labelledby={`${t.id}-heading`}
+            className={`surface flex scroll-mt-24 flex-col gap-4 p-6 sm:p-8 ${
+              t.internal ? "edge-glow" : ""
+            }`}
           >
-            {t.internal ? (
-              <Link
-                href={`/${locale}`}
-                className="underline-offset-2 hover:underline"
+            <div className="flex flex-col gap-3">
+              <h2
+                id={`${t.id}-heading`}
+                className="text-2xl tracking-[-0.015em] text-ink-950 dark:text-ink-50"
               >
-                {t.name} ↗
-              </Link>
-            ) : (
-              <a
-                href={t.url}
-                target="_blank"
-                rel="external noopener"
-                className="underline-offset-2 hover:underline"
-              >
-                {t.name} ↗
-              </a>
-            )}
-          </h2>
-          <div className="text-sm leading-relaxed text-ink-700 dark:text-ink-300">
-            {t.body}
-          </div>
-        </section>
-      ))}
+                {t.internal ? (
+                  <Link
+                    href={`/${locale}`}
+                    className="group inline-flex items-center gap-2 hover:text-uv-700 dark:hover:text-uv-300"
+                  >
+                    {t.name}
+                    <span
+                      aria-hidden="true"
+                      className="text-base text-uv-500 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                    >
+                      ↗
+                    </span>
+                  </Link>
+                ) : (
+                  <a
+                    href={t.url}
+                    target="_blank"
+                    rel="external noopener"
+                    className="group inline-flex items-center gap-2 hover:text-uv-700 dark:hover:text-uv-300"
+                  >
+                    {t.name}
+                    <span
+                      aria-hidden="true"
+                      className="text-base text-uv-500 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                    >
+                      ↗
+                    </span>
+                  </a>
+                )}
+              </h2>
+              <ul className="flex flex-wrap gap-2">
+                {[t.platform, t.license].map((chip) => (
+                  <li
+                    key={chip}
+                    className="rounded-full border border-ink-200 bg-card/70 px-2.5 py-0.5 text-xs text-ink-600 dark:border-ink-800 dark:text-ink-400"
+                  >
+                    {chip}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="text-sm leading-relaxed text-ink-700 dark:text-ink-300">
+              {t.body}
+            </div>
+          </section>
+        ))}
+      </div>
 
       <script
         type="application/ld+json"

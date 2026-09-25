@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PostCard } from "@/components/post-card";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Pagination } from "@/components/pagination";
+import { PageHero } from "@/components/PageHero";
 import { CollectionJsonLd } from "@/components/seo/collection-jsonld";
 import { blog } from "@/next-md-blog.config";
 import { siteConfig } from "@/site.config";
@@ -65,39 +66,47 @@ export default async function BlogIndex({
           url: `${siteConfig.url}/${locale}/blog/${p.slug}`,
         }))}
       />
-      <main id="main-content" className="container mx-auto px-4 py-12">
-        <Breadcrumbs
-        items={[
-          { name: dict.nav.home, href: `/${locale}` },
-          { name: dict.metadata.blogTitle },
-        ]}
-      />
-      <h1 className="mt-4 text-3xl md:text-4xl font-semibold tracking-tight">
-        {dict.metadata.blogTitle}
-      </h1>
-      <p className="mt-2 text-muted-foreground">{dict.metadata.blogDescription}</p>
+      <main
+        id="main-content"
+        className="container mx-auto flex flex-col gap-12 px-4 py-12"
+      >
+        <PageHero
+          top={
+            <Breadcrumbs
+              items={[
+                { name: dict.nav.home, href: `/${locale}` },
+                { name: dict.metadata.blogTitle },
+              ]}
+            />
+          }
+          eyebrow="DFIR"
+          title={dict.metadata.blogTitle}
+          intro={<p>{dict.metadata.blogDescription}</p>}
+        />
 
-      {posts.length === 0 ? (
-        <p className="mt-12 text-muted-foreground">{dict.blog.noPosts}</p>
-      ) : (
-        <>
-          <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {page.map((p) => (
-              <PostCard key={p.slug} post={p} locale={locale} />
-            ))}
-          </section>
-          <Pagination
-            current={1}
-            totalPages={totalPages}
-            basePath={`/${locale}/blog`}
-            labels={{
-              previous: dict.blog.previous,
-              next: dict.blog.next,
-              page: dict.blog.page,
-            }}
-          />
-        </>
-      )}
+        {posts.length === 0 ? (
+          <p className="surface p-8 text-center text-ink-500 dark:text-ink-400">
+            {dict.blog.noPosts}
+          </p>
+        ) : (
+          <div>
+            <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {page.map((p) => (
+                <PostCard key={p.slug} post={p} locale={locale} />
+              ))}
+            </section>
+            <Pagination
+              current={1}
+              totalPages={totalPages}
+              basePath={`/${locale}/blog`}
+              labels={{
+                previous: dict.blog.previous,
+                next: dict.blog.next,
+                page: dict.blog.page,
+              }}
+            />
+          </div>
+        )}
       </main>
     </>
   );
