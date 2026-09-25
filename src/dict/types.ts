@@ -118,6 +118,8 @@ export type Dict = {
     deleteSession: string;
     restoringSession: string;
     storageFull: string;
+    autoSaved: string;
+    autoSaveHint: string;
     note: string;
     notePlaceholder: string;
     report: string;

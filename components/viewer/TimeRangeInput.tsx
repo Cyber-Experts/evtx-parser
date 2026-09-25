@@ -35,16 +35,22 @@ export function TimeRangeInput({
 }) {
   const v = dict.viewer;
   const initial = range ?? bounds;
-  // Re-seed the inputs whenever the applied range, bounds or zone change.
-  const seed = `${initial?.[0]}|${initial?.[1]}|${mode}`;
-  const [state, setState] = useState({ seed, from: "", to: "" });
-  let { from, to } = state;
-  if (state.seed !== seed) {
-    from = initial ? toInput(initial[0], mode) : "";
+  // Inputs are seeded from the applied range (or the dataset bounds) and
+  // re-seeded whenever those or the time zone change.
+  const seed = `${initial?.[0]}|${initial?.[1]}|${mode}|${range ? 1 : 0}`;
+  const seeded = () => ({
+    seed,
+    from: initial ? toInput(initial[0], mode) : "",
     // Applied ranges are end-exclusive (last second + 1 s): show the last
     // included second so re-applying doesn't drift.
-    to = initial ? toInput(range ? initial[1] - 1000 : initial[1], mode) : "";
-    setState({ seed, from, to });
+    to: initial ? toInput(range ? initial[1] - 1000 : initial[1], mode) : "",
+  });
+  const [state, setState] = useState(seeded);
+  let { from, to } = state;
+  if (state.seed !== seed) {
+    const next = seeded();
+    ({ from, to } = next);
+    setState(next);
   }
   const a = fromInput(from, mode);
   const b = fromInput(to, mode);

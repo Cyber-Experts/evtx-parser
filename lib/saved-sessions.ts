@@ -33,6 +33,10 @@ export type SessionSnapshot = {
   sortDir: "asc" | "desc";
   view: "events" | "sessions";
   showFacets: boolean;
+  // Added later — optional so older saved sessions still load.
+  timeMode?: "utc" | "local";
+  showFindings?: boolean;
+  scrollTop?: number;
 };
 
 export class StorageFullError extends Error {}
@@ -108,24 +112,13 @@ export async function saveSession(opts: {
   const id = opts.id ?? crypto.randomUUID();
   const totalSize = opts.files.reduce((s, f) => s + f.size, 0);
 
-  // Ask for persistent storage so the browser doesn't evict a case under
-  // pressure, and fail early when the files obviously won't fit.
-  try {
-    await navigator.storage?.persist?.();
-    const est = await navigator.storage?.estimate?.();
-    if (est?.quota != null && est.usage != null && est.quota - est.usage < totalSize) {
-      throw new StorageFullError("quota");
-    }
-  } catch (err) {
-    if (err instanceof StorageFullError) throw err;
-  }
-
   const db = await open();
   try {
     const previous = (await request(db.transaction(META).objectStore(META).get(id))) as
       | SavedSessionMeta
       | undefined;
     const rewriteBlobs = !previous || !sameFiles(previous.files, opts.files);
+    if (rewriteBlobs) await ensureRoom(totalSize);
 
     const meta: SavedSessionMeta = {
       id,
@@ -151,6 +144,22 @@ export async function saveSession(opts: {
     return meta;
   } finally {
     db.close();
+  }
+}
+
+/**
+ * Ask for persistent storage (so the browser doesn't evict a case under
+ * pressure) and fail early when the files obviously won't fit.
+ */
+async function ensureRoom(bytes: number) {
+  try {
+    await navigator.storage?.persist?.();
+    const est = await navigator.storage?.estimate?.();
+    if (est?.quota != null && est.usage != null && est.quota - est.usage < bytes) {
+      throw new StorageFullError("quota");
+    }
+  } catch (err) {
+    if (err instanceof StorageFullError) throw err;
   }
 }
 
