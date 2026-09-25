@@ -1,178 +1,194 @@
-# evtxparser.com
+# EVTX parser
 
-In-browser parser for Windows Event Log (`.evtx`) files. Drop a file, get a readable triage view of logons, services, PowerShell and the rest — without uploading anything, installing anything, or owning a Windows host. The Rust parser ships as a WebAssembly module and runs entirely in a web worker on the visitor's machine.
+[![CI](https://github.com/Cyber-Experts/evtx-parser/actions/workflows/ci.yml/badge.svg)](https://github.com/Cyber-Experts/evtx-parser/actions/workflows/ci.yml)
+[![License: Elastic 2.0](https://img.shields.io/badge/license-Elastic%202.0-blue)](LICENSE)
 
-Live site: <https://www.evtxparser.com>
+**A fast Windows Event Log (`.evtx`) viewer for incident response that runs
+entirely in your browser.** Drop one file or hundreds, and search, hunt and
+triage them without uploading anything, installing anything or needing a
+Windows host.
 
-## Stack
+**Try it: <https://www.evtxparser.com>** — or [run it yourself](#run-it-locally-offline--air-gapped),
+fully offline.
 
-- Next.js 16 (App Router, Turbopack) + React 19 + TypeScript strict
-- Tailwind v4, shadcn-derived primitives (`@base-ui/react`)
-- `@next-md-blog/core` for the blog, glossary, and event-ID library
-- Rust + `wasm-bindgen` (crate at `crates/evtx-wasm/`), built with `wasm-pack`
-- 8 locales: `en, fr, es, de, it, pt, ja, zh`
-- Built on top of an internal SEO/i18n website template
+The parser core is the Rust [`evtx`](https://github.com/omerbenamram/evtx) crate
+compiled to WebAssembly and run in a web worker, so the evidence never leaves
+the analyst's machine.
 
-## Repo layout
+## Features
 
-```
-app/
-  [lang]/                   one tree per locale, generated at build
-    page.tsx                landing page (the parser UI lives here)
-    blog/                   long-form posts
-    glossary/               128 glossary terms (one .md per term)
-    event-id/[id]/          dynamic event-ID reference pages
-    event-ids/              event-ID index
-    tools/                  hand-curated tool directory
-    topics/[series]/        pillar pages for topic clusters
-    authors/[slug]/         author profiles
-    search, contact, privacy, terms, sitemap
-crates/evtx-wasm/           Rust crate compiled to wasm
-lib/evtx-wasm/              wasm-pack output (committed — see note below)
-content/blog/{locale}/      markdown sources for blog
-content/glossary/{locale}/  markdown sources for glossary
-src/dict/                   typed dictionaries (i18n)
-scripts/                    content-lint, glossary extractor, IndexNow ping
-```
+**Viewer**
+- Open many `.evtx` files at once and work on them as one merged timeline
+  (Security, System, Sysmon, PowerShell, RDP, Defender, Task Scheduler…).
+- Virtualised table that stays responsive on very large logs, a timeline
+  (click a bar to zoom into that window) and a typed start/end time range.
+- Microsecond timestamps, switchable between UTC and local time.
+- Resizable layout, resizable and pinnable columns, full-screen workspace.
+- Raw XML for every event, one click away.
 
-## Local development
+**Search and hunting**
+- Full-text search across every field, including EventData values, with hits
+  highlighted.
+- A small query language with autocomplete: `EventID:4624 LogonType:10
+  -IpAddress:10.*` (see [Search syntax](#search-syntax)).
+- Field sidebar with value counts and a *Rare* sort for stack counting.
+- **56 ready-made hunts** mapped to MITRE ATT&CK — kerberoasting, AS-REP
+  roasting, DCSync, PsExec, WMI/WinRM lateral movement, Run keys, encoded
+  PowerShell, AMSI bypass, cleared logs, shadow-copy deletion and more — each
+  showing its hit count on your data.
+- Built-in findings for common high-signal events.
+
+**Investigation**
+- **Logon sessions**: logon → activity → logoff per session, UAC split tokens
+  merged, one click to see every event of a session.
+- Pivots from any event: ±5 minutes around it, same logon session, same
+  process.
+- Bookmarks and analyst notes, exported as a **Markdown report**.
+- Export the filtered events to CSV, JSON or plain text.
+- **Save a session locally** (browser IndexedDB) and resume it later — files,
+  search, filters, bookmarks and notes.
+
+**Readable offline — no message DLLs needed**
+- One-line descriptions for ~60 common DFIR events instead of *"The
+  description for Event ID … cannot be found"*.
+- `%%` parameter codes (e.g. `%%1833` → Impersonation), NTSTATUS failure
+  codes, Kerberos result codes, ticket encryption types and logon types
+  decoded inline — and searchable.
+
+## Privacy
+
+`.evtx` files are read and parsed in your browser, inside a web worker. Their
+content, file names and parsed events are never sent to a server. Saved
+sessions live only in your browser's IndexedDB. See the
+[privacy policy](https://www.evtxparser.com/en/privacy) for the hosted site.
+
+## Run it locally (offline / air-gapped)
+
+On evtxparser.com your files are already processed only in your browser. Running
+your own instance is for everything else: air-gapped forensic workstations,
+organisational policies that only allow approved or self-hosted tools, or
+simply keeping a pinned, auditable version in your case documentation.
+Requirements: Node.js ≥ 20.9.
 
 ```bash
-npm install
-npm run dev          # http://localhost:3000 → redirects to /<accept-language>
-```
-
-The committed wasm artifacts are enough to run `dev` and `build` without a Rust toolchain. You only need Rust + `wasm-pack` if you change the parser itself.
-
-### Rebuilding the WASM module
-
-```bash
-# one-time setup
-rustup target add wasm32-unknown-unknown
-cargo install wasm-pack
-
-npm run wasm:build
-```
-
-This compiles `crates/evtx-wasm/` to `lib/evtx-wasm/` and copies the `.wasm` binary into `public/` so the worker can fetch it. The four generated files in `lib/evtx-wasm/` are checked into git on purpose — `wasm-pack` ships a `.gitignore: *` that we override, so Vercel doesn't need a Rust toolchain to deploy.
-
-## Self-hosting / offline use
-
-Everything runs in the browser: the `.evtx` file is parsed by WebAssembly in a
-web worker and never leaves the machine. To run your own instance — e.g. on an
-analysis workstation for cases where evidence may not touch externally hosted
-services:
-
-```bash
+git clone https://github.com/Cyber-Experts/evtx-parser.git
+cd evtx-parser
 npm ci
 NEXT_PUBLIC_OFFLINE=1 npm run build
 NEXT_PUBLIC_OFFLINE=1 npm start      # http://localhost:3000
 ```
 
-`NEXT_PUBLIC_OFFLINE=1` removes every third-party script and beacon (Vercel
-Analytics, Speed Insights, Ahrefs, web-vitals reporting), so once the page is
-loaded the app makes no outbound requests. After `npm ci`, the build and the
-app need no network access.
+`NEXT_PUBLIC_OFFLINE=1` removes every third-party script and beacon (analytics,
+performance and web-vitals reporting): once the page has loaded, the app makes
+no outbound requests. The build itself needs network access once (it
+downloads the web fonts, which are then served locally), so build on a
+connected machine and copy the whole folder, `node_modules` and `.next`
+included, to the isolated one; `npm start` there needs no network.
 
-## Tests
+No Rust toolchain is needed: the compiled WebAssembly module is committed in
+`lib/evtx-wasm/` and `public/evtx_wasm_bg.wasm`.
+
+## Search syntax
+
+| Query | Meaning |
+|---|---|
+| `mimikatz` | free text in any field, including EventData values |
+| `"net user"` | quoted phrase |
+| `TargetUserName:j.doe` | field equals value (case-insensitive) |
+| `Image:*\powershell.exe` | `*` wildcard (matches across lines too) |
+| `-IpAddress:127.0.0.1` | exclude with a leading `-` (works on free text too) |
+| `4624 OR 4625` | `OR` between groups; terms within a group are ANDed |
+| `EventID:>=4720` | numeric comparison: `>` `>=` `<` `<=` |
+| `LogonType:RemoteInteractive*` | field clauses also match decoded values |
+| `logonid:0x3e7` | any `TargetLogonId` / `SubjectLogonId` / `LogonId` |
+| `processguid:{…}` | any Sysmon `*ProcessGuid` field |
+| `process:*\cmd.exe` | 4688 `NewProcessName` or Sysmon `Image` |
+| `parent:*\winword.exe` | `ParentProcessName` or Sysmon `ParentImage` |
+
+Built-in fields: `EventID`, `Level`, `Provider`, `Channel`, `Computer`, `File`,
+`Name`, `Record`. Any other name is looked up in the event's EventData. A
+regular-expression mode (`.*` button) is also available.
+
+## How it works
+
+```
+.evtx file ──▶ Web Worker ──▶ evtx crate (Rust → WebAssembly)
+                                  │  records, EventData, lazy XML
+                                  ▼
+               React UI: virtualised table, search engine, hunts,
+               decoders, sessions — all in the browser tab
+```
+
+- `crates/evtx-wasm/` — thin `wasm-bindgen` wrapper around the `evtx` crate.
+- `lib/evtx.worker.ts`, `lib/evtx-client.ts` — worker and its client.
+- `lib/search-query.ts` — query language (parser, matcher, highlighting).
+- `lib/hunts.ts` — hunt catalogue; `lib/detections.ts` — built-in findings.
+- `lib/event-decode.ts` — `%%`/NTSTATUS/Kerberos decoding and descriptions.
+- `lib/sessions.ts` — logon-session reconstruction.
+- `lib/saved-sessions.ts` — local session save/restore (IndexedDB).
+- `components/EvtxUploader.tsx`, `components/viewer/` — the viewer UI.
+
+The repository also contains the evtxparser.com website around the tool
+(Next.js 16, 8 locales, blog, glossary and Event ID reference in `content/`
+and `app/[lang]/`).
+
+## Development
 
 ```bash
-npm test
+npm install
+npm run dev            # http://localhost:3000
+npm test               # Vitest
+npm run lint           # ESLint
+npm run lint:content   # Markdown content lint (blog, glossary)
+npm run build          # production build
 ```
 
-Vitest suites cover the query language, event decoding, descriptions, hunts,
-logon sessions and time formatting. Suites that run against real `.evtx`
-fixtures skip automatically when those files are absent: the fixtures come
-from a training disk image and are not distributed with the repository (see
-`tests/fixtures/evtx/README.md`).
+**Tests** cover the query language, decoding, event descriptions, hunts (an
+attack case for every hunt, plus benign look-alikes), logon sessions and time
+formatting. Suites that run against real `.evtx` files skip automatically when
+the fixtures are absent — they come from a training disk image and are not
+distributed (see [`tests/fixtures/evtx/README.md`](tests/fixtures/evtx/README.md)).
 
-## Adding content
-
-### Blog post
+**Rebuilding the WebAssembly module** is only needed when changing the Rust
+code:
 
 ```bash
-content/blog/en/my-post.md
-content/blog/fr/my-post.md   # same slug per locale you want translated
+rustup target add wasm32-unknown-unknown
+cargo install wasm-pack
+npm run wasm:build     # → lib/evtx-wasm/ and public/evtx_wasm_bg.wasm
 ```
 
-Frontmatter the project relies on (everything `@next-md-blog/core` recognises also works):
+**Website content** (blog posts, glossary, Event ID pages, landing pages) and
+the hosted site's configuration are documented in
+[`docs/CONTENT.md`](docs/CONTENT.md).
 
-```yaml
----
-title: "…"
-description: "…"               # ≤ 200 chars — content lint blocks longer
-date: "2026-05-24"
-updated: "2026-05-25"          # optional, drives sitemap lastmod
-tags: ["dfir", "evtx"]
-image: "/img/hero.jpg"         # optional, preloaded as LCP
-series: "evtx-101"             # optional, joins a topic cluster
-seriesOrder: 1
-faq: [ … ]                     # optional, emits FAQPage JSON-LD
-howto: { steps: [ … ] }        # optional, emits HowTo JSON-LD
----
-```
+**Adding a hunt**: add an entry to `lib/hunts.ts` (query in the search syntax,
+MITRE technique, name in all locales) and a positive and negative case in
+`tests/hunts.test.ts`.
 
-### Glossary term
+## Contributing
 
-One `.md` per term under `content/glossary/{locale}/`. The full source list is in `lib/glossary-data.ts`; `npm run` the extractor below to regenerate the files from it:
+Bug reports, feature requests and pull requests are welcome — feedback from
+people using it on real cases is what shapes the roadmap. Please run
+`npm test` and `npm run lint` before opening a PR.
 
-```bash
-tsx scripts/extract-glossary.ts
-```
+**Security issues**: please report them privately to
+[contact@cyberexperts.io](mailto:contact@cyberexperts.io) rather than in a
+public issue.
 
-### Event-ID page
+## Credits
 
-The event-ID pages are generated from a data file in `lib/`. Add the entry there and a route is produced at `/[lang]/event-id/<id>` at build.
-
-## Operating
-
-```bash
-npm run dev           # local dev
-npm run build         # Turbopack production build
-npm start             # serve the build
-npm run lint          # ESLint
-npm run lint:content  # frontmatter / heading / alt-text / thin-content lint
-npm run wasm:build    # rebuild the Rust → WASM module
-npm run indexnow      # ping Bing/Yandex after deploy (needs NEXT_PUBLIC_INDEXNOW_KEY)
-```
-
-A husky `pre-commit` hook runs `lint:content` on staged `content/**/*.md` only.
-
-## Environment
-
-```bash
-# Optional — falls back to VERCEL_PROJECT_PRODUCTION_URL / VERCEL_URL / localhost.
-NEXT_PUBLIC_SITE_URL=https://www.evtxparser.com
-
-# Search consoles
-NEXT_PUBLIC_GSC_VERIFICATION=…
-NEXT_PUBLIC_BING_VERIFICATION=…
-NEXT_PUBLIC_YANDEX_VERIFICATION=…
-
-# IndexNow key (and drop public/<KEY>.txt alongside)
-NEXT_PUBLIC_INDEXNOW_KEY=<32–128 hex chars>
-
-# Self-hosted / air-gapped builds: drop every third-party script and beacon
-NEXT_PUBLIC_OFFLINE=1
-
-# Optional 3rd-party analytics (Vercel Analytics is on unless NEXT_PUBLIC_OFFLINE=1)
-NEXT_PUBLIC_ANALYTICS_PROVIDER=plausible   # or umami | ga4
-NEXT_PUBLIC_ANALYTICS_DOMAIN=evtxparser.com
-NEXT_PUBLIC_ANALYTICS_ID=…
-```
-
-## Privacy
-
-Files never leave the browser. The parser is a WASM module executing in a web worker on the visitor's device; the server never sees the file bytes, the filename, or the parsed records. No analytics event carries any field from a parsed log.
+- [`evtx`](https://github.com/omerbenamram/evtx) by Omer Ben-Amram — the Rust
+  EVTX parser at the core of this tool (MIT/Apache-2.0).
+- Third-party dependencies are listed in `package.json` and
+  `crates/evtx-wasm/Cargo.toml`; see [NOTICE](NOTICE).
 
 ## License
 
-© 2026 [Cyber Experts](https://github.com/Cyber-Experts) — contact@cyberexperts.io.
+© 2026 [Cyber Experts](https://github.com/Cyber-Experts) —
+[contact@cyberexperts.io](mailto:contact@cyberexperts.io)
 
-[Elastic License 2.0](LICENSE). You may use, modify and run it — including
-for commercial incident-response work — but you may not offer it to third
-parties as a hosted or managed service, or remove the licensing notices.
-See [NOTICE](NOTICE) for third-party credits: the parser core is the
-[`evtx`](https://github.com/omerbenamram/evtx) crate by Omer Ben-Amram
-(MIT/Apache-2.0).
-
+Licensed under the [Elastic License 2.0](LICENSE). You may use, modify and run
+it — including for commercial incident-response work — but you may not offer
+it to third parties as a hosted or managed service, or remove the licensing
+notices.
