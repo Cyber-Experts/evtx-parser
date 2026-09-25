@@ -39,6 +39,8 @@ import {
 } from "@/lib/search-query";
 import { SearchBox } from "@/components/viewer/SearchBox";
 import { HuntsMenu } from "@/components/viewer/HuntsMenu";
+import { SessionsView } from "@/components/viewer/SessionsView";
+import { buildSessions, sessionQuery } from "@/lib/sessions";
 import type { Locale } from "@/src/dict/locales";
 import { FacetSidebar } from "@/components/viewer/FacetSidebar";
 import {
@@ -548,6 +550,7 @@ export function EvtxUploader({
   // Power-user workflow state.
   const [regexMode, setRegexMode] = useState(() => readHash().re);
   const [showFacets, setShowFacets] = useState(true);
+  const [view, setView] = useState<"events" | "sessions">("events");
   const [bookmarks, setBookmarks] = useState<Set<number>>(new Set());
   // Analyst notes by global row index; noting an event also bookmarks it.
   const [notes, setNotes] = useState<Record<number, string>>({});
@@ -834,6 +837,13 @@ export function EvtxUploader({
   }, [files]);
 
   const ready = files.length > 0;
+
+  // Logon sessions are only rebuilt while the Sessions view is open.
+  const sessions = useMemo(
+    () => (view === "sessions" ? buildSessions(allRows, allPairs) : []),
+    [view, allRows, allPairs],
+  );
+
 
   // Full-screen workspace: the viewer takes over the window as soon as the
   // first file is loaded, and drops back to the page when the last one goes.
@@ -1810,6 +1820,49 @@ export function EvtxUploader({
             )}
           </div>
 
+          <div
+            role="tablist"
+            className="flex w-fit gap-1 rounded-md border border-zinc-200 p-0.5 text-xs dark:border-zinc-800"
+          >
+            {(
+              [
+                ["events", t.viewer.eventsTab],
+                ["sessions", t.viewer.sessionsTab],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={view === id}
+                onClick={() => setView(id)}
+                className={`rounded px-2.5 py-1 transition-colors ${
+                  view === id
+                    ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900"
+                    : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {view === "sessions" ? (
+            <div
+              className={`flex flex-col ${fullscreen ? "min-h-[320px] flex-1" : ""}`}
+              style={fullscreen ? undefined : { maxHeight: SCROLL_HEIGHT_PX }}
+            >
+              <SessionsView
+                sessions={sessions}
+                dict={t}
+                timeMode={timeMode}
+                onOpen={(s) => {
+                  pivotTo({ search: sessionQuery(s) });
+                  setView("events");
+                }}
+              />
+            </div>
+          ) : (
           <HighlightContext.Provider value={highlightRe}>
           <div
             className={`flex flex-col gap-3 lg:flex-row ${
@@ -2065,6 +2118,7 @@ export function EvtxUploader({
           </div>
           </div>
           </HighlightContext.Provider>
+          )}
 
           <p className="hidden text-[11px] text-zinc-400 sm:block">
             <kbd className="font-mono">j</kbd>/<kbd className="font-mono">k</kbd>{" "}
