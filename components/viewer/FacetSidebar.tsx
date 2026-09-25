@@ -176,20 +176,20 @@ export function FacetSidebar({
         return (
           <section
             key={f.field}
-            className="rounded-md border border-zinc-200 dark:border-zinc-800"
+            className="rounded-md border border-ink-200 dark:border-ink-800"
           >
             <header className="flex items-center justify-between gap-2 px-2 py-1.5">
               <button
                 type="button"
                 onClick={() => toggleIn(setCollapsed, f.field)}
                 aria-expanded={!isCollapsed}
-                className="flex min-w-0 items-center gap-1 font-mono font-semibold text-zinc-800 dark:text-zinc-200"
+                className="flex min-w-0 items-center gap-1 font-mono font-semibold text-ink-800 dark:text-ink-200"
               >
-                <span aria-hidden="true" className="text-zinc-400">
+                <span aria-hidden="true" className="text-ink-400">
                   {isCollapsed ? "▸" : "▾"}
                 </span>
                 <span className="truncate">{f.field}</span>
-                <span className="font-normal text-zinc-400">{f.distinct}</span>
+                <span className="font-normal text-ink-400">{f.distinct}</span>
               </button>
               {!isCollapsed && f.distinct > 1 && (
                 <button
@@ -198,8 +198,8 @@ export function FacetSidebar({
                   aria-pressed={isRare}
                   className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] ${
                     isRare
-                      ? "border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                      : "border-zinc-200 text-zinc-500 dark:border-zinc-800"
+                      ? "border-uv-500 bg-uv-500/15 text-uv-700 dark:text-uv-300"
+                      : "border-ink-200 text-ink-500 dark:border-ink-800"
                   }`}
                 >
                   {isRare ? v.rare : v.top}
@@ -216,11 +216,11 @@ export function FacetSidebar({
                       setValueFilter((p) => ({ ...p, [f.field]: e.target.value }))
                     }
                     placeholder={v.filterValues}
-                    className="mx-1 mb-1 rounded border border-zinc-200 bg-transparent px-2 py-0.5 font-mono text-[11px] outline-none focus:border-amber-500 dark:border-zinc-800"
+                    className="mx-1 mb-1 rounded border border-ink-200 bg-transparent px-2 py-0.5 font-mono text-[11px] outline-none focus:border-uv-500 dark:border-ink-800"
                   />
                 )}
                 {values.length === 0 && (
-                  <span className="px-1 text-zinc-400">{v.noValues}</span>
+                  <span className="px-1 text-ink-400">{v.noValues}</span>
                 )}
                 {values.slice(0, limit).map(([x, n]) => {
                   const on = hasClause(query, f.field, x);
@@ -229,7 +229,7 @@ export function FacetSidebar({
                     <div
                       key={x}
                       className={`group flex items-center gap-1 rounded px-1 ${
-                        on ? "bg-amber-500/15" : "hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                        on ? "bg-uv-500/15" : "hover:bg-ink-100 dark:hover:bg-ink-900"
                       }`}
                     >
                       <button
@@ -240,13 +240,13 @@ export function FacetSidebar({
                         title={`${label}\n${on ? v.remove : v.include}`}
                         className={`min-w-0 flex-1 truncate py-0.5 text-left font-mono ${
                           on
-                            ? "text-amber-800 dark:text-amber-200"
-                            : "text-zinc-700 dark:text-zinc-300"
+                            ? "text-uv-800 dark:text-uv-200"
+                            : "text-ink-700 dark:text-ink-300"
                         }`}
                       >
                         {label}
                       </button>
-                      <span className="shrink-0 font-mono tabular-nums text-zinc-400">
+                      <span className="shrink-0 font-mono tabular-nums text-ink-400">
                         {n}
                       </span>
                       <button
@@ -254,7 +254,7 @@ export function FacetSidebar({
                         onClick={() => onExclude(f.field, x)}
                         title={v.exclude}
                         aria-label={`${v.exclude}: ${label}`}
-                        className="shrink-0 rounded px-1 text-zinc-400 opacity-0 hover:bg-zinc-200 hover:text-zinc-900 focus:opacity-100 group-hover:opacity-100 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                        className="shrink-0 rounded px-1 text-ink-400 opacity-0 hover:bg-ink-200 hover:text-ink-900 focus:opacity-100 group-hover:opacity-100 dark:hover:bg-ink-800 dark:hover:text-ink-100"
                       >
                         −
                       </button>
@@ -265,7 +265,7 @@ export function FacetSidebar({
                   <button
                     type="button"
                     onClick={() => toggleIn(setExpanded, f.field)}
-                    className="self-start px-1 text-[11px] text-zinc-500 hover:text-zinc-900 hover:underline dark:hover:text-zinc-100"
+                    className="self-start px-1 text-[11px] text-ink-500 hover:text-ink-900 hover:underline dark:hover:text-ink-100"
                   >
                     {expanded.has(f.field) ? v.showLess : v.showMore}
                   </button>
@@ -283,7 +283,7 @@ export function FacetSidebar({
             if (k) setExtraFields((p) => (p.includes(k) ? p : [...p, k]));
           }}
           aria-label={v.addField}
-          className="rounded-md border border-zinc-200 bg-transparent px-2 py-1 font-mono text-[11px] text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
+          className="rounded-md border border-ink-200 bg-transparent px-2 py-1 font-mono text-[11px] text-ink-600 dark:border-ink-800 dark:bg-ink-950 dark:text-ink-300"
         >
           <option value="">{v.addField}</option>
           {otherKeys.map((k) => (

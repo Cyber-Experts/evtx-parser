@@ -8,18 +8,18 @@ export function Faq({ dict }: { dict: Dict }) {
   return (
     <section
       aria-labelledby="faq-heading"
-      className="faq flex w-full max-w-3xl flex-col gap-4 border-t border-zinc-200 pt-8 dark:border-zinc-800"
+      className="faq flex w-full max-w-3xl flex-col gap-5 pt-6"
     >
-      <h2 id="faq-heading" className="font-mono text-xl font-semibold">
+      <h2 id="faq-heading" className="text-2xl text-ink-950 dark:text-ink-50">
         {dict.faq.heading}
       </h2>
-      <dl className="flex flex-col gap-5">
+      <dl className="surface flex flex-col divide-y divide-ink-100 px-5 dark:divide-ink-800">
         {items.map((item) => (
-          <div key={item.q} className="flex flex-col gap-1.5">
-            <dt className="font-medium text-zinc-900 dark:text-zinc-100">
+          <div key={item.q} className="flex flex-col gap-1.5 py-4">
+            <dt className="font-medium text-ink-900 dark:text-ink-100">
               {item.q}
             </dt>
-            <dd className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+            <dd className="text-sm leading-relaxed text-ink-600 dark:text-ink-400">
               {item.a}
             </dd>
           </div>

@@ -41,7 +41,7 @@ export function Hl({ text }: { text: string }): ReactNode {
     out.push(
       <mark
         key={m.index}
-        className="rounded-sm bg-amber-300/60 px-0.5 text-inherit dark:bg-amber-400/30"
+        className="rounded-sm bg-glow-300/80 px-0.5 text-ink-950 dark:bg-glow-400/25 dark:text-glow-200"
       >
         {m[0]}
       </mark>,

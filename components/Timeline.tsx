@@ -28,9 +28,9 @@ const STACK_ORDER = [4, 3, 2, 1, 0];
 const LEVEL_COLORS = [
   "bg-red-700 dark:bg-red-500", // 0 critical
   "bg-red-500 dark:bg-red-400", // 1 error
-  "bg-amber-500 dark:bg-amber-400", // 2 warning
-  "bg-zinc-500 dark:bg-zinc-400", // 3 info
-  "bg-zinc-300 dark:bg-zinc-600", // 4 verbose / unknown
+  "bg-orange-500 dark:bg-orange-400", // 2 warning
+  "bg-ink-500 dark:bg-ink-400", // 3 info
+  "bg-ink-300 dark:bg-ink-600", // 4 verbose / unknown
 ];
 
 type Bucket = {
@@ -146,7 +146,7 @@ export function Timeline({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex h-20 items-end gap-px rounded-md border border-zinc-200 bg-zinc-50/40 p-1 dark:border-zinc-800 dark:bg-zinc-950/40">
+      <div className="flex h-20 items-end gap-px rounded-md border border-ink-200 bg-ink-50/40 p-1 dark:border-ink-800 dark:bg-ink-950/40">
         {buckets.map((b) => {
           const heightPct = (b.total / maxTotal) * 100;
           const selected =
@@ -165,8 +165,8 @@ export function Timeline({
               aria-label={`${rangeLabel}: ${b.total} events`}
               title={`${rangeLabel}\n${b.total} events`}
               className={`flex h-full min-w-[2px] flex-1 cursor-pointer flex-col-reverse overflow-hidden rounded-sm transition-opacity hover:opacity-70 ${
-                selected ? "ring-2 ring-amber-500 dark:ring-amber-400" : ""
-              } ${empty ? "bg-zinc-100 dark:bg-zinc-900" : ""}`}
+                selected ? "ring-2 ring-uv-500 dark:ring-uv-400" : ""
+              } ${empty ? "bg-ink-100 dark:bg-ink-900" : ""}`}
               style={{ alignSelf: "flex-end" }}
             >
               <div
@@ -189,7 +189,7 @@ export function Timeline({
           );
         })}
       </div>
-      <div className="flex justify-between font-mono text-[10px] text-zinc-500">
+      <div className="flex justify-between font-mono text-[10px] text-ink-500">
         {tickIndexes.map((i, k) => (
           <span
             key={i}
@@ -199,12 +199,12 @@ export function Timeline({
           </span>
         ))}
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[10px] text-zinc-500">
+      <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[10px] text-ink-500">
         <div className="flex items-center gap-2">
           <span>{tooltipFmt.format(minT)}</span>
           <span>→</span>
           <span>{tooltipFmt.format(maxT)}</span>
-          <span className="text-zinc-400">· {bucketSizeLabel(bucketMs)}/bar</span>
+          <span className="text-ink-400">· {bucketSizeLabel(bucketMs)}/bar</span>
         </div>
       </div>
     </div>

@@ -27,7 +27,7 @@ export function Breadcrumbs({
   return (
     <nav
       aria-label={dict.breadcrumb.label}
-      className="font-mono text-xs text-zinc-500"
+      className="font-mono text-xs text-ink-500"
     >
       <ol className="flex flex-wrap items-center gap-1">
         {items.map((item, i) => {
@@ -37,7 +37,7 @@ export function Breadcrumbs({
               {item.href && !isLast ? (
                 <Link
                   href={item.href}
-                  className="text-zinc-500 underline-offset-2 hover:text-zinc-800 hover:underline dark:hover:text-zinc-300"
+                  className="text-ink-500 underline-offset-2 hover:text-ink-800 hover:underline dark:hover:text-ink-300"
                 >
                   {item.label}
                 </Link>
@@ -46,15 +46,15 @@ export function Breadcrumbs({
                   aria-current={isLast ? "page" : undefined}
                   className={
                     isLast
-                      ? "text-zinc-700 dark:text-zinc-300"
-                      : "text-zinc-500"
+                      ? "text-ink-700 dark:text-ink-300"
+                      : "text-ink-500"
                   }
                 >
                   {item.label}
                 </span>
               )}
               {!isLast && (
-                <span aria-hidden="true" className="text-zinc-400">
+                <span aria-hidden="true" className="text-ink-400">
                   /
                 </span>
               )}

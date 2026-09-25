@@ -42,17 +42,17 @@ export function CopyPathButton({
       onClick={copy}
       aria-label={label}
       title={copied ? copiedLabel : label}
-      className="inline-flex h-6 shrink-0 items-center gap-1 rounded px-1.5 text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+      className="inline-flex h-6 shrink-0 items-center gap-1 rounded px-1.5 text-ink-400 transition-colors hover:bg-ink-200 hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 dark:hover:bg-ink-800 dark:hover:text-ink-100"
     >
       {copied ? (
         <>
           <Check
-            className="size-3.5 text-amber-600 dark:text-amber-400"
+            className="size-3.5 text-uv-600 dark:text-uv-400"
             aria-hidden="true"
           />
           <span
             aria-hidden="true"
-            className="font-mono text-[11px] text-amber-700 dark:text-amber-300"
+            className="font-mono text-[11px] text-uv-700 dark:text-uv-300"
           >
             {copiedLabel}
           </span>

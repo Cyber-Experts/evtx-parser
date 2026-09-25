@@ -9,24 +9,24 @@ export function HomeSeo({ locale }: { locale: Locale }) {
   return (
     <section
       aria-labelledby="home-seo-heading"
-      className="flex flex-col gap-3 border-t border-zinc-200 pt-6 text-sm leading-relaxed text-zinc-700 dark:border-zinc-800 dark:text-zinc-300"
+      className="flex max-w-3xl flex-col gap-3 pt-6 text-[15px] leading-relaxed text-ink-700 dark:text-ink-300"
     >
       <h2
         id="home-seo-heading"
-        className="font-mono text-base font-semibold text-zinc-900 dark:text-zinc-100"
+        className="text-2xl text-ink-950 dark:text-ink-50"
       >
         {c.heading}
       </h2>
       {c.paragraphs.map((p, i) => (
         <p key={i}>{p}</p>
       ))}
-      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-zinc-600 dark:text-zinc-400">
-        <span className="text-zinc-500">{c.linksIntro}</span>
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-ink-600 dark:text-ink-400">
+        <span className="text-ink-500">{c.linksIntro}</span>
         {c.links.map((l) => (
           <Link
             key={l.path}
             href={`/${locale}${l.path}`}
-            className="underline-offset-2 hover:text-zinc-900 hover:underline dark:hover:text-zinc-100"
+            className="underline-offset-2 hover:text-ink-900 hover:underline dark:hover:text-ink-100"
           >
             {l.label}
           </Link>

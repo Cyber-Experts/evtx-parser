@@ -134,16 +134,16 @@ export function LandingPage({
       />
 
       <header className="flex flex-col gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-3xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink-900 dark:text-ink-100 sm:text-3xl">
           {c.h1}
         </h1>
-        <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm leading-relaxed text-ink-600 dark:text-ink-400">
           {c.intro}
         </p>
         <div>
           <Link
             href={`/${locale}`}
-            className="inline-block rounded-md border border-zinc-900 bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="inline-block rounded-md border border-ink-900 bg-ink-900 px-4 py-2 text-sm font-medium text-ink-50 hover:bg-ink-700 dark:border-ink-100 dark:bg-ink-100 dark:text-ink-900 dark:hover:bg-ink-300"
           >
             {c.ctaLabel} ↗
           </Link>
@@ -152,21 +152,21 @@ export function LandingPage({
 
       <section
         aria-labelledby="formats-heading"
-        className="flex flex-col gap-4 border-t border-zinc-200 pt-6 dark:border-zinc-800"
+        className="flex flex-col gap-4 border-t border-ink-200 pt-6 dark:border-ink-800"
       >
         <h2 id="formats-heading" className="font-mono text-base font-semibold">
           {c.formatsHeading}
         </h2>
         {c.formats.map((f) => (
           <div key={f.name} className="flex flex-col gap-1">
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-100">
               {f.name}
             </h3>
-            <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+            <p className="text-sm leading-relaxed text-ink-700 dark:text-ink-300">
               {f.body}
             </p>
             {f.code ? (
-              <pre className="mt-1 overflow-x-auto rounded border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
+              <pre className="mt-1 overflow-x-auto rounded border border-ink-200 bg-ink-50 p-3 font-mono text-xs text-ink-800 dark:border-ink-800 dark:bg-ink-900 dark:text-ink-200">
                 <code>{f.code}</code>
               </pre>
             ) : null}
@@ -176,7 +176,7 @@ export function LandingPage({
 
       <section
         aria-labelledby="steps-heading"
-        className="flex flex-col gap-4 border-t border-zinc-200 pt-6 dark:border-zinc-800"
+        className="flex flex-col gap-4 border-t border-ink-200 pt-6 dark:border-ink-800"
       >
         <h2 id="steps-heading" className="font-mono text-base font-semibold">
           {c.stepsHeading}
@@ -184,14 +184,14 @@ export function LandingPage({
         <ol className="flex flex-col gap-3">
           {c.steps.map((s, i) => (
             <li key={s.title} className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-zinc-300 font-mono text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-ink-300 font-mono text-xs text-ink-600 dark:border-ink-700 dark:text-ink-400">
                 {i + 1}
               </span>
               <div className="flex flex-col gap-1">
-                <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                <span className="text-sm font-semibold text-ink-900 dark:text-ink-100">
                   {s.title}
                 </span>
-                <span className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+                <span className="text-sm leading-relaxed text-ink-700 dark:text-ink-300">
                   {s.body}
                 </span>
               </div>
@@ -202,7 +202,7 @@ export function LandingPage({
 
       <section
         aria-labelledby="faq-heading"
-        className="faq flex flex-col gap-4 border-t border-zinc-200 pt-6 dark:border-zinc-800"
+        className="faq flex flex-col gap-4 border-t border-ink-200 pt-6 dark:border-ink-800"
       >
         <h2 id="faq-heading" className="font-mono text-base font-semibold">
           {c.faqHeading}
@@ -210,10 +210,10 @@ export function LandingPage({
         <dl className="flex flex-col gap-4">
           {c.faq.map((f) => (
             <div key={f.q} className="flex flex-col gap-1">
-              <dt className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              <dt className="text-sm font-semibold text-ink-900 dark:text-ink-100">
                 {f.q}
               </dt>
-              <dd className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+              <dd className="text-sm leading-relaxed text-ink-700 dark:text-ink-300">
                 {f.a}
               </dd>
             </div>
@@ -223,7 +223,7 @@ export function LandingPage({
 
       <nav
         aria-labelledby="related-heading"
-        className="flex flex-col gap-3 border-t border-zinc-200 pt-6 dark:border-zinc-800"
+        className="flex flex-col gap-3 border-t border-ink-200 pt-6 dark:border-ink-800"
       >
         <h2 id="related-heading" className="font-mono text-base font-semibold">
           {pickLocale(RELATED_HEADING, locale)}
@@ -233,7 +233,7 @@ export function LandingPage({
             <li key={p}>
               <Link
                 href={`/${locale}${p}`}
-                className="text-zinc-700 underline underline-offset-2 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+                className="text-ink-700 underline underline-offset-2 hover:text-ink-900 dark:text-ink-300 dark:hover:text-ink-100"
               >
                 {pickLocale(LANDINGS[p], locale).h1}
               </Link>

@@ -64,7 +64,7 @@ function withCode(text: string): ReactNode[] {
     i % 2 === 1 ? (
       <code
         key={i}
-        className="break-all rounded bg-zinc-100 px-1 py-px font-mono text-[11px] text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
+        className="break-all rounded bg-ink-100 px-1 py-px font-mono text-[11px] text-ink-800 dark:bg-ink-800 dark:text-ink-200"
       >
         {part}
       </code>
@@ -86,16 +86,16 @@ export function EvtxLocations({
   return (
     <section
       aria-labelledby="evtx-location-heading"
-      className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40"
+      className="surface flex flex-col gap-3 p-5"
     >
       <div className="flex flex-col gap-1">
         <h2
           id="evtx-location-heading"
-          className="font-mono text-base font-semibold text-zinc-900 dark:text-zinc-100"
+          className="text-lg text-ink-950 dark:text-ink-50"
         >
           {t.heading}
         </h2>
-        <p className="text-xs text-zinc-600 dark:text-zinc-400">{t.intro}</p>
+        <p className="text-xs text-ink-600 dark:text-ink-400">{t.intro}</p>
       </div>
 
       <ul className="grid gap-1.5 lg:grid-cols-2">
@@ -111,18 +111,18 @@ export function EvtxLocations({
           return (
             <li
               key={row.path}
-              className="flex min-w-0 items-start gap-2 rounded border border-zinc-200 bg-white px-2.5 py-1.5 dark:border-zinc-800 dark:bg-zinc-950"
+              className="flex min-w-0 items-start gap-2 rounded-lg border border-ink-200/80 bg-ink-50/60 px-3 py-2 transition-colors hover:border-uv-300 dark:border-ink-800 dark:bg-ink-950/60 dark:hover:border-uv-800"
             >
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="text-[11px] text-zinc-500">
+                <span className="text-[11px] text-ink-500">
                   {label}
                   {os && (
-                    <span className="ml-1.5 rounded border border-zinc-200 px-1 font-mono text-[10px] text-zinc-500 dark:border-zinc-700">
+                    <span className="ml-1.5 rounded border border-ink-200 px-1 font-mono text-[10px] text-ink-500 dark:border-ink-700">
                       {os}
                     </span>
                   )}
                 </span>
-                <code className="break-all font-mono text-xs text-zinc-900 dark:text-zinc-100">
+                <code className="break-all font-mono text-xs text-ink-900 dark:text-ink-100">
                   {row.path}
                 </code>
               </div>
@@ -136,18 +136,18 @@ export function EvtxLocations({
         })}
       </ul>
 
-      <div className="flex flex-col gap-1.5 border-t border-zinc-200 pt-3 dark:border-zinc-800">
-        <h3 className="font-mono text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
+      <div className="flex flex-col gap-1.5 border-t border-ink-200 pt-3 dark:border-ink-800">
+        <h3 className="font-mono text-xs font-semibold uppercase tracking-wide text-ink-700 dark:text-ink-300">
           {t.howToHeading}
         </h3>
-        <ul className="flex list-disc flex-col gap-1 pl-4 text-xs leading-relaxed text-zinc-600 marker:text-amber-500 dark:text-zinc-400">
+        <ul className="flex list-disc flex-col gap-1 pl-4 text-xs leading-relaxed text-ink-600 marker:text-uv-500 dark:text-ink-400">
           {t.howTo.map((item, i) => (
             <li key={i}>{withCode(item)}</li>
           ))}
         </ul>
         <Link
           href={`/${locale}/blog/collecting-evtx-from-live-system`}
-          className="self-start text-xs text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
+          className="self-start text-xs text-ink-600 underline-offset-2 hover:text-ink-900 hover:underline dark:text-ink-400 dark:hover:text-ink-100"
         >
           {t.readMore} →
         </Link>

@@ -12,7 +12,7 @@ const ICONS: Record<Variant, typeof Info> = {
 
 const STYLES: Record<Variant, string> = {
   info: "border-l-blue-500/60 bg-blue-500/5",
-  warn: "border-l-amber-500/60 bg-amber-500/5",
+  warn: "border-l-orange-500/60 bg-orange-500/5",
   tip: "border-l-emerald-500/60 bg-emerald-500/5",
 };
 

@@ -19,8 +19,8 @@ export function Toc({
       aria-label={dict.toc.heading}
       className="hidden lg:block lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto"
     >
-      <div className="border-l border-zinc-200 pl-4 text-xs dark:border-zinc-800">
-        <p className="mb-2 font-mono font-semibold text-zinc-700 dark:text-zinc-300">
+      <div className="border-l border-ink-200 pl-4 text-xs dark:border-ink-800">
+        <p className="mb-2 font-mono font-semibold text-ink-700 dark:text-ink-300">
           {dict.toc.heading}
         </p>
         <ul className="flex flex-col gap-1.5">
@@ -31,7 +31,7 @@ export function Toc({
             >
               <a
                 href={`#${item.id}`}
-                className="block text-zinc-500 leading-snug hover:text-zinc-800 dark:hover:text-zinc-200"
+                className="block text-ink-500 leading-snug hover:text-ink-800 dark:hover:text-ink-200"
               >
                 {item.text}
               </a>

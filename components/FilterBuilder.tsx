@@ -51,11 +51,11 @@ const LEVEL_VALUES: Array<{ value: string; key: keyof Dict["levels"] }> = [
 const chipBase =
   "rounded border px-1.5 py-0.5 font-mono text-xs transition-colors";
 const chipOn =
-  "border-zinc-900 bg-zinc-900 text-zinc-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900";
+  "border-ink-900 bg-ink-900 text-ink-50 dark:border-ink-100 dark:bg-ink-100 dark:text-ink-900";
 const chipOff =
-  "border-zinc-200 text-zinc-500 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600";
+  "border-ink-200 text-ink-500 hover:border-ink-400 dark:border-ink-800 dark:hover:border-ink-600";
 const selectCls =
-  "rounded-md border border-zinc-300 bg-transparent px-2 py-1 text-xs outline-none focus:border-zinc-500 dark:border-zinc-700 dark:focus:border-zinc-400";
+  "rounded-md border border-ink-300 bg-transparent px-2 py-1 text-xs outline-none focus:border-ink-500 dark:border-ink-700 dark:focus:border-ink-400";
 const inputCls = `${selectCls} font-mono`;
 
 function suggestionsFor(c: Condition, facets: FilterFacets): string[] {
@@ -158,7 +158,7 @@ function ValueEditor({
             onChange={(e) => m.patch(c.id, { value: e.target.value })}
             className={inputCls}
           />
-          <span className="text-zinc-400">→</span>
+          <span className="text-ink-400">→</span>
           <input
             type="datetime-local"
             value={c.value2 ?? ""}
@@ -269,7 +269,7 @@ function ConditionRow({
         onClick={() => m.remove(c.id)}
         aria-label={dict.filter.removeCondition}
         title={dict.filter.removeCondition}
-        className="ml-auto rounded-md border border-zinc-200 px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-900"
+        className="ml-auto rounded-md border border-ink-200 px-2 py-1 text-xs text-ink-500 hover:bg-ink-100 dark:border-ink-800 dark:hover:bg-ink-900"
       >
         ✕
       </button>
@@ -295,11 +295,11 @@ function GroupBox({
       className={
         isRoot
           ? "flex flex-col gap-2"
-          : "flex flex-col gap-2 rounded-md border border-zinc-200 border-l-2 border-l-zinc-300 p-2 dark:border-zinc-800 dark:border-l-zinc-600"
+          : "flex flex-col gap-2 rounded-md border border-ink-200 border-l-2 border-l-ink-300 p-2 dark:border-ink-800 dark:border-l-ink-600"
       }
     >
       <div className="flex items-center gap-1.5">
-        <div className="inline-flex overflow-hidden rounded-md border border-zinc-200 dark:border-zinc-800">
+        <div className="inline-flex overflow-hidden rounded-md border border-ink-200 dark:border-ink-800">
           {(["and", "or"] as const).map((cb) => (
             <button
               key={cb}
@@ -308,8 +308,8 @@ function GroupBox({
               aria-pressed={g.combinator === cb}
               className={`px-2 py-1 text-xs font-medium transition-colors ${
                 g.combinator === cb
-                  ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900"
-                  : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                  ? "bg-ink-900 text-ink-50 dark:bg-ink-100 dark:text-ink-900"
+                  : "text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-900"
               }`}
             >
               {cb === "and" ? dict.filter.and : dict.filter.or}
@@ -322,7 +322,7 @@ function GroupBox({
             onClick={() => m.remove(g.id)}
             aria-label={dict.filter.removeGroup}
             title={dict.filter.removeGroup}
-            className="ml-auto rounded-md border border-zinc-200 px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-900"
+            className="ml-auto rounded-md border border-ink-200 px-2 py-1 text-xs text-ink-500 hover:bg-ink-100 dark:border-ink-800 dark:hover:bg-ink-900"
           >
             ✕
           </button>
@@ -354,14 +354,14 @@ function GroupBox({
         <button
           type="button"
           onClick={() => m.addCondition(g.id)}
-          className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          className="rounded-md border border-ink-300 px-2 py-1 text-xs text-ink-600 hover:bg-ink-100 dark:border-ink-700 dark:text-ink-300 dark:hover:bg-ink-900"
         >
           + {dict.filter.addCondition}
         </button>
         <button
           type="button"
           onClick={() => m.addGroup(g.id)}
-          className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          className="rounded-md border border-ink-300 px-2 py-1 text-xs text-ink-600 hover:bg-ink-100 dark:border-ink-700 dark:text-ink-300 dark:hover:bg-ink-900"
         >
           + {dict.filter.addGroup}
         </button>
