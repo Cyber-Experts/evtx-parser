@@ -10,7 +10,9 @@
     "lint:content": "tsx scripts/lint-content.ts",
     "indexnow": "tsx scripts/indexnow.ts",
     "wasm:build": "cd crates/evtx-wasm && wasm-pack build --target web --release --out-dir ../../lib/evtx-wasm && cp ../../lib/evtx-wasm/evtx_wasm_bg.wasm ../../public/evtx_wasm_bg.wasm",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "lint-staged": {
     "content/**/*.{md,mdx}": "tsx scripts/lint-content.ts"
@@ -63,7 +65,8 @@
     "lint-staged": "^17.0.5",
     "tailwindcss": "^4",
     "tsx": "^4.22.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "@vercel/og": {
