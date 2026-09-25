@@ -43,6 +43,7 @@ import { HuntsMenu } from "@/components/viewer/HuntsMenu";
 import { SessionsView } from "@/components/viewer/SessionsView";
 import { SavedSessionsList } from "@/components/viewer/SavedSessionsList";
 import { TimeRangeInput } from "@/components/viewer/TimeRangeInput";
+import { SessionNameDialog } from "@/components/viewer/SessionNameDialog";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -51,7 +52,9 @@ import {
 import type { PanelImperativeHandle } from "react-resizable-panels";
 import {
   StorageFullError,
+  defaultSessionName,
   loadSession,
+  renameSession,
   saveSession,
   type SessionSnapshot,
 } from "@/lib/saved-sessions";
@@ -581,6 +584,8 @@ export function EvtxUploader({
   const [view, setView] = useState<"events" | "sessions">("events");
   // Local (IndexedDB) session save/restore.
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [savedName, setSavedName] = useState<string | null>(null);
+  const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "full" | "error">("idle");
   const [restoring, setRestoring] = useState(false);
   // File list: null = automatic (collapsed once there are many files).
@@ -666,6 +671,7 @@ export function EvtxUploader({
 
   const clearAll = useCallback(() => {
     setSavedId(null);
+    setSavedName(null);
     setFiles((prev) => {
       for (const f of prev) clientRef.current?.free(f.id);
       return [];
@@ -1393,17 +1399,19 @@ export function EvtxUploader({
     return () => clearTimeout(timer);
   }, [savedId, snapshot, files, allRows.length]);
 
-  const saveCurrentSession = useCallback(async () => {
+  const saveCurrentSession = useCallback(async (name?: string) => {
     if (files.length === 0) return;
     setSaveStatus("saving");
     try {
       const meta = await saveSession({
         id: savedId ?? undefined,
+        name,
         files: files.map((f) => f.file),
         snapshot,
         events: allRows.length,
       });
       setSavedId(meta.id);
+      setSavedName(meta.name);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus((s) => (s === "saved" ? "idle" : s)), 2500);
     } catch (err) {
@@ -1436,6 +1444,7 @@ export function EvtxUploader({
         setSortDir(snap.sortDir);
         setView(snap.view);
         setShowFacets(snap.showFacets);
+        setSavedName(meta.name);
         if (snap.timeMode) setTimeMode(snap.timeMode);
         if (snap.showFindings != null) setShowFindings(snap.showFindings);
         setSavedId(meta.id);
@@ -2405,19 +2414,36 @@ export function EvtxUploader({
               </button>
               <button
                 type="button"
-                onClick={saveCurrentSession}
+                onClick={() => setNameDialogOpen(true)}
                 disabled={saveStatus === "saving"}
                 title={savedId ? t.viewer.autoSaveHint : t.viewer.savedSessionsHint}
-                className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                className="max-w-[34ch] truncate rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
               >
                 {saveStatus === "saving"
                   ? t.viewer.savingSession
                   : saveStatus === "saved"
                     ? `✓ ${t.viewer.sessionSaved}`
                     : savedId
-                      ? `✓ ${t.viewer.autoSaved}`
+                      ? `✓ ${t.viewer.autoSaved} · ${savedName ?? ""}`
                       : `💾 ${t.viewer.saveSession}`}
               </button>
+              <SessionNameDialog
+                open={nameDialogOpen}
+                onOpenChange={setNameDialogOpen}
+                dict={t}
+                title={savedId ? t.viewer.renameSessionTitle : t.viewer.saveSessionTitle}
+                description={savedId ? undefined : t.viewer.saveSessionDescription}
+                initialName={savedName ?? defaultSessionName(files)}
+                confirmLabel={savedId ? t.viewer.renameSession : t.viewer.saveAction}
+                onConfirm={async (name) => {
+                  if (savedId) {
+                    await renameSession(savedId, name);
+                    setSavedName(name);
+                  } else {
+                    await saveCurrentSession(name);
+                  }
+                }}
+              />
               {saveStatus === "full" && (
                 <span className="text-xs text-red-600 dark:text-red-400">
                   {t.viewer.storageFull}
