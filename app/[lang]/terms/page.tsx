@@ -69,25 +69,70 @@ export default async function TermsPage({
         />
         <h1>Terms of Service</h1>
         <p>
-          <em>Last updated: January 2026.</em>
+          <em>Last updated: 25 September 2026.</em>
         </p>
         <p>
-          By using {siteConfig.name}, you agree to these terms. Content on this
-          site is provided as-is, without warranties.
+          {siteConfig.name} is provided by {siteConfig.organization.legalName}.
+          By using the site you agree to these terms.
         </p>
-        <h2>Acceptable use</h2>
+
+        <h2>The tool</h2>
         <p>
-          Do not scrape excessively, attempt to disrupt the service, or
-          republish content without attribution.
+          {siteConfig.name} is a free, browser-based viewer for Windows event
+          log files. Files are processed locally in your browser and are not
+          uploaded (see the <a href={`/${locale}/privacy`}>privacy policy</a>).
         </p>
-        <h2>Liability</h2>
+
+        <h2>Your responsibilities</h2>
+        <ul>
+          <li>
+            Only open logs you are authorised to process, and handle them in
+            line with your legal, contractual and evidence-handling
+            obligations.
+          </li>
+          <li>
+            Parsed output, decoded values, descriptions, detections and hunts
+            are aids to analysis. Verify findings against the original evidence
+            before relying on them.
+          </li>
+          <li>
+            Do not attempt to disrupt the service, probe it for vulnerabilities
+            without permission, or scrape it excessively.
+          </li>
+        </ul>
+
+        <h2>Source code and license</h2>
         <p>
-          {siteConfig.organization.legalName} is not liable for any indirect
-          damages arising from your use of this site.
+          The application&apos;s source code is published on{" "}
+          <a href="https://github.com/Cyber-Experts">GitHub</a> under the
+          Elastic License 2.0: you may use, modify and run it — including for
+          commercial incident-response work — but you may not offer it to third
+          parties as a hosted or managed service, or remove its licensing
+          notices.
         </p>
+
+        <h2>Content</h2>
         <p>
-          <strong>This text is a placeholder.</strong> Replace with terms
-          reviewed by counsel before launch.
+          Articles, guides and reference pages may be quoted with attribution
+          and a link to the original page.
+        </p>
+
+        <h2>No warranty and limitation of liability</h2>
+        <p>
+          The site and the tool are provided “as is”, without warranty of any
+          kind. To the extent permitted by law,{" "}
+          {siteConfig.organization.legalName} is not liable for any indirect or
+          consequential damages, or for decisions made on the basis of the
+          tool&apos;s output.
+        </p>
+
+        <h2>Contact</h2>
+        <p>
+          Questions about these terms:{" "}
+          <a href={`mailto:${siteConfig.organization.contactPoint.email}`}>
+            {siteConfig.organization.contactPoint.email}
+          </a>
+          .
         </p>
       </main>
     </>

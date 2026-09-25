@@ -645,12 +645,9 @@ export function eventName(
     case "system":
       return SYSTEM_NAMES[eventId] ?? null;
     default:
-      return (
-        SECURITY_NAMES[eventId] ??
-        SYSTEM_NAMES[eventId] ??
-        POWERSHELL_NAMES[eventId] ??
-        null
-      );
+      // Event IDs are only meaningful per provider (Servicing 1 is not
+      // Kernel-General 1 "System time changed"): no guessing across tables.
+      return null;
   }
 }
 

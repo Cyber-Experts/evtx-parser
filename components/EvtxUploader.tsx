@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { track } from "@vercel/analytics";
@@ -40,6 +41,25 @@ import {
 import { SearchBox } from "@/components/viewer/SearchBox";
 import { HuntsMenu } from "@/components/viewer/HuntsMenu";
 import { SessionsView } from "@/components/viewer/SessionsView";
+import { SavedSessionsList } from "@/components/viewer/SavedSessionsList";
+import { TimeRangeInput } from "@/components/viewer/TimeRangeInput";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import type { PanelImperativeHandle } from "react-resizable-panels";
+import {
+  StorageFullError,
+  loadSession,
+  saveSession,
+  type SessionSnapshot,
+} from "@/lib/saved-sessions";
+import {
+  ColumnTools,
+  EVENTS_TABLE_ID,
+  useColumnLayout,
+} from "@/components/viewer/columns";
 import { buildSessions, sessionQuery } from "@/lib/sessions";
 import type { Locale } from "@/src/dict/locales";
 import { FacetSidebar } from "@/components/viewer/FacetSidebar";
@@ -50,7 +70,6 @@ import {
 } from "@/components/viewer/Highlight";
 import { decodeValue, describeEvent } from "@/lib/event-decode";
 import {
-  formatEpoch,
   formatTimestamp,
   zoneLabel,
   type TimeMode,
@@ -86,6 +105,8 @@ type LoadedFile = {
   rows: EventRow[];
   pairs: [string, string][][];
   topEventIds: EventIdCount[];
+  /** Original upload, kept so the session can be saved locally. */
+  file: File;
 };
 
 // A row in the merged, cross-file view. `_g` is the global index into the
@@ -391,6 +412,13 @@ function buildReport(
   return lines.join("\n");
 }
 
+const WIDE_QUERY = "(min-width: 1024px)";
+function subscribeWide(onChange: () => void) {
+  const mq = window.matchMedia(WIDE_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
 function download(filename: string, mime: string, body: string) {
   const blob = new Blob([body], { type: mime });
   const url = URL.createObjectURL(blob);
@@ -551,6 +579,16 @@ export function EvtxUploader({
   const [regexMode, setRegexMode] = useState(() => readHash().re);
   const [showFacets, setShowFacets] = useState(true);
   const [view, setView] = useState<"events" | "sessions">("events");
+  // Local (IndexedDB) session save/restore.
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "full" | "error">("idle");
+  const [restoring, setRestoring] = useState(false);
+  // File list: null = automatic (collapsed once there are many files).
+  const [filesOpen, setFilesOpen] = useState<boolean | null>(null);
+  const filesExpanded = filesOpen ?? files.length <= 8;
+  // Findings/timeline panel in the full-screen split.
+  const topPanelRef = useRef<PanelImperativeHandle | null>(null);
+  const [controlsCollapsed, setControlsCollapsed] = useState(false);
   const [bookmarks, setBookmarks] = useState<Set<number>>(new Set());
   // Analyst notes by global row index; noting an event also bookmarks it.
   const [notes, setNotes] = useState<Record<number, string>>({});
@@ -599,7 +637,7 @@ export function EvtxUploader({
           }
           setFiles((prev) => [
             ...prev,
-            { id, name: file.name, size: file.size, rows, pairs, topEventIds },
+            { id, name: file.name, size: file.size, rows, pairs, topEventIds, file },
           ]);
           // High-intent event: the visitor actually parsed a log. Only coarse,
           // non-identifying signal — size bucket + record count, once per file.
@@ -626,6 +664,7 @@ export function EvtxUploader({
   }, []);
 
   const clearAll = useCallback(() => {
+    setSavedId(null);
     setFiles((prev) => {
       for (const f of prev) clientRef.current?.free(f.id);
       return [];
@@ -848,6 +887,12 @@ export function EvtxUploader({
   // Full-screen workspace: the viewer takes over the window as soon as the
   // first file is loaded, and drops back to the page when the last one goes.
   const [fullscreen, setFullscreen] = useState(false);
+  // Resizable sidebar/table split only where there's room for it.
+  const isWide = useSyncExternalStore(
+    subscribeWide,
+    () => window.matchMedia(WIDE_QUERY).matches,
+    () => false,
+  );
   // UTC by default (what EVTX stores); local time is a per-viewer preference.
   const [timeMode, setTimeMode] = useState<TimeMode>(() => {
     try {
@@ -1271,6 +1316,90 @@ export function EvtxUploader({
     );
   }, [allRows, allPairs, bookmarks, notes, files, t]);
 
+  // Save the files + analysis state to this browser (IndexedDB) so the case
+  // can be resumed later, even after a restart. Re-saving updates the same
+  // entry and only rewrites the files if the set changed.
+  const saveCurrentSession = useCallback(async () => {
+    if (files.length === 0) return;
+    setSaveStatus("saving");
+    const snapshot: SessionSnapshot = {
+      filter,
+      regexMode,
+      levels: [...activeLevels],
+      timeRange,
+      query,
+      bookmarks: [...bookmarks],
+      notes,
+      sortField,
+      sortDir,
+      view,
+      showFacets,
+    };
+    try {
+      const meta = await saveSession({
+        id: savedId ?? undefined,
+        files: files.map((f) => f.file),
+        snapshot,
+        events: allRows.length,
+      });
+      setSavedId(meta.id);
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus((s) => (s === "saved" ? "idle" : s)), 2500);
+    } catch (err) {
+      if (err instanceof StorageFullError) {
+        setSaveStatus("full");
+      } else {
+        setSaveStatus("error");
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    }
+  }, [
+    files,
+    filter,
+    regexMode,
+    activeLevels,
+    timeRange,
+    query,
+    bookmarks,
+    notes,
+    sortField,
+    sortDir,
+    view,
+    showFacets,
+    savedId,
+    allRows.length,
+  ]);
+
+  const resumeSession = useCallback(
+    async (id: string) => {
+      setRestoring(true);
+      setError(null);
+      try {
+        const { meta, files: saved, snapshot } = await loadSession(id);
+        await handleFiles(saved);
+        // Same files in the same order → same global row indexes, so
+        // bookmarks and notes land on the same events.
+        setFilter(snapshot.filter);
+        setRegexMode(snapshot.regexMode);
+        setActiveLevels(new Set(snapshot.levels));
+        setTimeRange(snapshot.timeRange);
+        setQuery(snapshot.query as Group);
+        setBookmarks(new Set(snapshot.bookmarks));
+        setNotes(snapshot.notes);
+        setSortField(snapshot.sortField as SortField);
+        setSortDir(snapshot.sortDir);
+        setView(snapshot.view);
+        setShowFacets(snapshot.showFacets);
+        setSavedId(meta.id);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setRestoring(false);
+      }
+    },
+    [handleFiles],
+  );
+
   const runExport = useCallback(
     async (kind: "csv" | "json" | "txt") => {
       if (!ready) return;
@@ -1376,207 +1505,301 @@ export function EvtxUploader({
   const baseColCount = multiFile ? 9 : 8;
   const tableColCount = baseColCount + extraColCount + 1;
 
-  return (
-    <section
-      aria-label={t.home.dropArea}
-      className={
-        ready && fullscreen
-          ? "fixed inset-0 z-40 flex flex-col gap-3 overflow-y-auto bg-white p-3 sm:p-4 dark:bg-zinc-950"
-          : "flex flex-col gap-4"
-      }
-    >
-      {windowDrag && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/70 p-6 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-amber-400 bg-zinc-900/80 px-10 py-12 text-center">
-            <span className="flex items-end gap-1.5" aria-hidden="true">
-              {[14, 22, 30, 18, 12].map((h, i) => (
-                <span
-                  key={i}
-                  className={`w-2 rounded-sm ${i === 2 ? "bg-amber-400" : "bg-zinc-500"}`}
-                  style={{ height: h }}
-                />
-              ))}
-            </span>
-            <span className="font-mono text-lg font-medium text-amber-300">
-              {t.home.dropArea}
-            </span>
-            <span className="font-mono text-xs text-zinc-400">
-              {t.home.privacyNote}
-            </span>
-          </div>
-        </div>
-      )}
+  // Resizable / pinnable columns: ids match the `data-col` on th and td.
+  const colOrder = useMemo(
+    () => [
+      "record",
+      "time",
+      "level",
+      "eventId",
+      "name",
+      "Provider",
+      "Channel",
+      "Computer",
+      ...(multiFile ? ["File"] : []),
+      ...(dynamicKeys ? dynamicKeys.map((k) => `d:${k}`) : ["summary"]),
+    ],
+    [multiFile, dynamicKeys],
+  );
+  const columns = useColumnLayout(colOrder);
 
-      {!ready && (
-        <label
-          tabIndex={0}
-          role="button"
-          aria-label={t.home.dropArea}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              openFilePicker();
-            }
-          }}
-          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-zinc-300 px-4 py-10 text-center text-sm transition-colors hover:border-amber-400 hover:bg-amber-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 sm:px-6 sm:py-14 dark:border-zinc-700 dark:hover:border-amber-400/60 dark:hover:bg-amber-400/[0.04]"
-        >
-          <span className="mb-1 flex items-end gap-1" aria-hidden="true">
-            {[10, 16, 22, 14, 9].map((h, i) => (
-              <span
-                key={i}
-                className={`w-1.5 rounded-sm ${i === 2 ? "bg-amber-500" : "bg-zinc-300 dark:bg-zinc-600"}`}
-                style={{ height: h }}
+  // First / last event time: defaults for the typed time-range inputs.
+  const timeBounds = useMemo<[number, number] | null>(() => {
+    let min = Infinity;
+    let max = -Infinity;
+    for (const r of allRows) {
+      const ms = Date.parse(r.timestamp);
+      if (ms < min) min = ms;
+      if (ms > max) max = ms;
+    }
+    return Number.isFinite(min) ? [min, max] : null;
+  }, [allRows]);
+  const colTools = (col: string) => (
+    <ColumnTools
+      col={col}
+      pinned={columns.pinned.includes(col)}
+      dict={t}
+      onPin={columns.togglePin}
+      onResizeStart={columns.startResize}
+      onAutoSize={columns.autoSize}
+    />
+  );
+
+  const facetSidebar = (
+    <FacetSidebar
+                rows={filteredRows}
+                allPairs={allPairs}
+                query={regexMode ? "" : filter}
+                dict={t}
+                multiFile={multiFile}
+                levelLabel={(l) => levelLabel(l, t)}
+                onInclude={includeValue}
+                onExclude={excludeValue}
+                onRemove={removeValue}
               />
-            ))}
-          </span>
-          <span className="font-medium">{t.home.dropArea}</span>
-          <span className="text-zinc-500">{t.home.privacyNote}</span>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".evtx"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              const picked = Array.from(e.target.files ?? []);
-              // Reset so re-selecting the same file still fires onChange.
-              e.target.value = "";
-              if (picked.length) handleFiles(picked);
-            }}
-          />
-        </label>
-      )}
+  );
 
-      {!ready && emptyStateAside}
-
-      {loading && (
-        <div className="flex flex-col gap-2 rounded-lg border border-amber-500/30 bg-amber-50/40 px-4 py-3 dark:border-amber-400/20 dark:bg-amber-400/[0.06]">
-          <div className="flex items-center gap-3">
-            <ScanningIndicator />
-            <span className="font-mono text-sm text-zinc-700 dark:text-zinc-300">
-              {loading}
-            </span>
+  // Virtualised events table (scroll container + sticky header).
+  const eventsTable = (
+          <div
+            ref={scrollRef}
+            onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+            style={fullscreen || (showFacets && isWide) ? undefined : { maxHeight: SCROLL_HEIGHT_PX }}
+            className="-mx-4 h-full min-w-0 flex-1 overflow-auto border-y border-zinc-200 sm:mx-0 sm:rounded-md sm:border dark:border-zinc-800"
+          >
+            <style>{columns.css}</style>
+            <table id={EVENTS_TABLE_ID} className="w-full text-left font-mono text-xs">
+              <thead className="sticky top-0 z-10 bg-zinc-50 text-zinc-500 shadow-[0_1px_0_var(--tw-shadow-color)] shadow-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:shadow-zinc-800">
+                <tr>
+                  <SortHeader field="record_id" col="record" tools={colTools("record")} label={t.table.record} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                  <SortHeader field="timestamp" col="time" tools={colTools("time")} label={timeHeader} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                  <SortHeader field="level" col="level" tools={colTools("level")} label={t.table.level} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                  <SortHeader field="event_id" col="eventId" tools={colTools("eventId")} label={t.table.eventId} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                  <SortHeader field="name" col="name" tools={colTools("name")} label={t.table.name} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                  <SortHeader field="provider" col="Provider" tools={colTools("Provider")} label={t.table.provider} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                  <SortHeader field="channel" col="Channel" tools={colTools("Channel")} label={t.table.channel} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                  <SortHeader field="computer" col="Computer" tools={colTools("Computer")} label={t.table.computer} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                  {multiFile && (
+                    <SortHeader field="source" col="File" tools={colTools("File")} label={t.table.source} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                  )}
+                  {dynamicKeys ? (
+                    dynamicKeys.map((k) => (
+                      <th key={k} data-col={`d:${k}`} className="group/th relative whitespace-nowrap px-3 py-2">
+                        {k}
+                        {colTools(`d:${k}`)}
+                      </th>
+                    ))
+                  ) : (
+                    <th data-col="summary" className="group/th relative px-3 py-2">
+                      {t.table.summary}
+                      {colTools("summary")}
+                    </th>
+                  )}
+                  <th className="px-3 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedRows.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={tableColCount}
+                      className="px-3 py-8 text-center"
+                    >
+                      <div className="flex flex-col items-center gap-2 text-zinc-400">
+                        <span>{t.home.noMatches}</span>
+                        {anyFilter && (
+                          <button
+                            type="button"
+                            onClick={clearFilters}
+                            className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-300"
+                          >
+                            {t.home.clearFilters}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {visibleWindow.start > 0 && (
+                  <tr aria-hidden="true">
+                    <td
+                      colSpan={tableColCount}
+                      style={{ height: visibleWindow.start * ROW_HEIGHT, padding: 0 }}
+                    />
+                  </tr>
+                )}
+                {visibleRows.map((r, vi) => {
+                  const isOpen = openRow?.g === r._g;
+                  const isFocused = visibleWindow.start + vi === focusedIdx;
+                  const isBookmarked = bookmarks.has(r._g);
+                  const resolvedName = eventName(r.event_id, r.provider);
+                  const pairs = allPairs[r._g] ?? [];
+                  return (
+                    <Fragment key={r._g}>
+                      <tr
+                        className={`border-t border-zinc-100 dark:border-zinc-800 ${
+                          isFocused
+                            ? "bg-amber-50 ring-1 ring-inset ring-amber-400 dark:bg-amber-400/10"
+                            : isOpen
+                              ? "bg-zinc-50 dark:bg-zinc-950"
+                              : ""
+                        }`}
+                      >
+                        <td data-col="record" className="px-3 py-1.5 text-zinc-500">
+                          {Number(r.record_id)}
+                        </td>
+                        <td
+                          data-col="time"
+                          className="whitespace-nowrap px-3 py-1.5 text-zinc-600 dark:text-zinc-400"
+                          title={r.timestamp}
+                        >
+                          {formatTimestamp(r.timestamp, timeMode)}
+                        </td>
+                        <td data-col="level" className={`px-3 py-1.5 ${levelClass(r.level)}`}>
+                          {levelLabel(r.level, t)}
+                        </td>
+                        <td data-col="eventId" className="px-3 py-1.5">{r.event_id ?? ""}</td>
+                        <td data-col="name" className="truncate px-3 py-1.5 text-zinc-700 dark:text-zinc-300">
+                          {resolvedName ?? (
+                            <span className="text-zinc-400">—</span>
+                          )}
+                        </td>
+                        <FilterableCell
+                          field="Provider"
+                          value={r.provider}
+                          onFilter={includeValue}
+                          onExclude={excludeValue}
+                        />
+                        <FilterableCell
+                          field="Channel"
+                          value={r.channel}
+                          onFilter={includeValue}
+                          onExclude={excludeValue}
+                        />
+                        <FilterableCell
+                          field="Computer"
+                          value={r.computer}
+                          onFilter={includeValue}
+                          onExclude={excludeValue}
+                        />
+                        {multiFile && (
+                          <FilterableCell
+                            field="File"
+                            value={r._file}
+                            onFilter={includeValue}
+                            onExclude={excludeValue}
+                          />
+                        )}
+                        {dynamicKeys ? (
+                          <DynamicCells
+                            keys={dynamicKeys}
+                            pairs={pairs}
+                            onFilter={includeValue}
+                            onExclude={excludeValue}
+                          />
+                        ) : (
+                          <td data-col="summary" className="px-3 py-1.5 text-zinc-700 dark:text-zinc-300">
+                            <SummaryCell
+                              row={r}
+                              pairs={pairs}
+                              onFilter={includeValue}
+                              onExclude={excludeValue}
+                            />
+                          </td>
+                        )}
+                        <td className="px-3 py-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => toggleBookmark(r._g)}
+                              aria-pressed={isBookmarked}
+                              aria-label="Bookmark row"
+                              title="Bookmark (b)"
+                              className={`rounded px-1 leading-none transition-colors ${
+                                isBookmarked
+                                  ? "text-amber-500"
+                                  : "text-zinc-300 hover:text-amber-400 dark:text-zinc-600"
+                              }`}
+                            >
+                              {isBookmarked ? "★" : "☆"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleDetailsFor(r)}
+                              aria-expanded={isOpen}
+                              className={`rounded border px-1.5 py-0.5 ${
+                                isOpen ? CHIP_ACTIVE : CHIP_IDLE
+                              }`}
+                            >
+                              {isOpen ? t.table.closeDetails : t.table.viewDetails}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {isOpen && openRow && (
+                        <tr className="border-t border-zinc-100 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950">
+                          <td colSpan={tableColCount} className="p-3">
+                            <div className="flex flex-col gap-3">
+                              <DetailsPanel
+                                row={r}
+                                note={notes[r._g] ?? ""}
+                                onNote={(text) => setNote(r._g, text)}
+                                pairs={openRow.pairs}
+                                dict={t}
+                                onInclude={includeValue}
+                                onExclude={excludeValue}
+                                onPivot={pivotTo}
+                              />
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={copyOpenRowXml}
+                                  className="rounded-md border border-zinc-200 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                                >
+                                  {xmlCopied ? `✓ ${t.viewer.copied}` : t.viewer.copyXml}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={toggleRawXml}
+                                  className="rounded-md border border-zinc-200 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                                >
+                                  {openRow.showXml
+                                    ? t.table.hideRawXml
+                                    : t.table.showRawXml}
+                                </button>
+                              </div>
+                              {openRow.showXml && openRow.xml != null && (
+                                <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded border border-zinc-200 bg-white p-3 font-mono text-[11px] leading-relaxed text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
+                                  {openRow.xml}
+                                </pre>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+                {visibleWindow.end < sortedRows.length && (
+                  <tr aria-hidden="true">
+                    <td
+                      colSpan={tableColCount}
+                      style={{
+                        height:
+                          (sortedRows.length - visibleWindow.end) * ROW_HEIGHT,
+                        padding: 0,
+                      }}
+                    />
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-          <div className="relative h-0.5 w-full overflow-hidden rounded-full bg-amber-500/15">
-            <div className="animate-scanline absolute inset-y-0 left-0 w-1/4 rounded-full bg-amber-500 dark:bg-amber-400" />
-          </div>
-        </div>
-      )}
+  );
 
-      {error && (
-        <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
-          {error}
-        </div>
-      )}
-
-      {ready && (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-            <div className="flex flex-wrap items-center gap-1.5">
-              {files.map((f) => (
-                <span
-                  key={f.id}
-                  className="flex items-center gap-1.5 rounded-md border border-zinc-300 bg-zinc-50 py-1 pl-2 pr-1 text-xs dark:border-zinc-700 dark:bg-zinc-900"
-                >
-                  <span
-                    className="max-w-[24ch] truncate font-mono text-zinc-900 dark:text-zinc-100"
-                    title={f.name}
-                  >
-                    {f.name}
-                  </span>
-                  <span className="font-mono text-zinc-400">
-                    {numberFmt.format(f.rows.length)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeFile(f.id)}
-                    aria-label={t.home.removeFile}
-                    title={t.home.removeFile}
-                    className="rounded px-1 leading-none text-zinc-400 hover:bg-zinc-200 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-              {multiFile && (
-                <button
-                  type="button"
-                  onClick={clearAll}
-                  className="rounded-md border border-zinc-200 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
-                >
-                  {t.home.clearAll}
-                </button>
-              )}
-              <label
-                title={t.home.dropArea}
-                className="cursor-pointer rounded-md border border-zinc-300 px-2 py-1 font-mono text-xs text-zinc-600 transition-colors hover:border-amber-400 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-amber-400/60 dark:hover:text-zinc-100"
-              >
-                + .evtx
-                <input
-                  type="file"
-                  accept=".evtx"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    const picked = Array.from(e.target.files ?? []);
-                    e.target.value = "";
-                    if (picked.length) handleFiles(picked);
-                  }}
-                />
-              </label>
-            </div>
-            <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
-              <span>
-                {formatBytes(totalSize)} ·{" "}
-                <span className="font-mono text-foreground">
-                  {numberFmt.format(filteredRows.length)}
-                </span>{" "}
-                / <span className="font-mono">{numberFmt.format(allRows.length)}</span>{" "}
-                {t.home.eventsLabel}
-              </span>
-              {anyFilter && (
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-300"
-                >
-                  {t.home.clearFilters}
-                  <span className="rounded-full bg-amber-500/20 px-1.5 font-mono text-[10px] tabular-nums">
-                    {activeFilterCount}
-                  </span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={toggleTimeMode}
-                title={t.viewer.timeZoneToggle}
-                className="rounded-md border border-zinc-300 px-2 py-1 font-mono text-xs text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
-              >
-                🕒 {zone}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowFacets((v) => !v)}
-                aria-pressed={showFacets}
-                className={`rounded-md border px-2 py-1 text-xs transition-colors ${
-                  showFacets ? CHIP_ACTIVE : CHIP_IDLE
-                }`}
-              >
-                {showFacets ? t.viewer.hideFields : t.viewer.fields}
-              </button>
-              <button
-                type="button"
-                onClick={() => setFullscreen((v) => !v)}
-                aria-pressed={fullscreen}
-                title={fullscreen ? `${t.home.exitFullscreen} (Esc)` : t.home.enterFullscreen}
-                className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
-              >
-                <span aria-hidden="true">{fullscreen ? "⤡" : "⤢"}</span>
-                {fullscreen ? t.home.exitFullscreen : t.home.enterFullscreen}
-              </button>
-            </div>
-          </div>
-
+  // Findings, timeline and time range: the collapsible top panel in full screen.
+  const topControls = (
+    <>
           {findings.length > 0 && (
             <div className="rounded-lg border border-zinc-200 dark:border-zinc-800">
               <button
@@ -1640,21 +1863,23 @@ export function EvtxUploader({
             utc={timeMode === "utc"}
           />
 
-          {timeRange && (
-            <div className="flex items-center gap-2 text-xs">
-              <span className="rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 font-mono text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-                {formatEpoch(timeRange[0], timeMode)} → {formatEpoch(timeRange[1], timeMode)} ({zone})
-              </span>
-              <button
-                type="button"
-                onClick={clearTimeRange}
-                className="rounded-md border border-zinc-200 px-2 py-1 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
-              >
-                {t.home.clearTime}
-              </button>
-            </div>
-          )}
 
+    </>
+  );
+
+  // Search, filters, tabs and the events table / sessions view.
+  const mainArea = (
+    <>
+          <TimeRangeInput
+            dict={t}
+            mode={timeMode}
+            zone={zone}
+            bounds={timeBounds}
+            range={timeRange}
+            onApply={(range) =>
+              range ? handleSelectTimeRange(range) : clearTimeRange()
+            }
+          />
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <SearchBox
               value={filter}
@@ -1849,7 +2074,7 @@ export function EvtxUploader({
 
           {view === "sessions" ? (
             <div
-              className={`flex flex-col ${fullscreen ? "min-h-[320px] flex-1" : ""}`}
+              className={`flex flex-col ${fullscreen ? "min-h-0 flex-1" : ""}`}
               style={fullscreen ? undefined : { maxHeight: SCROLL_HEIGHT_PX }}
             >
               <SessionsView
@@ -1866,258 +2091,343 @@ export function EvtxUploader({
           <HighlightContext.Provider value={highlightRe}>
           <div
             className={`flex flex-col gap-3 lg:flex-row ${
-              fullscreen ? "min-h-[320px] flex-1" : ""
+              fullscreen ? "min-h-0 flex-1" : ""
             }`}
           >
-          {showFacets && (
-            <aside
-              aria-label={t.viewer.fields}
-              style={fullscreen ? undefined : { maxHeight: SCROLL_HEIGHT_PX }}
-              className="max-h-72 shrink-0 overflow-y-auto lg:max-h-none lg:w-72"
+          {showFacets && isWide ? (
+            <ResizablePanelGroup
+              orientation="horizontal"
+              className="min-h-0 flex-1"
+              style={fullscreen ? undefined : { height: SCROLL_HEIGHT_PX }}
             >
-              <FacetSidebar
-                rows={filteredRows}
-                allPairs={allPairs}
-                query={regexMode ? "" : filter}
-                dict={t}
-                multiFile={multiFile}
-                levelLabel={(l) => levelLabel(l, t)}
-                onInclude={includeValue}
-                onExclude={excludeValue}
-                onRemove={removeValue}
-              />
-            </aside>
+              <ResizablePanel
+                id="fields"
+                defaultSize="22%"
+                minSize="12%"
+                maxSize="50%"
+                className="overflow-y-auto pr-2"
+              >
+                {facetSidebar}
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel id="table" minSize="30%" className="flex min-w-0 pl-2">
+                {eventsTable}
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          ) : (
+            <>
+              {showFacets && (
+                <aside
+                  aria-label={t.viewer.fields}
+                  className="max-h-72 shrink-0 overflow-y-auto"
+                >
+                  {facetSidebar}
+                </aside>
+              )}
+              {eventsTable}
+            </>
           )}
-          <div
-            ref={scrollRef}
-            onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
-            style={fullscreen ? undefined : { maxHeight: SCROLL_HEIGHT_PX }}
-            className="-mx-4 min-w-0 flex-1 overflow-auto border-y border-zinc-200 sm:mx-0 sm:rounded-md sm:border dark:border-zinc-800"
-          >
-            <table className="w-full text-left font-mono text-xs">
-              <thead className="sticky top-0 z-10 bg-zinc-50 text-zinc-500 shadow-[0_1px_0_var(--tw-shadow-color)] shadow-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:shadow-zinc-800">
-                <tr>
-                  <SortHeader field="record_id" label={t.table.record} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
-                  <SortHeader field="timestamp" label={timeHeader} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
-                  <SortHeader field="level" label={t.table.level} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
-                  <SortHeader field="event_id" label={t.table.eventId} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
-                  <SortHeader field="name" label={t.table.name} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
-                  <SortHeader field="provider" label={t.table.provider} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
-                  <SortHeader field="channel" label={t.table.channel} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
-                  <SortHeader field="computer" label={t.table.computer} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
-                  {multiFile && (
-                    <SortHeader field="source" label={t.table.source} sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
-                  )}
-                  {dynamicKeys ? (
-                    dynamicKeys.map((k) => (
-                      <th key={k} className="px-3 py-2">
-                        {k}
-                      </th>
-                    ))
-                  ) : (
-                    <th className="px-3 py-2">{t.table.summary}</th>
-                  )}
-                  <th className="px-3 py-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedRows.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={tableColCount}
-                      className="px-3 py-8 text-center"
-                    >
-                      <div className="flex flex-col items-center gap-2 text-zinc-400">
-                        <span>{t.home.noMatches}</span>
-                        {anyFilter && (
-                          <button
-                            type="button"
-                            onClick={clearFilters}
-                            className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-300"
-                          >
-                            {t.home.clearFilters}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )}
-                {visibleWindow.start > 0 && (
-                  <tr aria-hidden="true">
-                    <td
-                      colSpan={tableColCount}
-                      style={{ height: visibleWindow.start * ROW_HEIGHT, padding: 0 }}
-                    />
-                  </tr>
-                )}
-                {visibleRows.map((r, vi) => {
-                  const isOpen = openRow?.g === r._g;
-                  const isFocused = visibleWindow.start + vi === focusedIdx;
-                  const isBookmarked = bookmarks.has(r._g);
-                  const resolvedName = eventName(r.event_id, r.provider);
-                  const pairs = allPairs[r._g] ?? [];
-                  return (
-                    <Fragment key={r._g}>
-                      <tr
-                        className={`border-t border-zinc-100 dark:border-zinc-800 ${
-                          isFocused
-                            ? "bg-amber-50 ring-1 ring-inset ring-amber-400 dark:bg-amber-400/10"
-                            : isOpen
-                              ? "bg-zinc-50 dark:bg-zinc-950"
-                              : ""
-                        }`}
-                      >
-                        <td className="px-3 py-1.5 text-zinc-500">
-                          {Number(r.record_id)}
-                        </td>
-                        <td
-                          className="whitespace-nowrap px-3 py-1.5 text-zinc-600 dark:text-zinc-400"
-                          title={r.timestamp}
-                        >
-                          {formatTimestamp(r.timestamp, timeMode)}
-                        </td>
-                        <td className={`px-3 py-1.5 ${levelClass(r.level)}`}>
-                          {levelLabel(r.level, t)}
-                        </td>
-                        <td className="px-3 py-1.5">{r.event_id ?? ""}</td>
-                        <td className="px-3 py-1.5 text-zinc-700 dark:text-zinc-300">
-                          {resolvedName ?? (
-                            <span className="text-zinc-400">—</span>
-                          )}
-                        </td>
-                        <FilterableCell
-                          field="Provider"
-                          value={r.provider}
-                          onFilter={includeValue}
-                          onExclude={excludeValue}
-                        />
-                        <FilterableCell
-                          field="Channel"
-                          value={r.channel}
-                          onFilter={includeValue}
-                          onExclude={excludeValue}
-                        />
-                        <FilterableCell
-                          field="Computer"
-                          value={r.computer}
-                          onFilter={includeValue}
-                          onExclude={excludeValue}
-                        />
-                        {multiFile && (
-                          <FilterableCell
-                            field="File"
-                            value={r._file}
-                            onFilter={includeValue}
-                            onExclude={excludeValue}
-                          />
-                        )}
-                        {dynamicKeys ? (
-                          <DynamicCells
-                            keys={dynamicKeys}
-                            pairs={pairs}
-                            onFilter={includeValue}
-                            onExclude={excludeValue}
-                          />
-                        ) : (
-                          <td className="px-3 py-1.5 text-zinc-700 dark:text-zinc-300">
-                            <SummaryCell
-                              row={r}
-                              pairs={pairs}
-                              onFilter={includeValue}
-                              onExclude={excludeValue}
-                            />
-                          </td>
-                        )}
-                        <td className="px-3 py-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => toggleBookmark(r._g)}
-                              aria-pressed={isBookmarked}
-                              aria-label="Bookmark row"
-                              title="Bookmark (b)"
-                              className={`rounded px-1 leading-none transition-colors ${
-                                isBookmarked
-                                  ? "text-amber-500"
-                                  : "text-zinc-300 hover:text-amber-400 dark:text-zinc-600"
-                              }`}
-                            >
-                              {isBookmarked ? "★" : "☆"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => toggleDetailsFor(r)}
-                              aria-expanded={isOpen}
-                              className={`rounded border px-1.5 py-0.5 ${
-                                isOpen ? CHIP_ACTIVE : CHIP_IDLE
-                              }`}
-                            >
-                              {isOpen ? t.table.closeDetails : t.table.viewDetails}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                      {isOpen && openRow && (
-                        <tr className="border-t border-zinc-100 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950">
-                          <td colSpan={tableColCount} className="p-3">
-                            <div className="flex flex-col gap-3">
-                              <DetailsPanel
-                                row={r}
-                                note={notes[r._g] ?? ""}
-                                onNote={(text) => setNote(r._g, text)}
-                                pairs={openRow.pairs}
-                                dict={t}
-                                onInclude={includeValue}
-                                onExclude={excludeValue}
-                                onPivot={pivotTo}
-                              />
-                              <div className="flex flex-wrap gap-2">
-                                <button
-                                  type="button"
-                                  onClick={copyOpenRowXml}
-                                  className="rounded-md border border-zinc-200 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
-                                >
-                                  {xmlCopied ? `✓ ${t.viewer.copied}` : t.viewer.copyXml}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={toggleRawXml}
-                                  className="rounded-md border border-zinc-200 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
-                                >
-                                  {openRow.showXml
-                                    ? t.table.hideRawXml
-                                    : t.table.showRawXml}
-                                </button>
-                              </div>
-                              {openRow.showXml && openRow.xml != null && (
-                                <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded border border-zinc-200 bg-white p-3 font-mono text-[11px] leading-relaxed text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
-                                  {openRow.xml}
-                                </pre>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-                {visibleWindow.end < sortedRows.length && (
-                  <tr aria-hidden="true">
-                    <td
-                      colSpan={tableColCount}
-                      style={{
-                        height:
-                          (sortedRows.length - visibleWindow.end) * ROW_HEIGHT,
-                        padding: 0,
-                      }}
-                    />
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
           </div>
           </HighlightContext.Provider>
+          )}
+    </>
+  );
+
+  return (
+    <section
+      aria-label={t.home.dropArea}
+      className={
+        ready && fullscreen
+          ? "fixed inset-0 z-40 flex flex-col gap-3 overflow-hidden bg-white p-3 sm:p-4 dark:bg-zinc-950"
+          : "flex flex-col gap-4"
+      }
+    >
+      {windowDrag && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/70 p-6 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-amber-400 bg-zinc-900/80 px-10 py-12 text-center">
+            <span className="flex items-end gap-1.5" aria-hidden="true">
+              {[14, 22, 30, 18, 12].map((h, i) => (
+                <span
+                  key={i}
+                  className={`w-2 rounded-sm ${i === 2 ? "bg-amber-400" : "bg-zinc-500"}`}
+                  style={{ height: h }}
+                />
+              ))}
+            </span>
+            <span className="font-mono text-lg font-medium text-amber-300">
+              {t.home.dropArea}
+            </span>
+            <span className="font-mono text-xs text-zinc-400">
+              {t.home.privacyNote}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {!ready && (
+        <label
+          tabIndex={0}
+          role="button"
+          aria-label={t.home.dropArea}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              openFilePicker();
+            }
+          }}
+          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-zinc-300 px-4 py-10 text-center text-sm transition-colors hover:border-amber-400 hover:bg-amber-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 sm:px-6 sm:py-14 dark:border-zinc-700 dark:hover:border-amber-400/60 dark:hover:bg-amber-400/[0.04]"
+        >
+          <span className="mb-1 flex items-end gap-1" aria-hidden="true">
+            {[10, 16, 22, 14, 9].map((h, i) => (
+              <span
+                key={i}
+                className={`w-1.5 rounded-sm ${i === 2 ? "bg-amber-500" : "bg-zinc-300 dark:bg-zinc-600"}`}
+                style={{ height: h }}
+              />
+            ))}
+          </span>
+          <span className="font-medium">{t.home.dropArea}</span>
+          <span className="text-zinc-500">{t.home.privacyNote}</span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".evtx"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const picked = Array.from(e.target.files ?? []);
+              // Reset so re-selecting the same file still fires onChange.
+              e.target.value = "";
+              if (picked.length) handleFiles(picked);
+            }}
+          />
+        </label>
+      )}
+
+      {!ready && (
+        <SavedSessionsList
+          dict={t}
+          locale={locale}
+          onResume={resumeSession}
+          busy={restoring || loading != null}
+        />
+      )}
+      {!ready && restoring && !loading && (
+        <p className="text-sm text-zinc-500">{t.viewer.restoringSession}</p>
+      )}
+
+      {!ready && emptyStateAside}
+
+      {loading && (
+        <div className="flex flex-col gap-2 rounded-lg border border-amber-500/30 bg-amber-50/40 px-4 py-3 dark:border-amber-400/20 dark:bg-amber-400/[0.06]">
+          <div className="flex items-center gap-3">
+            <ScanningIndicator />
+            <span className="font-mono text-sm text-zinc-700 dark:text-zinc-300">
+              {loading}
+            </span>
+          </div>
+          <div className="relative h-0.5 w-full overflow-hidden rounded-full bg-amber-500/15">
+            <div className="animate-scanline absolute inset-y-0 left-0 w-1/4 rounded-full bg-amber-500 dark:bg-amber-400" />
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+          {error}
+        </div>
+      )}
+
+      {ready && (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+              {files.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setFilesOpen(!filesExpanded)}
+                  aria-expanded={filesExpanded}
+                  title={filesExpanded ? t.viewer.hideFiles : t.viewer.showFiles}
+                  className="flex items-center gap-1.5 rounded-md border border-zinc-300 px-2 py-1 font-mono text-xs text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                >
+                  <span className="text-zinc-400">{filesExpanded ? "▾" : "▸"}</span>
+                  {numberFmt.format(files.length)} {t.viewer.filesLabel}
+                </button>
+              )}
+              {filesExpanded && (
+                <div className="flex max-h-28 min-w-0 flex-wrap items-center gap-1.5 overflow-y-auto">
+              {files.map((f) => (
+                <span
+                  key={f.id}
+                  className="flex items-center gap-1.5 rounded-md border border-zinc-300 bg-zinc-50 py-1 pl-2 pr-1 text-xs dark:border-zinc-700 dark:bg-zinc-900"
+                >
+                  <span
+                    className="max-w-[24ch] truncate font-mono text-zinc-900 dark:text-zinc-100"
+                    title={f.name}
+                  >
+                    {f.name}
+                  </span>
+                  <span className="font-mono text-zinc-400">
+                    {numberFmt.format(f.rows.length)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(f.id)}
+                    aria-label={t.home.removeFile}
+                    title={t.home.removeFile}
+                    className="rounded px-1 leading-none text-zinc-400 hover:bg-zinc-200 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+                </div>
+              )}
+              {multiFile && (
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="rounded-md border border-zinc-200 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                >
+                  {t.home.clearAll}
+                </button>
+              )}
+              <label
+                title={t.home.dropArea}
+                className="cursor-pointer rounded-md border border-zinc-300 px-2 py-1 font-mono text-xs text-zinc-600 transition-colors hover:border-amber-400 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-amber-400/60 dark:hover:text-zinc-100"
+              >
+                + .evtx
+                <input
+                  type="file"
+                  accept=".evtx"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const picked = Array.from(e.target.files ?? []);
+                    e.target.value = "";
+                    if (picked.length) handleFiles(picked);
+                  }}
+                />
+              </label>
+            </div>
+            <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
+              <span>
+                {formatBytes(totalSize)} ·{" "}
+                <span className="font-mono text-foreground">
+                  {numberFmt.format(filteredRows.length)}
+                </span>{" "}
+                / <span className="font-mono">{numberFmt.format(allRows.length)}</span>{" "}
+                {t.home.eventsLabel}
+              </span>
+              {anyFilter && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-300"
+                >
+                  {t.home.clearFilters}
+                  <span className="rounded-full bg-amber-500/20 px-1.5 font-mono text-[10px] tabular-nums">
+                    {activeFilterCount}
+                  </span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={toggleTimeMode}
+                title={t.viewer.timeZoneToggle}
+                className="rounded-md border border-zinc-300 px-2 py-1 font-mono text-xs text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+              >
+                🕒 {zone}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFacets((v) => !v)}
+                aria-pressed={showFacets}
+                className={`rounded-md border px-2 py-1 text-xs transition-colors ${
+                  showFacets ? CHIP_ACTIVE : CHIP_IDLE
+                }`}
+              >
+                {showFacets ? t.viewer.hideFields : t.viewer.fields}
+              </button>
+              <button
+                type="button"
+                onClick={saveCurrentSession}
+                disabled={saveStatus === "saving"}
+                title={t.viewer.savedSessionsHint}
+                className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+              >
+                {saveStatus === "saving"
+                  ? t.viewer.savingSession
+                  : saveStatus === "saved"
+                    ? `✓ ${t.viewer.sessionSaved}`
+                    : `💾 ${t.viewer.saveSession}`}
+              </button>
+              {saveStatus === "full" && (
+                <span className="text-xs text-red-600 dark:text-red-400">
+                  {t.viewer.storageFull}
+                </span>
+              )}
+              {columns.customized && (
+                <button type="button" onClick={columns.reset} className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900">
+                  {t.viewer.resetColumns}
+                </button>
+              )}
+              {fullscreen && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const panel = topPanelRef.current;
+                    if (!panel) return;
+                    if (panel.isCollapsed()) panel.expand();
+                    else panel.collapse();
+                  }}
+                  aria-pressed={!controlsCollapsed}
+                  className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                >
+                  {controlsCollapsed ? t.viewer.showControls : t.viewer.hideControls}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setFullscreen((v) => !v)}
+                aria-pressed={fullscreen}
+                title={fullscreen ? `${t.home.exitFullscreen} (Esc)` : t.home.enterFullscreen}
+                className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+              >
+                <span aria-hidden="true">{fullscreen ? "⤡" : "⤢"}</span>
+                {fullscreen ? t.home.exitFullscreen : t.home.enterFullscreen}
+              </button>
+            </div>
+          </div>
+
+          {fullscreen ? (
+            <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1">
+              <ResizablePanel
+                id="controls"
+                defaultSize="32%"
+                minSize="12%"
+                collapsible
+                collapsedSize="0%"
+                panelRef={topPanelRef}
+                onResize={(size) => setControlsCollapsed(size.asPercentage < 1)}
+                className="flex flex-col gap-3 overflow-y-auto pb-2 pr-1"
+              >
+                {topControls}
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel
+                id="main"
+                minSize="30%"
+                className="flex min-h-0 flex-col gap-3 pt-2"
+              >
+                {mainArea}
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          ) : (
+            <>
+              {topControls}
+              {mainArea}
+            </>
           )}
 
           <p className="hidden text-[11px] text-zinc-400 sm:block">
@@ -2144,17 +2454,22 @@ function SortHeader({
   sortField,
   sortDir,
   onSort,
+  col,
+  tools,
 }: {
   field: SortField;
   label: string;
   sortField: SortField;
   sortDir: SortDir;
   onSort: (field: SortField) => void;
+  col: string;
+  tools?: ReactNode;
 }) {
   const active = sortField === field;
   const indicator = active ? (sortDir === "asc" ? "↑" : "↓") : "";
   return (
-    <th className="px-3 py-2">
+    <th data-col={col} className="group/th relative whitespace-nowrap px-3 py-2">
+      <span className="flex items-center">
       <button
         type="button"
         onClick={() => onSort(field)}
@@ -2165,6 +2480,8 @@ function SortHeader({
         <span>{label}</span>
         <span className="text-[10px]">{indicator}</span>
       </button>
+      {tools}
+      </span>
     </th>
   );
 }
@@ -2183,10 +2500,10 @@ function FilterableCell({
   onExclude: ValueAction;
 }) {
   if (!value) {
-    return <td className="px-3 py-1.5 text-zinc-400">—</td>;
+    return <td data-col={field} className="px-3 py-1.5 text-zinc-400">—</td>;
   }
   return (
-    <td className="px-3 py-1.5 text-zinc-600 dark:text-zinc-400">
+    <td data-col={field} className="px-3 py-1.5 text-zinc-600 dark:text-zinc-400">
       <button
         type="button"
         onClick={(e) =>
@@ -2279,6 +2596,7 @@ function DynamicCells({
         return (
           <td
             key={k}
+            data-col={`d:${k}`}
             className="whitespace-nowrap px-3 py-1.5 text-zinc-700 dark:text-zinc-300"
             title={v ?? ""}
           >
