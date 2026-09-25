@@ -12,6 +12,7 @@ import {
 import { blog } from "@/next-md-blog.config";
 import { jsonLdScript } from "@/lib/schema";
 import { Breadcrumbs } from "@/components/BreadcrumbsEvtx";
+import { PageHero, SectionTitle } from "@/components/PageHero";
 import {
   SITE_URL,
   canonicalFor,
@@ -203,7 +204,8 @@ export default async function EventIdPage({
     const localeMatch = localePosts.find((p) => p.slug === entry.postSlug);
     if (localeMatch) {
       coveredHref = `/${locale}/blog/${localeMatch.slug}`;
-      coveredTitle = (localeMatch.frontmatter.title as string) ?? localeMatch.slug;
+      coveredTitle =
+        (localeMatch.frontmatter.title as string) ?? localeMatch.slug;
     } else {
       const enPosts = await blog.getAll({ locale: "en" });
       const enMatch = enPosts.find((p) => p.slug === entry.postSlug);
@@ -215,98 +217,114 @@ export default async function EventIdPage({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-6 sm:px-6 sm:py-10">
-      <Breadcrumbs
-        dict={dict}
-        items={[
-          { label: dict.breadcrumb.home, href: `/${locale}` },
-          { label: dict.eventIds.title, href: `/${locale}/event-ids` },
-          { label: `Event ID ${numericId}` },
-        ]}
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-12 px-4 py-6 sm:px-6 sm:py-10">
+      <PageHero
+        top={
+          <Breadcrumbs
+            dict={dict}
+            items={[
+              { label: dict.breadcrumb.home, href: `/${locale}` },
+              { label: dict.eventIds.title, href: `/${locale}/event-ids` },
+              { label: `Event ID ${numericId}` },
+            ]}
+          />
+        }
+        eyebrow={entry.channel.key}
+        title={title}
+        intro={dict.eventId.intro}
+        size="md"
       />
 
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink-900 dark:text-ink-100 sm:text-3xl">
-          {title}
-        </h1>
-        <p className="text-sm text-ink-600 dark:text-ink-400">
-          {dict.eventId.intro}
-        </p>
-      </header>
+      <div className="surface grid overflow-hidden sm:grid-cols-[auto_1fr]">
+        <div className="flex items-center justify-center border-b border-ink-100 bg-uv-50/50 px-8 py-6 sm:border-r sm:border-b-0 dark:border-ink-800 dark:bg-uv-400/[0.05]">
+          <span className="text-gradient-uv font-mono text-5xl font-semibold tracking-[-0.03em]">
+            {numericId}
+          </span>
+        </div>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-2 p-6 text-sm sm:grid-cols-[max-content_1fr] sm:gap-y-3">
+          <dt className="eyebrow self-center">{dict.eventId.channelLabel}</dt>
+          <dd className="font-mono text-ink-900 dark:text-ink-100">
+            {entry.channel.key}
+          </dd>
+          <dt className="eyebrow self-center">{dict.eventId.providerLabel}</dt>
+          <dd className="font-mono break-all text-ink-900 dark:text-ink-100">
+            {entry.channel.channelPath}
+          </dd>
+          <dt className="eyebrow pt-0.5">{dict.eventId.notesLabel}</dt>
+          <dd className="leading-relaxed text-ink-700 dark:text-ink-300">
+            {entry.notes}
+          </dd>
+        </dl>
+      </div>
 
-      <dl className="grid grid-cols-1 gap-3 border-t border-ink-200 pt-6 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-6 dark:border-ink-800">
-        <dt className="font-mono text-xs uppercase tracking-wide text-ink-500">
-          {dict.eventId.channelLabel}
-        </dt>
-        <dd className="font-mono text-ink-900 dark:text-ink-100">
-          {entry.channel.key}
-        </dd>
-        <dt className="font-mono text-xs uppercase tracking-wide text-ink-500">
-          {dict.eventId.providerLabel}
-        </dt>
-        <dd className="font-mono break-all text-ink-900 dark:text-ink-100">
-          {entry.channel.channelPath}
-        </dd>
-        <dt className="font-mono text-xs uppercase tracking-wide text-ink-500">
-          {dict.eventId.notesLabel}
-        </dt>
-        <dd className="text-ink-700 dark:text-ink-300">{entry.notes}</dd>
-      </dl>
+      {(coveredHref && coveredTitle) || entry.externalUrl ? (
+        <div className="grid gap-6 sm:grid-cols-2">
+          {coveredHref && coveredTitle && (
+            <section
+              aria-labelledby="indepth-heading"
+              className="flex flex-col gap-3"
+            >
+              <h2
+                id="indepth-heading"
+                className="text-xl tracking-[-0.015em] text-ink-950 dark:text-ink-50"
+              >
+                {dict.eventId.inDepthHeading}
+              </h2>
+              <Link
+                href={coveredHref}
+                className="surface surface-interactive group flex flex-1 flex-col gap-2 p-5"
+              >
+                <span className="font-medium text-ink-900 dark:text-ink-100">
+                  {coveredTitle}
+                </span>
+                <span className="mt-auto inline-flex items-center gap-1.5 text-sm font-medium text-uv-700 dark:text-uv-300">
+                  {dict.eventId.inDepthCta}
+                  <span
+                    aria-hidden="true"
+                    className="text-uv-500 transition-transform group-hover:translate-x-0.5"
+                  >
+                    →
+                  </span>
+                </span>
+              </Link>
+            </section>
+          )}
 
-      {coveredHref && coveredTitle && (
-        <section
-          aria-labelledby="indepth-heading"
-          className="flex flex-col gap-3 border-t border-ink-200 pt-6 dark:border-ink-800"
-        >
-          <h2
-            id="indepth-heading"
-            className="font-mono text-base font-semibold"
-          >
-            {dict.eventId.inDepthHeading}
-          </h2>
-          <Link
-            href={coveredHref}
-            className="group flex flex-col gap-1 rounded border border-ink-200 p-3 hover:border-ink-400 dark:border-ink-800 dark:hover:border-ink-600"
-          >
-            <span className="text-sm font-medium text-ink-900 group-hover:underline dark:text-ink-100">
-              {coveredTitle}
-            </span>
-            <span className="font-mono text-xs text-ink-500">
-              {dict.eventId.inDepthCta} →
-            </span>
-          </Link>
-        </section>
-      )}
-
-      {entry.externalUrl && (
-        <section
-          aria-labelledby="mslearn-heading"
-          className="flex flex-col gap-3 border-t border-ink-200 pt-6 dark:border-ink-800"
-        >
-          <h2
-            id="mslearn-heading"
-            className="font-mono text-base font-semibold"
-          >
-            {dict.eventId.microsoftLearnHeading}
-          </h2>
-          <a
-            href={entry.externalUrl}
-            target="_blank"
-            rel="external noopener"
-            className="group flex flex-col gap-1 rounded border border-ink-200 p-3 hover:border-ink-400 dark:border-ink-800 dark:hover:border-ink-600"
-          >
-            <span className="font-mono break-all text-xs text-ink-700 dark:text-ink-300">
-              {entry.externalUrl}
-            </span>
-            <span className="font-mono text-xs text-ink-500">
-              {dict.eventId.microsoftLearnCta} ↗
-            </span>
-          </a>
-        </section>
-      )}
-
-      {!coveredHref && !entry.externalUrl && (
-        <p className="border-t border-ink-200 pt-6 text-sm text-ink-500 dark:border-ink-800">
+          {entry.externalUrl && (
+            <section
+              aria-labelledby="mslearn-heading"
+              className="flex flex-col gap-3"
+            >
+              <h2
+                id="mslearn-heading"
+                className="text-xl tracking-[-0.015em] text-ink-950 dark:text-ink-50"
+              >
+                {dict.eventId.microsoftLearnHeading}
+              </h2>
+              <a
+                href={entry.externalUrl}
+                target="_blank"
+                rel="external noopener"
+                className="surface surface-interactive group flex flex-1 flex-col gap-2 p-5"
+              >
+                <span className="font-mono text-xs break-all text-ink-600 dark:text-ink-400">
+                  {entry.externalUrl}
+                </span>
+                <span className="mt-auto inline-flex items-center gap-1.5 text-sm font-medium text-uv-700 dark:text-uv-300">
+                  {dict.eventId.microsoftLearnCta}
+                  <span
+                    aria-hidden="true"
+                    className="text-uv-500 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                  >
+                    ↗
+                  </span>
+                </span>
+              </a>
+            </section>
+          )}
+        </div>
+      ) : (
+        <p className="surface p-5 text-sm leading-relaxed text-ink-600 dark:text-ink-400">
           {dict.eventId.notCoveredYet}
         </p>
       )}
@@ -314,24 +332,30 @@ export default async function EventIdPage({
       {entry.related.length > 0 && (
         <section
           aria-labelledby="related-heading"
-          className="flex flex-col gap-3 border-t border-ink-200 pt-6 dark:border-ink-800"
+          className="flex flex-col gap-4"
         >
-          <h2
-            id="related-heading"
-            className="font-mono text-base font-semibold"
-          >
+          <SectionTitle id="related-heading">
             {dict.eventId.relatedHeading}
-          </h2>
-          <ul className="flex flex-col gap-2 text-sm">
+          </SectionTitle>
+          <ul className="grid gap-3 sm:grid-cols-2">
             {entry.related.map((r) => (
               <li key={r.id}>
                 <Link
                   href={`/${locale}/event-id/${r.id}`}
-                  className="text-ink-700 underline-offset-2 hover:underline dark:text-ink-300"
+                  className="surface surface-interactive group flex h-full items-center gap-3 px-4 py-3 text-sm"
                 >
-                  <span className="font-mono">{r.id}</span>
-                  {" — "}
-                  {r.name}
+                  <span className="rounded-md bg-uv-50 px-1.5 font-mono text-uv-700 dark:bg-uv-400/10 dark:text-uv-300">
+                    {r.id}
+                  </span>
+                  <span className="flex-1 text-ink-800 dark:text-ink-200">
+                    {r.name}
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="text-uv-500 transition-transform group-hover:translate-x-0.5"
+                  >
+                    →
+                  </span>
                 </Link>
               </li>
             ))}

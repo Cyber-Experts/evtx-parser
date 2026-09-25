@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { defaultLocale, isLocale, type Locale } from "@/src/dict/locales";
 import { getDict } from "@/src/dict";
+import { BTN_PRIMARY, PageHero } from "@/components/PageHero";
+
+const CHIP =
+  "inline-flex rounded-full border border-ink-200 bg-card/70 px-3 py-1 text-sm text-ink-700 transition-colors hover:border-uv-300 hover:text-uv-700 dark:border-ink-800 dark:text-ink-300 dark:hover:border-uv-500/50 dark:hover:text-uv-300";
 
 /**
  * Wrapped by app/[lang]/layout.tsx so it inherits <html lang>, header,
@@ -13,56 +17,43 @@ import { getDict } from "@/src/dict";
 export default function LocaleNotFound() {
   const params = useParams<{ lang?: string }>();
   const lang = params?.lang;
-  const locale: Locale =
-    lang && isLocale(lang) ? lang : defaultLocale;
+  const locale: Locale = lang && isLocale(lang) ? lang : defaultLocale;
   const dict = getDict(locale);
+  const links = [
+    { href: `/${locale}/blog`, label: dict.footer.blog },
+    { href: `/${locale}/glossary`, label: dict.glossary.title },
+    { href: `/${locale}/event-ids`, label: dict.eventIds.title },
+    { href: `/${locale}/tools`, label: dict.tools.title },
+  ];
 
   return (
     <main
       id="main-content"
-      className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-start gap-5 px-6 py-16 sm:py-24"
+      className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-4 py-16 sm:px-6 sm:py-24"
     >
-      <p className="font-mono text-xs uppercase tracking-wider text-ink-500">
-        404
-      </p>
-      <h1 className="font-mono text-2xl font-semibold tracking-tight text-ink-900 dark:text-ink-100 sm:text-3xl">
-        {dict.notFound.heading}
-      </h1>
-      <p className="max-w-prose text-sm text-ink-600 dark:text-ink-400">
-        {dict.notFound.description}
-      </p>
-      <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
-        <Link
-          href={`/${locale}`}
-          className="rounded border border-ink-300 bg-ink-50 px-3 py-1.5 font-medium text-ink-900 hover:bg-ink-100 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100 dark:hover:bg-ink-800"
-        >
+      <PageHero
+        align="center"
+        size="md"
+        top={
+          <p className="text-gradient-uv font-heading text-7xl leading-none font-semibold tracking-[-0.04em] sm:text-8xl">
+            404
+          </p>
+        }
+        title={dict.notFound.heading}
+        intro={<p>{dict.notFound.description}</p>}
+      >
+        <Link href={`/${locale}`} className={`${BTN_PRIMARY} mt-2`}>
           {dict.notFound.backHome}
+          <span aria-hidden="true">→</span>
         </Link>
-        <Link
-          href={`/${locale}/blog`}
-          className="rounded border border-transparent px-3 py-1.5 text-ink-700 hover:bg-ink-100 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-ink-100"
-        >
-          {dict.footer.blog}
-        </Link>
-        <Link
-          href={`/${locale}/glossary`}
-          className="rounded border border-transparent px-3 py-1.5 text-ink-700 hover:bg-ink-100 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-ink-100"
-        >
-          {dict.glossary.title}
-        </Link>
-        <Link
-          href={`/${locale}/event-ids`}
-          className="rounded border border-transparent px-3 py-1.5 text-ink-700 hover:bg-ink-100 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-ink-100"
-        >
-          {dict.eventIds.title}
-        </Link>
-        <Link
-          href={`/${locale}/tools`}
-          className="rounded border border-transparent px-3 py-1.5 text-ink-700 hover:bg-ink-100 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-ink-100"
-        >
-          {dict.tools.title}
-        </Link>
-      </div>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          {links.map((l) => (
+            <Link key={l.href} href={l.href} className={CHIP}>
+              {l.label}
+            </Link>
+          ))}
+        </div>
+      </PageHero>
     </main>
   );
 }

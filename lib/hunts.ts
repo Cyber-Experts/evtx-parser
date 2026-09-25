@@ -13,7 +13,8 @@ export type HuntCategory =
   | "persistence"
   | "execution"
   | "evasion"
-  | "impact";
+  | "impact"
+  | "c2";
 
 export type Hunt = {
   id: string;
@@ -459,5 +460,245 @@ export const HUNTS: Hunt[] = [
     query:
       "CommandLine:*vssadmin*delete*shadows* OR CommandLine:*shadowcopy*delete* OR CommandLine:*wbadmin*delete* OR CommandLine:*bcdedit*recoveryenabled*no* OR ScriptBlockText:*Win32_ShadowCopy*Delete*",
     name: { en: "Shadow copies or backups deleted (ransomware)", fr: "Suppression de clichés instantanés ou de sauvegardes (rançongiciel)", de: "Schattenkopien oder Backups gelöscht (Ransomware)", es: "Copias de sombra o copias de seguridad eliminadas (ransomware)", it: "Copie shadow o backup eliminati (ransomware)", pt: "Cópias de sombra ou backups excluídos (ransomware)", ja: "シャドウコピーまたはバックアップの削除(ランサムウェア)", zh: "卷影副本或备份被删除(勒索软件)" },
+  },
+  {
+    id: "sid-history",
+    category: "persistence",
+    mitre: "T1134.005",
+    query:
+      "EventID:4765 OR EventID:4766",
+    name: { en: "SID History added to an account", fr: "SID History ajouté à un compte", de: "SID-Verlauf zu einem Konto hinzugefügt", es: "Historial de SID añadido a una cuenta", it: "Cronologia SID aggiunta a un account", pt: "Histórico de SID adicionado a uma conta", ja: "アカウントへのSID履歴の追加", zh: "向账户添加 SID 历史记录" },
+  },
+  {
+    id: "dsrm-password",
+    category: "persistence",
+    mitre: "T1098",
+    query:
+      "EventID:4794",
+    name: { en: "DSRM administrator password set", fr: "Mot de passe administrateur DSRM défini", de: "DSRM-Administratorkennwort festgelegt", es: "Contraseña de administrador DSRM establecida", it: "Password amministratore DSRM impostata", pt: "Senha de administrador DSRM definida", ja: "DSRM管理者パスワードの設定", zh: "设置 DSRM 管理员密码" },
+  },
+  {
+    id: "computer-account-created",
+    category: "persistence",
+    mitre: "T1136.002",
+    query:
+      "EventID:4741",
+    name: { en: "Computer accounts created (MachineAccountQuota abuse)", fr: "Comptes ordinateur créés (abus de MachineAccountQuota)", de: "Computerkonten erstellt (MachineAccountQuota-Missbrauch)", es: "Cuentas de equipo creadas (abuso de MachineAccountQuota)", it: "Account computer creati (abuso di MachineAccountQuota)", pt: "Contas de computador criadas (abuso de MachineAccountQuota)", ja: "コンピューターアカウントの作成(MachineAccountQuotaの悪用)", zh: "创建计算机账户(滥用 MachineAccountQuota)" },
+  },
+  {
+    id: "dollar-user",
+    category: "persistence",
+    mitre: "T1136.001",
+    query:
+      "EventID:4720 TargetUserName:*$",
+    name: { en: "User account created with a trailing $ (hidden account)", fr: "Compte utilisateur créé avec un $ final (compte caché)", de: "Benutzerkonto mit abschließendem $ erstellt (verstecktes Konto)", es: "Cuenta de usuario creada con $ final (cuenta oculta)", it: "Account utente creato con $ finale (account nascosto)", pt: "Conta de usuário criada com $ no final (conta oculta)", ja: "末尾に$が付いたユーザーアカウントの作成(隠しアカウント)", zh: "创建以 $ 结尾的用户账户(隐藏账户)" },
+  },
+  {
+    id: "net-user-add",
+    category: "persistence",
+    mitre: "T1136.001",
+    query:
+      "CommandLine:\"*net* user * /add*\" OR CommandLine:\"*net* localgroup administrators * /add*\" OR ScriptBlockText:*New-LocalUser* OR ScriptBlockText:*Add-LocalGroupMember*",
+    name: { en: "Local users or admins added from the command line", fr: "Utilisateurs ou admins locaux ajoutés en ligne de commande", de: "Lokale Benutzer oder Admins per Befehlszeile hinzugefügt", es: "Usuarios o administradores locales añadidos por línea de comandos", it: "Utenti o amministratori locali aggiunti da riga di comando", pt: "Usuários ou administradores locais adicionados por linha de comando", ja: "コマンドラインによるローカルユーザー・管理者の追加", zh: "通过命令行添加本地用户或管理员" },
+  },
+  {
+    id: "gpo-changes",
+    category: "persistence",
+    mitre: "T1484.001",
+    query:
+      "EventID:5136 ObjectClass:groupPolicyContainer OR EventID:5136 AttributeLDAPDisplayName:gPCFileSysPath OR EventID:5136 AttributeLDAPDisplayName:gPLink",
+    name: { en: "Group Policy objects modified or linked", fr: "Objets de stratégie de groupe modifiés ou liés", de: "Gruppenrichtlinienobjekte geändert oder verknüpft", es: "Objetos de directiva de grupo modificados o vinculados", it: "Oggetti Criteri di gruppo modificati o collegati", pt: "Objetos de Política de Grupo modificados ou vinculados", ja: "グループポリシーオブジェクトの変更またはリンク", zh: "组策略对象被修改或链接" },
+  },
+  {
+    id: "spn-set",
+    category: "credential",
+    mitre: "T1558.003",
+    query:
+      "EventID:5136 AttributeLDAPDisplayName:servicePrincipalName",
+    name: { en: "SPN added to an account (targeted Kerberoasting)", fr: "SPN ajouté à un compte (Kerberoasting ciblé)", de: "SPN zu einem Konto hinzugefügt (gezieltes Kerberoasting)", es: "SPN añadido a una cuenta (Kerberoasting dirigido)", it: "SPN aggiunto a un account (Kerberoasting mirato)", pt: "SPN adicionado a uma conta (Kerberoasting direcionado)", ja: "アカウントへのSPN追加(標的型Kerberoasting)", zh: "向账户添加 SPN(定向 Kerberoasting)" },
+  },
+  {
+    id: "shadow-credentials",
+    category: "credential",
+    mitre: "T1556",
+    query:
+      "EventID:5136 AttributeLDAPDisplayName:msDS-KeyCredentialLink",
+    name: { en: "Shadow Credentials: msDS-KeyCredentialLink modified", fr: "Shadow Credentials : msDS-KeyCredentialLink modifié", de: "Shadow Credentials: msDS-KeyCredentialLink geändert", es: "Shadow Credentials: msDS-KeyCredentialLink modificado", it: "Shadow Credentials: msDS-KeyCredentialLink modificato", pt: "Shadow Credentials: msDS-KeyCredentialLink modificado", ja: "Shadow Credentials: msDS-KeyCredentialLinkの変更", zh: "Shadow Credentials:msDS-KeyCredentialLink 被修改" },
+  },
+  {
+    id: "rbcd",
+    category: "lateral",
+    mitre: "T1134",
+    query:
+      "EventID:5136 AttributeLDAPDisplayName:msDS-AllowedToActOnBehalfOfOtherIdentity OR EventID:5136 AttributeLDAPDisplayName:msDS-AllowedToDelegateTo",
+    name: { en: "Kerberos delegation changed (RBCD, constrained)", fr: "Délégation Kerberos modifiée (RBCD, contrainte)", de: "Kerberos-Delegierung geändert (RBCD, eingeschränkt)", es: "Delegación Kerberos modificada (RBCD, restringida)", it: "Delega Kerberos modificata (RBCD, vincolata)", pt: "Delegação Kerberos alterada (RBCD, restrita)", ja: "Kerberos委任の変更(RBCD、制約付き)", zh: "Kerberos 委派被修改(RBCD、约束委派)" },
+  },
+  {
+    id: "adcs-san",
+    category: "credential",
+    mitre: "T1649",
+    query:
+      "EventID:4887 Attributes:*SAN:* OR EventID:4886 Attributes:*SAN:*",
+    name: { en: "Certificates requested with a custom SAN (AD CS ESC1)", fr: "Certificats demandés avec un SAN personnalisé (AD CS ESC1)", de: "Zertifikate mit eigenem SAN angefordert (AD CS ESC1)", es: "Certificados solicitados con SAN personalizado (AD CS ESC1)", it: "Certificati richiesti con SAN personalizzato (AD CS ESC1)", pt: "Certificados solicitados com SAN personalizado (AD CS ESC1)", ja: "カスタムSAN付き証明書の要求(AD CS ESC1)", zh: "使用自定义 SAN 申请证书(AD CS ESC1)" },
+  },
+  {
+    id: "lsass-dump-tools",
+    category: "credential",
+    mitre: "T1003.001",
+    query:
+      "CommandLine:*comsvcs*MiniDump* OR CommandLine:*procdump*lsass* OR CommandLine:*rdrleakdiag* OR CommandLine:*sqldumper*lsass* OR ScriptBlockText:*Out-Minidump*",
+    name: { en: "LSASS dumped with built-in or signed tools (comsvcs, procdump)", fr: "Dump de LSASS via des outils intégrés ou signés (comsvcs, procdump)", de: "LSASS-Dump mit Bordmitteln oder signierten Tools (comsvcs, procdump)", es: "Volcado de LSASS con herramientas integradas o firmadas (comsvcs, procdump)", it: "Dump di LSASS con strumenti integrati o firmati (comsvcs, procdump)", pt: "Dump do LSASS com ferramentas nativas ou assinadas (comsvcs, procdump)", ja: "標準・署名済みツールによるLSASSダンプ(comsvcs、procdump)", zh: "使用内置或已签名工具转储 LSASS(comsvcs、procdump)" },
+  },
+  {
+    id: "wdigest",
+    category: "credential",
+    mitre: "T1112",
+    query:
+      "TargetObject:*\\WDigest\\UseLogonCredential* OR CommandLine:*UseLogonCredential* OR ScriptBlockText:*UseLogonCredential*",
+    name: { en: "WDigest cleartext credentials enabled", fr: "Identifiants WDigest en clair activés", de: "WDigest-Klartext-Anmeldeinformationen aktiviert", es: "Credenciales en texto claro de WDigest habilitadas", it: "Credenziali in chiaro WDigest abilitate", pt: "Credenciais em texto claro do WDigest habilitadas", ja: "WDigestの平文資格情報の有効化", zh: "启用 WDigest 明文凭据" },
+  },
+  {
+    id: "rubeus",
+    category: "credential",
+    mitre: "T1558",
+    query:
+      "CommandLine:*rubeus* OR CommandLine:*asktgt* OR CommandLine:*kerberos::ptt* OR CommandLine:*kerberos::golden* OR ScriptBlockText:*Invoke-Rubeus* OR process:*\\Rubeus.exe",
+    name: { en: "Kerberos ticket tooling (Rubeus, pass-the-ticket, golden ticket)", fr: "Outils de tickets Kerberos (Rubeus, pass-the-ticket, golden ticket)", de: "Kerberos-Ticket-Tools (Rubeus, Pass-the-Ticket, Golden Ticket)", es: "Herramientas de tickets Kerberos (Rubeus, pass-the-ticket, golden ticket)", it: "Strumenti per ticket Kerberos (Rubeus, pass-the-ticket, golden ticket)", pt: "Ferramentas de tickets Kerberos (Rubeus, pass-the-ticket, golden ticket)", ja: "Kerberosチケット攻撃ツール(Rubeus、Pass-the-Ticket、ゴールデンチケット)", zh: "Kerberos 票据工具(Rubeus、传递票据、黄金票据)" },
+  },
+  {
+    id: "impacket",
+    category: "lateral",
+    mitre: "T1047",
+    query:
+      "CommandLine:*127.0.0.1\\ADMIN$\\__* OR CommandLine:*\\\\127.0.0.1\\C$\\__output* OR EventID:7045 ImagePath:*__output* OR EventID:7045 ImagePath:*\\execute.bat*",
+    name: { en: "Impacket wmiexec / smbexec / atexec traces", fr: "Traces Impacket wmiexec / smbexec / atexec", de: "Impacket-Spuren (wmiexec / smbexec / atexec)", es: "Rastros de Impacket wmiexec / smbexec / atexec", it: "Tracce di Impacket wmiexec / smbexec / atexec", pt: "Rastros de Impacket wmiexec / smbexec / atexec", ja: "Impacketのwmiexec / smbexec / atexecの痕跡", zh: "Impacket wmiexec / smbexec / atexec 痕迹" },
+  },
+  {
+    id: "rdp-hijack",
+    category: "lateral",
+    mitre: "T1563.002",
+    query:
+      "process:*\\tscon.exe OR CommandLine:*tscon* OR CommandLine:*mstsc*/shadow*",
+    name: { en: "RDP session hijacking or shadowing (tscon)", fr: "Détournement ou observation de session RDP (tscon)", de: "RDP-Sitzungsübernahme oder -Spiegelung (tscon)", es: "Secuestro u observación de sesión RDP (tscon)", it: "Dirottamento o shadowing di sessione RDP (tscon)", pt: "Sequestro ou espelhamento de sessão RDP (tscon)", ja: "RDPセッションの乗っ取り・シャドウイング(tscon)", zh: "RDP 会话劫持或影子监控(tscon)" },
+  },
+  {
+    id: "rdp-enabled",
+    category: "lateral",
+    mitre: "T1021.001",
+    query:
+      "TargetObject:*fDenyTSConnections* OR CommandLine:*fDenyTSConnections* OR ScriptBlockText:*fDenyTSConnections*",
+    name: { en: "Remote Desktop enabled through the registry", fr: "Bureau à distance activé via le registre", de: "Remotedesktop über die Registry aktiviert", es: "Escritorio remoto habilitado mediante el registro", it: "Desktop remoto abilitato tramite registro", pt: "Área de Trabalho Remota habilitada pelo registro", ja: "レジストリによるリモートデスクトップの有効化", zh: "通过注册表启用远程桌面" },
+  },
+  {
+    id: "accessibility-backdoor",
+    category: "persistence",
+    mitre: "T1546.008",
+    query:
+      "parent:*\\sethc.exe OR parent:*\\utilman.exe OR parent:*\\osk.exe OR parent:*\\Magnify.exe OR parent:*\\Narrator.exe OR parent:*\\DisplaySwitch.exe",
+    name: { en: "Accessibility feature backdoor (sticky keys, utilman)", fr: "Porte dérobée via l'accessibilité (touches rémanentes, utilman)", de: "Backdoor über Bedienungshilfen (Einrastfunktion, utilman)", es: "Puerta trasera de accesibilidad (teclas especiales, utilman)", it: "Backdoor tramite accessibilità (tasti permanenti, utilman)", pt: "Backdoor de acessibilidade (teclas de aderência, utilman)", ja: "ユーザー補助機能のバックドア(固定キー、utilman)", zh: "辅助功能后门(粘滞键、utilman)" },
+  },
+  {
+    id: "uac-bypass",
+    category: "evasion",
+    mitre: "T1548.002",
+    query:
+      "TargetObject:*\\ms-settings\\shell\\open\\command* OR TargetObject:*\\mscfile\\shell\\open\\command* OR TargetObject:*\\exefile\\shell\\open\\command* OR process:*\\fodhelper.exe OR process:*\\computerdefaults.exe",
+    name: { en: "UAC bypass (fodhelper, ms-settings hijack)", fr: "Contournement de l'UAC (fodhelper, détournement ms-settings)", de: "UAC-Umgehung (fodhelper, ms-settings-Hijack)", es: "Omisión de UAC (fodhelper, secuestro de ms-settings)", it: "Bypass UAC (fodhelper, hijack di ms-settings)", pt: "Bypass do UAC (fodhelper, sequestro de ms-settings)", ja: "UACバイパス(fodhelper、ms-settingsハイジャック)", zh: "UAC 绕过(fodhelper、ms-settings 劫持)" },
+  },
+  {
+    id: "lsa-protection-off",
+    category: "evasion",
+    mitre: "T1562.001",
+    query:
+      "TargetObject:*\\Control\\Lsa\\RunAsPPL* OR CommandLine:*RunAsPPL* OR CommandLine:*DisableRestrictedAdmin*",
+    name: { en: "LSA protection (RunAsPPL) tampered", fr: "Protection LSA (RunAsPPL) altérée", de: "LSA-Schutz (RunAsPPL) manipuliert", es: "Protección LSA (RunAsPPL) manipulada", it: "Protezione LSA (RunAsPPL) manomessa", pt: "Proteção do LSA (RunAsPPL) adulterada", ja: "LSA保護(RunAsPPL)の改ざん", zh: "LSA 保护(RunAsPPL)被篡改" },
+  },
+  {
+    id: "proxy-execution",
+    category: "evasion",
+    mitre: "T1127.001",
+    query:
+      "process:*\\MSBuild.exe OR process:*\\InstallUtil.exe OR process:*\\RegAsm.exe OR process:*\\RegSvcs.exe OR process:*\\msxsl.exe OR process:*\\odbcconf.exe",
+    name: { en: "Signed binary proxy execution (MSBuild, InstallUtil, RegAsm)", fr: "Exécution par binaire signé (MSBuild, InstallUtil, RegAsm)", de: "Proxy-Ausführung über signierte Binärdateien (MSBuild, InstallUtil, RegAsm)", es: "Ejecución mediante binarios firmados (MSBuild, InstallUtil, RegAsm)", it: "Esecuzione tramite binari firmati (MSBuild, InstallUtil, RegAsm)", pt: "Execução via binários assinados (MSBuild, InstallUtil, RegAsm)", ja: "署名済みバイナリによるプロキシ実行(MSBuild、InstallUtil、RegAsm)", zh: "已签名二进制代理执行(MSBuild、InstallUtil、RegAsm)" },
+  },
+  {
+    id: "mshta-regsvr32-remote",
+    category: "execution",
+    mitre: "T1218",
+    query:
+      "CommandLine:*mshta*http* OR CommandLine:*mshta*javascript:* OR CommandLine:*mshta*vbscript:* OR CommandLine:*regsvr32*/i:http* OR CommandLine:*regsvr32*scrobj.dll*",
+    name: { en: "mshta / regsvr32 running remote scripts (Squiblydoo)", fr: "mshta / regsvr32 exécutant des scripts distants (Squiblydoo)", de: "mshta / regsvr32 führt entfernte Skripte aus (Squiblydoo)", es: "mshta / regsvr32 ejecutando scripts remotos (Squiblydoo)", it: "mshta / regsvr32 che eseguono script remoti (Squiblydoo)", pt: "mshta / regsvr32 executando scripts remotos (Squiblydoo)", ja: "mshta / regsvr32によるリモートスクリプト実行(Squiblydoo)", zh: "mshta / regsvr32 执行远程脚本(Squiblydoo)" },
+  },
+  {
+    id: "schtasks-cmd",
+    category: "persistence",
+    mitre: "T1053.005",
+    query:
+      "CommandLine:\"*schtasks* /create*\" OR ScriptBlockText:*Register-ScheduledTask*",
+    name: { en: "Scheduled tasks created from the command line", fr: "Tâches planifiées créées en ligne de commande", de: "Geplante Aufgaben per Befehlszeile erstellt", es: "Tareas programadas creadas por línea de comandos", it: "Attività pianificate create da riga di comando", pt: "Tarefas agendadas criadas por linha de comando", ja: "コマンドラインによるスケジュールタスクの作成", zh: "通过命令行创建计划任务" },
+  },
+  {
+    id: "sc-create",
+    category: "persistence",
+    mitre: "T1543.003",
+    query:
+      "process:*\\sc.exe CommandLine:*create* OR process:*\\sc.exe CommandLine:*config*binpath*",
+    name: { en: "Services created or re-pointed with sc.exe", fr: "Services créés ou redirigés avec sc.exe", de: "Dienste mit sc.exe erstellt oder umgeleitet", es: "Servicios creados o redirigidos con sc.exe", it: "Servizi creati o reindirizzati con sc.exe", pt: "Serviços criados ou redirecionados com sc.exe", ja: "sc.exeによるサービスの作成・パス変更", zh: "使用 sc.exe 创建或重定向服务" },
+  },
+  {
+    id: "remote-access-tools",
+    category: "c2",
+    mitre: "T1219",
+    query:
+      "process:*\\AnyDesk.exe OR process:*\\TeamViewer.exe OR process:*\\ScreenConnect* OR process:*\\AteraAgent.exe OR process:*\\Splashtop* OR process:*\\rustdesk.exe OR process:*\\meshagent.exe OR ServiceName:*AnyDesk* OR ServiceName:*ScreenConnect*",
+    name: { en: "Remote access software (AnyDesk, ScreenConnect, Atera…)", fr: "Logiciels d'accès à distance (AnyDesk, ScreenConnect, Atera…)", de: "Fernzugriffssoftware (AnyDesk, ScreenConnect, Atera…)", es: "Software de acceso remoto (AnyDesk, ScreenConnect, Atera…)", it: "Software di accesso remoto (AnyDesk, ScreenConnect, Atera…)", pt: "Software de acesso remoto (AnyDesk, ScreenConnect, Atera…)", ja: "リモートアクセスソフトウェア(AnyDesk、ScreenConnect、Atera…)", zh: "远程访问软件(AnyDesk、ScreenConnect、Atera…)" },
+  },
+  {
+    id: "tunnels",
+    category: "c2",
+    mitre: "T1572",
+    query:
+      "process:*\\ngrok.exe OR process:*\\plink.exe OR process:*\\chisel* OR process:*\\cloudflared.exe OR CommandLine:*portproxy*add* OR QueryName:*ngrok* OR QueryName:*trycloudflare.com",
+    name: { en: "Tunnels and port forwarding (ngrok, plink, chisel, portproxy)", fr: "Tunnels et redirection de ports (ngrok, plink, chisel, portproxy)", de: "Tunnel und Portweiterleitung (ngrok, plink, chisel, portproxy)", es: "Túneles y reenvío de puertos (ngrok, plink, chisel, portproxy)", it: "Tunnel e port forwarding (ngrok, plink, chisel, portproxy)", pt: "Túneis e redirecionamento de portas (ngrok, plink, chisel, portproxy)", ja: "トンネルとポートフォワーディング(ngrok、plink、chisel、portproxy)", zh: "隧道与端口转发(ngrok、plink、chisel、portproxy)" },
+  },
+  {
+    id: "c2-pipes",
+    category: "c2",
+    mitre: "T1071",
+    query:
+      "Provider:*Sysmon* EventID:17 PipeName:*MSSE-* OR Provider:*Sysmon* EventID:17 PipeName:*msagent_* OR Provider:*Sysmon* EventID:17 PipeName:*postex_* OR Provider:*Sysmon* EventID:17 PipeName:*status_* OR Provider:*Sysmon* EventID:18 PipeName:*msagent_*",
+    name: { en: "Named pipes used by C2 frameworks (Cobalt Strike defaults)", fr: "Canaux nommés utilisés par des frameworks C2 (Cobalt Strike par défaut)", de: "Named Pipes von C2-Frameworks (Cobalt-Strike-Standards)", es: "Canalizaciones con nombre de frameworks C2 (Cobalt Strike por defecto)", it: "Named pipe usate da framework C2 (default di Cobalt Strike)", pt: "Pipes nomeados usados por frameworks C2 (padrões do Cobalt Strike)", ja: "C2フレームワークの名前付きパイプ(Cobalt Strikeの既定値)", zh: "C2 框架使用的命名管道(Cobalt Strike 默认值)" },
+  },
+  {
+    id: "exfil-tools",
+    category: "c2",
+    mitre: "T1567",
+    query:
+      "process:*\\rclone.exe OR CommandLine:*rclone* OR CommandLine:*megacmd* OR process:*\\MEGAsync.exe OR CommandLine:*transfer.sh* OR QueryName:*mega.nz OR QueryName:*transfer.sh",
+    name: { en: "Exfiltration tools and services (rclone, MEGA, transfer.sh)", fr: "Outils et services d'exfiltration (rclone, MEGA, transfer.sh)", de: "Exfiltrationstools und -dienste (rclone, MEGA, transfer.sh)", es: "Herramientas y servicios de exfiltración (rclone, MEGA, transfer.sh)", it: "Strumenti e servizi di esfiltrazione (rclone, MEGA, transfer.sh)", pt: "Ferramentas e serviços de exfiltração (rclone, MEGA, transfer.sh)", ja: "持ち出しツール・サービス(rclone、MEGA、transfer.sh)", zh: "数据外传工具与服务(rclone、MEGA、transfer.sh)" },
+  },
+  {
+    id: "archive-staging",
+    category: "c2",
+    mitre: "T1560.001",
+    query:
+      "CommandLine:\"*7z* a *\" OR CommandLine:\"*rar* a *-hp*\" OR CommandLine:*Compress-Archive* OR ScriptBlockText:*Compress-Archive*",
+    name: { en: "Data staged in archives (7-Zip, WinRAR, Compress-Archive)", fr: "Données préparées en archives (7-Zip, WinRAR, Compress-Archive)", de: "Daten in Archiven bereitgestellt (7-Zip, WinRAR, Compress-Archive)", es: "Datos preparados en archivos comprimidos (7-Zip, WinRAR, Compress-Archive)", it: "Dati preparati in archivi (7-Zip, WinRAR, Compress-Archive)", pt: "Dados preparados em arquivos compactados (7-Zip, WinRAR, Compress-Archive)", ja: "アーカイブによるデータのステージング(7-Zip、WinRAR、Compress-Archive)", zh: "将数据打包暂存(7-Zip、WinRAR、Compress-Archive)" },
+  },
+  {
+    id: "ransomware-cmds",
+    category: "impact",
+    mitre: "T1486",
+    query:
+      "CommandLine:*cipher*/w:* OR CommandLine:\"*bcdedit*bootstatuspolicy*ignoreallfailures*\" OR CommandLine:*wmic*shadowcopy* OR CommandLine:\"*icacls* /grant Everyone:F*\"",
+    name: { en: "Ransomware pre-encryption commands (cipher /w, bcdedit, icacls)", fr: "Commandes pré-chiffrement de rançongiciel (cipher /w, bcdedit, icacls)", de: "Ransomware-Befehle vor der Verschlüsselung (cipher /w, bcdedit, icacls)", es: "Comandos previos al cifrado de ransomware (cipher /w, bcdedit, icacls)", it: "Comandi pre-cifratura del ransomware (cipher /w, bcdedit, icacls)", pt: "Comandos de pré-criptografia de ransomware (cipher /w, bcdedit, icacls)", ja: "ランサムウェアの暗号化前コマンド(cipher /w、bcdedit、icacls)", zh: "勒索软件加密前命令(cipher /w、bcdedit、icacls)" },
+  },
+  {
+    id: "mass-service-stop",
+    category: "impact",
+    mitre: "T1489",
+    query:
+      "CommandLine:\"*net* stop *\" OR CommandLine:*Stop-Service* OR CommandLine:*taskkill*/f* OR EventID:7036 param2:stopped param1:*SQL*",
+    name: { en: "Services or processes killed (net stop, taskkill, SQL stopped)", fr: "Services ou processus arrêtés (net stop, taskkill, SQL arrêté)", de: "Dienste oder Prozesse beendet (net stop, taskkill, SQL gestoppt)", es: "Servicios o procesos detenidos (net stop, taskkill, SQL detenido)", it: "Servizi o processi terminati (net stop, taskkill, SQL arrestato)", pt: "Serviços ou processos encerrados (net stop, taskkill, SQL parado)", ja: "サービス・プロセスの強制停止(net stop、taskkill、SQL停止)", zh: "服务或进程被终止(net stop、taskkill、SQL 停止)" },
   },
 ];

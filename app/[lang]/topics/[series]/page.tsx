@@ -5,6 +5,7 @@ import type { ContentMetadata } from "@next-md-blog/core";
 
 import { PostCard } from "@/components/post-card";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { PageHero, SectionTitle } from "@/components/PageHero";
 import { CollectionJsonLd } from "@/components/seo/collection-jsonld";
 import { blog } from "@/next-md-blog.config";
 import { siteConfig } from "@/site.config";
@@ -85,46 +86,65 @@ export default async function SeriesPillar({
           url: blog.url(p.slug, locale),
         }))}
       />
-      <main id="main-content" className="container mx-auto px-4 py-12">
-        <Breadcrumbs
-          items={[
-            { name: dict.nav.home, href: `/${locale}` },
-            { name: dict.metadata.blogTitle, href: `/${locale}/blog` },
-            { name: title },
-          ]}
+      <main
+        id="main-content"
+        className="container mx-auto flex flex-col gap-16 px-4 py-12"
+      >
+        <PageHero
+          top={
+            <Breadcrumbs
+              items={[
+                { name: dict.nav.home, href: `/${locale}` },
+                { name: dict.metadata.blogTitle, href: `/${locale}/blog` },
+                { name: title },
+              ]}
+            />
+          }
+          eyebrow="Series"
+          title={title}
+          intro={
+            <p>
+              {posts.length} post{posts.length === 1 ? "" : "s"} in this series.
+              Read them in order or jump to any one.
+            </p>
+          }
         />
-        <header className="mt-6 space-y-3">
-          <p className="text-sm uppercase tracking-wide text-muted-foreground">
-            Series
-          </p>
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-            {title}
-          </h1>
-          <p className="text-muted-foreground max-w-2xl">
-            {posts.length} post{posts.length === 1 ? "" : "s"} in this series.
-            Read them in order or jump to any one.
-          </p>
-        </header>
-        <ol className="mt-10 space-y-3 list-decimal pl-6">
-          {posts.map((p) => (
+        <ol className="flex max-w-3xl flex-col gap-3">
+          {posts.map((p, i) => (
             <li key={p.slug}>
               <Link
                 href={`/${locale}/blog/${p.slug}`}
-                className="font-medium hover:underline"
+                className="surface surface-interactive group flex items-start gap-4 p-5"
               >
-                {(p.frontmatter.title as string) ?? p.slug}
+                <span
+                  aria-hidden="true"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-uv-200 bg-uv-50 font-mono text-xs font-semibold text-uv-700 dark:border-uv-400/30 dark:bg-uv-500/10 dark:text-uv-300"
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span className="font-semibold text-ink-950 dark:text-ink-50">
+                    {(p.frontmatter.title as string) ?? p.slug}
+                  </span>
+                  {typeof p.frontmatter.description === "string" && (
+                    <span className="text-sm text-ink-600 dark:text-ink-400">
+                      {p.frontmatter.description}
+                    </span>
+                  )}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="mt-1 shrink-0 text-uv-500 transition-transform group-hover:translate-x-1"
+                >
+                  →
+                </span>
               </Link>
-              {typeof p.frontmatter.description === "string" && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {p.frontmatter.description}
-                </p>
-              )}
             </li>
           ))}
         </ol>
-        <section className="mt-16">
-          <h2 className="text-xl font-semibold mb-4">All posts in this series</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <section className="flex flex-col gap-6">
+          <SectionTitle>All posts in this series</SectionTitle>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {posts.map((p) => (
               <PostCard key={p.slug} post={p} locale={locale} />
             ))}

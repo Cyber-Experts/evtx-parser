@@ -30,7 +30,7 @@ export const zh: Dict = {
     ctaHeading: "下一次调查,从拖放开始。",
     ctaBody: "免费、开源、隐私优先。无需账号、无需上传、无需安装。",
     features: [
-      { title: "打开即狩猎", body: "Kerberoasting、日志清除、PowerShell 下载器、新建服务、暴力破解等 56 条检测在文件加载后立即运行。" },
+      { title: "打开即狩猎", body: "Kerberoasting、日志清除、PowerShell 下载器、新建服务、暴力破解等 {n} 条检测在文件加载后立即运行。" },
       { title: "分析师熟悉的查询语言", body: "字段:值、通配符、引号与取反,覆盖所有 EventData 字段,并提供即时分面与稀有值排序。" },
       { title: "一键透视", body: "从任意事件跳转到相同登录 ID、进程 GUID、父进程或 ±5 分钟时间窗口。" },
       { title: "重建登录会话", body: "谁登录、如何登录、从哪里登录、拥有何种特权以及做了什么——从 4624 到 4634,每个会话一行。" },
@@ -103,6 +103,7 @@ export const zh: Dict = {
     catInitial: "初始访问",
     catDiscovery: "发现",
     catImpact: "影响",
+    catC2: "命令与控制 / 数据外传",
     huntsFilter: "筛选狩猎…",
     hitsOnly: "仅显示有命中的狩猎",
     eventsTab: "事件",

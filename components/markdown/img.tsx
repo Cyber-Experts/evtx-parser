@@ -34,7 +34,7 @@ export async function MdImage({
       height={dims.height}
       sizes="(min-width: 1024px) 768px, 100vw"
       unoptimized={isExternal ? false : undefined}
-      className="rounded-md w-full h-auto my-6"
+      className="my-6 h-auto w-full rounded-xl border border-ink-200 shadow-[0_12px_32px_-18px_rgb(11_12_22/0.25)] dark:border-ink-800"
       {...rest}
     />
   );
@@ -42,7 +42,7 @@ export async function MdImage({
     return (
       <figure className="my-6">
         {img}
-        <figcaption className="text-sm text-muted-foreground text-center mt-2">
+        <figcaption className="mt-2 text-center text-sm text-ink-500 dark:text-ink-400">
           {title}
         </figcaption>
       </figure>

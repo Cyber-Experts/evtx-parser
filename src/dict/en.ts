@@ -30,7 +30,7 @@ export const en: Dict = {
     ctaHeading: "Your next investigation starts with a drop.",
     ctaBody: "Free, open source and private by design. No account, no upload, no install.",
     features: [
-      { title: "Hunts that fire on open", body: "56 detections — Kerberoasting, log clearing, PowerShell cradles, new services, brute force — run the moment a file loads." },
+      { title: "Hunts that fire on open", body: "{n} detections — Kerberoasting, log clearing, PowerShell cradles, new services, brute force — run the moment a file loads." },
       { title: "A query language analysts expect", body: "Field:value, wildcards, quotes and negation across every EventData field, with instant facets and rare-value sorting." },
       { title: "One-click pivots", body: "Jump from any event to the same logon ID, process GUID, parent process or a ±5 minute window." },
       { title: "Logon sessions, reconstructed", body: "Who logged on, how, from where, with which privileges and what they did — 4624 to 4634, one row per session." },
@@ -103,6 +103,7 @@ export const en: Dict = {
     catInitial: "Initial access",
     catDiscovery: "Discovery",
     catImpact: "Impact",
+    catC2: "Command & control / exfiltration",
     huntsFilter: "Filter hunts…",
     hitsOnly: "Only hunts with hits",
     eventsTab: "Events",

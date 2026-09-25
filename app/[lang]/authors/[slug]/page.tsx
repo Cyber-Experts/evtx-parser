@@ -5,6 +5,7 @@ import { slugifyAuthor, type Author } from "@next-md-blog/core";
 
 import { PostCard } from "@/components/post-card";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { PageHero } from "@/components/PageHero";
 import { PersonJsonLd } from "@/components/seo/person-jsonld";
 import { CollectionJsonLd } from "@/components/seo/collection-jsonld";
 import { blog, site } from "@/next-md-blog.config";
@@ -13,6 +14,9 @@ import { LOCALES, hreflangFor, type Locale } from "@/lib/i18n";
 import { getDictionary, hasLocale } from "../../dictionaries";
 
 type Params = { lang: string; slug: string };
+
+const CHIP =
+  "rounded-full border border-ink-200 bg-card/70 px-3 py-1 font-medium text-ink-700 transition-colors hover:border-uv-300 hover:text-uv-700 dark:border-ink-800 dark:text-ink-300 dark:hover:border-uv-400/40 dark:hover:text-uv-300";
 
 /** Resolve an author by slug from site.config.authors. App-specific glue. */
 function resolveAuthorBySlug(slug: string): Author | null {
@@ -84,32 +88,35 @@ export default async function AuthorPage({
         }))}
         inLanguage={locale}
       />
-      <main id="main-content" className="container mx-auto px-4 py-12">
-        <Breadcrumbs
-          items={[
-            { name: dict.nav.home, href: `/${locale}` },
-            { name: dict.metadata.blogTitle, href: `/${locale}/blog` },
-            { name: dict.authors.indexTitle, href: `/${locale}/authors` },
-            { name: author.name },
-          ]}
-        />
-        <header className="mt-6 space-y-3">
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-            {author.name}
-          </h1>
-          {author.bio && (
-            <p className="text-muted-foreground max-w-2xl">{author.bio}</p>
-          )}
-          <div className="flex gap-3 text-sm">
+      <main
+        id="main-content"
+        className="container mx-auto flex flex-col gap-12 px-4 py-12"
+      >
+        <PageHero
+          top={
+            <Breadcrumbs
+              items={[
+                { name: dict.nav.home, href: `/${locale}` },
+                { name: dict.metadata.blogTitle, href: `/${locale}/blog` },
+                { name: dict.authors.indexTitle, href: `/${locale}/authors` },
+                { name: author.name },
+              ]}
+            />
+          }
+          eyebrow={dict.authors.indexTitle}
+          title={author.name}
+          intro={author.bio ? <p>{author.bio}</p> : undefined}
+        >
+          <div className="flex flex-wrap gap-2 text-sm">
             {author.url && (
-              <Link href={author.url} className="underline">
+              <Link href={author.url} className={CHIP}>
                 Website
               </Link>
             )}
             {author.twitter && (
               <Link
                 href={`https://twitter.com/${author.twitter.replace(/^@/, "")}`}
-                className="underline"
+                className={CHIP}
               >
                 Twitter
               </Link>
@@ -117,17 +124,19 @@ export default async function AuthorPage({
             {author.github && (
               <Link
                 href={`https://github.com/${author.github.replace(/^@/, "")}`}
-                className="underline"
+                className={CHIP}
               >
                 GitHub
               </Link>
             )}
           </div>
-        </header>
+        </PageHero>
         {posts.length === 0 ? (
-          <p className="mt-12 text-muted-foreground">{dict.blog.noPosts}</p>
+          <p className="surface p-8 text-center text-ink-500 dark:text-ink-400">
+            {dict.blog.noPosts}
+          </p>
         ) : (
-          <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {posts.map((p) => (
               <PostCard key={p.slug} post={p} locale={locale} />
             ))}

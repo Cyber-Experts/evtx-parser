@@ -7,6 +7,7 @@ import { glossary } from "@/next-md-blog.config";
 import { siteConfig } from "@/site.config";
 import { LOCALES, type Locale } from "@/lib/i18n";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { PageHero } from "@/components/PageHero";
 import { JsonLd } from "@/components/seo/json-ld";
 import { markdownComponents } from "@/components/markdown/components";
 import { getDictionary, hasLocale } from "../../dictionaries";
@@ -73,28 +74,25 @@ export default async function GlossaryTerm({
   return (
     <>
       <JsonLd data={jsonLd} />
-      <main id="main-content" className="container mx-auto px-4 py-10 max-w-3xl">
-        <Breadcrumbs
-          items={[
-            { name: dict.nav.home, href: `/${locale}` },
-            { name: "Glossary", href: `/${locale}/glossary` },
-            { name: (term.frontmatter.title as string) ?? slug },
-          ]}
-        />
-        <article className="mt-6">
-          <header className="space-y-3 mb-8">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Glossary
-            </p>
-            <h1 className="text-3xl md:text-5xl font-semibold tracking-tight">
-              {(term.frontmatter.title as string) ?? slug}
-            </h1>
-            {term.frontmatter.description && (
-              <p className="text-lg text-muted-foreground">
-                {term.frontmatter.description as string}
-              </p>
-            )}
-          </header>
+      <main
+        id="main-content"
+        className="container mx-auto max-w-3xl px-4 py-10"
+      >
+        <article className="flex flex-col gap-10">
+          <PageHero
+            top={
+              <Breadcrumbs
+                items={[
+                  { name: dict.nav.home, href: `/${locale}` },
+                  { name: "Glossary", href: `/${locale}/glossary` },
+                  { name: (term.frontmatter.title as string) ?? slug },
+                ]}
+              />
+            }
+            eyebrow="Glossary"
+            title={(term.frontmatter.title as string) ?? slug}
+            intro={(term.frontmatter.description as string) || undefined}
+          />
           <div className="prose dark:prose-invert max-w-none prose-headings:scroll-mt-20">
             <MarkdownContent
               content={term.content}

@@ -4,6 +4,14 @@ import { getDict } from "@/src/dict";
 import type { Locale } from "@/src/dict/locales";
 import { jsonLdScript } from "@/lib/schema";
 import { Breadcrumbs } from "@/components/BreadcrumbsEvtx";
+import { GitHubMark } from "@/components/GitHubMark";
+import { CtaBand, REPO_URL } from "@/components/home/HomeSections";
+import {
+  BTN_PRIMARY,
+  BTN_SECONDARY,
+  PageHero,
+  SectionTitle,
+} from "@/components/PageHero";
 import {
   channelContent,
   channelGraph,
@@ -22,67 +30,59 @@ export function ChannelLanding({
   const ld = channelGraph(channel, locale);
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-4 py-6 sm:px-6 sm:py-10">
-      <Breadcrumbs
-        dict={dict}
-        items={[
-          { label: dict.breadcrumb.home, href: `/${locale}` },
-          { label: c.h1 },
-        ]}
-      />
-
-      <header className="flex flex-col gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink-900 dark:text-ink-100 sm:text-3xl">
-          {c.h1}
-        </h1>
-        <p className="text-sm leading-relaxed text-ink-600 dark:text-ink-400">
-          {c.intro}
-        </p>
-        <div>
-          <Link
-            href={`/${locale}`}
-            className="inline-block rounded-md border border-ink-900 bg-ink-900 px-4 py-2 text-sm font-medium text-ink-50 hover:bg-ink-700 dark:border-ink-100 dark:bg-ink-100 dark:text-ink-900 dark:hover:bg-ink-300"
-          >
-            {c.ctaLabel} ↗
-          </Link>
-        </div>
-      </header>
-
-      <section
-        aria-labelledby="what-heading"
-        className="flex flex-col gap-3 border-t border-ink-200 pt-6 dark:border-ink-800"
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-16 px-4 py-6 sm:gap-20 sm:px-6 sm:py-10">
+      <PageHero
+        top={
+          <Breadcrumbs
+            dict={dict}
+            items={[
+              { label: dict.breadcrumb.home, href: `/${locale}` },
+              { label: c.h1 },
+            ]}
+          />
+        }
+        title={c.h1}
+        intro={<p>{c.intro}</p>}
       >
-        <h2 id="what-heading" className="font-mono text-base font-semibold">
-          {c.whatHeading}
-        </h2>
-        {c.whatBody.map((p, i) => (
-          <p
-            key={i}
-            className="text-sm leading-relaxed text-ink-700 dark:text-ink-300"
-          >
-            {p}
-          </p>
-        ))}
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <Link href={`/${locale}`} className={BTN_PRIMARY}>
+            {c.ctaLabel}
+            <span aria-hidden="true">→</span>
+          </Link>
+          <a href={REPO_URL} className={BTN_SECONDARY}>
+            <GitHubMark className="h-4 w-4" />
+            {dict.home.heroCtaGithub}
+          </a>
+        </div>
+      </PageHero>
+
+      <section aria-labelledby="what-heading" className="flex flex-col gap-6">
+        <SectionTitle id="what-heading">{c.whatHeading}</SectionTitle>
+        <div className="surface flex flex-col gap-4 px-6 py-6 sm:px-8">
+          {c.whatBody.map((p, i) => (
+            <p
+              key={i}
+              className="leading-relaxed text-ink-700 dark:text-ink-300"
+            >
+              {p}
+            </p>
+          ))}
+        </div>
       </section>
 
-      <section
-        aria-labelledby="events-heading"
-        className="flex flex-col gap-3 border-t border-ink-200 pt-6 dark:border-ink-800"
-      >
-        <h2 id="events-heading" className="font-mono text-base font-semibold">
-          {c.eventsHeading}
-        </h2>
-        <ul className="grid gap-2 sm:grid-cols-2">
+      <section aria-labelledby="events-heading" className="flex flex-col gap-6">
+        <SectionTitle id="events-heading">{c.eventsHeading}</SectionTitle>
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {c.events.map((e) => (
             <li key={e.id}>
               <Link
                 href={`/${locale}/event-id/${e.id}`}
-                className="group flex items-baseline gap-2 rounded border border-ink-200 px-3 py-2 hover:border-ink-400 dark:border-ink-800 dark:hover:border-ink-600"
+                className="surface surface-interactive group flex h-full items-baseline gap-3 px-4 py-3"
               >
-                <span className="font-mono text-sm font-medium text-ink-900 dark:text-ink-100">
+                <span className="shrink-0 rounded-md bg-uv-50 px-1.5 font-mono text-sm font-medium text-uv-700 dark:bg-uv-400/10 dark:text-uv-300">
                   {e.id}
                 </span>
-                <span className="text-sm text-ink-600 group-hover:underline dark:text-ink-400">
+                <span className="text-sm text-ink-700 group-hover:text-ink-950 dark:text-ink-300 dark:group-hover:text-ink-50">
                   {e.name}
                 </span>
               </Link>
@@ -91,17 +91,14 @@ export function ChannelLanding({
         </ul>
       </section>
 
-      <section
-        aria-labelledby="open-heading"
-        className="flex flex-col gap-3 border-t border-ink-200 pt-6 dark:border-ink-800"
-      >
-        <h2 id="open-heading" className="font-mono text-base font-semibold">
-          {c.openHeading}
-        </h2>
-        <p className="text-sm leading-relaxed text-ink-700 dark:text-ink-300">
+      <section aria-labelledby="open-heading" className="flex flex-col gap-6">
+        <SectionTitle id="open-heading">{c.openHeading}</SectionTitle>
+        <p className="max-w-3xl leading-relaxed text-ink-700 dark:text-ink-300">
           {c.openBody}
         </p>
       </section>
+
+      <CtaBand dict={dict} href={`/${locale}`} />
 
       <script
         type="application/ld+json"

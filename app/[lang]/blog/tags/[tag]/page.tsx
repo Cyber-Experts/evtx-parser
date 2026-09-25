@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PostCard } from "@/components/post-card";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { BTN_SECONDARY, PageHero } from "@/components/PageHero";
 import { CollectionJsonLd } from "@/components/seo/collection-jsonld";
 import { blog } from "@/next-md-blog.config";
 import { siteConfig } from "@/site.config";
@@ -43,11 +44,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function TagPage({
-  params,
-}: {
-  params: Promise<Params>;
-}) {
+export default async function TagPage({ params }: { params: Promise<Params> }) {
   const { lang, tag } = await params;
   if (!hasLocale(lang)) notFound();
   const locale = lang as Locale;
@@ -72,27 +69,39 @@ export default async function TagPage({
           url: `${siteConfig.url}/${locale}/blog/${p.slug}`,
         }))}
       />
-      <main id="main-content" className="container mx-auto px-4 py-12">
-      <Breadcrumbs
-        items={[
-          { name: dict.nav.home, href: `/${locale}` },
-          { name: dict.metadata.blogTitle, href: `/${locale}/blog` },
-          { name: `#${decoded}` },
-        ]}
-      />
-      <h1 className="mt-4 text-3xl md:text-4xl font-semibold tracking-tight">
-        {dict.tag.title}: <span className="text-muted-foreground">#{decoded}</span>
-      </h1>
-      <div className="mt-3">
-        <Link href={`/${locale}/blog`} className="text-sm underline">
-          ← {dict.tag.back}
-        </Link>
-      </div>
-      <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((p) => (
-          <PostCard key={p.slug} post={p} locale={locale} />
-        ))}
-      </section>
+      <main
+        id="main-content"
+        className="container mx-auto flex flex-col gap-12 px-4 py-12"
+      >
+        <PageHero
+          top={
+            <Breadcrumbs
+              items={[
+                { name: dict.nav.home, href: `/${locale}` },
+                { name: dict.metadata.blogTitle, href: `/${locale}/blog` },
+                { name: `#${decoded}` },
+              ]}
+            />
+          }
+          eyebrow={dict.tag.title}
+          title={
+            <>
+              {dict.tag.title}:{" "}
+              <span className="text-gradient-uv">#{decoded}</span>
+            </>
+          }
+        >
+          <div>
+            <Link href={`/${locale}/blog`} className={BTN_SECONDARY}>
+              <span aria-hidden="true">←</span> {dict.tag.back}
+            </Link>
+          </div>
+        </PageHero>
+        <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((p) => (
+            <PostCard key={p.slug} post={p} locale={locale} />
+          ))}
+        </section>
       </main>
     </>
   );

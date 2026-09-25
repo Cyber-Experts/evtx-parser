@@ -2,6 +2,7 @@
 // bento feature grid and the closing call to action. Server components; the
 // only interactive bit (opening the file picker) is OpenFileButton.
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { GitHubMark } from "@/components/GitHubMark";
@@ -243,7 +244,7 @@ export function FeatureGrid({
                   {feat.title}
                 </h3>
                 <p className="text-sm leading-relaxed text-ink-600 dark:text-ink-400">
-                  {feat.body}
+                  {feat.body.replace("{n}", String(HUNTS.length))}
                 </p>
               </div>
               {wide && <HuntsVisual />}
@@ -261,7 +262,12 @@ export function FeatureGrid({
   );
 }
 
-export function CtaBand({ dict }: { dict: Dict }) {
+const CTA_PRIMARY =
+  "inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-ink-950 shadow-[0_10px_30px_-10px_rgb(255_255_255/0.5)] transition hover:bg-uv-50";
+
+/** Closing call to action. On the home page the primary button opens the
+ *  file picker; elsewhere pass `href` (the tool page) to render a link. */
+export function CtaBand({ dict, href }: { dict: Dict; href?: string }) {
   return (
     <section
       aria-labelledby="cta-heading"
@@ -285,10 +291,17 @@ export function CtaBand({ dict }: { dict: Dict }) {
         {dict.home.ctaBody}
       </p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <OpenFileButton className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-ink-950 shadow-[0_10px_30px_-10px_rgb(255_255_255/0.5)] transition hover:bg-uv-50">
-          {dict.home.heroCtaOpen}
-          <span aria-hidden="true">→</span>
-        </OpenFileButton>
+        {href ? (
+          <Link href={href} className={CTA_PRIMARY}>
+            {dict.home.heroCtaOpen}
+            <span aria-hidden="true">→</span>
+          </Link>
+        ) : (
+          <OpenFileButton className={CTA_PRIMARY}>
+            {dict.home.heroCtaOpen}
+            <span aria-hidden="true">→</span>
+          </OpenFileButton>
+        )}
         <a
           href={REPO_URL}
           className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-medium text-white backdrop-blur transition hover:bg-white/10"
