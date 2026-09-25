@@ -12,7 +12,7 @@ import {
   withoutClause,
 } from "@/lib/search-query";
 
-import { fakeRow, haystackGetter, loadFixtures, type Row } from "./helpers";
+import { fakeRow, haystackGetter, loadFixtures, type Row, HAS_FIXTURES } from "./helpers";
 
 const row = { ...fakeRow(4624, "Microsoft-Windows-Security-Auditing"), computer: "WS-042" };
 const pairs: [string, string][] = [
@@ -120,7 +120,7 @@ describe("query editing helpers", () => {
   });
 });
 
-describe("search on Security.evtx", () => {
+describe.skipIf(!HAS_FIXTURES)("search on Security.evtx", () => {
   const ds = loadFixtures("security.evtx");
   const hay = haystackGetter(ds);
   const count = (q: string) => {

@@ -140,15 +140,21 @@ export default async function LangLayout({
         </ThemeProvider>
         <WebsiteJsonLd locale={lang} />
         <JsonLd data={generateOrganizationSchema(site)} />
-        <Analytics />
-        <WebVitals />
-        <VercelAnalytics />
-        <SpeedInsights />
-        <Script
-          src="https://analytics.ahrefs.com/analytics.js"
-          data-key="W+lz3lBWLPK1AkW6UtoO9w"
-          strategy="afterInteractive"
-        />
+        {/* NEXT_PUBLIC_OFFLINE=1 (self-hosted / air-gapped builds): no
+            third-party scripts or beacons at all. */}
+        {process.env.NEXT_PUBLIC_OFFLINE !== "1" && (
+          <>
+            <Analytics />
+            <WebVitals />
+            <VercelAnalytics />
+            <SpeedInsights />
+            <Script
+              src="https://analytics.ahrefs.com/analytics.js"
+              data-key="W+lz3lBWLPK1AkW6UtoO9w"
+              strategy="afterInteractive"
+            />
+          </>
+        )}
       </body>
     </html>
   );

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { decodeValue, decodedText, describeEvent } from "@/lib/event-decode";
 
-import { loadFixtures } from "./helpers";
+import { loadFixtures, HAS_FIXTURES } from "./helpers";
 
 describe("decodeValue", () => {
   it.each([
@@ -49,7 +49,7 @@ describe("decodeValue", () => {
   });
 });
 
-describe("describeEvent on real logs", () => {
+describe.skipIf(!HAS_FIXTURES)("describeEvent on real logs", () => {
   const sec = loadFixtures("security.evtx");
   const byRecord = (n: number) => sec.rows.find((r) => Number(r.record_id) === n)!;
   const describe_ = (n: number) => {

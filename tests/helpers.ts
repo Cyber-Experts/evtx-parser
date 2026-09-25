@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { EvtxHandle, initSync } from "@/lib/evtx-wasm/evtx_wasm.js";
@@ -7,6 +7,13 @@ import { haystackFor } from "@/lib/search-query";
 
 const ROOT = join(__dirname, "..");
 const FIXTURES = join(ROOT, "tests/fixtures/evtx");
+
+/**
+ * The real-log fixtures live only in the private repository (they come from
+ * a training image we can't redistribute). Suites that need them are skipped
+ * when they're absent, e.g. in the public repo.
+ */
+export const HAS_FIXTURES = existsSync(join(FIXTURES, "security.evtx"));
 
 let wasmReady = false;
 function ensureWasm() {
@@ -45,6 +52,7 @@ export function loadFixtures(...names: FixtureName[]): Dataset {
   const key = names.join("|");
   const hit = cache.get(key);
   if (hit) return hit;
+  if (!HAS_FIXTURES) return { rows: [], pairs: [], handles: new Map() };
   ensureWasm();
   const rows: Row[] = [];
   const pairs: [string, string][][] = [];

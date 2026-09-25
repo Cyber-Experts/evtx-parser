@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { FIXTURE_FILES, loadFixtures } from "./helpers";
+import { FIXTURE_FILES, loadFixtures, HAS_FIXTURES } from "./helpers";
 
 // Snapshot of the fixture set (see tests/fixtures/evtx/README.md).
 const EXPECTED: Record<(typeof FIXTURE_FILES)[number], {
@@ -38,7 +38,7 @@ const EXPECTED: Record<(typeof FIXTURE_FILES)[number], {
   "key-management-service.evtx": { count: 0 },
 };
 
-describe("WASM parser on real logs", () => {
+describe.skipIf(!HAS_FIXTURES)("WASM parser on real logs", () => {
   for (const name of FIXTURE_FILES) {
     const want = EXPECTED[name];
     it(`${name}: ${want.count} events`, () => {
