@@ -9,6 +9,8 @@
 //   4624 OR 4625                 OR between AND-groups
 //   logonid:0x3e7                pseudo-field: any *LogonId field
 //   processguid:{…}              pseudo-field: any *ProcessGuid field
+//   process:*\cmd.exe            pseudo-field: 4688 NewProcessName or Sysmon Image
+//   parent:*\winword.exe         pseudo-field: ParentProcessName or ParentImage
 //
 // Field names are case-insensitive. Built-in names (eventid, level,
 // provider, channel, computer, file, name, record) target row metadata;
@@ -63,6 +65,9 @@ const META_ALIASES: Record<string, string> = {
 /** Pseudo-fields that match several EventData keys at once (pivots). */
 export const MULTI_FIELDS: Record<string, string[]> = {
   logonid: ["targetlogonid", "subjectlogonid", "logonid"],
+  // Process image across Security 4688 (NewProcessName) and Sysmon (Image).
+  process: ["newprocessname", "image"],
+  parent: ["parentprocessname", "parentimage"],
   processguid: [
     "processguid",
     "parentprocessguid",
@@ -229,7 +234,11 @@ function unquote(v: string): string {
 // --- Evaluation ------------------------------------------------------------
 
 function globToRegExp(glob: string): RegExp {
-  const esc = glob.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+  // [\s\S]* rather than .* so multi-line values (script blocks, command
+  // lines, UserAccountControl lists) still match.
+  const esc = glob
+    .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*/g, "[\\s\\S]*");
   return new RegExp(`^${esc}$`, "i");
 }
 

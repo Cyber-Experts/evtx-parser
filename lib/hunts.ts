@@ -6,11 +6,14 @@
 import type { LocaleContent } from "@/lib/landing/locale-content";
 
 export type HuntCategory =
+  | "initial"
   | "credential"
+  | "discovery"
   | "lateral"
   | "persistence"
   | "execution"
-  | "evasion";
+  | "evasion"
+  | "impact";
 
 export type Hunt = {
   id: string;
@@ -176,5 +179,285 @@ export const HUNTS: Hunt[] = [
     query:
       "Provider:*Defender* EventID:1116 OR Provider:*Defender* EventID:1117 OR Provider:*Defender* EventID:5001 OR Provider:*Defender* EventID:5007",
     name: { en: "Defender detections, disabled protection, config changes", fr: "Détections Defender, protection désactivée, changements de config", de: "Defender-Erkennungen, deaktivierter Schutz, Konfigurationsänderungen", es: "Detecciones de Defender, protección deshabilitada, cambios de configuración", it: "Rilevamenti Defender, protezione disabilitata, modifiche alla configurazione", pt: "Detecções do Defender, proteção desativada, alterações de configuração", ja: "Defenderの検出、保護の無効化、設定変更", zh: "Defender检测、保护禁用、配置变更" },
+  },
+  {
+    id: "external-rdp",
+    category: "initial",
+    mitre: "T1133",
+    query:
+      "EventID:4624 LogonType:10 -IpAddress:10.* -IpAddress:192.168.* -IpAddress:172.16.* -IpAddress:172.17.* -IpAddress:172.18.* -IpAddress:172.19.* -IpAddress:172.20.* -IpAddress:172.21.* -IpAddress:172.22.* -IpAddress:172.23.* -IpAddress:172.24.* -IpAddress:172.25.* -IpAddress:172.26.* -IpAddress:172.27.* -IpAddress:172.28.* -IpAddress:172.29.* -IpAddress:172.30.* -IpAddress:172.31.* -IpAddress:127.* -IpAddress:::1 -IpAddress:- -IpAddress:fe80* -IpAddress:169.254.*",
+    name: { en: "RDP logons from public IP addresses", fr: "Connexions RDP depuis des adresses IP publiques", de: "RDP-Anmeldungen von öffentlichen IP-Adressen", es: "Inicios de sesión RDP desde direcciones IP públicas", it: "Accessi RDP da indirizzi IP pubblici", pt: "Logons RDP de endereços IP públicos", ja: "パブリックIPアドレスからのRDPログオン", zh: "来自公网IP地址的RDP登录" },
+  },
+  {
+    id: "external-network",
+    category: "initial",
+    mitre: "T1078",
+    query:
+      "EventID:4624 LogonType:3 -IpAddress:10.* -IpAddress:192.168.* -IpAddress:172.16.* -IpAddress:172.17.* -IpAddress:172.18.* -IpAddress:172.19.* -IpAddress:172.20.* -IpAddress:172.21.* -IpAddress:172.22.* -IpAddress:172.23.* -IpAddress:172.24.* -IpAddress:172.25.* -IpAddress:172.26.* -IpAddress:172.27.* -IpAddress:172.28.* -IpAddress:172.29.* -IpAddress:172.30.* -IpAddress:172.31.* -IpAddress:127.* -IpAddress:::1 -IpAddress:- -IpAddress:fe80* -IpAddress:169.254.*",
+    name: { en: "Network logons from public IP addresses", fr: "Connexions réseau depuis des adresses IP publiques", de: "Netzwerkanmeldungen von öffentlichen IP-Adressen", es: "Inicios de sesión de red desde direcciones IP públicas", it: "Accessi di rete da indirizzi IP pubblici", pt: "Logons de rede de endereços IP públicos", ja: "パブリックIPアドレスからのネットワークログオン", zh: "来自公网IP地址的网络登录" },
+  },
+  {
+    id: "dcsync",
+    category: "credential",
+    mitre: "T1003.006",
+    query:
+      "EventID:4662 Properties:*1131f6ad-9c07-11d1-f79f-00c04fc2dcd2* -SubjectUserName:*$ OR EventID:4662 Properties:*89e95b76-444d-4c62-991a-0facbeda640c* -SubjectUserName:*$",
+    name: { en: "DCSync: directory replication by a non-DC account", fr: "DCSync : réplication d'annuaire par un compte non-DC", de: "DCSync: Verzeichnisreplikation durch ein Nicht-DC-Konto", es: "DCSync: replicación de directorio por una cuenta que no es DC", it: "DCSync: replica della directory da un account non DC", pt: "DCSync: replicação de diretório por uma conta que não é DC", ja: "DCSync: 非DCアカウントによるディレクトリレプリケーション", zh: "DCSync:非DC账户发起的目录复制" },
+  },
+  {
+    id: "sam-dump",
+    category: "credential",
+    mitre: "T1003.002",
+    query:
+      "CommandLine:*save*hklm\\sam* OR CommandLine:*save*hklm\\security* OR CommandLine:*save*hklm\\system*",
+    name: { en: "SAM / LSA secrets saved from the registry", fr: "Secrets SAM / LSA enregistrés depuis le registre", de: "SAM-/LSA-Geheimnisse aus der Registrierung gespeichert", es: "Secretos SAM / LSA guardados desde el registro", it: "Segreti SAM / LSA salvati dal registro", pt: "Segredos SAM / LSA salvos do registro", ja: "レジストリからのSAM / LSAシークレットの保存", zh: "从注册表保存的SAM/LSA机密" },
+  },
+  {
+    id: "ntds-dump",
+    category: "credential",
+    mitre: "T1003.003",
+    query:
+      "CommandLine:*ntdsutil* OR CommandLine:*vssadmin*create*shadow* OR CommandLine:*\\ntds.dit*",
+    name: { en: "NTDS.dit extraction (ntdsutil, shadow copies)", fr: "Extraction de NTDS.dit (ntdsutil, clichés instantanés)", de: "NTDS.dit-Extraktion (ntdsutil, Schattenkopien)", es: "Extracción de NTDS.dit (ntdsutil, copias de sombra)", it: "Estrazione di NTDS.dit (ntdsutil, copie shadow)", pt: "Extração do NTDS.dit (ntdsutil, cópias de sombra)", ja: "NTDS.ditの抽出(ntdsutil、シャドウコピー)", zh: "NTDS.dit提取(ntdsutil、卷影副本)" },
+  },
+  {
+    id: "mimikatz",
+    category: "credential",
+    mitre: "T1003",
+    query:
+      "CommandLine:*sekurlsa* OR CommandLine:*mimikatz* OR CommandLine:*kerberos::* OR CommandLine:*lsadump::* OR ScriptBlockText:*Invoke-Mimikatz* OR ScriptBlockText:*sekurlsa* OR process:*\\mimikatz.exe",
+    name: { en: "Mimikatz traces", fr: "Traces de Mimikatz", de: "Mimikatz-Spuren", es: "Rastros de Mimikatz", it: "Tracce di Mimikatz", pt: "Vestígios do Mimikatz", ja: "Mimikatzの痕跡", zh: "Mimikatz痕迹" },
+  },
+  {
+    id: "ntlmv1",
+    category: "credential",
+    mitre: "T1557",
+    query:
+      "EventID:4624 LmPackageName:\"NTLM V1\"",
+    name: { en: "NTLMv1 logons (downgrade, relay risk)", fr: "Connexions NTLMv1 (rétrogradation, risque de relais)", de: "NTLMv1-Anmeldungen (Downgrade, Relay-Risiko)", es: "Inicios de sesión NTLMv1 (degradación, riesgo de relay)", it: "Accessi NTLMv1 (downgrade, rischio di relay)", pt: "Logons NTLMv1 (downgrade, risco de relay)", ja: "NTLMv1ログオン(ダウングレード、リレーリスク)", zh: "NTLMv1登录(降级、中继风险)" },
+  },
+  {
+    id: "kerb-preauth-fail",
+    category: "credential",
+    mitre: "T1110.003",
+    query:
+      "EventID:4771 Status:0x18",
+    name: { en: "Kerberos pre-auth failures (password spraying)", fr: "Échecs de pré-authentification Kerberos (password spraying)", de: "Kerberos-Vorabauthentifizierungsfehler (Password Spraying)", es: "Fallos de preautenticación Kerberos (password spraying)", it: "Errori di pre-autenticazione Kerberos (password spraying)", pt: "Falhas de pré-autenticação Kerberos (password spraying)", ja: "Kerberos事前認証の失敗(パスワードスプレー)", zh: "Kerberos预身份验证失败(密码喷洒)" },
+  },
+  {
+    id: "recon-commands",
+    category: "discovery",
+    mitre: "T1087",
+    query:
+      "process:*\\whoami.exe OR process:*\\nltest.exe OR process:*\\systeminfo.exe OR process:*\\net.exe OR process:*\\net1.exe OR process:*\\quser.exe OR process:*\\qwinsta.exe OR process:*\\arp.exe OR process:*\\route.exe OR process:*\\netstat.exe",
+    name: { en: "Discovery commands (whoami, net, nltest, systeminfo\u2026)", fr: "Commandes de découverte (whoami, net, nltest, systeminfo…)", de: "Erkundungsbefehle (whoami, net, nltest, systeminfo…)", es: "Comandos de descubrimiento (whoami, net, nltest, systeminfo…)", it: "Comandi di discovery (whoami, net, nltest, systeminfo…)", pt: "Comandos de descoberta (whoami, net, nltest, systeminfo…)", ja: "探索コマンド(whoami、net、nltest、systeminfo…)", zh: "侦察命令(whoami、net、nltest、systeminfo…)" },
+  },
+  {
+    id: "ad-recon-tools",
+    category: "discovery",
+    mitre: "T1087.002",
+    query:
+      "process:*\\adfind.exe OR CommandLine:*sharphound* OR CommandLine:*bloodhound* OR ScriptBlockText:*Invoke-BloodHound* OR ScriptBlockText:*Get-DomainUser* OR ScriptBlockText:*Get-NetUser*",
+    name: { en: "AD recon tools (AdFind, BloodHound, PowerView)", fr: "Outils de reconnaissance AD (AdFind, BloodHound, PowerView)", de: "AD-Aufklärungstools (AdFind, BloodHound, PowerView)", es: "Herramientas de reconocimiento de AD (AdFind, BloodHound, PowerView)", it: "Strumenti di ricognizione AD (AdFind, BloodHound, PowerView)", pt: "Ferramentas de reconhecimento de AD (AdFind, BloodHound, PowerView)", ja: "AD偵察ツール(AdFind、BloodHound、PowerView)", zh: "AD侦察工具(AdFind、BloodHound、PowerView)" },
+  },
+  {
+    id: "group-enum",
+    category: "discovery",
+    mitre: "T1069",
+    query:
+      "EventID:4799 -CallerProcessName:*\\services.exe -CallerProcessName:*\\svchost.exe -SubjectUserName:*$",
+    name: { en: "Group membership enumerated by a user", fr: "Appartenance à un groupe énumérée par un utilisateur", de: "Gruppenmitgliedschaft von einem Benutzer aufgezählt", es: "Pertenencia a grupos enumerada por un usuario", it: "Appartenenza a gruppi enumerata da un utente", pt: "Associação a grupo enumerada por um usuário", ja: "ユーザーによるグループメンバーシップの列挙", zh: "用户枚举组成员身份" },
+  },
+  {
+    id: "psexec",
+    category: "lateral",
+    mitre: "T1569.002",
+    query:
+      "EventID:7045 ServiceName:PSEXESVC OR EventID:7045 ImagePath:*PSEXESVC* OR EventID:4697 ServiceName:PSEXESVC OR EventID:5145 RelativeTargetName:*PSEXESVC* OR process:*\\PSEXESVC.exe",
+    name: { en: "PsExec service execution", fr: "Exécution du service PsExec", de: "PsExec-Dienstausführung", es: "Ejecución del servicio PsExec", it: "Esecuzione del servizio PsExec", pt: "Execução do serviço PsExec", ja: "PsExecサービスの実行", zh: "PsExec服务执行" },
+  },
+  {
+    id: "winrm",
+    category: "lateral",
+    mitre: "T1021.006",
+    query:
+      "Provider:*WinRM* EventID:91 OR parent:*\\wsmprovhost.exe OR process:*\\wsmprovhost.exe",
+    name: { en: "WinRM / PowerShell remoting", fr: "WinRM / PowerShell à distance", de: "WinRM / PowerShell-Remoting", es: "WinRM / PowerShell remoto", it: "WinRM / PowerShell remoto", pt: "WinRM / PowerShell remoto", ja: "WinRM / PowerShellリモーティング", zh: "WinRM/PowerShell远程" },
+  },
+  {
+    id: "wmi-exec",
+    category: "lateral",
+    mitre: "T1047",
+    query:
+      "parent:*\\WmiPrvSE.exe process:*\\cmd.exe OR parent:*\\WmiPrvSE.exe process:*\\powershell.exe OR parent:*\\WmiPrvSE.exe process:*\\rundll32.exe",
+    name: { en: "Remote WMI execution (WmiPrvSE spawning shells)", fr: "Exécution WMI distante (WmiPrvSE lançant des shells)", de: "Remote-WMI-Ausführung (WmiPrvSE startet Shells)", es: "Ejecución remota de WMI (WmiPrvSE generando shells)", it: "Esecuzione WMI remota (WmiPrvSE che avvia shell)", pt: "Execução remota via WMI (WmiPrvSE gerando shells)", ja: "リモートWMI実行(WmiPrvSEによるシェル起動)", zh: "远程WMI执行(WmiPrvSE生成shell)" },
+  },
+  {
+    id: "remote-task",
+    category: "lateral",
+    mitre: "T1053.005",
+    query:
+      "EventID:5145 RelativeTargetName:atsvc",
+    name: { en: "Remote scheduled task creation (atsvc pipe)", fr: "Création de tâche planifiée à distance (pipe atsvc)", de: "Erstellung geplanter Aufgaben aus der Ferne (atsvc-Pipe)", es: "Creación remota de tareas programadas (pipe atsvc)", it: "Creazione remota di attività pianificate (pipe atsvc)", pt: "Criação remota de tarefa agendada (pipe atsvc)", ja: "リモートスケジュールタスクの作成(atsvcパイプ)", zh: "远程创建计划任务(atsvc管道)" },
+  },
+  {
+    id: "overpass-the-hash",
+    category: "lateral",
+    mitre: "T1550.002",
+    query:
+      "EventID:4624 LogonType:9 LogonProcessName:seclogo",
+    name: { en: "NewCredentials logons (runas /netonly, overpass-the-hash)", fr: "Connexions NewCredentials (runas /netonly, overpass-the-hash)", de: "NewCredentials-Anmeldungen (runas /netonly, Overpass-the-Hash)", es: "Inicios de sesión NewCredentials (runas /netonly, overpass-the-hash)", it: "Accessi NewCredentials (runas /netonly, overpass-the-hash)", pt: "Logons NewCredentials (runas /netonly, overpass-the-hash)", ja: "NewCredentialsログオン(runas /netonly、overpass-the-hash)", zh: "NewCredentials登录(runas /netonly、overpass-the-hash)" },
+  },
+  {
+    id: "run-keys",
+    category: "persistence",
+    mitre: "T1547.001",
+    query:
+      "Provider:*Sysmon* EventID:13 TargetObject:*\\CurrentVersion\\Run* OR EventID:4657 ObjectName:*\\CurrentVersion\\Run*",
+    name: { en: "Registry Run / RunOnce keys modified", fr: "Clés de registre Run / RunOnce modifiées", de: "Registrierungsschlüssel Run / RunOnce geändert", es: "Claves de registro Run / RunOnce modificadas", it: "Chiavi di registro Run / RunOnce modificate", pt: "Chaves de registro Run / RunOnce modificadas", ja: "レジストリのRun / RunOnceキーの変更", zh: "注册表Run/RunOnce键被修改" },
+  },
+  {
+    id: "startup-folder",
+    category: "persistence",
+    mitre: "T1547.001",
+    query:
+      "Provider:*Sysmon* EventID:11 TargetFilename:\"*\\Start Menu\\Programs\\Startup\\*\"",
+    name: { en: "Files dropped in a Startup folder", fr: "Fichiers déposés dans un dossier Startup", de: "Dateien in einem Startup-Ordner abgelegt", es: "Archivos colocados en una carpeta Startup", it: "File depositati in una cartella Startup", pt: "Arquivos colocados em uma pasta Startup", ja: "Startupフォルダーへのファイル配置", zh: "在Startup文件夹中投放的文件" },
+  },
+  {
+    id: "ifeo",
+    category: "persistence",
+    mitre: "T1546.012",
+    query:
+      "Provider:*Sysmon* EventID:13 TargetObject:\"*\\Image File Execution Options\\*\"",
+    name: { en: "Image File Execution Options changed (debugger hijack)", fr: "Image File Execution Options modifiées (détournement de débogueur)", de: "Image File Execution Options geändert (Debugger-Hijack)", es: "Image File Execution Options modificadas (secuestro de depurador)", it: "Image File Execution Options modificate (dirottamento del debugger)", pt: "Image File Execution Options alteradas (sequestro de depurador)", ja: "Image File Execution Optionsの変更(デバッガーハイジャック)", zh: "Image File Execution Options被更改(调试器劫持)" },
+  },
+  {
+    id: "suspicious-service-path",
+    category: "persistence",
+    mitre: "T1543.003",
+    query:
+      "EventID:7045 ImagePath:*\\Temp\\* OR EventID:7045 ImagePath:*\\AppData\\* OR EventID:7045 ImagePath:*\\Users\\Public\\* OR EventID:7045 ImagePath:*cmd.exe* OR EventID:7045 ImagePath:*powershell* OR EventID:4697 ServiceFileName:*\\Temp\\* OR EventID:4697 ServiceFileName:*powershell*",
+    name: { en: "Services running from temp folders or shells", fr: "Services exécutés depuis des dossiers temporaires ou des shells", de: "Dienste, die aus temporären Ordnern oder Shells ausgeführt werden", es: "Servicios ejecutados desde carpetas temporales o shells", it: "Servizi eseguiti da cartelle temporanee o shell", pt: "Serviços executados a partir de pastas temporárias ou shells", ja: "一時フォルダーやシェルから実行されるサービス", zh: "从临时文件夹或shell运行的服务" },
+  },
+  {
+    id: "pwd-never-expires",
+    category: "persistence",
+    mitre: "T1098",
+    query:
+      "EventID:4738 UserAccountControl:*%%2089* OR EventID:4720 UserAccountControl:*%%2089*",
+    name: { en: "Password set to never expire", fr: "Mot de passe défini pour ne jamais expirer", de: "Kennwort auf 'läuft nie ab' gesetzt", es: "Contraseña configurada para no caducar nunca", it: "Password impostata per non scadere mai", pt: "Senha definida para nunca expirar", ja: "パスワードを無期限に設定", zh: "密码设置为永不过期" },
+  },
+  {
+    id: "bits-jobs",
+    category: "persistence",
+    mitre: "T1197",
+    query:
+      "Provider:*Bits-Client* EventID:59 OR process:*\\bitsadmin.exe",
+    name: { en: "BITS transfer jobs", fr: "Tâches de transfert BITS", de: "BITS-Übertragungsaufträge", es: "Trabajos de transferencia BITS", it: "Processi di trasferimento BITS", pt: "Tarefas de transferência BITS", ja: "BITS転送ジョブ", zh: "BITS传输作业" },
+  },
+  {
+    id: "office-child",
+    category: "execution",
+    mitre: "T1204.002",
+    query:
+      "parent:*\\winword.exe OR parent:*\\excel.exe OR parent:*\\powerpnt.exe OR parent:*\\outlook.exe OR parent:*\\onenote.exe OR parent:*\\mspub.exe",
+    name: { en: "Processes started by Office apps (malicious documents)", fr: "Processus démarrés par des applications Office (documents malveillants)", de: "Von Office-Anwendungen gestartete Prozesse (bösartige Dokumente)", es: "Procesos iniciados por aplicaciones de Office (documentos maliciosos)", it: "Processi avviati da applicazioni Office (documenti dannosi)", pt: "Processos iniciados por aplicativos do Office (documentos maliciosos)", ja: "Officeアプリから起動されたプロセス(悪意のある文書)", zh: "由Office应用启动的进程(恶意文档)" },
+  },
+  {
+    id: "script-hosts",
+    category: "execution",
+    mitre: "T1059.005",
+    query:
+      "process:*\\wscript.exe OR process:*\\cscript.exe OR process:*\\hh.exe",
+    name: { en: "Script hosts (wscript, cscript, hh)", fr: "Hôtes de script (wscript, cscript, hh)", de: "Skript-Hosts (wscript, cscript, hh)", es: "Hosts de scripts (wscript, cscript, hh)", it: "Host di script (wscript, cscript, hh)", pt: "Hosts de script (wscript, cscript, hh)", ja: "スクリプトホスト(wscript、cscript、hh)", zh: "脚本宿主(wscript、cscript、hh)" },
+  },
+  {
+    id: "temp-exec",
+    category: "execution",
+    mitre: "T1204",
+    query:
+      "process:*\\AppData\\Local\\Temp\\*.exe OR process:*\\Users\\Public\\*.exe OR process:*\\Windows\\Temp\\*.exe OR process:*\\Downloads\\*.exe",
+    name: { en: "Executables run from Temp, Public or Downloads", fr: "Exécutables lancés depuis Temp, Public ou Downloads", de: "Ausführbare Dateien aus Temp, Public oder Downloads gestartet", es: "Ejecutables ejecutados desde Temp, Public o Downloads", it: "Eseguibili avviati da Temp, Public o Downloads", pt: "Executáveis executados a partir de Temp, Public ou Downloads", ja: "Temp、Public、Downloadsから実行された実行ファイル", zh: "从Temp、Public或Downloads运行的可执行文件" },
+  },
+  {
+    id: "download-cradle",
+    category: "execution",
+    mitre: "T1105",
+    query:
+      "CommandLine:*DownloadString* OR CommandLine:*DownloadFile* OR CommandLine:*Invoke-WebRequest* OR CommandLine:\"*iwr *http*\" OR CommandLine:*curl*http* OR CommandLine:*wget*http* OR CommandLine:*certutil*-urlcache*",
+    name: { en: "Download cradles in command lines", fr: "Download cradles dans les lignes de commande", de: "Download-Cradles in Befehlszeilen", es: "Download cradles en líneas de comandos", it: "Download cradle nelle righe di comando", pt: "Download cradles em linhas de comando", ja: "コマンドライン内のDownload Cradle", zh: "命令行中的Download Cradle" },
+  },
+  {
+    id: "amsi-bypass",
+    category: "evasion",
+    mitre: "T1562.001",
+    query:
+      "ScriptBlockText:*AmsiUtils* OR ScriptBlockText:*amsiInitFailed* OR ScriptBlockText:*AmsiScanBuffer*",
+    name: { en: "AMSI bypass attempts", fr: "Tentatives de contournement AMSI", de: "AMSI-Bypass-Versuche", es: "Intentos de evasión de AMSI", it: "Tentativi di bypass AMSI", pt: "Tentativas de bypass do AMSI", ja: "AMSIバイパスの試行", zh: "AMSI绕过尝试" },
+  },
+  {
+    id: "wevtutil-clear",
+    category: "evasion",
+    mitre: "T1070.001",
+    query:
+      "CommandLine:\"*wevtutil*cl *\" OR CommandLine:*Clear-EventLog* OR ScriptBlockText:*Clear-EventLog*",
+    name: { en: "Log clearing commands (wevtutil cl, Clear-EventLog)", fr: "Commandes d'effacement de journaux (wevtutil cl, Clear-EventLog)", de: "Protokolllöschbefehle (wevtutil cl, Clear-EventLog)", es: "Comandos de borrado de registros (wevtutil cl, Clear-EventLog)", it: "Comandi di cancellazione dei log (wevtutil cl, Clear-EventLog)", pt: "Comandos de limpeza de logs (wevtutil cl, Clear-EventLog)", ja: "ログクリアコマンド(wevtutil cl、Clear-EventLog)", zh: "日志清除命令(wevtutil cl、Clear-EventLog)" },
+  },
+  {
+    id: "firewall-off",
+    category: "evasion",
+    mitre: "T1562.004",
+    query:
+      "CommandLine:*advfirewall*state*off* OR CommandLine:*firewall*set*opmode*disable* OR ScriptBlockText:*Set-NetFirewallProfile*-Enabled*False*",
+    name: { en: "Firewall disabled from the command line", fr: "Pare-feu désactivé depuis la ligne de commande", de: "Firewall über die Befehlszeile deaktiviert", es: "Firewall deshabilitado desde la línea de comandos", it: "Firewall disabilitato dalla riga di comando", pt: "Firewall desativado pela linha de comando", ja: "コマンドラインからのファイアウォール無効化", zh: "通过命令行禁用防火墙" },
+  },
+  {
+    id: "defender-tamper",
+    category: "evasion",
+    mitre: "T1562.001",
+    query:
+      "CommandLine:*Set-MpPreference*-Disable* OR ScriptBlockText:*Set-MpPreference*-Disable* OR CommandLine:*Add-MpPreference*-ExclusionPath* OR ScriptBlockText:*Add-MpPreference*-Exclusion*",
+    name: { en: "Defender disabled or exclusions added", fr: "Defender désactivé ou exclusions ajoutées", de: "Defender deaktiviert oder Ausnahmen hinzugefügt", es: "Defender deshabilitado o exclusiones añadidas", it: "Defender disabilitato o esclusioni aggiunte", pt: "Defender desativado ou exclusões adicionadas", ja: "Defenderの無効化または除外の追加", zh: "Defender被禁用或添加了排除项" },
+  },
+  {
+    id: "service-disabled",
+    category: "evasion",
+    mitre: "T1562.001",
+    query:
+      "EventID:7040 param3:disabled",
+    name: { en: "Service start type set to disabled", fr: "Type de démarrage du service défini sur désactivé", de: "Diensttyp auf 'Deaktiviert' gesetzt", es: "Tipo de inicio del servicio establecido en deshabilitado", it: "Tipo di avvio del servizio impostato su disabilitato", pt: "Tipo de inicialização do serviço definido como desativado", ja: "サービスの開始種別を無効に設定", zh: "服务启动类型设置为禁用" },
+  },
+  {
+    id: "sysmon-tamper",
+    category: "evasion",
+    mitre: "T1562.006",
+    query:
+      "Provider:*Sysmon* EventID:16 OR Provider:*Sysmon* EventID:4",
+    name: { en: "Sysmon configuration or service state changed", fr: "Configuration Sysmon ou état du service modifié", de: "Sysmon-Konfiguration oder Dienststatus geändert", es: "Configuración de Sysmon o estado del servicio modificado", it: "Configurazione di Sysmon o stato del servizio modificato", pt: "Configuração do Sysmon ou estado do serviço alterado", ja: "Sysmonの設定またはサービス状態の変更", zh: "Sysmon配置或服务状态变更" },
+  },
+  {
+    id: "timestomp",
+    category: "evasion",
+    mitre: "T1070.006",
+    query:
+      "Provider:*Sysmon* EventID:2",
+    name: { en: "File creation time changed (timestomping)", fr: "Date de création de fichier modifiée (timestomping)", de: "Dateierstellungszeit geändert (Timestomping)", es: "Fecha de creación de archivo modificada (timestomping)", it: "Data di creazione del file modificata (timestomping)", pt: "Data de criação de arquivo alterada (timestomping)", ja: "ファイル作成日時の変更(timestomping)", zh: "文件创建时间被更改(timestomping)" },
+  },
+  {
+    id: "remote-thread",
+    category: "evasion",
+    mitre: "T1055",
+    query:
+      "Provider:*Sysmon* EventID:8",
+    name: { en: "Remote thread creation (process injection)", fr: "Création de thread distant (injection de processus)", de: "Erstellung eines Remote-Threads (Process Injection)", es: "Creación de hilo remoto (inyección de procesos)", it: "Creazione di thread remoto (process injection)", pt: "Criação de thread remota (injeção de processo)", ja: "リモートスレッドの作成(プロセスインジェクション)", zh: "远程线程创建(进程注入)" },
+  },
+  {
+    id: "shadow-delete",
+    category: "impact",
+    mitre: "T1490",
+    query:
+      "CommandLine:*vssadmin*delete*shadows* OR CommandLine:*shadowcopy*delete* OR CommandLine:*wbadmin*delete* OR CommandLine:*bcdedit*recoveryenabled*no* OR ScriptBlockText:*Win32_ShadowCopy*Delete*",
+    name: { en: "Shadow copies or backups deleted (ransomware)", fr: "Suppression de clichés instantanés ou de sauvegardes (rançongiciel)", de: "Schattenkopien oder Backups gelöscht (Ransomware)", es: "Copias de sombra o copias de seguridad eliminadas (ransomware)", it: "Copie shadow o backup eliminati (ransomware)", pt: "Cópias de sombra ou backups excluídos (ransomware)", ja: "シャドウコピーまたはバックアップの削除(ランサムウェア)", zh: "卷影副本或备份被删除(勒索软件)" },
   },
 ];

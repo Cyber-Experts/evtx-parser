@@ -986,6 +986,8 @@ export function EvtxUploader({
       ...META_FIELD_NAMES,
       "logonid",
       "processguid",
+      "process",
+      "parent",
       ...preferred,
       ...facets.eventDataKeys.filter((k) => !pref.has(k.toLowerCase())),
     ];
