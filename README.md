@@ -11,7 +11,7 @@ Live site: <https://www.evtxparser.com>
 - `@next-md-blog/core` for the blog, glossary, and event-ID library
 - Rust + `wasm-bindgen` (crate at `crates/evtx-wasm/`), built with `wasm-pack`
 - 8 locales: `en, fr, es, de, it, pt, ja, zh`
-- Built on top of the [`website-template`](https://github.com/FAKGR0UP/website-template) SEO/i18n base
+- Built on top of an internal SEO/i18n website template
 
 ## Repo layout
 
@@ -82,8 +82,9 @@ npm test
 
 Vitest suites cover the query language, event decoding, descriptions, hunts,
 logon sessions and time formatting. Suites that run against real `.evtx`
-fixtures skip automatically when `tests/fixtures/evtx/` is absent (as in the
-public repository).
+fixtures skip automatically when those files are absent: the fixtures come
+from a training disk image and are not distributed with the repository (see
+`tests/fixtures/evtx/README.md`).
 
 ## Adding content
 
@@ -165,6 +166,8 @@ NEXT_PUBLIC_ANALYTICS_ID=…
 Files never leave the browser. The parser is a WASM module executing in a web worker on the visitor's device; the server never sees the file bytes, the filename, or the parsed records. No analytics event carries any field from a parsed log.
 
 ## License
+
+© 2026 [Cyber Experts](https://github.com/Cyber-Experts) — contact@cyberexperts.io.
 
 [Elastic License 2.0](LICENSE). You may use, modify and run it — including
 for commercial incident-response work — but you may not offer it to third

@@ -40,3 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+
+# Real-log test fixtures (not distributed; see tests/fixtures/evtx/README.md)
+/tests/fixtures/evtx/*.evtx
+
+# Rust build intermediates (the deployable WASM lives in lib/evtx-wasm and public/)
+/crates/evtx-wasm/target/
