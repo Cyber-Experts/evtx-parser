@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="13" fill="#0a0d14"/>
-  <!-- event-frequency histogram; the amber bar is the anomaly the parser surfaces -->
-  <g>
-    <rect x="7"  y="34" width="7" height="14" rx="1.5" fill="#e7e9ee" opacity="0.45"/>
-    <rect x="18" y="24" width="7" height="24" rx="1.5" fill="#e7e9ee" opacity="0.55"/>
-    <rect x="29" y="12" width="7" height="36" rx="1.5" fill="#f59e0b"/>
-    <rect x="40" y="28" width="7" height="20" rx="1.5" fill="#e7e9ee" opacity="0.55"/>
-    <rect x="51" y="36" width="7" height="12" rx="1.5" fill="#e7e9ee" opacity="0.45"/>
+  <defs>
+    <radialGradient id="haze" cx="0.3" cy="0.25" r="0.85">
+      <stop offset="0" stop-color="#7b4cff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#7b4cff" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="lens"><circle cx="27" cy="27" r="16"/></clipPath>
+  </defs>
+  <!-- case-file ink tile under an ultraviolet lamp -->
+  <rect width="64" height="64" rx="14" fill="#0b0c16"/>
+  <rect width="64" height="64" rx="14" fill="url(#haze)"/>
+  <!-- event histogram seen through the lens; the peak glows -->
+  <g clip-path="url(#lens)">
+    <rect x="14" y="30" width="5" height="16" rx="1.5" fill="#d8dbe7" opacity="0.4"/>
+    <rect x="21" y="22" width="5" height="24" rx="1.5" fill="#d8dbe7" opacity="0.6"/>
+    <rect x="28" y="13" width="5" height="33" rx="1.5" fill="#bdf01e"/>
+    <rect x="35" y="25" width="5" height="21" rx="1.5" fill="#d8dbe7" opacity="0.5"/>
   </g>
+  <circle cx="27" cy="27" r="17.5" fill="none" stroke="#9772ff" stroke-width="4.5"/>
+  <line x1="40" y1="40" x2="52" y2="52" stroke="#9772ff" stroke-width="6.5" stroke-linecap="round"/>
 </svg>

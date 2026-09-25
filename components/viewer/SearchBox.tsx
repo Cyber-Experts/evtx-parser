@@ -117,7 +117,7 @@ export function SearchBox({
           className={`w-full min-w-0 rounded-md border bg-transparent px-3 py-1.5 font-mono text-xs outline-none ${
             invalid
               ? "border-red-400 focus:border-red-500"
-              : "border-zinc-300 focus:border-amber-500 dark:border-zinc-700 dark:focus:border-amber-400"
+              : "border-ink-300 focus:border-uv-500 dark:border-ink-700 dark:focus:border-uv-400"
           }`}
         />
         <button
@@ -126,7 +126,7 @@ export function SearchBox({
           aria-expanded={showHelp}
           aria-label={v.syntaxHelp}
           title={v.syntaxHelp}
-          className="shrink-0 rounded-md border border-zinc-200 px-2 py-1 font-mono text-xs text-zinc-500 hover:border-amber-400 dark:border-zinc-800"
+          className="shrink-0 rounded-md border border-ink-200 px-2 py-1 font-mono text-xs text-ink-500 hover:border-uv-400 dark:border-ink-800"
         >
           ?
         </button>
@@ -137,7 +137,7 @@ export function SearchBox({
           id="search-suggestions"
           role="listbox"
           aria-label={v.suggestions}
-          className="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-auto rounded-md border border-zinc-200 bg-white py-1 font-mono text-xs shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
+          className="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-auto rounded-md border border-ink-200 bg-white py-1 font-mono text-xs shadow-lg dark:border-ink-800 dark:bg-ink-900"
         >
           {suggestions.map((s, i) => (
             <li
@@ -152,13 +152,13 @@ export function SearchBox({
               onMouseEnter={() => setActive(i)}
               className={`flex cursor-pointer items-center justify-between gap-3 px-3 py-1 ${
                 i === activeIdx
-                  ? "bg-amber-500/15 text-amber-800 dark:text-amber-200"
-                  : "text-zinc-700 dark:text-zinc-300"
+                  ? "bg-uv-500/15 text-uv-800 dark:text-uv-200"
+                  : "text-ink-700 dark:text-ink-300"
               }`}
             >
               <span className="truncate">{s.label}</span>
               {s.hint && (
-                <span className="shrink-0 tabular-nums text-zinc-400">
+                <span className="shrink-0 tabular-nums text-ink-400">
                   {s.hint}
                 </span>
               )}
@@ -168,8 +168,8 @@ export function SearchBox({
       )}
 
       {showHelp && (
-        <div className="absolute left-0 top-full z-30 mt-1 w-full max-w-md rounded-md border border-zinc-200 bg-white p-3 text-xs shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="mb-2 font-semibold text-zinc-900 dark:text-zinc-100">
+        <div className="absolute left-0 top-full z-30 mt-1 w-full max-w-md rounded-md border border-ink-200 bg-white p-3 text-xs shadow-lg dark:border-ink-800 dark:bg-ink-900">
+          <div className="mb-2 font-semibold text-ink-900 dark:text-ink-100">
             {v.syntaxHelp}
           </div>
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
@@ -187,11 +187,11 @@ export function SearchBox({
             ).map(([code, desc]) => (
               <div key={code} className="contents">
                 <dt>
-                  <code className="whitespace-pre rounded bg-zinc-100 px-1 font-mono text-[11px] text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                  <code className="whitespace-pre rounded bg-ink-100 px-1 font-mono text-[11px] text-ink-800 dark:bg-ink-800 dark:text-ink-200">
                     {code}
                   </code>
                 </dt>
-                <dd className="text-zinc-600 dark:text-zinc-400">{desc}</dd>
+                <dd className="text-ink-600 dark:text-ink-400">{desc}</dd>
               </div>
             ))}
           </dl>

@@ -112,8 +112,8 @@ export function useColumnLayout(order: string[]) {
   const css = useMemo(() => {
     const t = `#${EVENTS_TABLE_ID}`;
     const rules: string[] = [
-      `${t}{--pin-bg:#fff;--pin-head:#fafafa}`,
-      `.dark ${t}{--pin-bg:#09090b;--pin-head:#18181b}`,
+      `${t}{--pin-bg:#fcfcfe;--pin-head:#f5f6fa}`,
+      `.dark ${t}{--pin-bg:#0a0b14;--pin-head:#171a29}`,
     ];
     for (const [col, w] of Object.entries(layout.widths)) {
       if (!order.includes(col)) continue;
@@ -188,7 +188,7 @@ export function ColumnTools({
         title={v.resizeColumn}
         onPointerDown={(e) => onResizeStart(col, e)}
         onDoubleClick={() => onAutoSize(col)}
-        className="absolute inset-y-0 right-0 w-1.5 cursor-col-resize touch-none select-none hover:bg-amber-400/60"
+        className="absolute inset-y-0 right-0 w-1.5 cursor-col-resize touch-none select-none hover:bg-uv-400/60"
       />
     </>
   );

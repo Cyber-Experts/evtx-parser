@@ -75,6 +75,13 @@ const nextConfig: NextConfig = {
   // Self-contained server bundle for the Docker image (see Dockerfile);
   // regular builds, including Vercel's, are unchanged.
   ...(process.env.NEXT_OUTPUT_STANDALONE === "1" ? { output: "standalone" as const } : {}),
+  // OG images read the bundled Plex fonts from assets/fonts at runtime.
+  outputFileTracingIncludes: {
+    "/opengraph-image": ["./assets/fonts/**"],
+    "/[lang]/opengraph-image": ["./assets/fonts/**"],
+    "/[lang]/twitter-image": ["./assets/fonts/**"],
+    "/[lang]/blog/[slug]/opengraph-image": ["./assets/fonts/**"],
+  },
   poweredByHeader: false,
   trailingSlash: false,
   experimental: {

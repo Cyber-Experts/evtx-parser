@@ -132,10 +132,10 @@ export default async function EventIdsPage({
         ]}
       />
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-3xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink-900 dark:text-ink-100 sm:text-3xl">
           {dict.eventIds.title}
         </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-ink-600 dark:text-ink-400">
           {dict.eventIds.intro}
         </p>
       </header>
@@ -144,7 +144,7 @@ export default async function EventIdsPage({
         <section
           key={channel.key}
           aria-labelledby={`ch-${channel.channelPath}`}
-          className="flex flex-col gap-3 border-t border-zinc-200 pt-6 dark:border-zinc-800"
+          className="flex flex-col gap-3 border-t border-ink-200 pt-6 dark:border-ink-800"
         >
           <h2
             id={`ch-${channel.channelPath}`}
@@ -155,7 +155,7 @@ export default async function EventIdsPage({
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="border-b border-zinc-200 text-left text-xs font-medium text-zinc-500 dark:border-zinc-800">
+                <tr className="border-b border-ink-200 text-left text-xs font-medium text-ink-500 dark:border-ink-800">
                   <th className="py-2 pr-3 font-mono">
                     {dict.eventIds.columnId}
                   </th>
@@ -167,9 +167,9 @@ export default async function EventIdsPage({
                 {channel.rows.map((row) => (
                   <tr
                     key={row.id}
-                    className="border-b border-zinc-100 align-top dark:border-zinc-900"
+                    className="border-b border-ink-100 align-top dark:border-ink-900"
                   >
-                    <td className="whitespace-nowrap py-2 pr-3 font-mono text-zinc-900 dark:text-zinc-100">
+                    <td className="whitespace-nowrap py-2 pr-3 font-mono text-ink-900 dark:text-ink-100">
                       <Link
                         href={`/${locale}/event-id/${row.id}`}
                         className="underline-offset-2 hover:underline"
@@ -177,7 +177,7 @@ export default async function EventIdsPage({
                         {row.id}
                       </Link>
                     </td>
-                    <td className="py-2 pr-3 text-zinc-800 dark:text-zinc-200">
+                    <td className="py-2 pr-3 text-ink-800 dark:text-ink-200">
                       <Link
                         href={`/${locale}/event-id/${row.id}`}
                         className="underline-offset-2 hover:underline"
@@ -185,7 +185,7 @@ export default async function EventIdsPage({
                         {row.name}
                       </Link>
                     </td>
-                    <td className="py-2 text-zinc-600 dark:text-zinc-400">
+                    <td className="py-2 text-ink-600 dark:text-ink-400">
                       {row.notes}
                     </td>
                   </tr>

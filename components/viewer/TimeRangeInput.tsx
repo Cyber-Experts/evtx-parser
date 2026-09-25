@@ -57,7 +57,7 @@ export function TimeRangeInput({
   const invalid = a != null && b != null && a >= b;
 
   const input =
-    "rounded-md border border-zinc-300 bg-transparent px-2 py-1 font-mono text-xs outline-none focus:border-amber-500 dark:border-zinc-700 dark:[color-scheme:dark]";
+    "rounded-md border border-ink-300 bg-transparent px-2 py-1 font-mono text-xs outline-none focus:border-uv-500 dark:border-ink-700 dark:[color-scheme:dark]";
 
   return (
     <form
@@ -68,9 +68,9 @@ export function TimeRangeInput({
         if (a != null && b != null && !invalid) onApply([a, b + 1000]);
       }}
     >
-      <span className="text-zinc-500">⏱ {v.rangeTitle}</span>
+      <span className="text-ink-500">⏱ {v.rangeTitle}</span>
       <label className="flex items-center gap-1">
-        <span className="text-zinc-500">{v.rangeFrom}</span>
+        <span className="text-ink-500">{v.rangeFrom}</span>
         <input
           type="datetime-local"
           step={1}
@@ -80,7 +80,7 @@ export function TimeRangeInput({
         />
       </label>
       <label className="flex items-center gap-1">
-        <span className="text-zinc-500">{v.rangeTo}</span>
+        <span className="text-ink-500">{v.rangeTo}</span>
         <input
           type="datetime-local"
           step={1}
@@ -89,11 +89,11 @@ export function TimeRangeInput({
           className={`${input} ${invalid ? "border-red-400" : ""}`}
         />
       </label>
-      <span className="font-mono text-zinc-400">{zone}</span>
+      <span className="font-mono text-ink-400">{zone}</span>
       <button
         type="submit"
         disabled={a == null || b == null || invalid}
-        className="rounded-md border border-zinc-300 px-2 py-1 text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+        className="rounded-md border border-ink-300 px-2 py-1 text-ink-700 hover:bg-ink-100 disabled:opacity-40 dark:border-ink-700 dark:text-ink-300 dark:hover:bg-ink-900"
       >
         {v.rangeApply}
       </button>
@@ -101,7 +101,7 @@ export function TimeRangeInput({
         <button
           type="button"
           onClick={() => onApply(null)}
-          className="rounded-md border border-zinc-200 px-2 py-1 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          className="rounded-md border border-ink-200 px-2 py-1 text-ink-600 hover:bg-ink-100 dark:border-ink-800 dark:text-ink-300 dark:hover:bg-ink-900"
         >
           {dict.home.clearTime}
         </button>

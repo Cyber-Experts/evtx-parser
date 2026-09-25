@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import { notFound } from "next/navigation";
 import Script from "next/script";
 import "../globals.css";
 
 import { siteConfig } from "@/site.config";
+import { fontVariables } from "@/lib/fonts";
+import { getDict } from "@/src/dict";
 import { LOCALES, hreflangFor, type Locale } from "@/lib/i18n";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/site-header";
@@ -19,16 +20,6 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { generateOrganizationSchema } from "@next-md-blog/core";
 import { site } from "@/next-md-blog.config";
 import { getDictionary, hasLocale } from "./dictionaries";
-
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
-});
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-});
 
 type Params = { lang: string };
 
@@ -99,8 +90,8 @@ export async function generateMetadata({
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0d14" },
+    { media: "(prefers-color-scheme: light)", color: "#fcfcfe" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0b14" },
   ],
   colorScheme: "light dark",
   width: "device-width",
@@ -121,7 +112,7 @@ export default async function LangLayout({
     <html
       lang={lang}
       suppressHydrationWarning
-      className={`${geistSans.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable}`}
+      className={fontVariables}
     >
       <head>
         <ResourceHints />
@@ -136,7 +127,11 @@ export default async function LangLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <SiteHeader locale={lang as Locale} dict={dict} />
           <div className="flex-1">{children}</div>
-          <SiteFooter locale={lang as Locale} dict={dict} />
+          <SiteFooter
+            locale={lang as Locale}
+            dict={dict}
+            tagline={getDict(lang as Locale).home.footerTagline}
+          />
         </ThemeProvider>
         <WebsiteJsonLd locale={lang} />
         <JsonLd data={generateOrganizationSchema(site)} />

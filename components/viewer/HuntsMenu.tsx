@@ -117,18 +117,18 @@ export function HuntsMenu<R extends Row>({
         aria-expanded={open}
         className={`rounded-md border px-2 py-1 text-xs transition-colors ${
           open
-            ? "border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300"
-            : "border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+            ? "border-uv-500 bg-uv-500/15 text-uv-700 dark:text-uv-300"
+            : "border-ink-300 text-ink-700 hover:bg-ink-100 dark:border-ink-700 dark:text-ink-300 dark:hover:bg-ink-900"
         }`}
       >
         🎯 {v.hunts}
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 max-h-[70vh] w-[min(28rem,calc(100vw-2rem))] overflow-y-auto rounded-md border border-zinc-200 bg-white p-2 text-xs shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="px-1 pb-2 text-zinc-500">
+        <div className="absolute left-0 top-full z-30 mt-1 max-h-[70vh] w-[min(28rem,calc(100vw-2rem))] overflow-y-auto rounded-md border border-ink-200 bg-white p-2 text-xs shadow-lg dark:border-ink-800 dark:bg-ink-900">
+          <p className="px-1 pb-2 text-ink-500">
             {v.huntsHint}
             {!counts && (
-              <span className="ml-1 font-mono text-amber-600 dark:text-amber-400">
+              <span className="ml-1 font-mono text-uv-600 dark:text-uv-400">
                 {Math.round(progress * 100)}%
               </span>
             )}
@@ -140,14 +140,14 @@ export function HuntsMenu<R extends Row>({
               onChange={(e) => setNeedle(e.target.value)}
               placeholder={v.huntsFilter}
               autoFocus
-              className="min-w-0 flex-1 rounded border border-zinc-200 bg-transparent px-2 py-1 outline-none focus:border-amber-500 dark:border-zinc-700"
+              className="min-w-0 flex-1 rounded border border-ink-200 bg-transparent px-2 py-1 outline-none focus:border-uv-500 dark:border-ink-700"
             />
-            <label className="flex shrink-0 items-center gap-1 text-zinc-500">
+            <label className="flex shrink-0 items-center gap-1 text-ink-500">
               <input
                 type="checkbox"
                 checked={hitsOnly}
                 onChange={(e) => setHitsOnly(e.target.checked)}
-                className="accent-amber-500"
+                className="accent-uv-500"
               />
               {v.hitsOnly}
             </label>
@@ -166,7 +166,7 @@ export function HuntsMenu<R extends Row>({
             if (items.length === 0) return null;
             return (
               <div key={cat} className="pb-2">
-                <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-zinc-400">
+                <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-ink-400">
                   {categoryLabel[cat]}
                 </div>
                 {items.map((h) => {
@@ -183,10 +183,10 @@ export function HuntsMenu<R extends Row>({
                       title={`${h.mitre ? `MITRE ATT&CK ${h.mitre}\n` : ""}${h.query}`}
                       className={`flex w-full items-center justify-between gap-3 rounded px-1.5 py-1 text-left ${
                         active
-                          ? "bg-amber-500/15 text-amber-800 dark:text-amber-200"
+                          ? "bg-uv-500/15 text-uv-800 dark:text-uv-200"
                           : n > 0
-                            ? "text-zinc-800 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                            : "text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                            ? "text-ink-800 hover:bg-ink-100 dark:text-ink-200 dark:hover:bg-ink-800"
+                            : "text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-800"
                       }`}
                     >
                       <span className="min-w-0 truncate">
@@ -195,8 +195,8 @@ export function HuntsMenu<R extends Row>({
                       <span
                         className={`shrink-0 rounded px-1.5 font-mono tabular-nums ${
                           n > 0
-                            ? "bg-amber-500/20 text-amber-800 dark:text-amber-200"
-                            : "text-zinc-400"
+                            ? "bg-glow-300/70 text-ink-950 dark:bg-glow-400/20 dark:text-glow-300"
+                            : "text-ink-400"
                         }`}
                       >
                         {counts ? n : "…"}

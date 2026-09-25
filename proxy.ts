@@ -33,6 +33,12 @@ export function proxy(request: NextRequest) {
     pathname === "/feed.xml" ||
     pathname === "/manifest.webmanifest" ||
     pathname === "/favicon.ico" ||
+    // Root metadata image routes (no extension, so PUBLIC_FILE misses them):
+    // redirecting them to /<locale>/… breaks the apple-touch-icon link.
+    pathname === "/apple-icon" ||
+    pathname === "/icon" ||
+    pathname === "/opengraph-image" ||
+    pathname === "/twitter-image" ||
     PUBLIC_FILE.test(pathname)
   ) {
     return;

@@ -354,17 +354,17 @@ export default async function ToolsPage({
         ]}
       />
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-3xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink-900 dark:text-ink-100 sm:text-3xl">
           {dict.tools.title}
         </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-ink-600 dark:text-ink-400">
           {dict.tools.intro}
         </p>
       </header>
 
       <section
         aria-labelledby="tools-summary"
-        className="flex flex-col gap-3 border-t border-zinc-200 pt-6 dark:border-zinc-800"
+        className="flex flex-col gap-3 border-t border-ink-200 pt-6 dark:border-ink-800"
       >
         <h2 id="tools-summary" className="sr-only">
           {dict.tools.title}
@@ -372,7 +372,7 @@ export default async function ToolsPage({
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="border-b border-zinc-200 text-left text-xs font-medium text-zinc-500 dark:border-zinc-800">
+              <tr className="border-b border-ink-200 text-left text-xs font-medium text-ink-500 dark:border-ink-800">
                 <th className="py-2 pr-3">{dict.tools.columnTool}</th>
                 <th className="py-2 pr-3">{dict.tools.columnPlatform}</th>
                 <th className="py-2 pr-3">{dict.tools.columnUseCase}</th>
@@ -383,9 +383,9 @@ export default async function ToolsPage({
               {TOOLS.map((t) => (
                 <tr
                   key={t.id}
-                  className="border-b border-zinc-100 align-top dark:border-zinc-900"
+                  className="border-b border-ink-100 align-top dark:border-ink-900"
                 >
-                  <td className="py-2 pr-3 font-medium text-zinc-900 dark:text-zinc-100">
+                  <td className="py-2 pr-3 font-medium text-ink-900 dark:text-ink-100">
                     <a
                       href={`#${t.id}`}
                       className="underline-offset-2 hover:underline"
@@ -393,13 +393,13 @@ export default async function ToolsPage({
                       {t.name}
                     </a>
                   </td>
-                  <td className="py-2 pr-3 text-zinc-700 dark:text-zinc-300">
+                  <td className="py-2 pr-3 text-ink-700 dark:text-ink-300">
                     {t.platform}
                   </td>
-                  <td className="py-2 pr-3 text-zinc-700 dark:text-zinc-300">
+                  <td className="py-2 pr-3 text-ink-700 dark:text-ink-300">
                     {t.useCase}
                   </td>
-                  <td className="py-2 text-zinc-700 dark:text-zinc-300">
+                  <td className="py-2 text-ink-700 dark:text-ink-300">
                     {t.license}
                   </td>
                 </tr>
@@ -414,7 +414,7 @@ export default async function ToolsPage({
           key={t.id}
           id={t.id}
           aria-labelledby={`${t.id}-heading`}
-          className="flex flex-col gap-3 border-t border-zinc-200 pt-6 dark:border-zinc-800"
+          className="flex flex-col gap-3 border-t border-ink-200 pt-6 dark:border-ink-800"
         >
           <h2
             id={`${t.id}-heading`}
@@ -438,7 +438,7 @@ export default async function ToolsPage({
               </a>
             )}
           </h2>
-          <div className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+          <div className="text-sm leading-relaxed text-ink-700 dark:text-ink-300">
             {t.body}
           </div>
         </section>

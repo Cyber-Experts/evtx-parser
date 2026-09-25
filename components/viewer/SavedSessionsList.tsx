@@ -65,27 +65,27 @@ export function SavedSessionsList({
   const details = (s: SavedSessionMeta) =>
     `${num.format(s.files.length)} ${s.files.length === 1 ? v.fileLabel : v.filesLabel} · ${formatBytes(s.totalSize)} · ${num.format(s.events)} ${dict.home.eventsLabel}`;
   const btn =
-    "rounded-md border border-zinc-300 px-2.5 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900";
+    "rounded-md border border-ink-300 px-2.5 py-1 text-xs text-ink-700 hover:bg-ink-100 disabled:opacity-50 dark:border-ink-700 dark:text-ink-300 dark:hover:bg-ink-900";
 
   return (
     <section
       aria-label={v.savedSessionsTitle}
-      className="flex flex-col gap-2 rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800"
+      className="surface flex flex-col gap-2 p-5 text-sm"
     >
       <div className="flex flex-col gap-0.5">
-        <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">💾 {v.savedSessionsTitle}</h2>
-        <p className="text-xs text-zinc-500">{v.savedSessionsHint}</p>
+        <h2 className="font-semibold text-ink-900 dark:text-ink-100">💾 {v.savedSessionsTitle}</h2>
+        <p className="text-xs text-ink-500">{v.savedSessionsHint}</p>
       </div>
-      <ul className="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
+      <ul className="flex flex-col divide-y divide-ink-100 dark:divide-ink-800">
         {sessions.map((s) => (
           <li key={s.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
             <span
-              className="min-w-0 flex-1 truncate font-medium text-zinc-900 dark:text-zinc-100"
+              className="min-w-0 flex-1 truncate font-medium text-ink-900 dark:text-ink-100"
               title={s.files.map((f) => f.name).join("\n")}
             >
               {s.name}
             </span>
-            <span className="font-mono text-xs text-zinc-500">
+            <span className="font-mono text-xs text-ink-500">
               {details(s)} · {dateFmt.format(s.savedAt)}
             </span>
             <span className="flex gap-1.5">
@@ -93,7 +93,7 @@ export function SavedSessionsList({
                 type="button"
                 disabled={busy}
                 onClick={() => onResume(s.id)}
-                className="rounded-md border border-zinc-900 bg-zinc-900 px-2.5 py-1 text-xs font-medium text-zinc-50 hover:bg-zinc-700 disabled:opacity-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                className="rounded-md border border-ink-900 bg-ink-900 px-2.5 py-1 text-xs font-medium text-ink-50 hover:bg-ink-700 disabled:opacity-50 dark:border-ink-100 dark:bg-ink-100 dark:text-ink-900"
               >
                 {v.resumeSession}
               </button>

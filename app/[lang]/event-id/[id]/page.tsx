@@ -226,37 +226,37 @@ export default async function EventIdPage({
       />
 
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-3xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink-900 dark:text-ink-100 sm:text-3xl">
           {title}
         </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-ink-600 dark:text-ink-400">
           {dict.eventId.intro}
         </p>
       </header>
 
-      <dl className="grid grid-cols-1 gap-3 border-t border-zinc-200 pt-6 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-6 dark:border-zinc-800">
-        <dt className="font-mono text-xs uppercase tracking-wide text-zinc-500">
+      <dl className="grid grid-cols-1 gap-3 border-t border-ink-200 pt-6 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-6 dark:border-ink-800">
+        <dt className="font-mono text-xs uppercase tracking-wide text-ink-500">
           {dict.eventId.channelLabel}
         </dt>
-        <dd className="font-mono text-zinc-900 dark:text-zinc-100">
+        <dd className="font-mono text-ink-900 dark:text-ink-100">
           {entry.channel.key}
         </dd>
-        <dt className="font-mono text-xs uppercase tracking-wide text-zinc-500">
+        <dt className="font-mono text-xs uppercase tracking-wide text-ink-500">
           {dict.eventId.providerLabel}
         </dt>
-        <dd className="font-mono break-all text-zinc-900 dark:text-zinc-100">
+        <dd className="font-mono break-all text-ink-900 dark:text-ink-100">
           {entry.channel.channelPath}
         </dd>
-        <dt className="font-mono text-xs uppercase tracking-wide text-zinc-500">
+        <dt className="font-mono text-xs uppercase tracking-wide text-ink-500">
           {dict.eventId.notesLabel}
         </dt>
-        <dd className="text-zinc-700 dark:text-zinc-300">{entry.notes}</dd>
+        <dd className="text-ink-700 dark:text-ink-300">{entry.notes}</dd>
       </dl>
 
       {coveredHref && coveredTitle && (
         <section
           aria-labelledby="indepth-heading"
-          className="flex flex-col gap-3 border-t border-zinc-200 pt-6 dark:border-zinc-800"
+          className="flex flex-col gap-3 border-t border-ink-200 pt-6 dark:border-ink-800"
         >
           <h2
             id="indepth-heading"
@@ -266,12 +266,12 @@ export default async function EventIdPage({
           </h2>
           <Link
             href={coveredHref}
-            className="group flex flex-col gap-1 rounded border border-zinc-200 p-3 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+            className="group flex flex-col gap-1 rounded border border-ink-200 p-3 hover:border-ink-400 dark:border-ink-800 dark:hover:border-ink-600"
           >
-            <span className="text-sm font-medium text-zinc-900 group-hover:underline dark:text-zinc-100">
+            <span className="text-sm font-medium text-ink-900 group-hover:underline dark:text-ink-100">
               {coveredTitle}
             </span>
-            <span className="font-mono text-xs text-zinc-500">
+            <span className="font-mono text-xs text-ink-500">
               {dict.eventId.inDepthCta} →
             </span>
           </Link>
@@ -281,7 +281,7 @@ export default async function EventIdPage({
       {entry.externalUrl && (
         <section
           aria-labelledby="mslearn-heading"
-          className="flex flex-col gap-3 border-t border-zinc-200 pt-6 dark:border-zinc-800"
+          className="flex flex-col gap-3 border-t border-ink-200 pt-6 dark:border-ink-800"
         >
           <h2
             id="mslearn-heading"
@@ -293,12 +293,12 @@ export default async function EventIdPage({
             href={entry.externalUrl}
             target="_blank"
             rel="external noopener"
-            className="group flex flex-col gap-1 rounded border border-zinc-200 p-3 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+            className="group flex flex-col gap-1 rounded border border-ink-200 p-3 hover:border-ink-400 dark:border-ink-800 dark:hover:border-ink-600"
           >
-            <span className="font-mono break-all text-xs text-zinc-700 dark:text-zinc-300">
+            <span className="font-mono break-all text-xs text-ink-700 dark:text-ink-300">
               {entry.externalUrl}
             </span>
-            <span className="font-mono text-xs text-zinc-500">
+            <span className="font-mono text-xs text-ink-500">
               {dict.eventId.microsoftLearnCta} ↗
             </span>
           </a>
@@ -306,7 +306,7 @@ export default async function EventIdPage({
       )}
 
       {!coveredHref && !entry.externalUrl && (
-        <p className="border-t border-zinc-200 pt-6 text-sm text-zinc-500 dark:border-zinc-800">
+        <p className="border-t border-ink-200 pt-6 text-sm text-ink-500 dark:border-ink-800">
           {dict.eventId.notCoveredYet}
         </p>
       )}
@@ -314,7 +314,7 @@ export default async function EventIdPage({
       {entry.related.length > 0 && (
         <section
           aria-labelledby="related-heading"
-          className="flex flex-col gap-3 border-t border-zinc-200 pt-6 dark:border-zinc-800"
+          className="flex flex-col gap-3 border-t border-ink-200 pt-6 dark:border-ink-800"
         >
           <h2
             id="related-heading"
@@ -327,7 +327,7 @@ export default async function EventIdPage({
               <li key={r.id}>
                 <Link
                   href={`/${locale}/event-id/${r.id}`}
-                  className="text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-300"
+                  className="text-ink-700 underline-offset-2 hover:underline dark:text-ink-300"
                 >
                   <span className="font-mono">{r.id}</span>
                   {" — "}

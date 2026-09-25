@@ -60,8 +60,8 @@ export function SessionsView({
         onClick={() =>
           setSort((p) => ({ key, desc: p.key === key ? !p.desc : key !== "start" }))
         }
-        className={`flex items-center gap-1 hover:text-zinc-900 dark:hover:text-zinc-100 ${
-          sort.key === key ? "text-amber-700 dark:text-amber-300" : ""
+        className={`flex items-center gap-1 hover:text-ink-900 dark:hover:text-ink-100 ${
+          sort.key === key ? "text-uv-700 dark:text-uv-300" : ""
         }`}
       >
         {label}
@@ -74,27 +74,27 @@ export function SessionsView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-500">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-ink-500">
         <span>{v.sessionsHint}</span>
         <label className="flex items-center gap-1.5">
           <input
             type="checkbox"
             checked={showSystem}
             onChange={(e) => setShowSystem(e.target.checked)}
-            className="accent-amber-500"
+            className="accent-uv-500"
           />
           {v.showSystemSessions} ({systemCount})
         </label>
       </div>
 
       {visible.length === 0 ? (
-        <p className="rounded-md border border-zinc-200 p-4 text-sm text-zinc-500 dark:border-zinc-800">
+        <p className="rounded-md border border-ink-200 p-4 text-sm text-ink-500 dark:border-ink-800">
           {v.noSessions}
         </p>
       ) : (
-        <div className="-mx-4 min-h-0 flex-1 overflow-auto border-y border-zinc-200 sm:mx-0 sm:rounded-md sm:border dark:border-zinc-800">
+        <div className="-mx-4 min-h-0 flex-1 overflow-auto border-y border-ink-200 sm:mx-0 sm:rounded-md sm:border dark:border-ink-800">
           <table className="w-full text-left font-mono text-xs">
-            <thead className="sticky top-0 z-10 bg-zinc-50 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
+            <thead className="sticky top-0 z-10 bg-ink-50 text-ink-500 dark:bg-ink-900 dark:text-ink-400">
               <tr>
                 {header("start", v.sessionStart)}
                 <th className="px-3 py-2">{v.sessionEnd}</th>
@@ -122,15 +122,15 @@ export function SessionsView({
                     }}
                     tabIndex={0}
                     title={`${s.computer} · ${s.logonIds.join(" + ")}`}
-                    className={`cursor-pointer border-t border-zinc-100 hover:bg-amber-50 focus:bg-amber-50 focus:outline-none dark:border-zinc-800 dark:hover:bg-amber-400/10 dark:focus:bg-amber-400/10 ${
-                      s.system ? "text-zinc-400" : ""
+                    className={`cursor-pointer border-t border-ink-100 hover:bg-uv-50 focus:bg-uv-50 focus:outline-none dark:border-ink-800 dark:hover:bg-uv-400/10 dark:focus:bg-uv-400/10 ${
+                      s.system ? "text-ink-400" : ""
                     }`}
                   >
                     <td className="whitespace-nowrap px-3 py-1.5">
                       {s.start ? (
                         formatTimestamp(s.start, timeMode).slice(0, 19)
                       ) : (
-                        <span className="text-zinc-400">
+                        <span className="text-ink-400">
                           ≤ {formatTimestamp(s.firstSeen, timeMode).slice(0, 19)}{" "}
                           <span className="text-[10px]">({v.sessionUnknownStart})</span>
                         </span>
@@ -140,26 +140,26 @@ export function SessionsView({
                       {s.end ? (
                         <>
                           {formatTimestamp(s.end, timeMode).slice(0, 19)}
-                          <span className="ml-1 text-zinc-400">{s.endEventId}</span>
+                          <span className="ml-1 text-ink-400">{s.endEventId}</span>
                         </>
                       ) : (
-                        <span className="text-amber-600 dark:text-amber-400">
+                        <span className="text-uv-600 dark:text-uv-400">
                           {v.sessionOpen}
                         </span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-1.5 text-zinc-600 dark:text-zinc-400">
+                    <td className="whitespace-nowrap px-3 py-1.5 text-ink-600 dark:text-ink-400">
                       {dur != null ? formatDuration(dur) : "—"}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-1.5 font-semibold text-zinc-900 dark:text-zinc-100">
-                      {s.user || <span className="text-zinc-400">—</span>}
+                    <td className="whitespace-nowrap px-3 py-1.5 font-semibold text-ink-900 dark:text-ink-100">
+                      {s.user || <span className="text-ink-400">—</span>}
                     </td>
                     <td className="whitespace-nowrap px-3 py-1.5">
                       {s.logonType != null ? (
                         <>
                           {s.logonType}
                           {s.logonTypeLabel && (
-                            <span className="ml-1 text-zinc-400">
+                            <span className="ml-1 text-ink-400">
                               · {s.logonTypeLabel}
                             </span>
                           )}
@@ -184,10 +184,10 @@ export function SessionsView({
                           <span
                             key={id}
                             title={eventName(id, SECURITY) ?? String(id)}
-                            className="rounded border border-zinc-200 px-1 dark:border-zinc-700"
+                            className="rounded border border-ink-200 px-1 dark:border-ink-700"
                           >
                             {id}
-                            <span className="text-zinc-400">×{n}</span>
+                            <span className="text-ink-400">×{n}</span>
                           </span>
                         ))}
                       </span>
@@ -195,7 +195,7 @@ export function SessionsView({
                     <td className="whitespace-nowrap px-3 py-1.5">
                       {[s.sourceIp, s.workstation].filter(Boolean).join(" · ") || "—"}
                       {s.authPackage && (
-                        <span className="ml-1 text-zinc-400">({s.authPackage})</span>
+                        <span className="ml-1 text-ink-400">({s.authPackage})</span>
                       )}
                     </td>
                   </tr>
