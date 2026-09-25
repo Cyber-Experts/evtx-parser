@@ -8,9 +8,9 @@ import {
   sessionQuery,
 } from "@/lib/sessions";
 
-import { haystackGetter, loadFixtures } from "./helpers";
+import { haystackGetter, loadFixtures, HAS_FIXTURES } from "./helpers";
 
-describe("logon sessions on Security.evtx", () => {
+describe.skipIf(!HAS_FIXTURES)("logon sessions on Security.evtx", () => {
   const ds = loadFixtures("security.evtx");
   const sessions = buildSessions(ds.rows, ds.pairs);
   const user = sessions.filter((s) => !s.system);

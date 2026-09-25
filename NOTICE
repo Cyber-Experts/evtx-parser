@@ -1,0 +1,13 @@
+EVTX parser — https://www.evtxparser.com
+Copyright (c) 2026 Florian Amette
+
+Licensed under the Elastic License 2.0 (see LICENSE): free to use, modify
+and run — including for commercial incident-response work — but it may not
+be offered to third parties as a hosted or managed service, and licensing
+notices may not be removed.
+
+This product includes the `evtx` Rust crate by Omer Ben-Amram
+(https://github.com/omerbenamram/evtx), licensed under MIT or Apache-2.0,
+compiled to WebAssembly in lib/evtx-wasm/. Other third-party dependencies
+are listed in package.json and crates/evtx-wasm/Cargo.toml and are
+distributed under their own licenses.

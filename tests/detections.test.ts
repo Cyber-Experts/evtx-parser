@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { runDetections } from "@/lib/detections";
 
-import { loadFixtures } from "./helpers";
+import { loadFixtures, HAS_FIXTURES } from "./helpers";
 
-describe("built-in findings on real logs", () => {
+describe.skipIf(!HAS_FIXTURES)("built-in findings on real logs", () => {
   it("Security.evtx", () => {
     const ds = loadFixtures("security.evtx");
     const got = runDetections(ds.rows, ds.pairs).map((f) => [f.key, f.severity, f.gids.length]);

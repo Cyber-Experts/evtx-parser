@@ -56,6 +56,35 @@ npm run wasm:build
 
 This compiles `crates/evtx-wasm/` to `lib/evtx-wasm/` and copies the `.wasm` binary into `public/` so the worker can fetch it. The four generated files in `lib/evtx-wasm/` are checked into git on purpose — `wasm-pack` ships a `.gitignore: *` that we override, so Vercel doesn't need a Rust toolchain to deploy.
 
+## Self-hosting / offline use
+
+Everything runs in the browser: the `.evtx` file is parsed by WebAssembly in a
+web worker and never leaves the machine. To run your own instance — e.g. on an
+analysis workstation for cases where evidence may not touch externally hosted
+services:
+
+```bash
+npm ci
+NEXT_PUBLIC_OFFLINE=1 npm run build
+NEXT_PUBLIC_OFFLINE=1 npm start      # http://localhost:3000
+```
+
+`NEXT_PUBLIC_OFFLINE=1` removes every third-party script and beacon (Vercel
+Analytics, Speed Insights, Ahrefs, web-vitals reporting), so once the page is
+loaded the app makes no outbound requests. After `npm ci`, the build and the
+app need no network access.
+
+## Tests
+
+```bash
+npm test
+```
+
+Vitest suites cover the query language, event decoding, descriptions, hunts,
+logon sessions and time formatting. Suites that run against real `.evtx`
+fixtures skip automatically when `tests/fixtures/evtx/` is absent (as in the
+public repository).
+
 ## Adding content
 
 ### Blog post
@@ -122,7 +151,10 @@ NEXT_PUBLIC_YANDEX_VERIFICATION=…
 # IndexNow key (and drop public/<KEY>.txt alongside)
 NEXT_PUBLIC_INDEXNOW_KEY=<32–128 hex chars>
 
-# Optional 3rd-party analytics (Vercel Analytics is always on)
+# Self-hosted / air-gapped builds: drop every third-party script and beacon
+NEXT_PUBLIC_OFFLINE=1
+
+# Optional 3rd-party analytics (Vercel Analytics is on unless NEXT_PUBLIC_OFFLINE=1)
 NEXT_PUBLIC_ANALYTICS_PROVIDER=plausible   # or umami | ga4
 NEXT_PUBLIC_ANALYTICS_DOMAIN=evtxparser.com
 NEXT_PUBLIC_ANALYTICS_ID=…
@@ -134,4 +166,10 @@ Files never leave the browser. The parser is a WASM module executing in a web wo
 
 ## License
 
-Site content and code: MIT. The underlying parser is the [`evtx`](https://crates.io/crates/evtx) Rust crate by Omer Ben-Amram, also MIT.
+[Elastic License 2.0](LICENSE). You may use, modify and run it — including
+for commercial incident-response work — but you may not offer it to third
+parties as a hosted or managed service, or remove the licensing notices.
+See [NOTICE](NOTICE) for third-party credits: the parser core is the
+[`evtx`](https://github.com/omerbenamram/evtx) crate by Omer Ben-Amram
+(MIT/Apache-2.0).
+

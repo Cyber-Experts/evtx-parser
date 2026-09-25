@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { HUNTS } from "@/lib/hunts";
 import { compileSearch, haystackFor, parseSearch } from "@/lib/search-query";
 
-import { fakeRow, haystackGetter, loadFixtures, type Row } from "./helpers";
+import { fakeRow, haystackGetter, loadFixtures, type Row, HAS_FIXTURES } from "./helpers";
 
 const SEC = "Microsoft-Windows-Security-Auditing";
 const SYS = "Microsoft-Windows-Sysmon";
@@ -141,7 +141,7 @@ describe("hunts ignore benign look-alikes", () => {
   });
 });
 
-describe("hunts on the real fixture set", () => {
+describe.skipIf(!HAS_FIXTURES)("hunts on the real fixture set", () => {
   // Clean training image: only these hunts should hit, with these counts.
   // Anything else firing is a false positive to investigate.
   const EXPECTED: Record<string, number> = {
