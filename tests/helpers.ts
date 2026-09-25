@@ -9,9 +9,9 @@ const ROOT = join(__dirname, "..");
 const FIXTURES = join(ROOT, "tests/fixtures/evtx");
 
 /**
- * The real-log fixtures live only in the private repository (they come from
- * a training image we can't redistribute). Suites that need them are skipped
- * when they're absent, e.g. in the public repo.
+ * The real-log fixtures are not distributed with the repository (they come
+ * from a training image). Suites that need them are skipped when the files
+ * are absent.
  */
 export const HAS_FIXTURES = existsSync(join(FIXTURES, "security.evtx"));
 

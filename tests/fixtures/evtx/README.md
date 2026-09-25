@@ -1,5 +1,9 @@
 # EVTX fixtures
 
+**The `.evtx` files are not committed** (git-ignored): they come from a
+training disk image we don't redistribute. Drop your own copies here with the
+names below to run the real-log suites; without them those suites are skipped.
+
 Real Windows 10 event logs extracted from the `DFA_SP2020_Windows.E01`
 training disk image (`Windows/System32/winevt/Logs`). They exercise the
 parser, search, decoding, descriptions and hunts against genuine data:
