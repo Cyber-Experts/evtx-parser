@@ -194,9 +194,12 @@ export const pt: Dict = {
     kapeLabel: "KAPE — target EventLogs",
     kapeNote:
       "Copia todos os .evtx de `winevt\\Logs` para dentro de `C:\\triage\\`, mantendo a estrutura de pastas original. Abra essa pasta `Logs`, selecione todos os .evtx e solte-os aqui.",
-    veloLabel: "Velociraptor — coleta offline",
+    veloLabel: "Velociraptor — coletor offline",
+    veloGui:
+      "Na interface do Velociraptor: Server Artifacts → Build offline collector → selecione `Windows.Triage.Targets` (do projeto Velociraptor Triage) → marque o target `EventLogs` → gere o coletor e execute-o no host como administrador. Ele gera um ZIP da coleta. Descompacte antes: os .evtx ficam na pasta `winevt/Logs` dentro do arquivo.",
+    veloCmdLabel: "Versões antigas do Velociraptor — linha de comando",
     veloNote:
-      "Usa o artefato `Windows.KapeFiles.Targets` com o target `EventLogs` e gera `C:\\triage\\evtx.zip`. Use o nome do seu executável do Velociraptor. Descompacte antes: os .evtx ficam na pasta `winevt/Logs` dentro do arquivo.",
+      "Apenas para versões que ainda trazem `Windows.KapeFiles.Targets`, o nome anterior do artefato de triagem. Coleta o target `EventLogs` em `C:\\triage\\evtx.zip`; use o nome do seu executável do Velociraptor. Descompacte antes: os .evtx ficam na pasta `winevt/Logs` dentro do arquivo.",
     imageIntro:
       "Já tem uma imagem E01/raw ou uma cópia do disco? Extraia os arquivos de `\\Windows\\System32\\winevt\\Logs\\` da partição do Windows: sem direitos de administrador nem máquina ligada.",
     ftkLabel: "FTK Imager",

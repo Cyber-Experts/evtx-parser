@@ -194,9 +194,12 @@ export const ja: Dict = {
     kapeLabel: "KAPE — EventLogs ターゲット",
     kapeNote:
       "`winevt\\Logs` 内のすべての .evtx を元のフォルダー構成のまま `C:\\triage\\` 配下にコピーします。その `Logs` フォルダーを開き、.evtx をすべて選択してここにドロップしてください。",
-    veloLabel: "Velociraptor — オフライン収集",
+    veloLabel: "Velociraptor — オフラインコレクター",
+    veloGui:
+      "Velociraptor の GUI で Server Artifacts → Build offline collector → `Windows.Triage.Targets`(Velociraptor Triage プロジェクト)を選択 → `EventLogs` ターゲットにチェック → ビルドし、対象ホストで管理者としてコレクターを実行します。収集結果は ZIP で出力されます。先に展開してください。.evtx は ZIP 内の `winevt/Logs` フォルダーにあります。",
+    veloCmdLabel: "旧バージョンの Velociraptor — コマンドライン",
     veloNote:
-      "`Windows.KapeFiles.Targets` アーティファクトの `EventLogs` ターゲットを使い、`C:\\triage\\evtx.zip` を作成します。実行ファイル名はお使いの Velociraptor バイナリに合わせてください。先に展開してください。.evtx は ZIP 内の `winevt/Logs` フォルダーにあります。",
+      "`Windows.KapeFiles.Targets`(トリアージ用アーティファクトの旧名称)を同梱しているバージョン専用です。その `EventLogs` ターゲットを `C:\\triage\\evtx.zip` に収集します。実行ファイル名はお使いの Velociraptor バイナリに合わせてください。先に展開してください。.evtx は ZIP 内の `winevt/Logs` フォルダーにあります。",
     imageIntro:
       "E01/raw イメージやドライブのコピーが手元にある場合は、Windows パーティションの `\\Windows\\System32\\winevt\\Logs\\` からファイルを取り出します。管理者権限も稼働中のホストも不要です。",
     ftkLabel: "FTK Imager",

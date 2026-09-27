@@ -194,9 +194,12 @@ export const zh: Dict = {
     kapeLabel: "KAPE — EventLogs 目标",
     kapeNote:
       "将 `winevt\\Logs` 中的所有 .evtx 按原始目录结构复制到 `C:\\triage\\` 下。打开其中的 `Logs` 文件夹,全选 .evtx 文件后拖放到这里。",
-    veloLabel: "Velociraptor — 离线收集",
+    veloLabel: "Velociraptor — 离线收集器",
+    veloGui:
+      "在 Velociraptor 界面中:Server Artifacts → Build offline collector → 选择 `Windows.Triage.Targets`(来自 Velociraptor Triage 项目)→ 勾选 `EventLogs` 目标 → 构建后,以管理员身份在目标主机上运行收集器。它会生成一个收集 ZIP。先解压:.evtx 位于压缩包内的 `winevt/Logs` 文件夹中。",
+    veloCmdLabel: "旧版 Velociraptor — 命令行",
     veloNote:
-      "使用 `Windows.KapeFiles.Targets` 工件的 `EventLogs` 目标,生成 `C:\\triage\\evtx.zip`。请替换为你的 Velociraptor 可执行文件名。先解压:.evtx 位于压缩包内的 `winevt/Logs` 文件夹中。",
+      "仅适用于仍自带 `Windows.KapeFiles.Targets`(分诊工件的旧名称)的版本。将其 `EventLogs` 目标收集到 `C:\\triage\\evtx.zip`。请替换为你的 Velociraptor 可执行文件名。先解压:.evtx 位于压缩包内的 `winevt/Logs` 文件夹中。",
     imageIntro:
       "已经有 E01/raw 镜像或磁盘副本?从 Windows 分区的 `\\Windows\\System32\\winevt\\Logs\\` 中导出文件即可,无需管理员权限,也无需主机在线。",
     ftkLabel: "FTK Imager",

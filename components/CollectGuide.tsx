@@ -25,7 +25,10 @@ const QUICK_CMD = String.raw`mkdir C:\triage 2>nul & wevtutil epl Security C:\tr
 // KAPE EventLogs target (same command as the collection blog post).
 const KAPE_CMD = String.raw`kape.exe --tsource C: --target EventLogs --tdest C:\triage`;
 
-// Velociraptor offline collection with the KapeFiles EventLogs target.
+// Older Velociraptor releases only: the former Windows.KapeFiles.Targets
+// artifact with its EventLogs target. Current releases use
+// Windows.Triage.Targets (Velociraptor Triage project) via the GUI's offline
+// collector builder; see the veloGui text.
 const VELO_CMD = String.raw`mkdir C:\triage 2>nul & velociraptor.exe artifacts collect Windows.KapeFiles.Targets --args EventLogs=Y --output C:\triage\evtx.zip`;
 
 // Image already mounted read-only at /mnt/win (Linux/macOS shell).
@@ -193,8 +196,16 @@ export function CollectGuide({
           note={t.kapeNote}
           t={t}
         />
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-medium text-ink-900 dark:text-ink-100">
+            {t.veloLabel}
+          </p>
+          <p className="text-xs leading-relaxed text-ink-600 dark:text-ink-400">
+            {withCode(t.veloGui)}
+          </p>
+        </div>
         <CommandBlock
-          label={t.veloLabel}
+          label={t.veloCmdLabel}
           shell="cmd (Admin)"
           command={VELO_CMD}
           note={t.veloNote}
