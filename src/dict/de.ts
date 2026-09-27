@@ -165,6 +165,65 @@ export const de: Dict = {
     copyLink: "Link zu dieser Suche kopieren",
     linkCopied: "Link kopiert",
   },
+  collect: {
+    heading: "So bekommst du deine .evtx-Dateien",
+    intro:
+      "Noch nie Ereignisprotokolle von einem Windows-Rechner geholt? Nimm die erste Methode, die für dich passt – das dauert eine Minute.",
+    steps: [
+      "Die .evtx-Dateien sichern",
+      "Hier ablegen (auch mehrere auf einmal)",
+      "Alles bleibt in deinem Browser",
+    ],
+    tabsLabel: "Methoden zur Sicherung",
+    tabQuick: "Am schnellsten",
+    tabTriage: "Triage-Tools",
+    tabImage: "Aus einem Disk-Image",
+    tabLocation: "Wo sie liegen",
+    recommended: "Empfohlen",
+    quickPrereq:
+      "Als Administrator auf dem Windows-Rechner ausführen (Rechtsklick auf PowerShell oder Eingabeaufforderung → Als Administrator ausführen). Das Sicherheitsprotokoll lässt sich nur mit Adminrechten lesen.",
+    quickPsLabel: "Die wichtigsten Protokolle auf einen Schlag exportieren",
+    quickPsNote:
+      "Schreibt die Protokolle Security, System, Application, PowerShell und Sysmon nach `C:\\triage\\`. Fehlt ein Protokoll auf dem Rechner (z. B. Sysmon nicht installiert), erscheint nur eine Fehlermeldung – einfach ignorieren. Danach die Dateien aus `C:\\triage\\` hier ablegen.",
+    quickCmdLabel: "Nur das Sicherheitsprotokoll",
+    quickGuiLabel: "Keine Kommandozeile? Nimm die Ereignisanzeige",
+    quickGui:
+      "`eventvwr.msc` starten → Windows-Protokolle → Rechtsklick auf Sicherheit (oder ein anderes Protokoll) → „Alle Ereignisse speichern unter…“ (Save All Events As…) → Dateityp „Ereignisdateien (*.evtx)“ beibehalten → Speichern.",
+    triagePrereq:
+      "Als Administrator ausführen. KAPE und Velociraptor sind separate kostenlose Downloads von ihren offiziellen Projektseiten. Sie holen auch die archivierten `Archive-*.evtx`-Dateien, die ein Export auslässt.",
+    kapeLabel: "KAPE – Target EventLogs",
+    kapeNote:
+      "Kopiert alle .evtx aus `winevt\\Logs` nach `C:\\triage\\` und behält die ursprüngliche Ordnerstruktur bei. Öffne diesen `Logs`-Ordner, markiere alle .evtx-Dateien und lege sie hier ab.",
+    veloLabel: "Velociraptor – Offline-Sammlung",
+    veloNote:
+      "Nutzt das Artefakt `Windows.KapeFiles.Targets` mit dem Target `EventLogs` und schreibt `C:\\triage\\evtx.zip`. Setze den Dateinamen deines Velociraptor-Binaries ein. Vorher entpacken – die .evtx-Dateien liegen im Archiv unter dem Ordner `winevt/Logs`.",
+    imageIntro:
+      "Du hast schon ein E01-/Raw-Image oder eine Kopie der Festplatte? Hol die Dateien aus `\\Windows\\System32\\winevt\\Logs\\` der Windows-Partition – ohne Adminrechte und ohne laufendes System.",
+    ftkLabel: "FTK Imager",
+    ftkSteps:
+      "File → Add Evidence Item → Image File → zu `[root]\\Windows\\System32\\winevt\\Logs` navigieren → die .evtx-Dateien markieren → Rechtsklick → Export Files.",
+    mountLabel: "Eingebundenes Image (Linux / macOS)",
+    mountNote:
+      "Setzt voraus, dass die Windows-Partition schreibgeschützt unter `/mnt/win` eingebunden ist (z. B. `ewfmount` + `mount -o ro` oder Arsenal Image Mounter unter Windows) – passe den Pfad an deinen Mountpoint an.",
+    locationIntro:
+      "Jeder Ereignisprotokoll-Kanal ist eine eigene .evtx-Datei, alle im selben Ordner (ab Windows Vista / Server 2008):",
+    locationFiles:
+      "Wichtigste Dateien: `Security.evtx`, `System.evtx`, `Application.evtx`; aus `/` im Kanalnamen wird `%4`, z. B. `Microsoft-Windows-Sysmon%4Operational.evtx`. Jede Datei ist eigenständig, Begleitdateien sind nicht nötig. Mehrere ablegen – sie werden zu einer Zeitleiste zusammengeführt.",
+    locationArchive:
+      "Rotierte Protokolle liegen daneben als `Archive-Security-<Zeitstempel>.evtx`, wenn die automatische Sicherung aktiv ist – leg sie mit ab.",
+    locationRedirect: "Protokoll verschoben? Prüfe den echten Pfad (logFileName)",
+    allPaths: "Alle Pfade pro Kanal",
+    gotchasHeading: "Stolperfallen",
+    gotchas: [
+      "Ein einfaches Kopieren eines aktiven Protokolls schlägt fehl, weil Windows es geöffnet hält – nimm eine der Methoden oben, nicht den Explorer oder `copy`.",
+      "Protokolle sind zirkulär: Sind sie voll, werden die ältesten Ereignisse überschrieben (die Standardgröße liegt oft bei nur 20 MB). Früh sichern und auch die `Archive-*.evtx` mitnehmen – `wevtutil epl` exportiert nur das aktive Protokoll.",
+      "Lege .evtx-Dateien ab, kein .zip und keinen Ordner: erst entpacken, dann alle .evtx-Dateien markieren. Zeiten werden standardmäßig in UTC angezeigt (im Viewer auf Ortszeit umschaltbar).",
+    ],
+    copy: "Kopieren",
+    copyCommand: "Befehl kopieren",
+    copied: "Kopiert",
+    openGuide: "So sicherst du Logs",
+  },
   fileLocation: {
     heading: "Wo liegen die .evtx-Dateien?",
     intro:

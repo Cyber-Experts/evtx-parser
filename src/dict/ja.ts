@@ -165,6 +165,65 @@ export const ja: Dict = {
     copyLink: "この検索のリンクをコピー",
     linkCopied: "リンクをコピーしました",
   },
+  collect: {
+    heading: ".evtx ファイルの入手方法",
+    intro:
+      "Windows からイベントログを取り出したことがなくても大丈夫。使えそうな最初の方法を選べば、1 分ほどで済みます。",
+    steps: [
+      ".evtx ファイルを収集",
+      "ここにドロップ (複数同時も可)",
+      "すべてブラウザー内で完結",
+    ],
+    tabsLabel: "収集方法",
+    tabQuick: "最速",
+    tabTriage: "トリアージツール",
+    tabImage: "ディスクイメージから",
+    tabLocation: "保存場所",
+    recommended: "おすすめ",
+    quickPrereq:
+      "Windows ホスト上で管理者として実行してください (PowerShell またはコマンド プロンプトを右クリック → 管理者として実行)。セキュリティ ログの読み取りには管理者権限が必要です。",
+    quickPsLabel: "主要なログを一括エクスポート",
+    quickPsNote:
+      "Security、System、Application、PowerShell、Sysmon の各ログを `C:\\triage\\` に書き出します。ホストに存在しないログ (Sysmon 未導入など) はエラーが表示されるだけなので無視してください。その後 `C:\\triage\\` のファイルをここにドロップします。",
+    quickCmdLabel: "セキュリティ ログのみ",
+    quickGuiLabel: "コマンドラインを使わない場合: イベント ビューアー",
+    quickGui:
+      "`eventvwr.msc` を実行 → Windows ログ → セキュリティ (または任意のログ) を右クリック → 「すべてのイベントを名前をつけて保存」(Save All Events As…) → ファイルの種類は「イベント ファイル (*.evtx)」のまま → 保存。",
+    triagePrereq:
+      "管理者として実行してください。KAPE と Velociraptor は各プロジェクトの公式ページから別途入手できる無料ツールです。エクスポートでは漏れるアーカイブ済みの `Archive-*.evtx` も収集します。",
+    kapeLabel: "KAPE — EventLogs ターゲット",
+    kapeNote:
+      "`winevt\\Logs` 内のすべての .evtx を元のフォルダー構成のまま `C:\\triage\\` 配下にコピーします。その `Logs` フォルダーを開き、.evtx をすべて選択してここにドロップしてください。",
+    veloLabel: "Velociraptor — オフライン収集",
+    veloNote:
+      "`Windows.KapeFiles.Targets` アーティファクトの `EventLogs` ターゲットを使い、`C:\\triage\\evtx.zip` を作成します。実行ファイル名はお使いの Velociraptor バイナリに合わせてください。先に展開してください。.evtx は ZIP 内の `winevt/Logs` フォルダーにあります。",
+    imageIntro:
+      "E01/raw イメージやドライブのコピーが手元にある場合は、Windows パーティションの `\\Windows\\System32\\winevt\\Logs\\` からファイルを取り出します。管理者権限も稼働中のホストも不要です。",
+    ftkLabel: "FTK Imager",
+    ftkSteps:
+      "File → Add Evidence Item → Image File → `[root]\\Windows\\System32\\winevt\\Logs` へ移動 → .evtx を選択 → 右クリック → Export Files。",
+    mountLabel: "マウント済みイメージ (Linux / macOS)",
+    mountNote:
+      "Windows パーティションが `/mnt/win` に読み取り専用でマウントされている前提です (例: `ewfmount` + `mount -o ro`、Windows なら Arsenal Image Mounter)。パスはご自身のマウントポイントに合わせてください。",
+    locationIntro:
+      "イベントログのチャネルはそれぞれ独立した .evtx ファイルで、すべて同じフォルダーにあります (Windows Vista / Server 2008 以降):",
+    locationFiles:
+      "主なファイル: `Security.evtx`、`System.evtx`、`Application.evtx`。チャネル名の `/` は `%4` になります (例: `Microsoft-Windows-Sysmon%4Operational.evtx`)。各ファイルは単体で完結しており、付随ファイルは不要です。複数ドロップすると 1 つのタイムラインに統合されます。",
+    locationArchive:
+      "自動バックアップが有効な場合、ローテーションされたログは `Archive-Security-<タイムスタンプ>.evtx` として同じ場所に残ります。これらも一緒にドロップしてください。",
+    locationRedirect: "ログの場所が変更されている場合: 実際のパス (logFileName) を確認",
+    allPaths: "チャネル別の全パス",
+    gotchasHeading: "よくある落とし穴",
+    gotchas: [
+      "稼働中のログは Windows が開いたままにしているため、単純なコピーは失敗します。エクスプローラーや `copy` ではなく上記のいずれかの方法を使ってください。",
+      "ログは循環式です。上限に達すると古いイベントから上書きされます (既定サイズはわずか 20 MB のことが多い)。早めに収集し、`Archive-*.evtx` も取得してください。`wevtutil epl` がエクスポートするのはアクティブなログのみです。",
+      "ドロップするのは .evtx ファイルです。.zip やフォルダーは不可なので、先に展開してから .evtx をすべて選択してください。時刻は既定で UTC 表示です (ビューアーでローカル時刻に切り替え可能)。",
+    ],
+    copy: "コピー",
+    copyCommand: "コマンドをコピー",
+    copied: "コピーしました",
+    openGuide: "収集方法",
+  },
   fileLocation: {
     heading: ".evtx ファイルの場所",
     intro:

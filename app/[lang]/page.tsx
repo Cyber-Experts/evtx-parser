@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { CollectGuide } from "@/components/CollectGuide";
 import { EvtxLocations } from "@/components/EvtxLocations";
 import { EvtxUploader } from "@/components/EvtxUploader";
 import { Faq } from "@/components/Faq";
@@ -156,7 +157,11 @@ export default async function Home({ params }: { params: Promise<Params> }) {
           aria-label={dict.home.dropArea}
           className="-mt-10 scroll-mt-24 sm:-mt-16"
         >
-          <EvtxUploader dict={dict} locale={locale} />
+          <EvtxUploader
+            dict={dict}
+            locale={locale}
+            emptyStateAside={<CollectGuide dict={dict} locale={locale} />}
+          />
         </section>
 
         <WorksWith label={dict.home.worksWith} />

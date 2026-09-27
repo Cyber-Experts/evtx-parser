@@ -165,6 +165,65 @@ export const fr: Dict = {
     copyLink: "Copier le lien de cette recherche",
     linkCopied: "Lien copié",
   },
+  collect: {
+    heading: "Comment récupérer vos fichiers .evtx",
+    intro:
+      "Vous n'avez jamais extrait de journaux d'une machine Windows ? Prenez la première méthode qui vous convient : c'est l'affaire d'une minute.",
+    steps: [
+      "Collectez les fichiers .evtx",
+      "Déposez-les ici (plusieurs à la fois, c'est possible)",
+      "Tout reste dans votre navigateur",
+    ],
+    tabsLabel: "Méthodes de collecte",
+    tabQuick: "Le plus rapide",
+    tabTriage: "Outils de triage",
+    tabImage: "Depuis une image disque",
+    tabLocation: "Où ils se trouvent",
+    recommended: "Conseillé",
+    quickPrereq:
+      "À exécuter en administrateur sur la machine Windows (clic droit sur PowerShell ou l'Invite de commandes → Exécuter en tant qu'administrateur). Lire le journal Sécurité exige les droits admin.",
+    quickPsLabel: "Exporter les journaux clés en une fois",
+    quickPsNote:
+      "Écrit les journaux Security, System, Application, PowerShell et Sysmon dans `C:\\triage\\`. Un journal absent de la machine (Sysmon non installé, par ex.) affiche juste une erreur : ignorez-la. Déposez ensuite ici les fichiers de `C:\\triage\\`.",
+    quickCmdLabel: "Seulement le journal Sécurité",
+    quickGuiLabel: "Pas de ligne de commande ? Passez par l'Observateur d'événements",
+    quickGui:
+      "Lancez `eventvwr.msc` → Journaux Windows → clic droit sur Sécurité (ou un autre journal) → « Enregistrer tous les événements sous… » (Save All Events As…) → gardez le type « Fichiers d'événements (*.evtx) » → Enregistrer.",
+    triagePrereq:
+      "À exécuter en administrateur. KAPE et Velociraptor sont des outils gratuits à télécharger séparément sur leurs pages officielles. Ils récupèrent aussi les fichiers archivés `Archive-*.evtx` qu'un export ignore.",
+    kapeLabel: "KAPE — cible EventLogs",
+    kapeNote:
+      "Copie tous les .evtx de `winevt\\Logs` sous `C:\\triage\\` en conservant l'arborescence d'origine. Ouvrez ce dossier `Logs`, sélectionnez tous les .evtx et déposez-les ici.",
+    veloLabel: "Velociraptor — collecte hors ligne",
+    veloNote:
+      "Utilise l'artefact `Windows.KapeFiles.Targets` avec sa cible `EventLogs` et écrit `C:\\triage\\evtx.zip`. Remplacez par le nom de votre binaire Velociraptor. Décompressez d'abord : les .evtx se trouvent sous le dossier `winevt/Logs` de l'archive.",
+    imageIntro:
+      "Vous avez déjà une image E01/raw ou une copie du disque ? Récupérez les fichiers de `\\Windows\\System32\\winevt\\Logs\\` sur la partition Windows : ni droits admin ni machine allumée nécessaires.",
+    ftkLabel: "FTK Imager",
+    ftkSteps:
+      "File → Add Evidence Item → Image File → naviguez jusqu'à `[root]\\Windows\\System32\\winevt\\Logs` → sélectionnez les .evtx → clic droit → Export Files.",
+    mountLabel: "Image montée (Linux / macOS)",
+    mountNote:
+      "Suppose que la partition Windows est montée en lecture seule sur `/mnt/win` (par ex. `ewfmount` + `mount -o ro`, ou Arsenal Image Mounter sous Windows) : adaptez le chemin à votre point de montage.",
+    locationIntro:
+      "Chaque canal du journal d'événements est un fichier .evtx distinct, tous dans le même dossier (Windows Vista / Server 2008 et ultérieurs) :",
+    locationFiles:
+      "Fichiers principaux : `Security.evtx`, `System.evtx`, `Application.evtx` ; le `/` d'un nom de canal devient `%4`, par ex. `Microsoft-Windows-Sysmon%4Operational.evtx`. Chaque fichier est autonome, aucun fichier compagnon n'est requis. Déposez-en plusieurs : ils sont fusionnés en une seule chronologie.",
+    locationArchive:
+      "Les journaux archivés sont conservés à côté sous la forme `Archive-Security-<horodatage>.evtx` si l'archivage auto est activé : déposez-les aussi.",
+    locationRedirect: "Journal déplacé ? Vérifiez son chemin réel (logFileName)",
+    allPaths: "Tous les chemins par canal",
+    gotchasHeading: "Pièges à éviter",
+    gotchas: [
+      "Une simple copie d'un journal actif échoue car Windows le garde ouvert : utilisez une des méthodes ci-dessus, pas l'Explorateur ni `copy`.",
+      "Les journaux sont circulaires : une fois pleins, les événements les plus anciens sont écrasés (la taille par défaut n'est souvent que de 20 Mo). Collectez tôt et prenez aussi les `Archive-*.evtx` : `wevtutil epl` n'exporte que le journal actif.",
+      "Déposez des fichiers .evtx, pas un .zip ni un dossier : décompressez d'abord, puis sélectionnez tous les .evtx. Les heures s'affichent en UTC par défaut (basculez en heure locale dans la visionneuse).",
+    ],
+    copy: "Copier",
+    copyCommand: "Copier la commande",
+    copied: "Copié",
+    openGuide: "Comment collecter",
+  },
   fileLocation: {
     heading: "Où trouver les fichiers .evtx",
     intro:

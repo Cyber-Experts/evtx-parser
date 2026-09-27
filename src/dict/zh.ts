@@ -165,6 +165,65 @@ export const zh: Dict = {
     copyLink: "复制此搜索的链接",
     linkCopied: "链接已复制",
   },
+  collect: {
+    heading: "如何获取 .evtx 文件",
+    intro:
+      "从没从 Windows 主机上导出过事件日志?选第一个适合你的方法即可,一分钟就能搞定。",
+    steps: [
+      "收集 .evtx 文件",
+      "拖放到这里(可一次拖多个)",
+      "全部在浏览器内处理",
+    ],
+    tabsLabel: "收集方法",
+    tabQuick: "最快",
+    tabTriage: "取证分诊工具",
+    tabImage: "从磁盘镜像",
+    tabLocation: "文件位置",
+    recommended: "推荐",
+    quickPrereq:
+      "在 Windows 主机上以管理员身份运行(右键 PowerShell 或命令提示符 → 以管理员身份运行)。读取安全日志需要管理员权限。",
+    quickPsLabel: "一次导出关键日志",
+    quickPsNote:
+      "将 Security、System、Application、PowerShell 和 Sysmon 日志写入 `C:\\triage\\`。主机上不存在的日志(例如未安装 Sysmon)只会显示一条错误,忽略即可。然后把 `C:\\triage\\` 中的文件拖放到这里。",
+    quickCmdLabel: "仅导出安全日志",
+    quickGuiLabel: "不想用命令行?用事件查看器",
+    quickGui:
+      "运行 `eventvwr.msc` → Windows 日志 → 右键“安全”(或任意日志)→“将所有事件另存为...”(Save All Events As…)→ 保存类型保持“事件文件 (*.evtx)”→ 保存。",
+    triagePrereq:
+      "以管理员身份运行。KAPE 和 Velociraptor 需从各自官方项目页面另行免费下载。它们还会收集导出时会遗漏的已归档 `Archive-*.evtx` 文件。",
+    kapeLabel: "KAPE — EventLogs 目标",
+    kapeNote:
+      "将 `winevt\\Logs` 中的所有 .evtx 按原始目录结构复制到 `C:\\triage\\` 下。打开其中的 `Logs` 文件夹,全选 .evtx 文件后拖放到这里。",
+    veloLabel: "Velociraptor — 离线收集",
+    veloNote:
+      "使用 `Windows.KapeFiles.Targets` 工件的 `EventLogs` 目标,生成 `C:\\triage\\evtx.zip`。请替换为你的 Velociraptor 可执行文件名。先解压:.evtx 位于压缩包内的 `winevt/Logs` 文件夹中。",
+    imageIntro:
+      "已经有 E01/raw 镜像或磁盘副本?从 Windows 分区的 `\\Windows\\System32\\winevt\\Logs\\` 中导出文件即可,无需管理员权限,也无需主机在线。",
+    ftkLabel: "FTK Imager",
+    ftkSteps:
+      "File → Add Evidence Item → Image File → 定位到 `[root]\\Windows\\System32\\winevt\\Logs` → 选中 .evtx 文件 → 右键 → Export Files。",
+    mountLabel: "已挂载镜像(Linux / macOS)",
+    mountNote:
+      "假定 Windows 分区已以只读方式挂载到 `/mnt/win`(例如 `ewfmount` + `mount -o ro`,Windows 上可用 Arsenal Image Mounter),请按你的挂载点调整路径。",
+    locationIntro:
+      "每个事件日志通道都是一个独立的 .evtx 文件,全部位于同一文件夹(Windows Vista / Server 2008 及更高版本):",
+    locationFiles:
+      "主要文件:`Security.evtx`、`System.evtx`、`Application.evtx`;通道名中的 `/` 会变成 `%4`,例如 `Microsoft-Windows-Sysmon%4Operational.evtx`。每个文件自成一体,无需配套文件。一次拖放多个,会合并为同一条时间线。",
+    locationArchive:
+      "启用自动备份时,轮转后的日志以 `Archive-Security-<时间戳>.evtx` 的形式保存在同一目录,也一并拖放进来。",
+    locationRedirect: "日志被移到别处?查看实际路径(logFileName)",
+    allPaths: "各通道完整路径",
+    gotchasHeading: "常见坑",
+    gotchas: [
+      "Windows 会一直占用正在使用的日志,直接复制会失败:请用上面的方法,而不是资源管理器或 `copy`。",
+      "日志是循环写入的:写满后最旧的事件会被覆盖(默认大小往往只有 20 MB)。尽早收集,并把 `Archive-*.evtx` 一起带上 —— `wevtutil epl` 只导出当前活动日志。",
+      "请拖放 .evtx 文件,不要拖 .zip 或文件夹:先解压,再全选 .evtx 文件。时间默认按 UTC 显示(可在查看器中切换为本地时间)。",
+    ],
+    copy: "复制",
+    copyCommand: "复制命令",
+    copied: "已复制",
+    openGuide: "如何收集",
+  },
   fileLocation: {
     heading: "在哪里找到 .evtx 文件",
     intro:

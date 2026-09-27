@@ -165,6 +165,65 @@ export const it: Dict = {
     copyLink: "Copia il link di questa ricerca",
     linkCopied: "Link copiato",
   },
+  collect: {
+    heading: "Come ottenere i tuoi file .evtx",
+    intro:
+      "Non hai mai estratto i registri eventi da un computer Windows? Scegli il primo metodo adatto a te: basta un minuto.",
+    steps: [
+      "Raccogli i file .evtx",
+      "Rilasciali qui (anche più di uno alla volta)",
+      "Tutto resta nel tuo browser",
+    ],
+    tabsLabel: "Metodi di raccolta",
+    tabQuick: "Il più rapido",
+    tabTriage: "Strumenti di triage",
+    tabImage: "Da un'immagine disco",
+    tabLocation: "Dove si trovano",
+    recommended: "Consigliato",
+    quickPrereq:
+      "Esegui come amministratore sul computer Windows (clic destro su PowerShell o sul Prompt dei comandi → Esegui come amministratore). Per leggere il registro Sicurezza servono i diritti di amministratore.",
+    quickPsLabel: "Esporta i registri principali in un colpo solo",
+    quickPsNote:
+      "Salva i registri Security, System, Application, PowerShell e Sysmon in `C:\\triage\\`. Se un registro non esiste sul computer (ad es. Sysmon non installato) viene solo mostrato un errore: ignoralo. Poi rilascia qui i file di `C:\\triage\\`.",
+    quickCmdLabel: "Solo il registro Sicurezza",
+    quickGuiLabel: "Niente riga di comando? Usa il Visualizzatore eventi",
+    quickGui:
+      "Avvia `eventvwr.msc` → Registri di Windows → clic destro su Sicurezza (o un altro registro) → «Salva tutti gli eventi con nome…» (Save All Events As…) → lascia il tipo «File di eventi (*.evtx)» → Salva.",
+    triagePrereq:
+      "Esegui come amministratore. KAPE e Velociraptor sono download gratuiti separati, dalle rispettive pagine ufficiali. Raccolgono anche i file archiviati `Archive-*.evtx` che un'esportazione salta.",
+    kapeLabel: "KAPE — target EventLogs",
+    kapeNote:
+      "Copia tutti i .evtx di `winevt\\Logs` sotto `C:\\triage\\`, mantenendo la struttura di cartelle originale. Apri quella cartella `Logs`, seleziona tutti i .evtx e rilasciali qui.",
+    veloLabel: "Velociraptor — raccolta offline",
+    veloNote:
+      "Usa l'artefatto `Windows.KapeFiles.Targets` con il target `EventLogs` e crea `C:\\triage\\evtx.zip`. Sostituisci con il nome del tuo eseguibile Velociraptor. Decomprimi prima: i .evtx si trovano nella cartella `winevt/Logs` dell'archivio.",
+    imageIntro:
+      "Hai già un'immagine E01/raw o una copia del disco? Estrai i file da `\\Windows\\System32\\winevt\\Logs\\` della partizione Windows: non servono diritti di amministratore né il sistema acceso.",
+    ftkLabel: "FTK Imager",
+    ftkSteps:
+      "File → Add Evidence Item → Image File → vai in `[root]\\Windows\\System32\\winevt\\Logs` → seleziona i .evtx → clic destro → Export Files.",
+    mountLabel: "Immagine montata (Linux / macOS)",
+    mountNote:
+      "Presuppone che la partizione Windows sia montata in sola lettura su `/mnt/win` (ad es. `ewfmount` + `mount -o ro`, o Arsenal Image Mounter su Windows): adatta il percorso al tuo punto di mount.",
+    locationIntro:
+      "Ogni canale del registro eventi è un file .evtx a sé, tutti nella stessa cartella (Windows Vista / Server 2008 e successivi):",
+    locationFiles:
+      "File principali: `Security.evtx`, `System.evtx`, `Application.evtx`; la `/` nel nome di un canale diventa `%4`, ad es. `Microsoft-Windows-Sysmon%4Operational.evtx`. Ogni file è autonomo, senza file accessori. Rilasciane più di uno e vengono uniti in un'unica timeline.",
+    locationArchive:
+      "I registri ruotati restano accanto come `Archive-Security-<timestamp>.evtx` se il backup automatico è attivo: rilascia anche quelli.",
+    locationRedirect: "Registro spostato? Verifica il percorso reale (logFileName)",
+    allPaths: "Tutti i percorsi per canale",
+    gotchasHeading: "Trappole comuni",
+    gotchas: [
+      "Una semplice copia di un registro attivo fallisce perché Windows lo tiene aperto: usa uno dei metodi sopra, non Esplora file né `copy`.",
+      "I registri sono circolari: quando sono pieni, gli eventi più vecchi vengono sovrascritti (la dimensione predefinita è spesso di soli 20 MB). Raccogli presto e prendi anche gli `Archive-*.evtx`: `wevtutil epl` esporta solo il registro attivo.",
+      "Rilascia file .evtx, non uno .zip né una cartella: decomprimi prima, poi seleziona tutti i .evtx. Gli orari sono in UTC per impostazione predefinita (passa all'ora locale nel visualizzatore).",
+    ],
+    copy: "Copia",
+    copyCommand: "Copia il comando",
+    copied: "Copiato",
+    openGuide: "Come raccoglierli",
+  },
   fileLocation: {
     heading: "Dove trovare i file .evtx",
     intro:
