@@ -165,6 +165,65 @@ export const pt: Dict = {
     copyLink: "Copiar link desta pesquisa",
     linkCopied: "Link copiado",
   },
+  collect: {
+    heading: "Como obter seus arquivos .evtx",
+    intro:
+      "Nunca extraiu logs de eventos de uma máquina Windows? Escolha o primeiro método que funcionar para você: leva um minuto.",
+    steps: [
+      "Colete os arquivos .evtx",
+      "Solte-os aqui (vários de uma vez, sem problema)",
+      "Tudo fica no seu navegador",
+    ],
+    tabsLabel: "Métodos de coleta",
+    tabQuick: "Mais rápido",
+    tabTriage: "Ferramentas de triagem",
+    tabImage: "De uma imagem de disco",
+    tabLocation: "Onde ficam",
+    recommended: "Recomendado",
+    quickPrereq:
+      "Execute como administrador na máquina Windows (clique com o botão direito no PowerShell ou no Prompt de Comando → Executar como administrador). Ler o log de Segurança exige direitos de administrador.",
+    quickPsLabel: "Exporte os logs principais de uma vez",
+    quickPsNote:
+      "Grava os logs Security, System, Application, PowerShell e Sysmon em `C:\\triage\\`. Se um log não existir na máquina (por ex. Sysmon não instalado), só aparece um erro: ignore. Depois solte aqui os arquivos de `C:\\triage\\`.",
+    quickCmdLabel: "Só o log de Segurança",
+    quickGuiLabel: "Sem linha de comando? Use o Visualizador de Eventos",
+    quickGui:
+      "Execute `eventvwr.msc` → Logs do Windows → clique com o botão direito em Segurança (ou outro log) → \"Salvar Todos os Eventos Como…\" (Save All Events As…) → mantenha o tipo \"Arquivos de Evento (*.evtx)\" → Salvar.",
+    triagePrereq:
+      "Execute como administrador. KAPE e Velociraptor são downloads gratuitos à parte, nas páginas oficiais dos projetos. Eles também pegam os arquivos arquivados `Archive-*.evtx` que uma exportação ignora.",
+    kapeLabel: "KAPE — target EventLogs",
+    kapeNote:
+      "Copia todos os .evtx de `winevt\\Logs` para dentro de `C:\\triage\\`, mantendo a estrutura de pastas original. Abra essa pasta `Logs`, selecione todos os .evtx e solte-os aqui.",
+    veloLabel: "Velociraptor — coleta offline",
+    veloNote:
+      "Usa o artefato `Windows.KapeFiles.Targets` com o target `EventLogs` e gera `C:\\triage\\evtx.zip`. Use o nome do seu executável do Velociraptor. Descompacte antes: os .evtx ficam na pasta `winevt/Logs` dentro do arquivo.",
+    imageIntro:
+      "Já tem uma imagem E01/raw ou uma cópia do disco? Extraia os arquivos de `\\Windows\\System32\\winevt\\Logs\\` da partição do Windows: sem direitos de administrador nem máquina ligada.",
+    ftkLabel: "FTK Imager",
+    ftkSteps:
+      "File → Add Evidence Item → Image File → navegue até `[root]\\Windows\\System32\\winevt\\Logs` → selecione os .evtx → botão direito → Export Files.",
+    mountLabel: "Imagem montada (Linux / macOS)",
+    mountNote:
+      "Pressupõe a partição do Windows montada somente leitura em `/mnt/win` (por ex. `ewfmount` + `mount -o ro`, ou Arsenal Image Mounter no Windows): ajuste o caminho ao seu ponto de montagem.",
+    locationIntro:
+      "Cada canal do log de eventos é um arquivo .evtx separado, todos na mesma pasta (Windows Vista / Server 2008 e posteriores):",
+    locationFiles:
+      "Arquivos principais: `Security.evtx`, `System.evtx`, `Application.evtx`; a `/` no nome de um canal vira `%4`, por ex. `Microsoft-Windows-Sysmon%4Operational.evtx`. Cada arquivo é autônomo, sem arquivos complementares. Solte vários e eles são mesclados em uma única linha do tempo.",
+    locationArchive:
+      "Logs rotacionados ficam ao lado como `Archive-Security-<carimbo de data/hora>.evtx` quando o backup automático está ativo: solte-os também.",
+    locationRedirect: "Log movido? Confira o caminho real (logFileName)",
+    allPaths: "Todos os caminhos por canal",
+    gotchasHeading: "Armadilhas",
+    gotchas: [
+      "Uma cópia simples de um log ativo falha porque o Windows o mantém aberto: use um dos métodos acima, não o Explorador nem `copy`.",
+      "Os logs são circulares: quando cheios, os eventos mais antigos são sobrescritos (o tamanho padrão costuma ser de só 20 MB). Colete cedo e pegue também os `Archive-*.evtx`: `wevtutil epl` exporta só o log ativo.",
+      "Solte arquivos .evtx, não um .zip nem uma pasta: descompacte antes e selecione todos os .evtx. Os horários aparecem em UTC por padrão (alterne para o horário local no visualizador).",
+    ],
+    copy: "Copiar",
+    copyCommand: "Copiar comando",
+    copied: "Copiado",
+    openGuide: "Como coletar",
+  },
   fileLocation: {
     heading: "Onde encontrar os arquivos .evtx",
     intro:

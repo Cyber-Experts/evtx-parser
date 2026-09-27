@@ -154,6 +154,50 @@ export type Dict = {
     copyLink: string;
     linkCopied: string;
   };
+  /** "How to get your .evtx files" guide (#collect) right under the drop
+   *  zone, and in a dialog from the full-screen workspace toolbar. Commands
+   *  live in components/CollectGuide.tsx (identical in every locale). In
+   *  prose strings, text wrapped in `backticks` renders as <code>. */
+  collect: {
+    heading: string;
+    intro: string;
+    /** 3-step strip: collect → drop here → stays in the browser. */
+    steps: [string, string, string];
+    tabsLabel: string;
+    tabQuick: string;
+    tabTriage: string;
+    tabImage: string;
+    tabLocation: string;
+    recommended: string;
+    quickPrereq: string;
+    quickPsLabel: string;
+    quickPsNote: string;
+    quickCmdLabel: string;
+    quickGuiLabel: string;
+    quickGui: string;
+    triagePrereq: string;
+    kapeLabel: string;
+    kapeNote: string;
+    veloLabel: string;
+    veloNote: string;
+    imageIntro: string;
+    ftkLabel: string;
+    ftkSteps: string;
+    mountLabel: string;
+    mountNote: string;
+    locationIntro: string;
+    locationFiles: string;
+    locationRedirect: string;
+    locationArchive: string;
+    allPaths: string;
+    gotchasHeading: string;
+    gotchas: string[];
+    copy: string;
+    copyCommand: string;
+    copied: string;
+    /** Toolbar button in the full-screen workspace. */
+    openGuide: string;
+  };
   /** "Where to find .evtx files" panel under the home-page drop zone.
    *  Paths themselves live in components/EvtxLocations.tsx (not translated).
    *  In `howTo` bullets, text wrapped in `backticks` renders as <code>. */

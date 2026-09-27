@@ -165,6 +165,65 @@ export const en: Dict = {
     copyLink: "Copy link to this search",
     linkCopied: "Link copied",
   },
+  collect: {
+    heading: "How to get your .evtx files",
+    intro:
+      "Never pulled event logs off a Windows machine? Pick the first method that works for you — it takes a minute.",
+    steps: [
+      "Collect the .evtx files",
+      "Drop them here (several at once is fine)",
+      "Everything stays in your browser",
+    ],
+    tabsLabel: "Collection methods",
+    tabQuick: "Quickest",
+    tabTriage: "Triage tools",
+    tabImage: "From a disk image",
+    tabLocation: "Where they live",
+    recommended: "Recommended",
+    quickPrereq:
+      "Run as administrator on the Windows host (right-click PowerShell or Command Prompt → Run as administrator). Reading the Security log needs admin rights.",
+    quickPsLabel: "Export the key logs in one go",
+    quickPsNote:
+      "Writes Security, System, Application, PowerShell and Sysmon logs to `C:\\triage\\`. A log that doesn't exist on the host (e.g. Sysmon not installed) just prints an error — ignore it. Then drop the files from `C:\\triage\\` here.",
+    quickCmdLabel: "Just the Security log",
+    quickGuiLabel: "No command line? Use Event Viewer",
+    quickGui:
+      "Run `eventvwr.msc` → Windows Logs → right-click Security (or any log) → Save All Events As… → keep the type Event Files (*.evtx) → Save.",
+    triagePrereq:
+      "Run as administrator. KAPE and Velociraptor are separate free downloads from their official project pages. They also grab the archived `Archive-*.evtx` files that an export skips.",
+    kapeLabel: "KAPE — EventLogs target",
+    kapeNote:
+      "Copies every .evtx from `winevt\\Logs` under `C:\\triage\\`, keeping the original folder structure. Open that `Logs` folder, select all the .evtx files and drop them here.",
+    veloLabel: "Velociraptor — offline collection",
+    veloNote:
+      "Uses the `Windows.KapeFiles.Targets` artifact with its `EventLogs` target and writes `C:\\triage\\evtx.zip`. Use your Velociraptor binary's file name. Unzip it first — the .evtx files sit under the `winevt/Logs` folder inside.",
+    imageIntro:
+      "Already have an E01/raw image or a copy of the drive? Pull the files from `\\Windows\\System32\\winevt\\Logs\\` of the Windows partition — no admin rights or live host needed.",
+    ftkLabel: "FTK Imager",
+    ftkSteps:
+      "File → Add Evidence Item → Image File → browse to `[root]\\Windows\\System32\\winevt\\Logs` → select the .evtx files → right-click → Export Files.",
+    mountLabel: "Mounted image (Linux / macOS)",
+    mountNote:
+      "Assumes the Windows partition is mounted read-only at `/mnt/win` (e.g. `ewfmount` + `mount -o ro`, or Arsenal Image Mounter on Windows) — adjust the path to your mount point.",
+    locationIntro:
+      "Every event log channel is its own .evtx file in one folder (Windows Vista / Server 2008 and later):",
+    locationFiles:
+      "Main files: `Security.evtx`, `System.evtx`, `Application.evtx`; `/` in a channel name becomes `%4`, e.g. `Microsoft-Windows-Sysmon%4Operational.evtx`. Each file is self-contained — no companion files needed. Drop several and they are merged into one timeline.",
+    locationArchive:
+      "Rotated logs are kept next to them as `Archive-Security-<timestamp>.evtx` when auto-backup is on — drop them too.",
+    locationRedirect: "Log moved elsewhere? Check its real path (logFileName)",
+    allPaths: "All channel paths",
+    gotchasHeading: "Gotchas",
+    gotchas: [
+      "A plain copy of a live log fails because Windows keeps it open — use one of the methods above, not Explorer or `copy`.",
+      "Logs are circular: when full, the oldest events are overwritten (the default size is often just 20 MB). Collect early, and grab `Archive-*.evtx` too — `wevtutil epl` exports only the active log.",
+      "Drop .evtx files, not a .zip or a folder: unzip first, then select all the .evtx files. Times are shown in UTC by default (toggle to local time in the viewer).",
+    ],
+    copy: "Copy",
+    copyCommand: "Copy command",
+    copied: "Copied",
+    openGuide: "How to collect",
+  },
   fileLocation: {
     heading: "Where to find .evtx files",
     intro:

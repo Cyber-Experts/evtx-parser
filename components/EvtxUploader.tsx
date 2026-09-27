@@ -79,6 +79,13 @@ import {
   type TimeMode,
 } from "@/lib/time";
 import { CopyPathButton } from "@/components/CopyPathButton";
+import { CollectGuide } from "@/components/CollectGuide";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { copyText } from "@/lib/clipboard";
 import type { Dict } from "@/src/dict/types";
 
@@ -587,6 +594,9 @@ export function EvtxUploader({
   const [savedId, setSavedId] = useState<string | null>(null);
   const [savedName, setSavedName] = useState<string | null>(null);
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
+  // "How to collect" guide, reachable from the workspace toolbar once the
+  // in-page guide under the drop zone is hidden.
+  const [collectOpen, setCollectOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "full" | "error">("idle");
   const [restoring, setRestoring] = useState(false);
   // File list: null = automatic (collapsed once there are many files).
@@ -2391,7 +2401,7 @@ export function EvtxUploader({
                 />
               </label>
             </div>
-            <div className="flex items-center gap-3 text-ink-600 dark:text-ink-400">
+            <div className="flex flex-wrap items-center gap-3 text-ink-600 dark:text-ink-400">
               <span>
                 {formatBytes(totalSize)} ·{" "}
                 <span className="font-mono text-foreground">
@@ -2472,6 +2482,22 @@ export function EvtxUploader({
                   {t.viewer.resetColumns}
                 </button>
               )}
+              <button
+                type="button"
+                onClick={() => setCollectOpen(true)}
+                aria-haspopup="dialog"
+                className="rounded-md border border-ink-300 px-2 py-1 text-xs text-ink-700 hover:bg-ink-100 dark:border-ink-700 dark:text-ink-300 dark:hover:bg-ink-900"
+              >
+                <span aria-hidden="true">?</span> {t.collect.openGuide}
+              </button>
+              <Dialog open={collectOpen} onOpenChange={setCollectOpen}>
+                <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>{t.collect.heading}</DialogTitle>
+                  </DialogHeader>
+                  <CollectGuide dict={t} locale={locale} compact />
+                </DialogContent>
+              </Dialog>
               {fullscreen && (
                 <button
                   type="button"
