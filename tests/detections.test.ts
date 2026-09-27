@@ -34,3 +34,11 @@ describe.skipIf(!HAS_FIXTURES)("built-in findings on real logs", () => {
     for (const g of f.gids) expect(ds.rows[g].event_id).toBe(4720);
   });
 });
+
+describe("log-cleared-1102 provider mapping", () => {
+  it("fires on a 1102 from Microsoft-Windows-Eventlog (the real provider)", () => {
+    const rows = [{ _g: 0, event_id: 1102, provider: "Microsoft-Windows-Eventlog" }];
+    const keys = runDetections(rows as Parameters<typeof runDetections>[0], [[]]).map((f) => f.key);
+    expect(keys).toContain("log-cleared-1102");
+  });
+});

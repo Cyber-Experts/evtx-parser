@@ -114,7 +114,9 @@ export function runDetections(
   // --- Anti-forensics --------------------------------------------------------
   add("log-cleared-1102", "high", "Security log cleared (1102)",
     "The Security audit log was cleared — a high-fidelity anti-forensics event.",
-    ids("security", 1102));
+    // Real 1102 events come from the Microsoft-Windows-Eventlog provider,
+    // which providerHint() maps to "system", so check both buckets.
+    merge(ids("security", 1102), ids("system", 1102)));
   add("log-cleared-104", "medium", "An event log was cleared (104)",
     "A log other than Security was cleared.", ids("system", 104));
   add("audit-disabled-4719", "high", "Audit policy changed (4719)",
