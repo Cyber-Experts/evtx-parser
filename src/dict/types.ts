@@ -179,6 +179,8 @@ export type Dict = {
     kapeLabel: string;
     kapeNote: string;
     veloLabel: string;
+    veloGui: string;
+    veloCmdLabel: string;
     veloNote: string;
     imageIntro: string;
     ftkLabel: string;

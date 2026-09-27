@@ -24,7 +24,6 @@
     "@shikijs/rehype": "^4.1.0",
     "@tailwindcss/typography": "^0.5.19",
     "@vercel/analytics": "^2.0.1",
-    "@vercel/og": "^0.11.1",
     "@vercel/speed-insights": "^2.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

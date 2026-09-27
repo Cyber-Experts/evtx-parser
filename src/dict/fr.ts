@@ -194,9 +194,12 @@ export const fr: Dict = {
     kapeLabel: "KAPE — cible EventLogs",
     kapeNote:
       "Copie tous les .evtx de `winevt\\Logs` sous `C:\\triage\\` en conservant l'arborescence d'origine. Ouvrez ce dossier `Logs`, sélectionnez tous les .evtx et déposez-les ici.",
-    veloLabel: "Velociraptor — collecte hors ligne",
+    veloLabel: "Velociraptor — collecteur hors ligne",
+    veloGui:
+      "Dans l'interface Velociraptor : Server Artifacts → Build offline collector → sélectionnez `Windows.Triage.Targets` (projet Velociraptor Triage) → cochez la cible `EventLogs` → générez le collecteur, puis exécutez-le sur le poste en administrateur. Il produit un ZIP de collecte. Décompressez d'abord : les .evtx se trouvent sous le dossier `winevt/Logs` de l'archive.",
+    veloCmdLabel: "Anciennes versions de Velociraptor — ligne de commande",
     veloNote:
-      "Utilise l'artefact `Windows.KapeFiles.Targets` avec sa cible `EventLogs` et écrit `C:\\triage\\evtx.zip`. Remplacez par le nom de votre binaire Velociraptor. Décompressez d'abord : les .evtx se trouvent sous le dossier `winevt/Logs` de l'archive.",
+      "Uniquement pour les versions qui fournissent encore `Windows.KapeFiles.Targets`, l'ancien nom de l'artefact de triage. Collecte sa cible `EventLogs` dans `C:\\triage\\evtx.zip` ; remplacez par le nom de votre binaire Velociraptor. Décompressez d'abord : les .evtx se trouvent sous le dossier `winevt/Logs` de l'archive.",
     imageIntro:
       "Vous avez déjà une image E01/raw ou une copie du disque ? Récupérez les fichiers de `\\Windows\\System32\\winevt\\Logs\\` sur la partition Windows : ni droits admin ni machine allumée nécessaires.",
     ftkLabel: "FTK Imager",

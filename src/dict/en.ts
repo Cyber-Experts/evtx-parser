@@ -194,9 +194,12 @@ export const en: Dict = {
     kapeLabel: "KAPE — EventLogs target",
     kapeNote:
       "Copies every .evtx from `winevt\\Logs` under `C:\\triage\\`, keeping the original folder structure. Open that `Logs` folder, select all the .evtx files and drop them here.",
-    veloLabel: "Velociraptor — offline collection",
+    veloLabel: "Velociraptor — offline collector",
+    veloGui:
+      "In the Velociraptor GUI: Server Artifacts → Build offline collector → select `Windows.Triage.Targets` (from the Velociraptor Triage project) → tick the `EventLogs` target → build, then run the collector on the host as administrator. It writes a collection ZIP. Unzip it first — the .evtx files sit under the `winevt/Logs` folder inside.",
+    veloCmdLabel: "Older Velociraptor releases — command line",
     veloNote:
-      "Uses the `Windows.KapeFiles.Targets` artifact with its `EventLogs` target and writes `C:\\triage\\evtx.zip`. Use your Velociraptor binary's file name. Unzip it first — the .evtx files sit under the `winevt/Logs` folder inside.",
+      "Only for releases that still ship `Windows.KapeFiles.Targets`, the former name of the triage artifact. Collects its `EventLogs` target into `C:\\triage\\evtx.zip`; use your Velociraptor binary's file name. Unzip it first — the .evtx files sit under the `winevt/Logs` folder inside.",
     imageIntro:
       "Already have an E01/raw image or a copy of the drive? Pull the files from `\\Windows\\System32\\winevt\\Logs\\` of the Windows partition — no admin rights or live host needed.",
     ftkLabel: "FTK Imager",

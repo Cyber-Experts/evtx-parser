@@ -194,9 +194,12 @@ export const de: Dict = {
     kapeLabel: "KAPE – Target EventLogs",
     kapeNote:
       "Kopiert alle .evtx aus `winevt\\Logs` nach `C:\\triage\\` und behält die ursprüngliche Ordnerstruktur bei. Öffne diesen `Logs`-Ordner, markiere alle .evtx-Dateien und lege sie hier ab.",
-    veloLabel: "Velociraptor – Offline-Sammlung",
+    veloLabel: "Velociraptor – Offline-Collector",
+    veloGui:
+      "In der Velociraptor-Oberfläche: Server Artifacts → Build offline collector → `Windows.Triage.Targets` (aus dem Velociraptor-Triage-Projekt) auswählen → das Target `EventLogs` anhaken → bauen und den Collector auf dem Host als Administrator ausführen. Er schreibt ein Collection-ZIP. Vorher entpacken – die .evtx-Dateien liegen im Archiv unter dem Ordner `winevt/Logs`.",
+    veloCmdLabel: "Ältere Velociraptor-Versionen – Kommandozeile",
     veloNote:
-      "Nutzt das Artefakt `Windows.KapeFiles.Targets` mit dem Target `EventLogs` und schreibt `C:\\triage\\evtx.zip`. Setze den Dateinamen deines Velociraptor-Binaries ein. Vorher entpacken – die .evtx-Dateien liegen im Archiv unter dem Ordner `winevt/Logs`.",
+      "Nur für Versionen, die noch `Windows.KapeFiles.Targets` mitliefern – der frühere Name des Triage-Artefakts. Sammelt dessen Target `EventLogs` in `C:\\triage\\evtx.zip`; setze den Dateinamen deines Velociraptor-Binaries ein. Vorher entpacken – die .evtx-Dateien liegen im Archiv unter dem Ordner `winevt/Logs`.",
     imageIntro:
       "Du hast schon ein E01-/Raw-Image oder eine Kopie der Festplatte? Hol die Dateien aus `\\Windows\\System32\\winevt\\Logs\\` der Windows-Partition – ohne Adminrechte und ohne laufendes System.",
     ftkLabel: "FTK Imager",
