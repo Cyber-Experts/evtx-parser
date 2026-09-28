@@ -43,7 +43,7 @@ import { SearchBox } from "@/components/viewer/SearchBox";
 import { HuntsMenu } from "@/components/viewer/HuntsMenu";
 import { SessionsView } from "@/components/viewer/SessionsView";
 import { SavedSessionsList } from "@/components/viewer/SavedSessionsList";
-import { TimeRangeInput } from "@/components/viewer/TimeRangeInput";
+import { TimeRangeBar, aroundLabel } from "@/components/viewer/TimeRangeBar";
 import { SessionNameDialog } from "@/components/viewer/SessionNameDialog";
 import {
   ResizableHandle,
@@ -87,6 +87,31 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { copyText } from "@/lib/clipboard";
+import {
+  buildCsv,
+  buildJson,
+  buildTxt,
+  levelLabel,
+  pairsToRecord,
+} from "@/lib/export";
+import {
+  ANY_FIELD,
+  AROUND_WINDOWS,
+  PRIMARY_FIELD,
+  buildTimeIndex,
+  filterByRange,
+  aroundRange,
+  normalizeRange,
+  parseEventTime,
+  rangeFileSuffix,
+  rangeLabel,
+  rangeMatcher,
+  readRangeParams,
+  timeBounds as boundsOf,
+  timesFor,
+  writeRangeParams,
+  type TimeRange,
+} from "@/lib/time-range";
 import type { Dict } from "@/src/dict/types";
 
 // Virtualization: render only the rows the user can actually see plus a
@@ -175,23 +200,6 @@ function levelClass(level: number | null): string {
   }
 }
 
-function levelLabel(level: number | null, dict: Dict): string {
-  switch (level) {
-    case 1:
-      return dict.levels.critical;
-    case 2:
-      return dict.levels.error;
-    case 3:
-      return dict.levels.warning;
-    case 4:
-      return dict.levels.info;
-    case 5:
-      return dict.levels.verbose;
-    default:
-      return dict.levels.unknown;
-  }
-}
-
 // Lazily built, per-dataset caches for search. Kept outside the component so
 // the memoized closures own their mutable cache.
 function makeHaystackIndex(allPairs: [string, string][][]) {
@@ -235,140 +243,28 @@ function makeValueIndex(rows: IndexedRow[], allPairs: [string, string][][]) {
   };
 }
 
-// Cap the number of EventData-derived columns so a heterogeneous file
-// (e.g. a full Security.evtx with hundreds of distinct keys) can't produce
-// a pathologically wide CSV. Analysts who want clean columns filter to a
-// single Event ID first; this is just a guardrail.
-const MAX_DATA_COLUMNS = 256;
-
-function pairsOf(rec: Record<string, string>): [string, string][] {
-  return Object.entries(rec);
-}
-
-function pairsToRecord(pairs: [string, string][]): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const [k, v] of pairs) out[k] = v;
-  return out;
-}
-
-function csvEscape(value: string | number | null | undefined): string {
-  if (value == null) return "";
-  const s = String(value);
-  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
-}
-
-function buildCsv(
-  rows: IndexedRow[],
-  parsed: Record<string, string>[],
-  dict: Dict,
-  includeXml: boolean,
-  xmls: string[],
-  includeSource: boolean,
-): string {
-  const keySet = new Set<string>();
-  for (const p of parsed) for (const k of Object.keys(p)) keySet.add(k);
-  const dataKeys = Array.from(keySet).sort().slice(0, MAX_DATA_COLUMNS);
-
-  const header = [
-    dict.table.record,
-    dict.table.time,
-    dict.table.level,
-    dict.table.eventId,
-    dict.table.provider,
-    dict.table.channel,
-    dict.table.computer,
-    ...(includeSource ? [dict.table.source] : []),
-    dict.viewer.description,
-    ...dataKeys,
-    ...(includeXml ? ["RawXml"] : []),
-  ];
-  const lines = rows.map((r, i) => {
-    const p = parsed[i] ?? {};
-    return [
-      Number(r.record_id),
-      r.timestamp,
-      levelLabel(r.level, dict),
-      r.event_id ?? "",
-      r.provider ?? "",
-      r.channel ?? "",
-      r.computer ?? "",
-      ...(includeSource ? [r._file] : []),
-      describeEvent(r.event_id, r.provider, pairsOf(p)) ?? "",
-      ...dataKeys.map((k) => p[k] ?? ""),
-      ...(includeXml ? [xmls[i] ?? ""] : []),
-    ]
-      .map(csvEscape)
-      .join(",");
-  });
-  return "﻿" + [header.map(csvEscape).join(","), ...lines].join("\n");
-}
-
-function buildJson(
-  rows: IndexedRow[],
-  parsed: Record<string, string>[],
-  xmls: string[],
-  includeSource: boolean,
-): string {
-  return JSON.stringify(
-    rows.map((r, i) => ({
-      record_id: Number(r.record_id),
-      timestamp: r.timestamp,
-      level: r.level,
-      event_id: r.event_id,
-      provider: r.provider,
-      channel: r.channel,
-      computer: r.computer,
-      ...(includeSource ? { source_file: r._file } : {}),
-      description: describeEvent(r.event_id, r.provider, pairsOf(parsed[i] ?? {})),
-      event_data: parsed[i] ?? {},
-      xml: xmls[i] ?? "",
-    })),
-    null,
-    2,
-  );
-}
-
-function buildTxt(
-  rows: IndexedRow[],
-  parsed: Record<string, string>[],
-  dict: Dict,
-  includeXml: boolean,
-  xmls: string[],
-  includeSource: boolean,
-): string {
-  // Plain-text export: one readable block per event, blank line between
-  // events — greppable and pasteable into a report or ticket.
-  const blocks = rows.map((r, i) => {
-    const lines = [
-      `${dict.table.record}${Number(r.record_id)} | ${r.timestamp} | ${levelLabel(r.level, dict)} | ${dict.table.eventId} ${r.event_id ?? ""}`,
-      `${dict.table.provider}: ${r.provider ?? ""}`,
-      `${dict.table.channel}: ${r.channel ?? ""}`,
-      `${dict.table.computer}: ${r.computer ?? ""}`,
-    ];
-    if (includeSource) lines.push(`${dict.table.source}: ${r._file}`);
-    const desc = describeEvent(r.event_id, r.provider, pairsOf(parsed[i] ?? {}));
-    if (desc) lines.push(`${dict.viewer.description}: ${desc}`);
-    for (const [k, v] of Object.entries(parsed[i] ?? {})) {
-      lines.push(`  ${k}: ${v.replace(/\r?\n/g, " ")}`);
-    }
-    if (includeXml && xmls[i]) lines.push(xmls[i]);
-    return lines.join("\n");
-  });
-  return blocks.join("\n\n") + "\n";
-}
-
-function readHash(): { q: string; re: boolean } {
-  if (typeof window === "undefined") return { q: "", re: false };
+function readHash(): {
+  q: string;
+  re: boolean;
+  range: TimeRange | null;
+  field: string;
+} {
+  if (typeof window === "undefined")
+    return { q: "", re: false, range: null, field: PRIMARY_FIELD };
   const p = new URLSearchParams(window.location.hash.slice(1));
-  return { q: p.get("q") ?? "", re: p.get("re") === "1" };
+  return { q: p.get("q") ?? "", re: p.get("re") === "1", ...readRangeParams(p) };
 }
 
-function shareLink(q: string, regex: boolean): string {
-  const p = new URLSearchParams({ q });
+function shareLink(
+  q: string,
+  regex: boolean,
+  range: TimeRange | null,
+  field: string,
+): string {
+  const p = new URLSearchParams();
+  if (q) p.set("q", q);
   if (regex) p.set("re", "1");
+  writeRangeParams(p, range, field);
   return `${window.location.origin}${window.location.pathname}#${p}`;
 }
 
@@ -381,12 +277,15 @@ function buildReport(
   notes: Record<number, string>,
   fileNames: string[],
   dict: Dict,
+  range: TimeRange | null = null,
 ): string {
   const v = dict.viewer;
+  const span = range ? rangeLabel(range, "utc") : null;
   const lines = [
     `# ${v.reportTitle}`,
     "",
     `${v.reportGenerated}: ${new Date().toISOString()} · ${fileNames.join(", ")} · ${rows.length} ★`,
+    ...(span ? ["", `${v.rangeTitle}: ${span.from} → ${span.to} UTC`] : []),
     "",
     `| ${dict.table.time} | ${dict.table.computer} | ${dict.table.eventId} | ${v.description} | ${v.note} |`,
     "|---|---|---|---|---|",
@@ -570,7 +469,14 @@ export function EvtxUploader({
     xml: string | null;
     showXml: boolean;
   } | null>(null);
-  const [timeRange, setTimeRange] = useState<[number, number] | null>(null);
+  // Custom time-range window (inclusive, to the second) on `timeField`. A
+  // shared link / reload (#from=…&to=…&field=…) restores it once the data is
+  // dropped again.
+  const [timeRange, setTimeRange] = useState<TimeRange | null>(() => readHash().range);
+  const [timeField, setTimeField] = useState<string>(() => readHash().field);
+  const hashRangeRef = useRef<TimeRange | null>(timeRange);
+  // ± window used by timestamp clicks ("Around…").
+  const [aroundMs, setAroundMs] = useState(5 * 60 * 1000);
   const [includeXml, setIncludeXml] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [sortField, setSortField] = useState<SortField>("record_id");
@@ -581,10 +487,7 @@ export function EvtxUploader({
   const searchInputRef = useRef<HTMLInputElement>(null);
   // Built-in triage: when a finding is selected, the table is restricted to the
   // exact rows it matched (by global index).
-  const [findingFilter, setFindingFilter] = useState<{
-    key: string;
-    gids: Set<number>;
-  } | null>(null);
+  const [findingFilter, setFindingFilter] = useState<{ key: string } | null>(null);
   const [showFindings, setShowFindings] = useState(true);
   // Power-user workflow state.
   const [regexMode, setRegexMode] = useState(() => readHash().re);
@@ -633,7 +536,9 @@ export function EvtxUploader({
       // A new upload changes the dataset, so drop transient view state but keep
       // the user's text/level filters — they still make sense across files.
       setOpenRow(null);
-      setTimeRange(null);
+      // Keep a range restored from the URL for the first load only.
+      setTimeRange(hashRangeRef.current);
+      hashRangeRef.current = null;
       setScrollTop(0);
       if (scrollRef.current) scrollRef.current.scrollTop = 0;
       try {
@@ -752,18 +657,19 @@ export function EvtxUploader({
 
   const openFilePicker = useCallback(() => fileInputRef.current?.click(), []);
 
-  // Jump the table to exactly the rows a finding matched. Clears other filters
-  // for an unambiguous view; clicking the active finding again toggles it off.
+  // Jump the table to exactly the rows a finding matched (within the time
+  // range). Clears the other filters for an unambiguous view; clicking the
+  // active finding again toggles it off.
   const viewFinding = useCallback((f: Finding) => {
     setFilter("");
     setActiveLevels(new Set());
     setQuery(emptyRoot());
-    setTimeRange(null);
+    // The time range stays: findings are already scoped to it.
     setBookmarkOnly(false);
     setOpenRow(null);
     setFocusedIdx(null);
     setFindingFilter((prev) =>
-      prev?.key === f.key ? null : { key: f.key, gids: new Set(f.gids) },
+      prev?.key === f.key ? null : { key: f.key },
     );
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, []);
@@ -898,10 +804,30 @@ export function EvtxUploader({
 
   const ready = files.length > 0;
 
+  // Epoch ms of every record's times, parsed once per dataset: TimeCreated
+  // plus the EventData time fields present (Sysmon UtcTime, …). Range
+  // filtering is then numeric comparisons on these arrays.
+  const timeIndex = useMemo(() => buildTimeIndex(allRows, allPairs), [allRows, allPairs]);
+  const timeFields = useMemo(() => [...timeIndex.fields.keys()], [timeIndex]);
+  // A field restored from a link/session that this data doesn't have falls
+  // back to TimeCreated.
+  const rangeField =
+    timeField === ANY_FIELD || timeIndex.fields.has(timeField) ? timeField : PRIMARY_FIELD;
+  const fieldTimes = useMemo(() => timesFor(timeIndex, rangeField), [timeIndex, rangeField]);
+  // First / last time of the chosen field: input defaults and presets.
+  const timeBounds = useMemo(() => boundsOf(fieldTimes), [fieldTimes]);
+
+  // Everything in the view (table, counts, findings, facets, sessions, hunts,
+  // exports) starts from the records inside the time range.
+  const rangeRows = useMemo(
+    () => filterByRange(allRows, timeIndex, rangeField, timeRange),
+    [allRows, timeIndex, rangeField, timeRange],
+  );
+
   // Logon sessions are only rebuilt while the Sessions view is open.
   const sessions = useMemo(
-    () => (view === "sessions" ? buildSessions(allRows, allPairs) : []),
-    [view, allRows, allPairs],
+    () => (view === "sessions" ? buildSessions(rangeRows, allPairs) : []),
+    [view, rangeRows, allPairs],
   );
 
 
@@ -1036,9 +962,30 @@ export function EvtxUploader({
   const queryActive = hasConditions(query);
 
   // Built-in triage detections — recomputed only when the dataset changes.
-  const findings = useMemo<Finding[]>(
+  const allFindings = useMemo<Finding[]>(
     () => (ready ? runDetections(allRows, allPairs) : []),
     [ready, allRows, allPairs],
+  );
+  // Scoped to the time range: a finding stays if ≥1 of its events is in
+  // range, and its count (and table filter) covers only those events.
+  const findings = useMemo<Finding[]>(() => {
+    if (!timeRange) return allFindings;
+    const match = rangeMatcher(timeIndex, rangeField, timeRange);
+    const out: Finding[] = [];
+    for (const f of allFindings) {
+      const gids = f.gids.filter(match);
+      if (gids.length > 0) out.push({ ...f, gids });
+    }
+    return out;
+  }, [allFindings, timeRange, timeIndex, rangeField]);
+  // Rows of the selected finding, following the current range.
+  const findingGids = useMemo(() => {
+    if (!findingFilter) return null;
+    return new Set(findings.find((f) => f.key === findingFilter.key)?.gids ?? []);
+  }, [findingFilter, findings]);
+  const findingTotals = useMemo(
+    () => new Map(allFindings.map((f) => [f.key, f.gids.length])),
+    [allFindings],
   );
 
   // Is the current regex term syntactically invalid? Drives the red input
@@ -1109,12 +1056,11 @@ export function EvtxUploader({
     if (
       !filter &&
       activeLevels.size === 0 &&
-      !timeRange &&
       !queryActive &&
       !findingFilter &&
       !bookmarkOnly
     )
-      return allRows;
+      return rangeRows;
     // Search box: a regex over every field in regex mode (invalid pattern
     // matches nothing), otherwise the field-aware query language.
     let matcher: ((r: IndexedRow) => boolean) | null = null;
@@ -1132,29 +1078,25 @@ export function EvtxUploader({
           compiledSearch(r, allPairs[r._g] ?? [], () => haystackOf(r));
       }
     }
-    return allRows.filter((r) => {
-      if (findingFilter && !findingFilter.gids.has(r._g)) return false;
+    return rangeRows.filter((r) => {
+      if (findingGids && !findingGids.has(r._g)) return false;
       if (bookmarkOnly && !bookmarks.has(r._g)) return false;
       if (activeLevels.size > 0 && (r.level == null || !activeLevels.has(r.level)))
         return false;
       if (matcher && !matcher(r)) return false;
-      if (timeRange) {
-        const t = Date.parse(r.timestamp);
-        if (t < timeRange[0] || t >= timeRange[1]) return false;
-      }
       if (queryActive && !evaluateNode(query, r, allPairs[r._g] ?? [])) return false;
       return true;
     });
   }, [
-    allRows,
+    rangeRows,
     allPairs,
     filter,
     regexMode,
     activeLevels,
-    timeRange,
     query,
     queryActive,
     findingFilter,
+    findingGids,
     bookmarkOnly,
     bookmarks,
     compiledSearch,
@@ -1195,15 +1137,20 @@ export function EvtxUploader({
     [applyClause],
   );
 
-  // Pivots from an event: replace every filter with a focused view.
+  // Pivots from an event: replace every filter with a focused view. The time
+  // range is kept (hunts, sessions and pivots stay inside the incident
+  // window) unless the pivot sets one.
   const pivotTo = useCallback(
-    (opts: { search?: string; range?: [number, number] }) => {
+    (opts: { search?: string; range?: TimeRange }) => {
       setActiveLevels(new Set());
       setQuery(emptyRoot());
       setFindingFilter(null);
       setBookmarkOnly(false);
       setRegexMode(false);
-      setTimeRange(opts.range ?? null);
+      if (opts.range) {
+        setTimeRange(opts.range);
+        setTimeField(PRIMARY_FIELD);
+      }
       setFilterAndResetScroll(opts.search ?? "");
     },
     [setFilterAndResetScroll],
@@ -1216,17 +1163,39 @@ export function EvtxUploader({
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, []);
 
-  const handleSelectTimeRange = useCallback((range: [number, number]) => {
+  const handleSelectTimeRange = useCallback((range: TimeRange | null) => {
     setTimeRange(range);
     setOpenRow(null);
     setFocusedIdx(null);
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, []);
 
-  const clearTimeRange = useCallback(() => {
-    setTimeRange(null);
-    setOpenRow(null);
-  }, []);
+  // "Around…": center the range on a row's event time (other filters kept).
+  const centerOn = useCallback(
+    (timestamp: string) => {
+      const t = parseEventTime(timestamp);
+      if (Number.isNaN(t)) return;
+      setTimeField(PRIMARY_FIELD);
+      handleSelectTimeRange(aroundRange(t, aroundMs));
+    },
+    [aroundMs, handleSelectTimeRange],
+  );
+
+  // Mirror the range into the URL hash (#from=…&to=…&field=…) so a reload
+  // or a shared link restores it on the same data. Only once data is loaded,
+  // so a pending range from the link isn't wiped before the drop.
+  useEffect(() => {
+    if (!ready) return;
+    const p = writeRangeParams(
+      new URLSearchParams(window.location.hash.slice(1)),
+      timeRange,
+      rangeField,
+    );
+    const hash = p.toString();
+    const url = `${window.location.pathname}${window.location.search}${hash ? `#${hash}` : ""}`;
+    if (url !== `${window.location.pathname}${window.location.search}${window.location.hash}`)
+      window.history.replaceState(window.history.state, "", url);
+  }, [ready, timeRange, rangeField]);
 
   // Apply current sort on top of filtering, then derive the virtual window.
   // Sorting allocates a new array; for very large filters this is the most
@@ -1292,6 +1261,9 @@ export function EvtxUploader({
   useEffect(() => {
     if (!ready) return;
     const onKey = (e: KeyboardEvent) => {
+      // Already handled by a control (timeline handles, time-range popover):
+      // React listens on the document too, so stopPropagation can't stop us.
+      if (e.defaultPrevented) return;
       const el = document.activeElement as HTMLElement | null;
       const tag = el?.tagName;
       const typing =
@@ -1348,15 +1320,15 @@ export function EvtxUploader({
   }, []);
 
   const downloadReport = useCallback(() => {
-    const picked = allRows
+    const picked = rangeRows
       .filter((r) => bookmarks.has(r._g))
       .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
     download(
-      "evtx-report.md",
+      `evtx-report${rangeFileSuffix(timeRange)}.md`,
       "text/markdown;charset=utf-8",
-      buildReport(picked, allPairs, notes, files.map((f) => f.name), t),
+      buildReport(picked, allPairs, notes, files.map((f) => f.name), t, timeRange),
     );
-  }, [allRows, allPairs, bookmarks, notes, files, t]);
+  }, [rangeRows, allPairs, bookmarks, notes, files, t, timeRange]);
 
   // Save the files + analysis state to this browser (IndexedDB) so the case
   // can be resumed later, even after a restart. Re-saving updates the same
@@ -1366,7 +1338,10 @@ export function EvtxUploader({
       filter,
       regexMode,
       levels: [...activeLevels],
-      timeRange,
+      // Legacy end-exclusive tuple (older builds read it) + the exact range.
+      timeRange: timeRange ? [timeRange.from, timeRange.to + 1] : null,
+      range: timeRange,
+      timeField: rangeField,
       query,
       bookmarks: [...bookmarks],
       notes,
@@ -1383,6 +1358,7 @@ export function EvtxUploader({
       regexMode,
       activeLevels,
       timeRange,
+      rangeField,
       query,
       bookmarks,
       notes,
@@ -1450,7 +1426,13 @@ export function EvtxUploader({
         setFilter(snap.filter);
         setRegexMode(snap.regexMode);
         setActiveLevels(new Set(snap.levels));
-        setTimeRange(snap.timeRange);
+        setTimeRange(
+          snap.range ??
+            (snap.timeRange
+              ? normalizeRange(snap.timeRange[0], snap.timeRange[1] - 1)
+              : null),
+        );
+        setTimeField(snap.timeField ?? PRIMARY_FIELD);
         setQuery(snap.query as Group);
         setBookmarks(new Set(snap.bookmarks));
         setNotes(snap.notes);
@@ -1521,8 +1503,11 @@ export function EvtxUploader({
           files: files.length,
           include_xml: kind === "json" ? true : includeXml,
         });
+        // The time range is part of the file name, e.g.
+        // Security_2026-09-14T100000Z-2026-09-14T105500Z.csv
         const base =
-          files.length === 1 ? exportBaseName(files[0].name) : "evtx-events";
+          (files.length === 1 ? exportBaseName(files[0].name) : "evtx-events") +
+          rangeFileSuffix(timeRange);
         if (kind === "csv") {
           download(
             `${base}.csv`,
@@ -1546,7 +1531,7 @@ export function EvtxUploader({
         setExporting(false);
       }
     },
-    [ready, files, multiFile, filteredRows, t, includeXml, allPairs],
+    [ready, files, multiFile, filteredRows, t, includeXml, allPairs, timeRange],
   );
 
   // If every visible (filtered) row shares the same event_id we surface the
@@ -1600,17 +1585,10 @@ export function EvtxUploader({
   );
   const columns = useColumnLayout(colOrder);
 
-  // First / last event time: defaults for the typed time-range inputs.
-  const timeBounds = useMemo<[number, number] | null>(() => {
-    let min = Infinity;
-    let max = -Infinity;
-    for (const r of allRows) {
-      const ms = Date.parse(r.timestamp);
-      if (ms < min) min = ms;
-      if (ms > max) max = ms;
-    }
-    return Number.isFinite(min) ? [min, max] : null;
-  }, [allRows]);
+  const aroundTitle = t.viewer.aroundTimeTitle.replace(
+    "{window}",
+    aroundLabel(aroundMs, t),
+  );
   const colTools = (col: string) => (
     <ColumnTools
       col={col}
@@ -1728,9 +1706,16 @@ export function EvtxUploader({
                         <td
                           data-col="time"
                           className="whitespace-nowrap px-3 py-1.5 text-ink-600 dark:text-ink-400"
-                          title={r.timestamp}
                         >
-                          {formatTimestamp(r.timestamp, timeMode)}
+                          {/* Click: center the time range on this event ("Around…"). */}
+                          <button
+                            type="button"
+                            onClick={() => centerOn(r.timestamp)}
+                            title={`${r.timestamp}\n${aroundTitle}`}
+                            className="text-left tabular-nums hover:text-uv-700 hover:underline dark:hover:text-uv-300"
+                          >
+                            {formatTimestamp(r.timestamp, timeMode)}
+                          </button>
                         </td>
                         <td data-col="level" className={`px-3 py-1.5 ${levelClass(r.level)}`}>
                           {levelLabel(r.level, t)}
@@ -1921,7 +1906,16 @@ export function EvtxUploader({
                         <span className="min-w-0 flex-1 truncate text-ink-500">
                           {f.detail}
                         </span>
-                        <span className="ml-auto shrink-0 rounded bg-ink-100 px-1.5 font-mono text-[10px] tabular-nums text-ink-600 dark:bg-ink-800 dark:text-ink-300">
+                        <span
+                          className="ml-auto shrink-0 rounded bg-ink-100 px-1.5 font-mono text-[10px] tabular-nums text-ink-600 dark:bg-ink-800 dark:text-ink-300"
+                          title={
+                            timeRange
+                              ? t.viewer.rangeCount
+                                  .replace("{n}", numberFmt.format(f.gids.length))
+                                  .replace("{total}", numberFmt.format(findingTotals.get(f.key) ?? f.gids.length))
+                              : undefined
+                          }
+                        >
                           {numberFmt.format(f.gids.length)}
                         </span>
                       </button>
@@ -1934,10 +1928,17 @@ export function EvtxUploader({
 
           <Timeline
             rows={allRows}
-            selectedRange={timeRange}
-            onSelectBucket={handleSelectTimeRange}
+            times={fieldTimes}
+            range={timeRange}
+            onSelect={handleSelectTimeRange}
             locale={locale}
             utc={timeMode === "utc"}
+            labels={{
+              strip: t.viewer.rangeStrip,
+              start: t.viewer.rangeStart,
+              end: t.viewer.rangeEnd,
+              events: t.viewer.rangeBarEvents,
+            }}
           />
 
 
@@ -1947,15 +1948,25 @@ export function EvtxUploader({
   // Search, filters, tabs and the events table / sessions view.
   const mainArea = (
     <>
-          <TimeRangeInput
+          <TimeRangeBar
             dict={t}
             mode={timeMode}
             zone={zone}
             bounds={timeBounds}
             range={timeRange}
-            onApply={(range) =>
-              range ? handleSelectTimeRange(range) : clearTimeRange()
-            }
+            onApply={handleSelectTimeRange}
+            field={rangeField}
+            fields={timeFields}
+            onFieldChange={(f) => {
+              setTimeField(f);
+              setOpenRow(null);
+              setFocusedIdx(null);
+            }}
+            around={aroundMs}
+            onAroundChange={setAroundMs}
+            count={rangeRows.length}
+            total={allRows.length}
+            numberFmt={numberFmt}
           />
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <SearchBox
@@ -1980,7 +1991,7 @@ export function EvtxUploader({
               .*
             </button>
             <HuntsMenu
-              rows={allRows}
+              rows={rangeRows}
               allPairs={allPairs}
               haystackOf={haystackOf}
               locale={locale as Locale}
@@ -1991,7 +2002,7 @@ export function EvtxUploader({
             {filter && (
               <span className="rounded-md border border-ink-200 dark:border-ink-800">
                 <CopyPathButton
-                  value={() => shareLink(filter, regexMode)}
+                  value={() => shareLink(filter, regexMode, timeRange, rangeField)}
                   label={t.viewer.copyLink}
                   copiedLabel={t.viewer.linkCopied}
                   text="🔗"
@@ -2757,7 +2768,6 @@ function DynamicCells({
 // Keys that tie events of one logon session / one process together.
 const LOGON_KEYS = ["TargetLogonId", "SubjectLogonId", "LogonId"];
 const PROCESS_KEYS = ["ProcessGuid", "ParentProcessGuid"];
-const PIVOT_WINDOW_MS = 5 * 60 * 1000;
 
 function DetailsPanel({
   row,
@@ -2776,10 +2786,10 @@ function DetailsPanel({
   dict: Dict;
   onInclude: ValueAction;
   onExclude: ValueAction;
-  onPivot: (opts: { search?: string; range?: [number, number] }) => void;
+  onPivot: (opts: { search?: string; range?: TimeRange }) => void;
 }) {
   const v = dict.viewer;
-  const t = Date.parse(row.timestamp);
+  const t = parseEventTime(row.timestamp);
   // Distinct session / process ids on this event. 0x0 and SYSTEM's 0x3e7
   // are too common to be a useful pivot.
   const pick = (keys: string[], skip: string[] = []) => {
@@ -2830,15 +2840,24 @@ function DetailsPanel({
           {v.pivots}
         </span>
         {!Number.isNaN(t) && (
-          <button
-            type="button"
-            className={pivotBtn}
-            onClick={() =>
-              onPivot({ range: [t - PIVOT_WINDOW_MS, t + PIVOT_WINDOW_MS] })
-            }
+          // "Set as center": everything in ± a window around this event.
+          <span
+            role="group"
+            aria-label={v.pivotTime}
+            className="inline-flex items-center overflow-hidden rounded-md border border-ink-200 text-xs dark:border-ink-800"
           >
-            {v.pivotTime}
-          </button>
+            <span className="px-2 py-1 text-ink-500">{v.pivotTime}</span>
+            {AROUND_WINDOWS.map((ms) => (
+              <button
+                key={ms}
+                type="button"
+                onClick={() => onPivot({ range: aroundRange(t, ms) })}
+                className="border-l border-ink-200 px-2 py-1 text-ink-700 hover:bg-uv-500/10 dark:border-ink-800 dark:text-ink-300"
+              >
+                {aroundLabel(ms, dict)}
+              </button>
+            ))}
+          </span>
         )}
         {logonIds.map((id) => (
           <button

@@ -126,7 +126,10 @@ export default async function LangLayout({
         </a>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <SiteHeader locale={lang as Locale} dict={dict} />
-          <div className="flex-1">{children}</div>
+          {/* Clip the hero's decorative glows/grids (wider than a phone) here,
+              not only on <body>: body overflow propagates to the viewport,
+              where it no longer shrinks the scrollable width. */}
+          <div className="flex-1 overflow-x-clip">{children}</div>
           <SiteFooter
             locale={lang as Locale}
             dict={dict}

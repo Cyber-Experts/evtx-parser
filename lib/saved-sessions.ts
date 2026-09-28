@@ -37,6 +37,10 @@ export type SessionSnapshot = {
   timeMode?: "utc" | "local";
   showFindings?: boolean;
   scrollTop?: number;
+  /** Inclusive time range (supersedes the end-exclusive `timeRange`). */
+  range?: { from: number; to: number } | null;
+  /** Time field the range applies to ("TimeCreated", an EventData key, "any"). */
+  timeField?: string;
 };
 
 export class StorageFullError extends Error {}
