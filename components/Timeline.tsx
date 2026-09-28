@@ -3,12 +3,23 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 
 import type { EventRow } from "@/lib/evtx-client";
-import { normalizeRange, type TimeRange } from "@/lib/time-range";
+import {
+  countOutside,
+  normalizeRange,
+  percentileBounds,
+  stripDomain,
+  timeBounds,
+  type StripZoom,
+  type TimeRange,
+} from "@/lib/time-range";
 
+const SECOND = 1000;
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
+// Sub-minute bars only when the strip is zoomed on a selection.
+const FINE_BUCKET_SIZES_MS = [SECOND, 5 * SECOND, 15 * SECOND, 30 * SECOND];
 const BUCKET_SIZES_MS = [
   MINUTE,
   5 * MINUTE,
@@ -42,14 +53,15 @@ type Bucket = {
   total: number;
 };
 
-function pickBucketSize(spanMs: number): number {
-  for (const size of BUCKET_SIZES_MS) {
+function pickBucketSize(spanMs: number, fine = false): number {
+  for (const size of fine ? [...FINE_BUCKET_SIZES_MS, ...BUCKET_SIZES_MS] : BUCKET_SIZES_MS) {
     if (spanMs / size <= TARGET_BUCKETS) return size;
   }
   return BUCKET_SIZES_MS[BUCKET_SIZES_MS.length - 1];
 }
 
 function bucketSizeLabel(ms: number): string {
+  if (ms < MINUTE) return `${ms / SECOND} s`;
   if (ms < HOUR) return `${ms / MINUTE} min`;
   if (ms < DAY) return `${ms / HOUR} h`;
   if (ms < 7 * DAY) return `${ms / DAY} d`;
@@ -65,13 +77,25 @@ export type TimelineLabels = {
   end: string;
   /** "{n} events" */
   events: string;
+  /** Toggle back to the unzoomed strip. */
+  fullSpan: string;
+  /** Toggle to the selection ± 50 %. */
+  zoomToRange: string;
+  /** "+{n} earlier" / "+{n} later": records outside the drawn strip. */
+  earlier: string;
+  later: string;
 };
 
 /**
  * Density strip of events over the data span, stacked by level. Drag across
  * it to select a range, click a bar to select that bar, or move the two
  * range handles with the keyboard (arrows: one bar, Shift/PageUp/PageDown:
- * ten bars, Home/End: data edges).
+ * ten bars, Home/End: strip edges).
+ *
+ * The unzoomed strip spans the 1st–99th percentile of the record times (so
+ * one stray timestamp doesn't squeeze the incident into a sliver) and notes
+ * how many records fall outside. A selection under 5 % of that span
+ * auto-zooms the strip to the selection ± 50 %; a toggle overrides it.
  */
 export function Timeline({
   rows,
@@ -92,19 +116,28 @@ export function Timeline({
   utc?: boolean;
   labels: TimelineLabels;
 }) {
+  // True span and outlier-robust (1st–99th percentile) span of the field.
+  const stats = useMemo(() => {
+    const bounds = timeBounds(times);
+    return bounds ? { bounds, robust: percentileBounds(times) } : null;
+  }, [times]);
+
+  // Zoom override from the toggle; back to automatic once the range is cleared.
+  const [zoomPref, setZoomPref] = useState<StripZoom>("auto");
+  if (!range && zoomPref !== "auto") setZoomPref("auto");
+  const view = stats
+    ? stripDomain({ bounds: stats.bounds, robust: stats.robust, range, zoom: zoomPref })
+    : null;
+  const dom0 = view?.domain[0];
+  const dom1 = view?.domain[1];
+  const zoomed = view?.zoomed ?? false;
+
   const data = useMemo(() => {
-    let minT = Infinity;
-    let maxT = -Infinity;
-    for (let i = 0; i < times.length; i++) {
-      const t = times[i];
-      if (t < minT) minT = t;
-      if (t > maxT) maxT = t;
-    }
-    if (!isFinite(minT) || !isFinite(maxT)) return null;
-    const span = Math.max(1, maxT - minT);
-    const bucketMs = pickBucketSize(span);
-    const startBucket = Math.floor(minT / bucketMs) * bucketMs;
-    const endBucket = Math.floor(maxT / bucketMs) * bucketMs;
+    if (dom0 === undefined || dom1 === undefined) return null;
+    const span = Math.max(1, dom1 - dom0);
+    const bucketMs = pickBucketSize(span, zoomed);
+    const startBucket = Math.floor(dom0 / bucketMs) * bucketMs;
+    const endBucket = Math.floor(dom1 / bucketMs) * bucketMs;
     const nBuckets = Math.max(1, (endBucket - startBucket) / bucketMs + 1);
 
     const buckets: Bucket[] = new Array(nBuckets);
@@ -130,16 +163,19 @@ export function Timeline({
     }
     let maxTotal = 0;
     for (const b of buckets) if (b.total > maxTotal) maxTotal = b.total;
+    const d0 = startBucket;
+    const d1 = startBucket + nBuckets * bucketMs;
     return {
       buckets,
       bucketMs,
       maxTotal: Math.max(1, maxTotal),
-      minT,
-      maxT,
-      d0: startBucket,
-      d1: startBucket + nBuckets * bucketMs,
+      minT: dom0,
+      maxT: dom1,
+      d0,
+      d1,
+      outside: countOutside(times, d0, d1),
     };
-  }, [rows, times]);
+  }, [rows, times, dom0, dom1, zoomed]);
 
   const labelFmt = useMemo(
     () =>
@@ -148,9 +184,11 @@ export function Timeline({
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
+        // Zoomed to sub-minute bars: ticks need the seconds.
+        second: data && data.bucketMs < MINUTE ? "2-digit" : undefined,
         timeZone: utc ? "UTC" : undefined,
       }),
-    [locale, utc],
+    [locale, utc, data],
   );
   const tooltipFmt = useMemo(
     () =>
@@ -167,7 +205,7 @@ export function Timeline({
 
   if (!data) return null;
 
-  const { buckets, bucketMs, maxTotal, minT, maxT, d0, d1 } = data;
+  const { buckets, bucketMs, maxTotal, minT, maxT, d0, d1, outside } = data;
   const span = d1 - d0;
   const clamp = (t: number) => Math.min(d1, Math.max(d0, t));
   const pct = (t: number) => ((clamp(t) - d0) / span) * 100;
@@ -353,7 +391,7 @@ export function Timeline({
             <div
               key={b.start}
               title={`${rangeLabel}\n${labels.events.replace("{n}", String(b.total))}`}
-              className={`flex h-full min-w-[2px] flex-1 flex-col-reverse overflow-hidden rounded-sm transition-opacity ${
+              className={`flex h-full min-w-[2px] flex-1 flex-col-reverse overflow-hidden rounded-sm transition-opacity motion-reduce:transition-none ${
                 inSel ? "" : "opacity-35"
               } ${empty ? "bg-ink-100 dark:bg-ink-900" : ""}`}
               style={{ alignSelf: "flex-end" }}
@@ -397,7 +435,27 @@ export function Timeline({
           <span>→</span>
           <span>{tooltipFmt.format(maxT)}</span>
           <span className="text-ink-400">· {bucketSizeLabel(bucketMs)}/bar</span>
+          {(outside.earlier > 0 || outside.later > 0) && (
+            <span className="text-ink-400">
+              ·{" "}
+              {[
+                outside.earlier > 0 && labels.earlier.replace("{n}", String(outside.earlier)),
+                outside.later > 0 && labels.later.replace("{n}", String(outside.later)),
+              ]
+                .filter(Boolean)
+                .join(" / ")}
+            </span>
+          )}
         </div>
+        {view && (view.zoomed || view.canZoom) && (
+          <button
+            type="button"
+            onClick={() => setZoomPref(view.zoomed ? "full" : "range")}
+            className="rounded px-1 text-uv-600 underline decoration-dotted underline-offset-2 hover:text-uv-700 dark:text-uv-400 dark:hover:text-uv-300"
+          >
+            {view.zoomed ? labels.fullSpan : labels.zoomToRange}
+          </button>
+        )}
       </div>
     </div>
   );

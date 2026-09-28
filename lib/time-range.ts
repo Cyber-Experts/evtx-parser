@@ -290,3 +290,87 @@ export function readRangeParams(params: URLSearchParams): {
   if (Number.isNaN(a) || Number.isNaN(b) || a > b) return { range: null, field };
   return { range: normalizeRange(a, b), field };
 }
+
+// --- density strip domain ----------------------------------------------------
+//
+// The strip draws a "default" domain that ignores stray outliers (1st–99th
+// percentile of the record times, widened to include the selection), and
+// auto-zooms on a selection much narrower than that (< 5 %), drawing the
+// selection ± 50 % instead (clamped to the true data span). Presets and inputs
+// still clamp to the true min/max.
+
+/** A selection narrower than this share of the default domain auto-zooms. */
+export const AUTO_ZOOM_RATIO = 0.05;
+/** Padding on each side of a zoomed selection, as a share of its width. */
+export const ZOOM_PAD_RATIO = 0.5;
+
+/** "auto" follows the 5 % rule; the toggle forces "full" or "range". */
+export type StripZoom = "auto" | "full" | "range";
+
+/** Nearest-rank [lo, hi] percentiles of the finite values, or null. */
+export function percentileBounds(
+  times: ArrayLike<number>,
+  lo = 0.01,
+  hi = 0.99,
+): [number, number] | null {
+  let n = 0;
+  for (let i = 0; i < times.length; i++) if (Number.isFinite(times[i])) n++;
+  if (n === 0) return null;
+  const sorted = new Float64Array(n);
+  for (let i = 0, j = 0; i < times.length; i++) {
+    const t = times[i];
+    if (Number.isFinite(t)) sorted[j++] = t;
+  }
+  sorted.sort();
+  const rank = (q: number) => sorted[Math.min(n - 1, Math.max(0, Math.ceil(q * n) - 1))];
+  return [rank(lo), rank(hi)];
+}
+
+/**
+ * Domain [start, end] the strip draws. `bounds` is the true data span,
+ * `robust` the percentile span; `zoomed` says whether it's the zoomed view,
+ * `canZoom` whether a "Zoom to range" toggle would change anything.
+ */
+export function stripDomain({
+  bounds,
+  robust,
+  range,
+  zoom,
+}: {
+  bounds: [number, number];
+  robust: [number, number] | null;
+  range: TimeRange | null;
+  zoom: StripZoom;
+}): { domain: [number, number]; zoomed: boolean; canZoom: boolean } {
+  const [min, max] = bounds;
+  let lo = Math.max(min, robust ? robust[0] : min);
+  let hi = Math.min(max, robust ? robust[1] : max);
+  if (!range) return { domain: [lo, hi], zoomed: false, canZoom: false };
+  // The default view always shows the whole selection.
+  lo = Math.min(lo, Math.max(min, range.from));
+  hi = Math.max(hi, Math.min(max, range.to));
+  const width = Math.max(1, range.to - range.from + 1);
+  const pad = width * ZOOM_PAD_RATIO;
+  const zLo = Math.max(min, range.from - pad);
+  const zHi = Math.min(max, range.to + pad);
+  const canZoom = zHi > zLo && (zLo > lo || zHi < hi);
+  const zoomed =
+    canZoom && (zoom === "range" || (zoom === "auto" && width < AUTO_ZOOM_RATIO * (hi - lo)));
+  return { domain: zoomed ? [zLo, zHi] : [lo, hi], zoomed, canZoom };
+}
+
+/** Records with a time before / after the drawn domain [d0, d1). */
+export function countOutside(
+  times: ArrayLike<number>,
+  d0: number,
+  d1: number,
+): { earlier: number; later: number } {
+  let earlier = 0;
+  let later = 0;
+  for (let i = 0; i < times.length; i++) {
+    const t = times[i];
+    if (t < d0) earlier++;
+    else if (t >= d1) later++;
+  }
+  return { earlier, later };
+}
