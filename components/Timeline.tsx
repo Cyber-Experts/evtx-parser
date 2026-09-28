@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 
 import type { EventRow } from "@/lib/evtx-client";
+import { normalizeRange, type TimeRange } from "@/lib/time-range";
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -21,6 +22,8 @@ const BUCKET_SIZES_MS = [
 ];
 
 const TARGET_BUCKETS = 80;
+// Below this many px of pointer travel a press is a click (select one bar).
+const DRAG_THRESHOLD_PX = 4;
 
 // Stack order (bottom → top in flex-col-reverse): verbose, info, warning, error, critical.
 // Putting the most severe at the top makes spikes stand out visually.
@@ -53,28 +56,47 @@ function bucketSizeLabel(ms: number): string {
   return `${Math.round(ms / DAY)} d`;
 }
 
+type Drag = { mode: "new" | "from" | "to"; x0: number; a: number; b: number };
+
+export type TimelineLabels = {
+  /** Accessible name of the strip. */
+  strip: string;
+  start: string;
+  end: string;
+  /** "{n} events" */
+  events: string;
+};
+
+/**
+ * Density strip of events over the data span, stacked by level. Drag across
+ * it to select a range, click a bar to select that bar, or move the two
+ * range handles with the keyboard (arrows: one bar, Shift/PageUp/PageDown:
+ * ten bars, Home/End: data edges).
+ */
 export function Timeline({
   rows,
-  selectedRange,
-  onSelectBucket,
+  times,
+  range,
+  onSelect,
   locale,
   utc = true,
+  labels,
 }: {
   rows: EventRow[];
-  selectedRange: [number, number] | null;
-  onSelectBucket: (range: [number, number]) => void;
+  /** Epoch ms of the chosen time field per row (NaN = none), aligned with rows. */
+  times: Float64Array;
+  range: TimeRange | null;
+  onSelect: (range: TimeRange) => void;
   locale: string;
   /** Label times in UTC (default) or in the viewer's local time. */
   utc?: boolean;
+  labels: TimelineLabels;
 }) {
   const data = useMemo(() => {
-    if (rows.length === 0) return null;
     let minT = Infinity;
     let maxT = -Infinity;
-    const times = new Array<number>(rows.length);
-    for (let i = 0; i < rows.length; i++) {
-      const t = Date.parse(rows[i].timestamp);
-      times[i] = t;
+    for (let i = 0; i < times.length; i++) {
+      const t = times[i];
       if (t < minT) minT = t;
       if (t > maxT) maxT = t;
     }
@@ -93,8 +115,11 @@ export function Timeline({
         total: 0,
       };
     }
-    for (let i = 0; i < rows.length; i++) {
-      const idx = Math.floor((times[i] - startBucket) / bucketMs);
+    const n = Math.min(rows.length, times.length);
+    for (let i = 0; i < n; i++) {
+      const t = times[i];
+      if (!(t === t)) continue; // NaN: no value for this field
+      const idx = Math.floor((t - startBucket) / bucketMs);
       if (idx < 0 || idx >= nBuckets) continue;
       const b = buckets[idx];
       const lvl = rows[i].level;
@@ -105,8 +130,16 @@ export function Timeline({
     }
     let maxTotal = 0;
     for (const b of buckets) if (b.total > maxTotal) maxTotal = b.total;
-    return { buckets, bucketMs, maxTotal: Math.max(1, maxTotal), minT, maxT };
-  }, [rows]);
+    return {
+      buckets,
+      bucketMs,
+      maxTotal: Math.max(1, maxTotal),
+      minT,
+      maxT,
+      d0: startBucket,
+      d1: startBucket + nBuckets * bucketMs,
+    };
+  }, [rows, times]);
 
   const labelFmt = useMemo(
     () =>
@@ -129,9 +162,128 @@ export function Timeline({
     [locale, utc],
   );
 
+  const stripRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<Drag | null>(null);
+
   if (!data) return null;
 
-  const { buckets, bucketMs, maxTotal, minT, maxT } = data;
+  const { buckets, bucketMs, maxTotal, minT, maxT, d0, d1 } = data;
+  const span = d1 - d0;
+  const clamp = (t: number) => Math.min(d1, Math.max(d0, t));
+  const pct = (t: number) => ((clamp(t) - d0) / span) * 100;
+  const snapDown = (t: number) => d0 + Math.floor((t - d0) / bucketMs) * bucketMs;
+  const snapUp = (t: number) => d0 + Math.ceil((t - d0) / bucketMs) * bucketMs;
+
+  const timeAt = (clientX: number) => {
+    const el = stripRef.current;
+    if (!el) return d0;
+    const box = el.getBoundingClientRect();
+    const f = box.width > 0 ? (clientX - box.left) / box.width : 0;
+    return clamp(d0 + Math.min(1, Math.max(0, f)) * span);
+  };
+
+  // Live selection while dragging, else the applied range.
+  let sel: [number, number] | null = range ? [range.from, range.to + 1] : null;
+  if (drag) {
+    if (drag.mode === "new") {
+      const lo = Math.min(drag.a, drag.b);
+      const hi = Math.max(drag.a, drag.b);
+      sel = [snapDown(lo), Math.max(snapUp(hi), snapDown(lo) + bucketMs)];
+    } else {
+      sel = [Math.min(drag.a, drag.b), Math.max(drag.a, drag.b)];
+    }
+  }
+  const handleFrom = sel ? sel[0] : d0;
+  const handleTo = sel ? sel[1] : d1;
+
+  const commit = (from: number, toExclusive: number) => {
+    const lo = Math.min(from, toExclusive);
+    const hi = Math.max(from, toExclusive);
+    onSelect(normalizeRange(lo, Math.max(lo, hi - 1)));
+  };
+
+  const onStripDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    const t = timeAt(e.clientX);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDrag({ mode: "new", x0: e.clientX, a: t, b: t });
+  };
+  const onHandleDown = (which: "from" | "to") => (e: PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    stripRef.current?.setPointerCapture(e.pointerId);
+    // `a` is the fixed edge, `b` follows the pointer.
+    setDrag(
+      which === "from"
+        ? { mode: "from", x0: e.clientX, a: handleTo, b: handleFrom }
+        : { mode: "to", x0: e.clientX, a: handleFrom, b: handleTo },
+    );
+  };
+  const onMove = (e: PointerEvent<HTMLDivElement>) => {
+    if (!drag) return;
+    setDrag({ ...drag, b: timeAt(e.clientX) });
+  };
+  const onUp = (e: PointerEvent<HTMLDivElement>) => {
+    if (!drag) return;
+    const d = drag;
+    setDrag(null);
+    if (d.mode === "new" && Math.abs(e.clientX - d.x0) < DRAG_THRESHOLD_PX) {
+      const b = snapDown(d.a);
+      commit(b, b + bucketMs);
+      return;
+    }
+    if (d.mode === "new") {
+      if (sel) commit(sel[0], sel[1]);
+      return;
+    }
+    commit(d.a, timeAt(e.clientX));
+  };
+
+  const onHandleKey = (which: "from" | "to") => (e: KeyboardEvent<HTMLDivElement>) => {
+    // Esc must not reach the viewer (it would leave full screen).
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      (e.currentTarget as HTMLElement).blur();
+      return;
+    }
+    const step = e.shiftKey ? bucketMs * 10 : bucketMs;
+    let from = handleFrom;
+    let to = handleTo;
+    const move = (delta: number) => {
+      if (which === "from") from = clamp(Math.min(to - 1000, from + delta));
+      else to = clamp(Math.max(from + 1000, to + delta));
+    };
+    switch (e.key) {
+      case "ArrowLeft":
+      case "ArrowDown":
+        move(-step);
+        break;
+      case "ArrowRight":
+      case "ArrowUp":
+        move(step);
+        break;
+      case "PageDown":
+        move(-bucketMs * 10);
+        break;
+      case "PageUp":
+        move(bucketMs * 10);
+        break;
+      case "Home":
+        if (which === "from") from = d0;
+        else to = from + bucketMs;
+        break;
+      case "End":
+        if (which === "to") to = d1;
+        else from = to - bucketMs;
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    commit(from, to);
+  };
 
   // Pick 4 axis ticks: start, ~1/3, ~2/3, end.
   const tickIndexes =
@@ -144,28 +296,65 @@ export function Timeline({
         ]
       : buckets.map((_, i) => i);
 
+  const handle = (which: "from" | "to", at: number) => {
+    const now = which === "from" ? at : at - 1;
+    return (
+      <div
+        role="slider"
+        tabIndex={0}
+        aria-label={which === "from" ? labels.start : labels.end}
+        aria-valuemin={d0}
+        aria-valuemax={d1}
+        aria-valuenow={now}
+        aria-valuetext={tooltipFmt.format(now)}
+        onKeyDown={onHandleKey(which)}
+        onPointerDown={onHandleDown(which)}
+        className="absolute inset-y-0 z-10 -ml-1.5 flex w-3 cursor-ew-resize touch-none justify-center outline-none focus-visible:[&>span]:bg-uv-500 focus-visible:[&>span]:ring-2 focus-visible:[&>span]:ring-uv-400/50"
+        style={{ left: `${pct(at)}%` }}
+      >
+        <span
+          className={`h-full w-1 rounded-full ${
+            sel ? "bg-uv-500/80 dark:bg-uv-400/80" : "bg-ink-300/80 dark:bg-ink-600/80"
+          }`}
+        />
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex h-20 items-end gap-px rounded-md border border-ink-200 bg-ink-50/40 p-1 dark:border-ink-800 dark:bg-ink-950/40">
+      <div className="h-20 rounded-md border border-ink-200 bg-ink-50/40 p-1 dark:border-ink-800 dark:bg-ink-950/40">
+      <div
+        ref={stripRef}
+        role="group"
+        aria-label={labels.strip}
+        title={labels.strip}
+        onPointerDown={onStripDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={() => setDrag(null)}
+        className="relative flex h-full cursor-crosshair touch-none select-none items-end gap-px"
+      >
+        {sel && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 rounded-sm bg-uv-500/15 ring-1 ring-inset ring-uv-500/60 dark:bg-uv-400/15 dark:ring-uv-400/60"
+            style={{ left: `${pct(sel[0])}%`, width: `${Math.max(0.3, pct(sel[1]) - pct(sel[0]))}%` }}
+          />
+        )}
         {buckets.map((b) => {
           const heightPct = (b.total / maxTotal) * 100;
-          const selected =
-            selectedRange &&
-            b.start === selectedRange[0] &&
-            b.start + bucketMs === selectedRange[1];
+          const inSel = !sel || (b.start + bucketMs > sel[0] && b.start < sel[1]);
           const empty = b.total === 0;
           const rangeLabel = `${tooltipFmt.format(b.start)} – ${tooltipFmt.format(
             b.start + bucketMs,
           )}`;
           return (
-            <button
+            <div
               key={b.start}
-              type="button"
-              onClick={() => onSelectBucket([b.start, b.start + bucketMs])}
-              aria-label={`${rangeLabel}: ${b.total} events`}
-              title={`${rangeLabel}\n${b.total} events`}
-              className={`flex h-full min-w-[2px] flex-1 cursor-pointer flex-col-reverse overflow-hidden rounded-sm transition-opacity hover:opacity-70 ${
-                selected ? "ring-2 ring-uv-500 dark:ring-uv-400" : ""
+              title={`${rangeLabel}\n${labels.events.replace("{n}", String(b.total))}`}
+              className={`flex h-full min-w-[2px] flex-1 flex-col-reverse overflow-hidden rounded-sm transition-opacity ${
+                inSel ? "" : "opacity-35"
               } ${empty ? "bg-ink-100 dark:bg-ink-900" : ""}`}
               style={{ alignSelf: "flex-end" }}
             >
@@ -185,9 +374,12 @@ export function Timeline({
                   );
                 })}
               </div>
-            </button>
+            </div>
           );
         })}
+        {handle("from", handleFrom)}
+        {handle("to", handleTo)}
+      </div>
       </div>
       <div className="flex justify-between font-mono text-[10px] text-ink-500">
         {tickIndexes.map((i, k) => (
