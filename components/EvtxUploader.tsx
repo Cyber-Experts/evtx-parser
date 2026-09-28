@@ -1938,6 +1938,10 @@ export function EvtxUploader({
               start: t.viewer.rangeStart,
               end: t.viewer.rangeEnd,
               events: t.viewer.rangeBarEvents,
+              fullSpan: t.viewer.rangeFullSpan,
+              zoomToRange: t.viewer.rangeZoomToRange,
+              earlier: t.viewer.rangeEarlier,
+              later: t.viewer.rangeLater,
             }}
           />
 

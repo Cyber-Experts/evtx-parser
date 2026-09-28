@@ -10,6 +10,9 @@ import {
   MINUTE,
   PRIMARY_FIELD,
   aroundRange,
+  countOutside,
+  percentileBounds,
+  stripDomain,
   buildTimeIndex,
   detectTimeFields,
   filterByRange,
@@ -213,5 +216,50 @@ describe("exports honour the range", () => {
       "Security_2026-09-14T100000Z-2026-09-14T105500Z.csv",
     );
     expect(rangeFileSuffix(null)).toBe("");
+  });
+});
+
+describe("density strip domain", () => {
+  const H = 3_600_000;
+  const T0 = Date.UTC(2026, 8, 14, 10);
+  // 200 records over two hours plus one stray timestamp a year earlier.
+  const times = new Float64Array([
+    T0 - 365 * 24 * H,
+    ...Array.from({ length: 200 }, (_, i) => T0 + i * 36_000),
+  ]);
+  const bounds: [number, number] = [times[0], times[times.length - 1]];
+
+  it("drops outliers from the default span (1st–99th percentile)", () => {
+    const robust = percentileBounds(times)!;
+    expect(robust[0]).toBeGreaterThanOrEqual(T0);
+    expect(robust[1]).toBeLessThanOrEqual(bounds[1]);
+    const { domain, zoomed } = stripDomain({ bounds, robust, range: null, zoom: "auto" });
+    expect(domain).toEqual(robust);
+    expect(zoomed).toBe(false);
+    expect(countOutside(times, domain[0], domain[1] + 1).earlier).toBeGreaterThanOrEqual(1);
+    expect(percentileBounds(new Float64Array([NaN]))).toBeNull();
+  });
+
+  it("auto-zooms on a range < 5 % of the span, ± 50 % padding, clamped", () => {
+    const robust = percentileBounds(times);
+    const range = { from: T0 + H, to: T0 + H + 60_000 - 1 };
+    const v = stripDomain({ bounds, robust, range, zoom: "auto" });
+    expect(v.zoomed).toBe(true);
+    expect(v.domain).toEqual([range.from - 30_000, range.to + 30_000]);
+    // Clamped to the data at the edges.
+    const edge = stripDomain({ bounds, robust, range: { from: bounds[1] - 999, to: bounds[1] }, zoom: "auto" });
+    expect(edge.domain[1]).toBe(bounds[1]);
+    // The toggle overrides both ways.
+    expect(stripDomain({ bounds, robust, range, zoom: "full" }).zoomed).toBe(false);
+    const wide = { from: T0, to: T0 + H };
+    expect(stripDomain({ bounds, robust, range: wide, zoom: "auto" }).zoomed).toBe(false);
+    expect(stripDomain({ bounds, robust, range: wide, zoom: "range" }).zoomed).toBe(true);
+  });
+
+  it("widens the default span to include a selection on an outlier", () => {
+    const robust = percentileBounds(times)!;
+    const range = { from: bounds[0], to: T0 + H };
+    const v = stripDomain({ bounds, robust, range, zoom: "full" });
+    expect(v.domain[0]).toBe(bounds[0]);
   });
 });

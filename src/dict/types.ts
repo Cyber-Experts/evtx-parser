@@ -138,6 +138,13 @@ export type Dict = {
     rangeStart: string;
     rangeEnd: string;
     rangeBarEvents: string;
+    /** Strip toggle: back to the unzoomed strip. */
+    rangeFullSpan: string;
+    /** Strip toggle: zoom on the selection ± 50 %. */
+    rangeZoomToRange: string;
+    /** "+{n} earlier" / "+{n} later": records outside the drawn strip. */
+    rangeEarlier: string;
+    rangeLater: string;
     win5m: string;
     win1h: string;
     win24h: string;
