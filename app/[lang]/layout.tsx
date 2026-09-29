@@ -15,6 +15,7 @@ import { WebVitals } from "@/components/web-vitals";
 import { ResourceHints } from "@/components/resource-hints";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { AutoEvents } from "@/components/auto-events";
 import { WebsiteJsonLd } from "@/components/seo/website-jsonld";
 import { JsonLd } from "@/components/seo/json-ld";
 import { generateOrganizationSchema } from "@next-md-blog/core";
@@ -145,6 +146,7 @@ export default async function LangLayout({
             <Analytics />
             <WebVitals />
             <VercelAnalytics />
+            <AutoEvents />
             <SpeedInsights />
             <Script
               src="https://analytics.ahrefs.com/analytics.js"

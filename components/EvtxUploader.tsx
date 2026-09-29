@@ -185,16 +185,6 @@ function formatBytes(bytes: number): string {
   return `${n.toFixed(1)} ${units[i]}`;
 }
 
-// Coarse file-size bucket for analytics. We never send the byte count, file
-// name, or any record content — only which order-of-magnitude bracket the
-// upload fell into, so we can understand typical workload sizes.
-function sizeBucket(bytes: number): string {
-  if (bytes < 1024 * 1024) return "<1MB";
-  if (bytes < 10 * 1024 * 1024) return "1-10MB";
-  if (bytes < 100 * 1024 * 1024) return "10-100MB";
-  return ">100MB";
-}
-
 function levelClass(level: number | null): string {
   switch (level) {
     case 1:
@@ -604,13 +594,9 @@ export function EvtxUploader({
             ...prev,
             { id, name: file.name, size: file.size, rows, pairs, topEventIds, file },
           ]);
-          // High-intent event: the visitor actually parsed a log. Only coarse,
-          // non-identifying signal — size bucket + record count, once per file.
+          // High-intent event: the visitor actually parsed a log, once per file.
           // No file name, no bytes, no record content ever leaves the browser.
-          track("parse_file", {
-            size_bucket: sizeBucket(file.size),
-            records: rows.length,
-          });
+          track("parse_file", { artifact: "evtx", source: "upload" });
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -1416,7 +1402,7 @@ export function EvtxUploader({
       const pairsAt = (g: number) => allPairs[g] ?? [];
       const release = sigmaResult.stats.release;
       const base = `sigma-matches${rangeFileSuffix(timeRange)}`;
-      track("export_sigma", { format: kind, rules: sigmaMatches.length });
+      track("export", { format: kind === "csv" ? "sigma_csv" : "sigma_json" });
       if (kind === "csv")
         download(`${base}.csv`, "text/csv;charset=utf-8", buildSigmaCsv(sigmaMatches, rowAt, pairsAt, release));
       else
@@ -1583,6 +1569,7 @@ export function EvtxUploader({
     const picked = rangeRows
       .filter((r) => bookmarks.has(r._g))
       .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+    track("export", { format: "md" });
     download(
       `evtx-report${rangeFileSuffix(timeRange)}.md`,
       "text/markdown;charset=utf-8",
@@ -1755,14 +1742,8 @@ export function EvtxUploader({
           );
         }
         // High-intent event: the visitor exported their triage results.
-        // Only format, row count, file count, and the include-XML toggle —
-        // never the file name or any exported record content.
-        track("export_events", {
-          format: kind,
-          rows: filteredRows.length,
-          files: files.length,
-          include_xml: kind === "json" ? true : includeXml,
-        });
+        // Only the format — never the file name or any exported record content.
+        track("export", { format: kind });
         // The time range is part of the file name, e.g.
         // Security_2026-09-14T100000Z-2026-09-14T105500Z.csv
         const base =

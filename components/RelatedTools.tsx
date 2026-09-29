@@ -21,6 +21,7 @@ export function RelatedTools({ locale }: { locale: Locale }) {
 
   return (
     <section
+      data-related-tools
       aria-labelledby="related-tools-heading"
       className="mx-auto flex w-full max-w-4xl flex-col gap-4"
     >
