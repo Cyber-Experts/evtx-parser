@@ -1,0 +1,78 @@
+title: Creación de proceso
+shortTitle: Creación de proceso
+summary: >-
+  El evento 1 de Sysmon registra cada nuevo proceso con línea de comandos, hashes, padre y un ProcessGuid para correlacionar. La base del hunting en endpoints.
+description: |-
+  El evento 1 de Sysmon se escribe cada vez que se inicia un proceso. En comparación con el evento 4688 de Seguridad es más rico por defecto: la `CommandLine` completa, `ParentImage` y `ParentCommandLine`, los hashes del archivo, la información de versión PE (`OriginalFileName`, `Description`, `Company`) y el `IntegrityLevel` llegan en un solo registro, sin directiva de auditoría adicional.
+
+  El campo clave es `ProcessGuid`. Los ID de proceso se reutilizan, pero el GUID es único por instancia de proceso, así que vincula este registro con lo que el proceso hizo después en Sysmon: conexiones de red (3), cargas de imágenes (7), creaciones de archivos (11), escrituras en el registro (12–14), consultas DNS (22) y finalización (5). `ParentProcessGuid` permite recorrer el árbol hacia arriba.
+
+  `LogonId` coincide con el `TargetLogonId` del 4624 de Seguridad que creó la sesión, lo que vincula un proceso con un tipo de inicio de sesión y una IP de origen. En hosts con mucha actividad el evento 1 tiene un volumen alto; la mayoría de las configuraciones excluyen procesos conocidos del sistema y de actualización de software.
+logging:
+  requirement: >-
+    Sysmon instalado; la creación de procesos se registra por defecto en cuanto Sysmon se ejecuta.
+    Filtre con reglas `<ProcessCreate onmatch="include|exclude">` en la configuración de Sysmon.
+  notes: >-
+    `Hashes` solo se rellena cuando `HashAlgorithms` está configurado (MD5, SHA1, SHA256, IMPHASH o
+    *). `ParentUser` se añadió en versiones posteriores de Sysmon; los registros antiguos no lo
+    tienen. Los eventos se encuentran en Microsoft-Windows-Sysmon/Operational.
+fields:
+  - name: UtcTime
+    description: Hora de inicio del proceso en UTC, tal como la registra Sysmon (independiente del TimeCreated del evento).
+  - name: ProcessGuid
+    description: ID único de esta instancia de proceso. Pivote sobre él en los demás eventos de Sysmon.
+  - name: ProcessId
+    description: PID del nuevo proceso. Windows lo reutiliza, así que para correlacionar es preferible ProcessGuid.
+  - name: Image
+    description: Ruta completa del ejecutable. Busque nombres de binarios del sistema que se ejecuten desde carpetas en las que el usuario puede escribir.
+  - name: OriginalFileName
+    description: >-
+      Nombre de archivo interno del recurso de versión PE. Si difiere del nombre de archivo de
+      `Image` (por ejemplo, `Image` es `svchost.exe` pero OriginalFileName es `PsExec.exe`), el
+      binario se renombró.
+  - name: CommandLine
+    description: Línea de comandos completa. El campo más valioso para detectar PowerShell codificado, LOLBins y argumentos de herramientas.
+  - name: CurrentDirectory
+    description: Directorio de trabajo del proceso; las carpetas temporales o públicas merecen una revisión.
+  - name: User
+    description: Cuenta con la que se ejecuta el proceso, con el formato DOMAIN\user.
+  - name: LogonId
+    description: Sesión de inicio de sesión del proceso; coincide con el TargetLogonId del 4624 de Seguridad.
+  - name: IntegrityLevel
+    description: >-
+      Nivel de integridad obligatorio del token del proceso, p. ej. `Low`, `Medium`, `High`
+      (administrador elevado) o `System`.
+  - name: Hashes
+    description: >-
+      Hashes de la imagen separados por comas, p. ej. `SHA256=...,IMPHASH=...`, según
+      `HashAlgorithms`. Úselos para consultas de reputación y para medir su prevalencia en el parque.
+  - name: ParentProcessGuid
+    description: ProcessGuid del padre. Úselo para reconstruir el árbol de procesos.
+  - name: ParentImage
+    description: Ruta del proceso padre. Los pares padre-hijo inusuales son una detección clásica.
+  - name: ParentCommandLine
+    description: Línea de comandos del padre, útil cuando el padre es un host de scripts o un envoltorio de servicio.
+  - name: ParentUser
+    description: Cuenta del proceso padre (versiones recientes de Sysmon).
+benign:
+  - Actualizadores de software, instaladores (`msiexec.exe`) y agentes de administración que lanzan muchos procesos de corta duración.
+  - Administradores que ejecutan `cmd.exe`, `powershell.exe` y herramientas integradas desde una consola elevada.
+  - Tareas programadas iniciadas por `svchost.exe` y servicios iniciados por `services.exe`.
+attacker:
+  - >-
+    Aplicaciones de Office, navegadores o lectores de PDF que lanzan `cmd.exe`, `powershell.exe`,
+    `wscript.exe`, `mshta.exe` o `rundll32.exe` después de que un usuario abra un documento malicioso.
+  - PowerShell con `-EncodedCommand`, `-nop -w hidden` o download cradles en la CommandLine.
+  - >-
+    Artefactos de ejecución remota como `wmiprvse.exe` lanzando `cmd.exe`, `services.exe` lanzando
+    un binario aleatorio desde `C:\Windows`, o hijos de `PSEXESVC.exe`.
+  - Herramientas renombradas en las que `OriginalFileName` no coincide con el nombre de `Image`.
+  - Comandos de volcado de credenciales como `rundll32.exe comsvcs.dll, MiniDump` contra LSASS.
+investigation:
+  - Reconstruya el árbol de procesos con ProcessGuid y ParentProcessGuid en lugar de los PID.
+  - Consulte la reputación de `Hashes` y cuente cuántos hosts ejecutaron el mismo hash.
+  - >-
+    Pivote sobre ProcessGuid hacia los eventos 3, 11, 13 y 22 para ver con qué se conectó el
+    proceso, qué escribió y qué resolvió.
+  - Relacione LogonId con el 4624 de Seguridad para saber cómo y desde dónde inició sesión el usuario.
+  - Compare la ruta de `Image`, `OriginalFileName` y `Company` para detectar binarios que se hacen pasar por otros.

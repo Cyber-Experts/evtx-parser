@@ -1,0 +1,54 @@
+id: 4
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: Sysmon service state changed
+shortTitle: Service state changed
+category: log-integrity
+summary: >-
+  Sysmon event 4 reports the Sysmon service starting or stopping. An unexpected stop outside
+  maintenance can mean someone is blinding endpoint telemetry.
+description: |-
+  Sysmon event 4 is written when the Sysmon service changes state, with `State` set to `Started` or `Stopped`, and the Sysmon binary and schema versions.
+
+  Starts appear at every boot and after upgrades. A `Stopped` record outside a reboot or a planned upgrade deserves attention: attackers who gain admin rights often unload the Sysmon driver or stop the service before doing anything noisy. Note that an attacker who kills the service abruptly may leave no stop record at all, so a gap in Sysmon events is itself a signal.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon installed. This event cannot be filtered by the configuration.
+fields:
+  - name: UtcTime
+    description: Time of the state change.
+  - name: State
+    description: New state of the service.
+    values:
+      - value: Started
+        meaning: The Sysmon service started (boot, install or upgrade).
+      - value: Stopped
+        meaning: The Sysmon service stopped.
+  - name: Version
+    description: Sysmon binary version. Useful to track upgrades and fleet consistency.
+  - name: SchemaVersion
+    description: Configuration schema version in use.
+benign:
+  - Service start at every boot.
+  - Stop and start around a planned Sysmon upgrade or reinstall.
+attacker:
+  - An administrator-level attacker stopping Sysmon or unloading its driver (`fltmc unload`) to stop telemetry.
+  - Uninstalling Sysmon (`sysmon -u`) before lateral movement or ransomware deployment.
+investigation:
+  - Check whether a stop lines up with a shutdown (System 1074, 6006) or an upgrade; if not, treat it as tampering.
+  - Look at the process and service events just before the stop (Security 4688, System 7036/7040).
+  - Hunt for time gaps in Sysmon/Operational without a matching stop record.
+related:
+  - sysmon/16
+  - sysmon/255
+  - system/7036
+  - system/7040
+  - system/1074
+  - security/4688
+attack:
+  - T1685
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Disable or Modify Tools (T1685)
+    url: https://attack.mitre.org/techniques/T1685/

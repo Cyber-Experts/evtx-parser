@@ -1,0 +1,42 @@
+title: Privilèges spéciaux attribués à une nouvelle ouverture de session
+shortTitle: Privilèges spéciaux attribués
+summary: >-
+  L'événement 4672 suit un 4624 lorsque la nouvelle session détient des privilèges sensibles comme
+  SeDebug ou SeTcb — marqueur des sessions administrateur.
+description: |-
+  L'événement 4672 est écrit juste après un 4624 lorsque le jeton de la nouvelle session contient un ou plusieurs privilèges « sensibles » : débogage de programmes, agir en tant que partie du système d'exploitation, sauvegarde et restauration, prise de possession, chargement de pilotes, etc. En pratique, cela concerne les administrateurs, `SYSTEM` et certains comptes de service.
+
+  Il partage son identifiant de session (`SubjectLogonId`) avec le 4624 auquel il se rattache : ne garder que les 4624 ayant un 4672 correspondant est donc le moyen le plus rapide de lister les ouvertures de session privilégiées sur un hôte. Sur les contrôleurs de domaine, chaque 4672 concernant un compte humain mérite d'être connu.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Special Logon (Success). Activé en
+    succès dans la stratégie d'audit par défaut.
+  notes: >-
+    Consigné à un rythme élevé pour SYSTEM et les comptes machine ; les enregistrements
+    intéressants sont ceux des comptes utilisateurs nominatifs.
+fields:
+  - name: SubjectUserSid
+    description: SID du compte ayant reçu les privilèges.
+  - name: SubjectUserName
+    description: Compte ayant reçu les privilèges (malgré le préfixe « Subject », c'est bien le compte qui a ouvert la session).
+  - name: SubjectDomainName
+    description: Domaine de ce compte.
+  - name: SubjectLogonId
+    description: Identifiant de session, égal au TargetLogonId du 4624 correspondant.
+  - name: PrivilegeList
+    description: >-
+      Privilèges sensibles présents dans le jeton, un par ligne, par ex. `SeDebugPrivilege`,
+      `SeTcbPrivilege`, `SeBackupPrivilege`, `SeRestorePrivilege`, `SeTakeOwnershipPrivilege`,
+      `SeLoadDriverPrivilege`, `SeImpersonatePrivilege`, `SeSecurityPrivilege`.
+benign:
+  - Administrateurs qui se connectent aux serveurs qu'ils administrent.
+  - SYSTEM, LOCAL SERVICE, NETWORK SERVICE et comptes machine au démarrage et pour les services.
+  - Comptes de service des logiciels de sauvegarde (SeBackupPrivilege, SeRestorePrivilege).
+attacker:
+  - Utilisation d'un compte administrateur volé — un couple 4624 + 4672 pour ce compte depuis un hôte ou une IP qu'il n'utilise pas habituellement.
+  - Comptes nouvellement créés ou promus (4720, 4732, 4728) qui reçoivent soudain des privilèges spéciaux.
+  - Un mouvement latéral avec des identifiants d'administration produit un 4624 de type 3 plus un 4672 sur chaque cible.
+investigation:
+  - Joignez le 4672 au 4624 sur l'identifiant de session pour obtenir le LogonType et l'IP source de chaque ouverture de session privilégiée.
+  - Établissez une référence des comptes humains qui reçoivent un 4672 sur chaque serveur ; alertez sur les nouveaux.
+  - Un compte censé être un utilisateur standard qui obtient `SeDebugPrivilege` signifie que ses appartenances aux groupes ont changé — vérifiez les 4732/4728/4756.

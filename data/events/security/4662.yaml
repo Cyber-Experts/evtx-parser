@@ -1,0 +1,102 @@
+id: 4662
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: An operation was performed on an object
+shortTitle: AD object operation
+category: directory
+summary: >-
+  Security event 4662 logs an operation on an Active Directory object. With the replication
+  rights GUIDs in Properties, it is the classic DCSync detection.
+description: |-
+  Event 4662 is written on a domain controller when an operation is performed on an Active Directory object whose SACL audits it: reading or writing properties, deleting, changing permissions, or exercising an **extended right** (control access). The raw XML identifies objects and classes by GUID: `ObjectType` and `ObjectName` appear as `%{GUID}` and `Properties` lists the access type followed by the GUIDs of the classes, property sets or extended rights involved.
+
+  Its best-known use is **DCSync** detection. Replicating secrets from a DC through the directory replication service requires the `DS-Replication-Get-Changes` (`1131f6aa-9c07-11d1-f79f-00c04fc2dcd2`) and `DS-Replication-Get-Changes-All` (`1131f6ad-9c07-11d1-f79f-00c04fc2dcd2`) extended rights on the domain object. A 4662 with `AccessMask` `0x100` (Control Access) and those GUIDs in `Properties`, where the subject is **not** a domain controller computer account, is a strong sign of credential theft by Mimikatz `lsadump::dcsync` or similar tools.
+
+  The event is also useful for access to sensitive attributes and objects, but it needs careful SACL design: auditing Read Property widely on a busy directory generates enormous volume.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > DS Access > Audit Directory Service Access (Success),
+    applied to domain controllers, plus an auditing ACE on the object (for DCSync, on the
+    domain root object) covering the operation.
+  notes: >-
+    Check the effective policy on DCs with `auditpol /get /category:"DS Access"` and the domain
+    root SACL before relying on this event. Only logged on domain controllers.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Account that performed the operation. For replication, legitimate values are domain
+      controller computer accounts (ending in `$`) and known sync accounts.
+  - name: SubjectUserSid
+    description: SID of that account; stable across renames.
+  - name: SubjectLogonId
+    description: Logon session; pivot to 4624 on the same DC for the source IP.
+  - name: ObjectServer
+    description: Always `DS` for this event.
+  - name: ObjectType
+    description: >-
+      Class of the object, as a schema GUID in the XML, e.g. `%{19195a5b-6da0-11d0-afd3-00c04fd930c9}`
+      for `domainDNS` (the domain root).
+  - name: ObjectName
+    description: Object that was accessed, as `%{objectGUID}` in the XML or a distinguished name when rendered.
+  - name: OperationType
+    description: Typically `Object Access`.
+  - name: AccessList
+    description: Rights used, as message codes; the rendered text names the right (e.g. Control Access).
+  - name: AccessMask
+    description: Hexadecimal mask of the rights used.
+    values:
+      - value: "0x10"
+        meaning: Read Property.
+      - value: "0x20"
+        meaning: Write Property.
+      - value: "0x100"
+        meaning: Control Access — an extended right was exercised (DCSync, password reset, etc.).
+      - value: "0x10000"
+        meaning: DELETE (also logged when an object is moved).
+      - value: "0x40000"
+        meaning: WRITE_DAC — the object's permissions were modified.
+      - value: "0x80000"
+        meaning: WRITE_OWNER — ownership was taken.
+  - name: Properties
+    description: >-
+      Access type followed by the GUIDs involved. Look here for
+      `{1131f6aa-9c07-11d1-f79f-00c04fc2dcd2}` (DS-Replication-Get-Changes),
+      `{1131f6ad-9c07-11d1-f79f-00c04fc2dcd2}` (DS-Replication-Get-Changes-All) and
+      `{89e95b76-444d-4c62-991a-0facbeda640c}` (DS-Replication-Get-Changes-In-Filtered-Set).
+  - name: AdditionalInfo
+    description: Extra operation details, often `-`.
+benign:
+  - Domain controllers replicating with each other; the subject is a DC computer account such as `DC02$`.
+  - >-
+    Directory synchronization services (for example the Microsoft Entra Connect sync account)
+    that hold replication rights by design.
+  - Administrators and management tools touching audited objects during routine AD administration.
+attacker:
+  - >-
+    DCSync: a user or non-DC computer account exercising the replication extended rights on the
+    domain object to pull password hashes, including `krbtgt`.
+  - Changing the permissions (WRITE_DAC) of the domain object or AdminSDHolder to grant an account replication rights for later DCSync.
+  - Reading or modifying sensitive objects and attributes covered by a SACL, such as privileged groups.
+investigation:
+  - >-
+    For DCSync, filter on `AccessMask` `0x100` and the two replication GUIDs in `Properties`,
+    then drop subjects that are DC computer accounts or documented sync accounts.
+  - >-
+    Pivot `SubjectLogonId` to the 4624 on the same DC to get the source IP, and confirm whether
+    that IP belongs to a domain controller.
+  - Check 5136 for recent `nTSecurityDescriptor` changes on the domain root that could have granted replication rights.
+  - Expect follow-on use of stolen hashes, such as 4769 or 4624 activity with the harvested accounts.
+related:
+  - security/4661
+  - security/5136
+  - security/4624
+  - security/4672
+  - security/4769
+attack:
+  - T1003.006
+references:
+  - title: "Microsoft Learn — 4662(S, F): An operation was performed on an object"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4662
+  - title: "MITRE ATT&CK — T1003.006 OS Credential Dumping: DCSync"
+    url: https://attack.mitre.org/techniques/T1003/006/

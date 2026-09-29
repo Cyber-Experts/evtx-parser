@@ -1,0 +1,47 @@
+id: 14
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: RegistryEvent (Key and Value Rename)
+shortTitle: Registry key or value renamed
+category: registry
+summary: >-
+  Sysmon event 14 logs a registry key or value being renamed, with the old path and the new name.
+  Rare, and occasionally used to hide or stage persistence.
+description: |-
+  Sysmon event 14 records a rename in the registry: `TargetObject` holds the original path and `NewName` the new one. Renames are uncommon in normal operation, which makes them easy to review.
+
+  Attackers can rename keys to swap a prepared configuration into place in one step, or to temporarily disable a security setting and restore it later. The event is covered by the same `<RegistryEvent>` rules as events 12 and 13.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon installed; filter with `<RegistryEvent>` rules in the configuration.
+fields:
+  - name: EventType
+    description: "`RenameKey` for this event."
+  - name: ProcessGuid
+    description: Process that performed the rename.
+  - name: Image
+    description: Executable that performed the rename.
+  - name: TargetObject
+    description: Original registry path.
+  - name: NewName
+    description: New name of the key or value.
+  - name: User
+    description: Account of the process (newer Sysmon versions).
+benign:
+  - Installers and configuration tools renaming keys during upgrades.
+  - Registry editor use by administrators.
+attacker:
+  - Renaming a prepared key into a persistence location (services, COM, Run) to activate it at once.
+  - Renaming security product keys to disable them without deleting them.
+investigation:
+  - Pivot on ProcessGuid to event 1 and review nearby events 12 and 13 from the same process.
+  - Check whether NewName lands in a persistence or security-setting path.
+related:
+  - sysmon/12
+  - sysmon/13
+  - sysmon/1
+attack:
+  - T1112
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon

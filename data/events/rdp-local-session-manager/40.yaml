@@ -1,0 +1,45 @@
+id: 40
+channel: rdp-local-session-manager
+provider: Microsoft-Windows-TerminalServices-LocalSessionManager
+title: Session has been disconnected, reason code
+shortTitle: Session disconnect reason
+category: remote-access
+summary: >-
+  RDP event 40 gives the reason code for a session disconnect, telling user-initiated
+  disconnects from replaced connections.
+description: |-
+  Event 40 accompanies session disconnects with a numeric reason code. It explains why the 24 happened: the user closed the connection, a newer connection replaced it, or the reason is unknown.
+
+  Reason codes are most useful in aggregate: many disconnects with "connection replaced" for one session mean the same account was being used from multiple clients in turn.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the LocalSessionManager/Operational channel is enabled by default.
+fields:
+  - name: Session
+    description: Session number that was disconnected.
+  - name: Reason
+    description: Disconnect reason code.
+    values:
+      - value: "0"
+        meaning: No additional information is available.
+      - value: "5"
+        meaning: The client's connection was replaced by another connection.
+      - value: "11"
+        meaning: User activity initiated the disconnect (the user disconnected).
+benign:
+  - Users closing the client (reason 11) or reconnecting from another device (reason 5).
+attacker:
+  - Frequent reason 5 disconnects of an admin session can indicate someone else attaching to it.
+investigation:
+  - Correlate with 24 (disconnect) and 25 or 39 around the same time for the same session.
+  - Chart reason codes per session over time; repeated reason 5 on one admin session is the pattern to explain.
+related:
+  - rdp-local-session-manager/24
+  - rdp-local-session-manager/39
+  - rdp-local-session-manager/25
+attack:
+  - T1021.001
+references:
+  - title: JPCERT/CC — Detecting Lateral Movement through Tracking Event Logs
+    url: https://www.jpcert.or.jp/english/pub/sr/ir_research.html

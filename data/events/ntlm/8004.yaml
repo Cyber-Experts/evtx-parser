@@ -1,0 +1,70 @@
+id: 8004
+channel: ntlm
+provider: Microsoft-Windows-Security-Netlogon
+title: "Domain Controller Blocked Audit: Audit NTLM authentication to this domain controller"
+shortTitle: Domain controller authentication audit
+category: ntlm
+summary: >-
+  NTLM event 8004 is logged on domain controllers for each NTLM authentication they validate: user,
+  client workstation and the server that forwarded it.
+description: |-
+  Event 8004 is written on a **domain controller** when it validates an NTLM authentication and domain NTLM auditing is enabled. It is logged in the NTLM operational channel but by the **Netlogon** provider (`Microsoft-Windows-Security-Netlogon`), because NTLM pass-through validation arrives over the Netlogon secure channel.
+
+  Each record links three parties: the account (`UserName`, `DomainName`), the client that started the authentication (`WorkstationName`) and the server that forwarded it to the DC over its secure channel (`SChannelName`). Collected from all DCs, it gives a domain-wide view of who uses NTLM, from where, to which servers — something 4776 alone does not show.
+
+  NTLM authentication with local accounts never reaches the DC, so it will not appear here; check 8003 and 4624 on the target for those.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Security Options > Network security: Restrict NTLM: Audit NTLM authentication in this domain =
+    Enable all (or one of the narrower Enable options), set on domain controllers.
+  notes: >-
+    Only authentication handled by the domain controller where the policy is set is logged; enable
+    it on every DC. Volume can be large in environments with heavy NTLM use.
+fields:
+  - name: SChannelName
+    description: >-
+      Name of the computer whose Netlogon secure channel carried the request — normally the server
+      the user was connecting to.
+  - name: UserName
+    description: Account that authenticated with NTLM.
+  - name: DomainName
+    description: Domain of the account.
+  - name: WorkstationName
+    description: Client computer name supplied in the NTLM exchange (can be spoofed or empty).
+  - name: SChannelType
+    description: Type of Netlogon secure channel used by `SChannelName`.
+    values:
+      - value: "2"
+        meaning: Workstation secure channel (member workstation or server).
+      - value: "4"
+        meaning: Trusted domain secure channel.
+      - value: "6"
+        meaning: Server secure channel (another domain controller).
+benign:
+  - File, print and web servers forwarding NTLM logons of users who connect by IP address or alias.
+  - Legacy applications and appliances that only support NTLM.
+  - Servers without proper SPNs causing Kerberos to fall back to NTLM.
+attacker:
+  - Pass-the-hash and NTLM relay using domain accounts, showing the account, the client and the targeted server in one record.
+  - Privileged accounts authenticating with NTLM from unexpected workstations, or to servers they do not normally access.
+investigation:
+  - Aggregate by `UserName`, `WorkstationName` and `SChannelName` across all DCs to build an NTLM usage map, then look for new combinations.
+  - Match with 4776 on the same DC for the result code (success or failure) of the validation.
+  - Go to the server named in `SChannelName` for 8003 and 4624 (source IP), and to the client for 8001 (process name).
+related:
+  - ntlm/8001
+  - ntlm/8002
+  - ntlm/8003
+  - security/4776
+  - security/4624
+  - security/4625
+attack:
+  - T1550.002
+  - T1557.001
+  - T1110
+references:
+  - title: "Microsoft Learn — Network security: Restrict NTLM: Audit NTLM authentication in this domain"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/security-policy-settings/network-security-restrict-ntlm-audit-ntlm-authentication-in-this-domain
+  - title: Microsoft Learn (archive) — NTLM Blocking and You, auditing methodologies
+    url: https://learn.microsoft.com/en-us/archive/blogs/askds/ntlm-blocking-and-you-application-analysis-and-auditing-methodologies-in-windows-7

@@ -1,0 +1,120 @@
+id: 4625
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: An account failed to log on
+shortTitle: Failed logon
+category: logon
+summary: >-
+  Event 4625 is logged when a logon attempt fails. Status and SubStatus say why: bad
+  password, unknown user, locked or disabled account.
+description: |-
+  Event 4625 is written by the computer that **rejected** a logon attempt. For domain accounts the password check happens on a domain controller, but the failure is still recorded on the machine where the user tried to log on — the DC records its side as 4771 (Kerberos) or 4776 (NTLM).
+
+  The two most useful fields are `Status` and `SubStatus`, NTSTATUS codes that give the failure reason. `0xC000006D` alone is generic ("unknown user name or bad password"); the `SubStatus` tells you which: `0xC0000064` for a user name that does not exist, `0xC000006A` for a wrong password. Combined with `LogonType` and `IpAddress` this separates a user fumbling a password from a brute force or password spray.
+
+  Volume matters more than any single record: dozens of failures for one account from one source is guessing; one failure each for hundreds of accounts from one source is spraying.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logon (Failure). Failure
+    auditing for this subcategory is part of the default audit policy on current Windows
+    client and server versions; confirm with `auditpol /get /subcategory:Logon`.
+  notes: >-
+    Also produced by Audit Account Lockout (Failure) when the account is locked
+    (Status `0xC0000234`). `IpAddress` is empty for local attempts and for some NTLM network
+    failures where only `WorkstationName` is known.
+fields:
+  - name: TargetUserName
+    description: >-
+      Account name that was tried. It is logged as typed, so typos, user names that do not exist
+      and spray lists all appear here.
+  - name: TargetDomainName
+    description: Domain or computer name supplied with the account.
+  - name: Status
+    description: Top-level failure reason (NTSTATUS).
+    values:
+      - value: "0xC000006D"
+        meaning: Generic bad user name or authentication information — read SubStatus.
+      - value: "0xC000015B"
+        meaning: The user has not been granted the requested logon type on this machine.
+      - value: "0xC0000234"
+        meaning: Account is locked out.
+      - value: "0xC0000413"
+        meaning: Authentication firewall — the account is not allowed to authenticate to this machine.
+  - name: SubStatus
+    description: Detailed failure reason (NTSTATUS).
+    values:
+      - value: "0xC0000064"
+        meaning: User name does not exist.
+      - value: "0xC000006A"
+        meaning: User name is correct but the password is wrong.
+      - value: "0xC000006F"
+        meaning: Logon outside the account's allowed hours.
+      - value: "0xC0000070"
+        meaning: Logon from a workstation the account is not allowed to use.
+      - value: "0xC0000071"
+        meaning: Password has expired.
+      - value: "0xC0000072"
+        meaning: Account is disabled.
+      - value: "0xC0000133"
+        meaning: Clock skew between the machine and the domain controller is too large.
+      - value: "0xC0000193"
+        meaning: Account has expired.
+      - value: "0xC0000224"
+        meaning: User must change the password at next logon.
+      - value: "0xC0000234"
+        meaning: Account is locked out.
+  - name: FailureReason
+    description: >-
+      Message string for the failure (stored as a `%%` insertion such as `%%2313`, rendered by
+      Event Viewer as "Unknown user name or bad password").
+  - name: LogonType
+    description: >-
+      Type of logon that failed (same values as 4624): 2 console, 3 network (SMB, NTLM over
+      HTTP), 8 cleartext network, 10 RDP.
+  - name: LogonProcessName
+    description: Logon process, e.g. `User32`, `NtLmSsp`, `Advapi`.
+  - name: AuthenticationPackageName
+    description: Package used for the attempt, usually `NTLM`, `Kerberos` or `Negotiate`.
+  - name: WorkstationName
+    description: Source computer name supplied by the client — spoofable, but useful for NTLM failures without an IP.
+  - name: IpAddress
+    description: Source IP address of a remote attempt.
+  - name: IpPort
+    description: Source TCP port.
+  - name: ProcessName
+    description: >-
+      Local process that attempted the logon (for example `winlogon.exe` for the console,
+      `svchost.exe` for RDP on some versions); `-` for network logons.
+benign:
+  - Users mistyping a password, or a password change not yet propagated to all their devices.
+  - "Stale credentials stored in services, scheduled tasks, mapped drives or phones — repeated failures at a fixed interval."
+  - Vulnerability scanners and monitoring tools configured with wrong credentials.
+  - Disabled or expired accounts still used by an old script.
+attacker:
+  - "Password guessing — many 4625 for one account from one source, SubStatus `0xC000006A`."
+  - "Password spraying — a few failures each for many different accounts from one source, often with SubStatus `0xC000006A` mixed with `0xC0000064`."
+  - "RDP brute force from the internet — LogonType 3 or 10 failures from public IP addresses, often with generic user names such as administrator, admin or test."
+  - User enumeration, visible as a burst of `0xC0000064` (user does not exist) for a list of names.
+investigation:
+  - Count failures by IpAddress and by TargetUserName over short windows (5–15 minutes); spraying shows as one source across many accounts.
+  - "Always check for a 4624 with the same TargetUserName and IpAddress after the failures — a failure run ending in success is the finding."
+  - Look at SubStatus distribution; `0xC0000064` for real-looking names means someone is guessing user names.
+  - On domain controllers pair with 4771 (Kerberos pre-auth failed) and 4776 (NTLM) to see failures that never reach the member server.
+  - If the account got locked, 4740 on the PDC emulator names the caller computer that produced the lockout.
+related:
+  - security/4624
+  - security/4740
+  - security/4771
+  - security/4776
+  - security/4648
+  - rdp-core-ts/131
+attack:
+  - T1110
+  - T1110.001
+  - T1110.003
+references:
+  - title: "Microsoft Learn — 4625(F): An account failed to log on"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4625
+  - title: Microsoft Learn — Audit Logon
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-logon

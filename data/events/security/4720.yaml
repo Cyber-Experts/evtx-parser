@@ -1,0 +1,115 @@
+id: 4720
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A user account was created
+shortTitle: User account created
+category: account
+summary: >-
+  Security event 4720 records the creation of a local or domain user account: who created it,
+  the new name and SID, and its initial attributes.
+description: |-
+  Event 4720 is written each time a new user object is created. For a local account it is logged on the workstation or server that owns the SAM database; for a domain account it is logged on the domain controller that processed the request. The `Subject*` fields identify who created the account, the `Target*` fields identify the new account.
+
+  The rest of the record is a snapshot of the initial attributes: `SamAccountName`, `UserPrincipalName`, `PrimaryGroupId`, `SidHistory`, `AllowedToDelegateTo` and the SAM account flags in `NewUacValue` and `UserAccountControl`. An account created through Active Directory Users and Computers typically starts disabled with no password set (`NewUacValue` `0x15`), so the creation is usually followed within seconds by 4724 (password set), 4722 (enabled) and one or more 4738 events.
+
+  Account creation is rare enough that most organizations review every 4720. Pay special attention to local accounts created on servers and workstations, accounts created outside the normal provisioning process, and new accounts that are quickly added to privileged groups (4728, 4732, 4756).
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Enabled for Success in the default Windows audit policy.
+  notes: >-
+    Logged on domain controllers for domain accounts and on member servers and workstations for
+    local accounts, so local account creation is only visible in the endpoint's own Security log.
+    Several attributes may appear as `-` when they were not captured, and local accounts show
+    `<value not set>` for many of them.
+fields:
+  - name: SubjectUserName
+    description: Account that created the new user. Compare against your list of identity administrators and provisioning service accounts.
+  - name: SubjectDomainName
+    description: Domain (or computer name for local accounts) of the creator.
+  - name: SubjectLogonId
+    description: >-
+      Logon session of the creator. Pivot to 4624 with the same TargetLogonId to learn where and how
+      the creator logged on.
+  - name: TargetUserName
+    description: Name of the new account.
+  - name: TargetDomainName
+    description: Domain of the new account, or the computer name when a local account was created.
+  - name: TargetSid
+    description: SID of the new account. Use it to follow the account through later events even if it is renamed (4781).
+  - name: SamAccountName
+    description: Pre-Windows 2000 logon name. An empty value or `-` is abnormal.
+  - name: UserPrincipalName
+    description: UPN of a domain account (`user@domain`). Always `-` for local accounts.
+  - name: PrimaryGroupId
+    description: >-
+      RID of the primary group. `513` (Domain Users, or Users for local accounts) is normal;
+      anything else deserves a look.
+  - name: NewUacValue
+    description: >-
+      SAM account flags of the new account in hexadecimal (the SAM definition, which differs from
+      the Active Directory `userAccountControl` bit values). `OldUacValue` is always `0x0` for new accounts.
+    values:
+      - value: "0x1"
+        meaning: Account disabled.
+      - value: "0x4"
+        meaning: Password not required.
+      - value: "0x10"
+        meaning: Normal user account.
+      - value: "0x200"
+        meaning: Password never expires.
+      - value: "0x2000"
+        meaning: Trusted for delegation (unconstrained Kerberos delegation).
+      - value: "0x10000"
+        meaning: Kerberos pre-authentication not required.
+      - value: "0x15"
+        meaning: Typical value for an account created in Active Directory Users and Computers — disabled, password not required, normal account.
+  - name: UserAccountControl
+    description: >-
+      The same flags rendered as message codes, e.g. `%%2080 %%2082 %%2084` for `0x15`
+      (Account Disabled, Password Not Required, Normal Account).
+  - name: SidHistory
+    description: Previous SIDs of a migrated account. Should be `-` for a freshly created account.
+  - name: AllowedToDelegateTo
+    description: SPNs the account may delegate to (constrained delegation). Normally `-` on creation.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Helpdesk or identity management systems provisioning new employees, usually from a small set of admin or service accounts.
+  - Software installers and management agents that create local service accounts.
+  - Domain controller promotion, migrations and lab builds creating many accounts in a burst.
+attacker:
+  - >-
+    Persistence by creating a local account on a compromised host, often with `net user <name> <password> /add`
+    followed by adding it to the local Administrators group (4732).
+  - Creating a domain account and adding it to Domain Admins or another privileged group (4728, 4756).
+  - Account names chosen to blend in, such as look-alikes of service or admin accounts, or names ending in `$` to resemble computer accounts.
+investigation:
+  - Check whether SubjectUserName is an expected provisioning account and whether the creation matches a ticket or HR onboarding.
+  - Look for group membership changes for the same TargetSid right after creation (4728, 4732, 4756) and for its first logon (4624).
+  - >-
+    Pivot on SubjectLogonId to find the creator's logon (4624) and, if process auditing is on, the
+    process that did it (4688, e.g. `net.exe`, `net1.exe` or PowerShell).
+  - Review the initial attributes for unusual values — non-513 PrimaryGroupId, SidHistory, delegation settings or pre-authentication disabled.
+related:
+  - security/4722
+  - security/4724
+  - security/4726
+  - security/4738
+  - security/4728
+  - security/4732
+  - security/4756
+  - security/4781
+  - security/4624
+  - security/4688
+attack:
+  - T1136.001
+  - T1136.002
+references:
+  - title: "Microsoft Learn — 4720(S): A user account was created"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4720
+  - title: Microsoft Learn — Audit User Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-user-account-management
+  - title: "Microsoft Learn — [MS-SAMR] USER_ACCOUNT Codes"
+    url: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/b10cfda1-f24f-441b-8f43-80cb93e786ec

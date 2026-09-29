@@ -1,0 +1,60 @@
+id: 4731
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A security-enabled local group was created
+shortTitle: Local group created
+category: group
+summary: >-
+  Security event 4731 is logged when a security-enabled local group is created — a local SAM
+  group on a host, or a domain local group on a domain controller.
+description: |-
+  Event 4731 is written when a new security-enabled **local** group is created. On workstations and member servers this is a group in the local SAM; on domain controllers it is a **domain local** security group in Active Directory. Global groups are reported by 4727 and universal groups by 4754.
+
+  `TargetUserName`, `TargetDomainName` and `TargetSid` identify the new group, `SamAccountName` holds its pre-Windows 2000 name, and `Subject*` identifies the creator. A new group by itself grants nothing; what matters is where the group is then used — its members (4732) and the permissions or rights it receives.
+
+  Local group creation on endpoints is uncommon outside software installation, so it is worth a quick review.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Success is audited in the default Windows audit policy.
+fields:
+  - name: TargetUserName
+    description: Name of the new group.
+  - name: TargetDomainName
+    description: Domain of the group, or the computer name for a local SAM group.
+  - name: TargetSid
+    description: SID of the new group.
+  - name: SamAccountName
+    description: Pre-Windows 2000 name of the group.
+  - name: SidHistory
+    description: Previous SIDs of a migrated group; `-` for a newly created group.
+  - name: SubjectUserName
+    description: Account that created the group.
+  - name: SubjectDomainName
+    description: Domain or computer name of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject; correlate with 4624.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Applications and roles creating their own local groups during installation (SQL Server, Hyper-V, IIS and similar).
+  - Administrators creating domain local groups for resource permissions (AGDLP model).
+attacker:
+  - Creating a group with an innocuous name to hold backdoor accounts and later grant it rights on hosts or objects.
+investigation:
+  - Check who created the group and whether it matches a software installation or change request.
+  - Follow the TargetSid in later 4732 events and in permission changes to see what the group was used for.
+related:
+  - security/4732
+  - security/4734
+  - security/4735
+  - security/4727
+  - security/4754
+attack:
+  - T1098
+references:
+  - title: "Microsoft Learn — 4731(S): A security-enabled local group was created"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4731
+  - title: Microsoft Learn — Audit Security Group Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-group-management

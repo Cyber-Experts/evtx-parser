@@ -1,0 +1,42 @@
+id: 6006
+channel: system
+provider: EventLog
+title: The Event log service was stopped
+shortTitle: Event Log service stopped
+category: system
+summary: >-
+  System event 6006 is written when the Event Log service stops, normally at clean shutdown. Missing before a boot means a crash.
+description: |-
+  Event 6006 is logged by the Event Log service as it shuts down. On a normal shutdown or restart it sits next to **1074** (who asked) and **13** (kernel shutdown), and the next boot begins with **12** and **6005**.
+
+  If a boot follows without a 6006 before it, the previous session ended abruptly and Windows will log **6008** (unexpected shutdown) and usually **41**. The Security log has a parallel record, **1100** (the event logging service has shut down).
+
+  The event has no useful data; the timestamp is what counts. A 6006 that is not followed by a shutdown, with the host clearly still running afterwards, indicates that the Event Log service was stopped on purpose.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log when the Event Log service stops.
+fields:
+  - name: Data1
+    description: Empty. The event carries no insertion strings; use the record time.
+benign:
+  - Every clean shutdown and restart.
+attacker:
+  - >-
+    Stopping the Event Log service with service control commands to blind defenders — look for a
+    6006 not followed by 13 and 12. (Thread-killing tools that suspend logging leave no 6006.)
+investigation:
+  - Confirm the shutdown sequence 1074, 6006, 13; a 6006 without the other two is suspicious.
+  - Compare with Security 1100 and look for the gap until the next 6005.
+related:
+  - system/6005
+  - system/13
+  - system/1074
+  - system/6008
+  - security/1100
+attack:
+  - T1685.001
+references:
+  - title: Microsoft Learn — Event logging
+    url: https://learn.microsoft.com/en-us/windows/win32/eventlog/event-logging
+  - title: MITRE ATT&CK — Disable or Modify Windows Event Log (T1685.001)
+    url: https://attack.mitre.org/techniques/T1685/001/

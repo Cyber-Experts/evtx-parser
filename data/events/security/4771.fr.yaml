@@ -1,0 +1,53 @@
+title: Échec de la pré-authentification Kerberos
+shortTitle: Échec de pré-auth Kerberos
+summary: >-
+  L'événement 4771 est consigné sur les contrôleurs de domaine en cas d'échec de pré-authentification
+  Kerberos, le plus souvent un mauvais mot de passe (0x18).
+description: |-
+  L'événement 4771 est la trace, côté contrôleur de domaine, d'une ouverture de session Kerberos en échec à l'étape de pré-authentification. La cause la plus fréquente est un mauvais mot de passe (`0x18`) ; les autres sont un mot de passe expiré, un compte désactivé ou verrouillé, ou un décalage d'horloge.
+
+  Kerberos étant le protocole par défaut dans un domaine, les tentatives de mot de passe en échec contre des comptes de domaine apparaissent ici plutôt qu'en 4625 sur le DC. Un password spraying via Kerberos se traduit par une IP produisant des 4771 pour de nombreux comptes — sans jamais toucher les serveurs membres : cet événement peut donc être la seule trace.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Logon > Audit Kerberos Authentication Service
+    (Failure). Pertinent uniquement sur les contrôleurs de domaine.
+fields:
+  - name: TargetUserName
+    description: Compte dont la pré-authentification a échoué.
+  - name: TargetSid
+    description: SID de ce compte.
+  - name: ServiceName
+    description: Service demandé, normalement `krbtgt/<DOMAIN>`.
+  - name: TicketOptions
+    description: Options de ticket (hex).
+  - name: Status
+    description: Code d'échec Kerberos.
+    values:
+      - value: "0x18"
+        meaning: KDC_ERR_PREAUTH_FAILED — mauvais mot de passe.
+      - value: "0x12"
+        meaning: KDC_ERR_CLIENT_REVOKED — compte désactivé, expiré ou verrouillé.
+      - value: "0x17"
+        meaning: KDC_ERR_KEY_EXPIRED — mot de passe expiré.
+      - value: "0x25"
+        meaning: KRB_AP_ERR_SKEW — décalage d'horloge trop important.
+      - value: "0x10"
+        meaning: KDC_ERR_PADATA_TYPE_NOSUPP — problème d'ouverture de session par carte à puce (par exemple certificat KDC manquant).
+  - name: PreAuthType
+    description: Type de pré-authentification tenté (2 = mot de passe, 15/16 = carte à puce ou certificat).
+  - name: IpAddress
+    description: Adresse IP du client.
+  - name: IpPort
+    description: Port source du client.
+benign:
+  - Utilisateurs saisissant un mauvais mot de passe ; appareils conservant un ancien mot de passe en cache après un changement.
+  - Services ou tâches planifiées encore configurés avec un ancien mot de passe — échecs répétés à intervalle fixe.
+  - Problèmes d'horloge sur un client (`0x25`).
+attacker:
+  - "Password spraying via Kerberos — une source, de nombreux comptes, Status `0x18`, souvent quelques tentatives par compte pour rester sous le seuil de verrouillage (Kerbrute, Rubeus)."
+  - Devinette de mot de passe contre un seul compte, se terminant généralement par un verrouillage 4740.
+investigation:
+  - Comptez les TargetUserName distincts par IpAddress sur de courtes fenêtres pour distinguer un spraying d'une erreur utilisateur.
+  - Recherchez un 4768 avec Status `0x0` pour les mêmes comptes et la même IP après les échecs.
+  - Associez IpAddress à un hôte ; des échecs depuis des serveurs signalent généralement un compte de service mal configuré.
+  - Corrélez avec les 4740 sur l'émulateur PDC pour les comptes verrouillés.

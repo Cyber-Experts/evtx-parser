@@ -1,0 +1,70 @@
+title: Un service a été installé sur le système
+shortTitle: Service installé
+summary: >-
+  L'événement System 7045 consigne chaque nouveau service ou pilote : nom, binaire, type de
+  démarrage et compte. Un signal majeur de mouvement latéral.
+description: |-
+  L'événement 7045 est écrit par le Gestionnaire de contrôle des services lorsqu'un nouveau service est créé — via `sc create`, `New-Service`, un installateur, l'API `CreateService` ou à distance via l'interface RPC du SCM. Les pilotes noyau enregistrés comme services apparaissent également ici. Contrairement au **4697** Sécurité, il est consigné par défaut, ce qui en fait l'un des artefacts de persistance et de mouvement latéral les plus fiables sous Windows.
+
+  `ImagePath` est le premier champ à lire. Les services légitimes pointent vers des binaires signés sous `C:\Windows\System32` ou `C:\Program Files`. Des chemins dans `C:\Windows\Temp`, les profils utilisateurs, `C:\ProgramData` ou `ADMIN$`, et des lignes de commande comme `cmd.exe /c ...`, `%COMSPEC%` ou `powershell -enc ...`, sont de forts indicateurs d'outils d'exécution à distance et de malwares. Des noms de service aléatoires de 8 caractères ou ressemblant à des GUID sont typiques de l'exécution par service d'Impacket, Metasploit et Cobalt Strike.
+
+  L'exécution à distance via le SCM (PsExec et ses clones) laisse un 7045 sur l'hôte **cible**, généralement juste après une ouverture de session de type 3 (4624) depuis la source, puis des 7036 lorsque le service démarre et s'arrête.
+logging:
+  requirement: Toujours consigné dans le journal System lorsqu'un service est installé.
+  notes: >-
+    Le 4697 Sécurité contient des données similaires mais nécessite Audit Security System
+    Extension. Un 7045 n'est écrit qu'à la création ; la modification du chemin binaire d'un
+    service existant n'en produit pas.
+fields:
+  - name: ServiceName
+    description: Nom d'affichage du nouveau service. `PSEXESVC`, des lettres aléatoires ou des noms de type GUID méritent l'attention.
+  - name: ImagePath
+    description: >-
+      Chemin binaire ou ligne de commande que le service exécutera. Recherchez des dossiers
+      temporaires, des répertoires utilisateurs, `cmd.exe /c`, `powershell`, `rundll32`, `mshta`
+      ou des chemins UNC.
+  - name: ServiceType
+    description: Type de service.
+    values:
+      - value: "user mode service"
+        meaning: Service normal exécutant un exécutable en mode utilisateur.
+      - value: "kernel mode driver"
+        meaning: >-
+          Pilote noyau. Des pilotes inattendus peuvent être des rootkits ou des pilotes vulnérables
+          chargés pour neutraliser les outils de sécurité.
+      - value: "file system driver"
+        meaning: Pilote de système de fichiers ou de filtre.
+  - name: StartType
+    description: Moment du démarrage du service.
+    values:
+      - value: "auto start"
+        meaning: Démarre à chaque boot — persistance.
+      - value: "demand start"
+        meaning: Démarrage manuel ; typique des services d'exécution à distance ponctuels.
+      - value: "disabled"
+        meaning: Ne peut pas être démarré tant qu'il n'est pas reconfiguré.
+      - value: "boot start"
+        meaning: Pilote chargé par le chargeur de démarrage.
+      - value: "system start"
+        meaning: Pilote chargé pendant l'initialisation du noyau.
+  - name: AccountName
+    description: >-
+      Compte sous lequel s'exécute le service, par ex. `LocalSystem`, `NT AUTHORITY\LocalService`
+      ou un compte de domaine. Vide pour les pilotes.
+benign:
+  - Installateurs et mises à jour de logiciels enregistrant leurs services et pilotes.
+  - Agents de sécurité, outils de sauvegarde et de support à distance déployés par l'IT.
+  - Pilotes matériels installés lors de la connexion de nouveaux périphériques.
+  - Usage légitime de PsExec par les administrateurs (service `PSEXESVC`).
+attacker:
+  - >-
+    Exécution à distance avec PsExec, `psexec.py` / `smbexec.py` d'Impacket, Metasploit ou
+    `jump psexec` de Cobalt Strike : services éphémères aux noms aléatoires ou avec `cmd.exe /c`
+    dans `ImagePath`.
+  - Persistance via un nouveau service à démarrage automatique pointant vers une charge utile déposée.
+  - Chargement d'un pilote signé vulnérable (BYOVD) pour désactiver l'EDR, visible comme un nouveau pilote en mode noyau.
+investigation:
+  - Examinez chaque 7045 de la chronologie ; le volume est assez faible pour tous les lire.
+  - Vérifiez l'emplacement, la signature et le hash de l'`ImagePath` ; récupérez le binaire s'il existe encore.
+  - Corrélez avec les 4624 de type 3 et les 5145 (ADMIN$ / IPC$ `svcctl`) juste avant sur le même hôte pour identifier la source.
+  - Poursuivez avec les 7036 (running/stopped), 7009 ou 7000 (échecs de démarrage) pour savoir s'il a tourné et combien de temps.

@@ -80,6 +80,9 @@ export type Dict = {
     copy: string;
     copied: string;
     copyJson: string;
+    /** "{id}" placeholder — link to the Event ID encyclopedia. */
+    whatIsEvent: string;
+    whatIsEventTitle: string;
     copyXml: string;
     timeZoneToggle: string;
     hunts: string;
@@ -179,6 +182,67 @@ export type Dict = {
     reportGenerated: string;
     copyLink: string;
     linkCopied: string;
+  };
+  /** Sigma tab: SigmaHQ rules run in the browser. `{placeholders}` are
+   *  replaced at render time. Rule titles/descriptions stay in English. */
+  sigma: {
+    tab: string;
+    intro: string;
+    loadingRules: string;
+    running: string;
+    failed: string;
+    summary: string;
+    noMatches: string;
+    noMatchesFiltered: string;
+    levels: {
+      critical: string;
+      high: string;
+      medium: string;
+      low: string;
+      informational: string;
+    };
+    search: string;
+    allTactics: string;
+    allLevels: string;
+    eventsCount: string;
+    selectRule: string;
+    matchedEvents: string;
+    moreEvents: string;
+    showInTable: string;
+    around: string;
+    openEvent: string;
+    description: string;
+    falsePositives: string;
+    references: string;
+    attack: string;
+    tags: string;
+    author: string;
+    ruleBy: string;
+    license: string;
+    licenseNote: string;
+    status: string;
+    date: string;
+    ruleId: string;
+    logsource: string;
+    viewRule: string;
+    keyFields: string;
+    exportCsv: string;
+    exportJson: string;
+    customRules: string;
+    customTitle: string;
+    customHint: string;
+    customPlaceholder: string;
+    customAdd: string;
+    customPick: string;
+    customDrop: string;
+    customLoaded: string;
+    customRemove: string;
+    customClear: string;
+    customInvalid: string;
+    customBadge: string;
+    customEmpty: string;
+    coverage: string;
+    stats: string;
   };
   /** "How to get your .evtx files" guide (#collect) right under the drop
    *  zone, and in a dialog from the full-screen workspace toolbar. Commands
@@ -366,14 +430,6 @@ export type Dict = {
     resourcesHeading: string;
     byLine: string;
   };
-  eventIds: {
-    title: string;
-    intro: string;
-    description: string;
-    columnId: string;
-    columnName: string;
-    columnNotes: string;
-  };
   glossary: {
     title: string;
     intro: string;
@@ -391,22 +447,6 @@ export type Dict = {
   breadcrumb: {
     home: string;
     label: string;
-  };
-  eventId: {
-    title: string;
-    intro: string;
-    description: string;
-    channelLabel: string;
-    providerLabel: string;
-    notesLabel: string;
-    inDepthHeading: string;
-    inDepthCta: string;
-    microsoftLearnHeading: string;
-    microsoftLearnCta: string;
-    relatedHeading: string;
-    notCoveredYet: string;
-    notFoundTitle: string;
-    notFoundDescription: string;
   };
   tags: {
     indexTitle: string;

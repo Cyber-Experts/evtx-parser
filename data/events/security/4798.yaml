@@ -1,0 +1,60 @@
+id: 4798
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A user's local group membership was enumerated
+shortTitle: User's local groups enumerated
+category: account
+summary: >-
+  Security event 4798 logs a process listing which local groups a user belongs to, with the
+  calling process. Mostly noise, but useful for spotting discovery.
+description: |-
+  Event 4798 is written when a process enumerates the security-enabled local groups a user account belongs to. It names the account that was looked up (`TargetUserName`, `TargetSid`), who did the lookup (`Subject*`) and the process that asked (`CallerProcessName`, `CallerProcessId`).
+
+  On its own it is very noisy: Windows components query group memberships all the time, for example when a user signs in, opens account settings or when management tools run. Its value comes from the caller: a lookup made by `net.exe`, PowerShell, a script host or an unknown binary, or a burst covering many accounts in a short time, points to account discovery.
+
+  The event was introduced with Windows 10 and Windows Server 2016.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Enabled in the default audit policy.
+  notes: Available on Windows 10 / Server 2016 and later. Expect high volume from built-in processes.
+fields:
+  - name: TargetUserName
+    description: Account whose group membership was enumerated.
+  - name: TargetDomainName
+    description: Domain or computer name of that account.
+  - name: TargetSid
+    description: SID of that account. RID 500 is the built-in Administrator.
+  - name: SubjectUserName
+    description: Account that performed the enumeration.
+  - name: SubjectLogonId
+    description: Logon session of that account; pivot to 4624 and 4688.
+  - name: CallerProcessId
+    description: Hexadecimal PID of the process that performed the enumeration.
+  - name: CallerProcessName
+    description: >-
+      Full path of that process. Baseline the usual Windows callers and review the rest —
+      `net1.exe`, `powershell.exe`, script hosts or binaries outside System32.
+benign:
+  - Built-in Windows processes checking memberships during sign-in, UAC prompts and settings pages.
+  - Administrators opening Computer Management or Local Users and Groups (`mmc.exe`).
+attacker:
+  - Local account discovery with `net user <name>`, PowerShell `Get-LocalGroup*` cmdlets or post-exploitation frameworks.
+  - A single session enumerating many accounts in quick succession, typical of automated reconnaissance.
+investigation:
+  - Exclude known callers from your baseline, then group by CallerProcessName and SubjectUserName.
+  - >-
+    Pivot on CallerProcessId and SubjectLogonId to 4688 to get the command line and the parent
+    process that started the enumeration.
+  - Look for the same session also triggering 4799 (group member enumeration) — together they show broader discovery.
+related:
+  - security/4799
+  - security/4688
+  - security/4624
+  - security/4661
+attack:
+  - T1087.001
+references:
+  - title: "Microsoft Learn — 4798(S): A user's local group membership was enumerated"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4798

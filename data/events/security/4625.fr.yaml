@@ -1,0 +1,100 @@
+title: Échec d'ouverture de session d'un compte
+shortTitle: Échec d'ouverture de session
+summary: >-
+  L'événement 4625 consigne une tentative d'ouverture de session en échec. Status et SubStatus
+  donnent la cause : mot de passe erroné, compte inconnu, verrouillé.
+description: |-
+  L'événement 4625 est écrit par l'ordinateur qui a **rejeté** une tentative d'ouverture de session. Pour les comptes de domaine, la vérification du mot de passe a lieu sur un contrôleur de domaine, mais l'échec est tout de même consigné sur la machine où l'utilisateur a tenté de se connecter — le contrôleur de domaine consigne sa partie en 4771 (Kerberos) ou 4776 (NTLM).
+
+  Les deux champs les plus utiles sont `Status` et `SubStatus`, des codes NTSTATUS qui donnent la cause de l'échec. `0xC000006D` seul est générique (« nom d'utilisateur inconnu ou mot de passe incorrect ») ; le `SubStatus` précise lequel : `0xC0000064` pour un nom d'utilisateur inexistant, `0xC000006A` pour un mauvais mot de passe. Combiné à `LogonType` et `IpAddress`, cela permet de distinguer un utilisateur qui se trompe de mot de passe d'une attaque par force brute ou d'un password spraying.
+
+  Le volume compte plus que chaque enregistrement isolé : des dizaines d'échecs pour un compte depuis une source, c'est de la devinette ; un échec pour chacun de centaines de comptes depuis une source, c'est du spraying.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logon (Failure). L'audit des échecs
+    de cette sous-catégorie fait partie de la stratégie d'audit par défaut des versions actuelles
+    de Windows client et serveur ; vérifiez avec `auditpol /get /subcategory:Logon`.
+  notes: >-
+    Également produit par Audit Account Lockout (Failure) lorsque le compte est verrouillé
+    (Status `0xC0000234`). `IpAddress` est vide pour les tentatives locales et pour certains échecs
+    réseau NTLM où seul `WorkstationName` est connu.
+fields:
+  - name: TargetUserName
+    description: >-
+      Nom du compte essayé. Il est consigné tel que saisi : fautes de frappe, noms d'utilisateur
+      inexistants et listes de spraying apparaissent tous ici.
+  - name: TargetDomainName
+    description: Domaine ou nom d'ordinateur fourni avec le compte.
+  - name: Status
+    description: Cause principale de l'échec (NTSTATUS).
+    values:
+      - value: "0xC000006D"
+        meaning: Nom d'utilisateur ou informations d'authentification incorrects (générique) — lire le SubStatus.
+      - value: "0xC000015B"
+        meaning: L'utilisateur ne dispose pas du type d'ouverture de session demandé sur cette machine.
+      - value: "0xC0000234"
+        meaning: Le compte est verrouillé.
+      - value: "0xC0000413"
+        meaning: Pare-feu d'authentification — le compte n'est pas autorisé à s'authentifier sur cette machine.
+  - name: SubStatus
+    description: Cause détaillée de l'échec (NTSTATUS).
+    values:
+      - value: "0xC0000064"
+        meaning: Le nom d'utilisateur n'existe pas.
+      - value: "0xC000006A"
+        meaning: Le nom d'utilisateur est correct mais le mot de passe est erroné.
+      - value: "0xC000006F"
+        meaning: Ouverture de session en dehors des heures autorisées pour le compte.
+      - value: "0xC0000070"
+        meaning: Ouverture de session depuis un poste de travail que le compte n'est pas autorisé à utiliser.
+      - value: "0xC0000071"
+        meaning: Le mot de passe a expiré.
+      - value: "0xC0000072"
+        meaning: Le compte est désactivé.
+      - value: "0xC0000133"
+        meaning: Décalage d'horloge trop important entre la machine et le contrôleur de domaine.
+      - value: "0xC0000193"
+        meaning: Le compte a expiré.
+      - value: "0xC0000224"
+        meaning: L'utilisateur doit changer son mot de passe à la prochaine ouverture de session.
+      - value: "0xC0000234"
+        meaning: Le compte est verrouillé.
+  - name: FailureReason
+    description: >-
+      Message décrivant l'échec (stocké sous forme d'insertion `%%` telle que `%%2313`, que
+      l'Observateur d'événements affiche comme « Nom d'utilisateur inconnu ou mot de passe
+      incorrect »).
+  - name: LogonType
+    description: >-
+      Type d'ouverture de session en échec (mêmes valeurs que pour le 4624) : 2 console, 3 réseau
+      (SMB, NTLM sur HTTP), 8 réseau en clair, 10 RDP.
+  - name: LogonProcessName
+    description: Processus d'ouverture de session, par ex. `User32`, `NtLmSsp`, `Advapi`.
+  - name: AuthenticationPackageName
+    description: Package utilisé pour la tentative, généralement `NTLM`, `Kerberos` ou `Negotiate`.
+  - name: WorkstationName
+    description: Nom de l'ordinateur source fourni par le client — falsifiable, mais utile pour les échecs NTLM sans IP.
+  - name: IpAddress
+    description: Adresse IP source d'une tentative distante.
+  - name: IpPort
+    description: Port TCP source.
+  - name: ProcessName
+    description: >-
+      Processus local ayant tenté l'ouverture de session (par exemple `winlogon.exe` pour la
+      console, `svchost.exe` pour RDP sur certaines versions) ; `-` pour les ouvertures réseau.
+benign:
+  - Utilisateurs qui se trompent de mot de passe, ou changement de mot de passe pas encore propagé à tous leurs appareils.
+  - "Identifiants obsolètes enregistrés dans des services, tâches planifiées, lecteurs mappés ou téléphones — échecs répétés à intervalle fixe."
+  - Scanners de vulnérabilités et outils de supervision configurés avec de mauvais identifiants.
+  - Comptes désactivés ou expirés encore utilisés par un vieux script.
+attacker:
+  - "Devinette de mot de passe — de nombreux 4625 pour un compte depuis une seule source, SubStatus `0xC000006A`."
+  - "Password spraying — quelques échecs pour chacun de nombreux comptes depuis une seule source, souvent avec des SubStatus `0xC000006A` mêlés à des `0xC0000064`."
+  - "Force brute RDP depuis Internet — échecs en LogonType 3 ou 10 depuis des adresses IP publiques, souvent avec des noms génériques comme administrator, admin ou test."
+  - Énumération d'utilisateurs, visible sous forme de rafale de `0xC0000064` (utilisateur inexistant) pour une liste de noms.
+investigation:
+  - Comptez les échecs par IpAddress et par TargetUserName sur de courtes fenêtres (5 à 15 minutes) ; le spraying apparaît comme une source touchant de nombreux comptes.
+  - "Vérifiez toujours la présence d'un 4624 avec le même TargetUserName et la même IpAddress après les échecs — une série d'échecs se terminant par un succès, c'est ça le constat."
+  - Examinez la répartition des SubStatus ; des `0xC0000064` pour des noms plausibles signifient que quelqu'un devine des noms d'utilisateur.
+  - Sur les contrôleurs de domaine, associez aux 4771 (échec de pré-authentification Kerberos) et 4776 (NTLM) pour voir les échecs qui n'atteignent jamais le serveur membre.
+  - Si le compte a été verrouillé, le 4740 sur l'émulateur PDC donne le nom de l'ordinateur appelant à l'origine du verrouillage.

@@ -1,0 +1,63 @@
+id: 12
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: RegistryEvent (Object create and delete)
+shortTitle: Registry key created or deleted
+category: registry
+summary: >-
+  Sysmon event 12 logs registry keys and values being created or deleted, with the process
+  responsible. Watch autostart keys, services and COM entries.
+description: |-
+  Sysmon event 12 covers registry key creation and deletion and value deletion. `EventType` tells which, `TargetObject` gives the path, and the process fields name who did it. Value writes are in event 13 and renames in event 14.
+
+  Sysmon shortens root keys: `HKLM` for HKEY_LOCAL_MACHINE, `HKU` for HKEY_USERS (per-user hives appear as `HKU\<SID>\...`), `HKCR` for HKEY_LOCAL_MACHINE\Classes, and `HKLM\System\CurrentControlSet` for the active control set.
+
+  The registry is extremely busy, so configurations include persistence and defense-evasion locations: Run keys, services, COM CLSIDs, Image File Execution Options, security product settings.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon installed; filter with `<RegistryEvent>` rules in the configuration.
+fields:
+  - name: EventType
+    description: Kind of operation.
+    values:
+      - value: CreateKey
+        meaning: A registry key was created.
+      - value: DeleteKey
+        meaning: A registry key was deleted.
+      - value: DeleteValue
+        meaning: A registry value was deleted.
+  - name: ProcessGuid
+    description: Process that changed the registry; pivot to its event 1.
+  - name: Image
+    description: Executable that changed the registry.
+  - name: TargetObject
+    description: Full registry path in Sysmon's abbreviated form, e.g. `HKLM\System\CurrentControlSet\Services\<name>`.
+  - name: User
+    description: Account of the process (newer Sysmon versions).
+benign:
+  - Installers and updaters creating product keys and service entries.
+  - Group Policy processing and Windows components creating and deleting keys at boot and logon.
+attacker:
+  - A new key under `HKLM\System\CurrentControlSet\Services` created by a non-installer process (service persistence).
+  - New COM CLSID keys under `HKU\<SID>\Software\Classes\CLSID` for COM hijacking.
+  - Deleting Run keys, services or tool traces after use to clean up.
+investigation:
+  - Pivot on ProcessGuid to event 1 to see who changed the registry.
+  - Follow up with event 13 on the same key to read the values that were set.
+  - For service keys, correlate with System 7045 and Security 4697.
+related:
+  - sysmon/13
+  - sysmon/14
+  - sysmon/1
+  - security/4657
+  - system/7045
+attack:
+  - T1112
+  - T1547.001
+  - T1543.003
+  - T1546.015
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Modify Registry (T1112)
+    url: https://attack.mitre.org/techniques/T1112/

@@ -1,0 +1,50 @@
+title: Es wurde versucht, eine Anmeldung mit expliziten Anmeldeinformationen durchzuführen
+shortTitle: Anmeldung mit expliziten Credentials
+summary: >-
+  Event-ID 4648 wird auf dem Quellhost protokolliert, wenn ein Prozess explizit angegebene
+  Anmeldeinformationen nutzt, etwa runas, net use /user oder PsExec -u.
+description: |-
+  Event 4648 wird auf dem Rechner geschrieben, **auf dem die Anmeldeinformationen eingegeben oder übergeben wurden**, nicht auf dem Ziel. Es wird ausgelöst, wenn sich ein Prozess mit einem anderen Konto anmeldet als dem, unter dem er läuft: `runas /user`, `net use \\server /user:...`, `PsExec -u`, eine geplante Aufgabe mit gespeicherten Anmeldeinformationen oder ein Tool, das `LogonUser` oder `CreateProcessWithLogonW` aufruft.
+
+  Der Eintrag verknüpft drei Dinge: wer bereits angemeldet war (`SubjectUserName`), wessen Anmeldeinformationen verwendet wurden (`TargetUserName`) und wohin sie gesendet wurden (`TargetServerName`, `TargetInfo`). Damit ist es einer der wenigen quellseitigen Nachweise für Lateral Movement — das Ziel zeigt nur ein 4624 von der IP des Angreifers.
+
+  Mit Rauschen rechnen: Auf Domänencontrollern und Servern erzeugt `SYSTEM` für Dienstkonten ständig 4648. Nach SubjectUserName-Werten filtern, die echte Benutzer sind.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logon (Success). In der
+    Standard-Überwachungsrichtlinie für „Erfolg“ aktiviert.
+fields:
+  - name: SubjectUserName
+    description: Konto, unter dem der Prozess lief, der die Anmeldeinformationen übergeben hat.
+  - name: SubjectLogonId
+    description: Anmeldesitzung dieses Prozesses; auf das zugehörige 4624 und auf 4688-Events pivotieren.
+  - name: TargetUserName
+    description: Konto, dessen Anmeldeinformationen verwendet wurden.
+  - name: TargetDomainName
+    description: Domäne dieses Kontos.
+  - name: TargetServerName
+    description: >-
+      Server, gegen den die Anmeldeinformationen verwendet wurden (`localhost` bei lokalem runas).
+      Ein entfernter Hostname hier ist eine Spur für Lateral Movement.
+  - name: TargetInfo
+    description: Zusätzliche Zielinformationen, oft der SPN oder erneut der Zielname.
+  - name: ProcessName
+    description: Prozess, der die Anmeldeinformationen verwendet hat, z. B. `C:\Windows\System32\runas.exe`, `svchost.exe`, `lsass.exe`, eine PsExec-Binärdatei.
+  - name: ProcessId
+    description: PID dieses Prozesses (hexadezimal).
+  - name: IpAddress
+    description: Ziel-IP-Adresse, sofern bekannt.
+benign:
+  - Administratoren, die `runas` oder „Als anderer Benutzer ausführen“ verwenden.
+  - Geplante Aufgaben und Dienste mit gespeicherten Anmeldeinformationen.
+  - Verbinden eines Laufwerks mit anderen Anmeldeinformationen (`net use /user`).
+  - Domänencontroller und Management-Server, auf denen SYSTEM explizite Anmeldungen für Dienstkonten durchführt.
+attacker:
+  - "Lateral Movement mit gestohlenen Kennwörtern — PsExec -u, `net use` auf Admin-Freigaben, WMI oder WinRM mit expliziten Anmeldeinformationen, alles auf dem Quellhost protokolliert."
+  - Eine kompromittierte Arbeitsstation, auf der die Sitzung eines normalen Benutzers plötzlich die Anmeldeinformationen eines Domänen-Admins an Server übergibt.
+  - Schleifen zur Validierung von Anmeldeinformationen, bei denen ein Prozess viele TargetUserName-Werte gegen einen Server ausprobiert.
+investigation:
+  - SubjectUserName mit `$` am Ende und SYSTEM herausfiltern, dann die Paare TargetUserName → TargetServerName auflisten.
+  - Nach Admin-Konten suchen, die von Arbeitsstationen aus verwendet werden, an denen sich diese Admins nie interaktiv anmelden.
+  - Mit 4624 vom Typ 3 oder 9 auf dem Zielserver zur selben Zeit korrelieren; die IpAddress im 4624 sollte dieser Host sein.
+  - ProcessName prüfen; ungewöhnliche Binärdateien in benutzerbeschreibbaren Pfaden sind ein starkes Signal.

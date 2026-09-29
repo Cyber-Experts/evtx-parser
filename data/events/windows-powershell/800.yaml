@@ -1,0 +1,41 @@
+id: 800
+channel: windows-powershell
+provider: PowerShell
+title: Pipeline execution details
+shortTitle: Pipeline execution details
+category: powershell
+summary: >-
+  Windows PowerShell event 800 records pipeline execution details (commands and parameters)
+  when module logging is enabled.
+description: |-
+  Event 800 is the classic-log counterpart of Operational 4103: when module logging is enabled, it records the commands executed in a pipeline and their parameter bindings, along with the host context.
+
+  Because it lands in a different log file than 4103, it can survive when the Operational log has been cleared or has rolled over, and it is one more place to recover the exact arguments used by a script.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Turn on Module Logging (Administrative Templates > Windows Components > Windows PowerShell),
+    listing the modules to log (`*` for all).
+fields:
+  - name: HostApplication
+    description: Command line of the hosting process.
+  - name: CommandLine
+    description: The pipeline command line that was executed.
+  - name: Details
+    description: CommandInvocation and ParameterBinding lines with the actual parameter values.
+benign:
+  - Administrative and management scripts once module logging is on.
+attacker:
+  - Cmdlet invocations with revealing arguments (download URLs, exclusion paths, remote hosts).
+investigation:
+  - Search Details for URLs, IPs, `-ExclusionPath`, `-ComputerName` and credential parameters.
+  - Compare with 4103 in the Operational log to find gaps where one log was cleared.
+related:
+  - powershell/4103
+  - windows-powershell/400
+  - powershell/4104
+attack:
+  - T1059.001
+references:
+  - title: Microsoft Learn — about_Logging_Windows
+    url: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_logging_windows

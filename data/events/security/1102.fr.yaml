@@ -1,0 +1,52 @@
+title: Le journal d'audit a été effacé
+shortTitle: Journal Sécurité effacé
+summary: >-
+  L'événement 1102 est écrit quand le journal Sécurité est effacé et nomme le compte responsable.
+  Rare en exploitation, c'est un signe classique d'anti-forensic.
+description: |-
+  L'événement 1102 est écrit par le service Journal d'événements Windows comme premier enregistrement d'un journal Sécurité fraîchement effacé. Il survit à l'effacement parce qu'il est créé juste après, et il consigne le compte qui a effectué l'opération dans l'élément `UserData/LogFileCleared` : `SubjectUserName`, `SubjectDomainName`, `SubjectUserSid` et `SubjectLogonId`.
+
+  Il existe très peu de raisons légitimes d'effacer le journal Sécurité sur un système de production — l'archivage est normalement assuré par la collecte centralisée des journaux ou par les paramètres de rétention. Un analyste qui trouve un 1102 doit considérer tout ce qui précède comme potentiellement perdu et se tourner vers d'autres sources : copies transférées dans un SIEM, autres canaux sur l'hôte, et journaux des machines auxquelles le compte a accédé.
+
+  L'effacement des autres journaux (System, Application, PowerShell, etc.) est consigné par l'événement System 104, et non par le 1102. Un attaquant qui efface tout laisse généralement les deux.
+logging:
+  requirement: >-
+    Toujours journalisé par le service Journal d'événements Windows lorsque le journal Sécurité
+    est effacé ; aucune stratégie d'audit n'est nécessaire.
+  notes: >-
+    Les champs se trouvent sous `UserData/LogFileCleared`, et non sous `EventData`. Le compte qui
+    efface le journal doit disposer du droit « Gérer le journal d'audit et de sécurité » (accordé
+    par défaut aux administrateurs).
+fields:
+  - name: SubjectUserName
+    description: Compte qui a effacé le journal.
+  - name: SubjectDomainName
+    description: Domaine ou nom d'ordinateur de ce compte.
+  - name: SubjectUserSid
+    description: SID du compte qui a effacé le journal ; stable même si le compte est renommé.
+  - name: SubjectLogonId
+    description: >-
+      Session ayant effectué l'effacement. Pivotez vers le 4624 portant le
+      même TargetLogonId dans les journaux transférés ou d'autres journaux pour savoir d'où venait
+      la session.
+benign:
+  - Machines de laboratoire, images de référence (golden images) et systèmes en cours de préparation, où les journaux sont purgés lors de la construction.
+  - Un administrateur qui vide un journal plein sur un hôte configuré pour ne pas écraser les événements (après un 1104).
+attacker:
+  - >-
+    Effacement des traces après intrusion avec `wevtutil cl Security`, les cmdlets PowerShell
+    `Clear-EventLog` ou `Remove-EventLog`, ou l'action « Effacer le journal » de l'Observateur
+    d'événements.
+  - Rançongiciels et wipers qui effacent tous les journaux d'événements juste avant ou après le chiffrement.
+  - Effacement du journal sur un seul serveur après un mouvement latéral, les autres hôtes restant intacts.
+investigation:
+  - >-
+    Identifiez la session : SubjectLogonId et SubjectUserName, puis recherchez dans les journaux
+    transférés ou sur les contrôleurs de domaine l'ouverture de session (4624, 4768/4769, 4776)
+    qui l'a créée.
+  - Vérifiez l'événement System 104 au même moment — plusieurs journaux effacés ensemble indiquent un script ou un outil.
+  - >-
+    Recherchez dans les créations de processus (4688, Sysmon 1) et les événements PowerShell 4104
+    autour de l'horodatage des appels à `wevtutil`, `Clear-EventLog` ou `ClearLog` pour identifier
+    le processus à l'origine.
+  - Comparez les événements transférés depuis l'hôte avec ce qui reste localement pour savoir exactement ce qui a été effacé.

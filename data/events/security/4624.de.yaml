@@ -1,0 +1,133 @@
+title: Ein Konto wurde erfolgreich angemeldet
+shortTitle: Erfolgreiche Anmeldung
+summary: >-
+  Event-ID 4624 protokolliert jede erfolgreiche Anmeldung: wer, wie (LogonType), von wo
+  (IpAddress) und mit welchem Paket. Kern der Anmeldeforensik.
+description: |-
+  Event 4624 wird von der Local Security Authority auf dem Computer geschrieben, der die Anmeldung **angenommen** hat, und zwar jedes Mal, wenn eine Anmeldesitzung erstellt wird. Damit ist es der Nachweis des Zugriffs auf Seite der Zielmaschine: Der Domänencontroller sieht die Authentifizierung (4768, 4769, 4776), der Zielhost schreibt das 4624.
+
+  Der Eintrag beantwortet vier Fragen. **Wer**: `TargetUserName`, `TargetDomainName` und `TargetUserSid`. **Wie**: `LogonType`, `LogonProcessName` und `AuthenticationPackageName`. **Von wo**: `WorkstationName`, `IpAddress` und `IpPort`. **Welche Sitzung**: `TargetLogonId`, der Schlüssel, der die Anmeldung mit allem verknüpft, was in ihr geschieht (4672, 4688, 4663, 4634/4647).
+
+  Auf einem stark genutzten Server ist 4624 das lauteste Event im Sicherheitsprotokoll — die meisten Einträge stammen von Diensten, Computerkonten (Namen mit `$` am Ende) und `SYSTEM`. Diese zuerst herausfiltern, dann nach `LogonType` und Quelle gruppieren.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logon (Success). In der
+    Standard-Überwachungsrichtlinie von Windows für „Erfolg“ aktiviert.
+  notes: >-
+    Netzwerkinformationen (`IpAddress`, `IpPort`) werden nur bei Remote-Anmeldungen befüllt;
+    lokale Anmeldungen zeigen `-` oder `127.0.0.1`. Die Felder `ImpersonationLevel`,
+    `RestrictedAdminMode`, `VirtualAccount`, `ElevatedToken` und `TargetLinkedLogonId` gibt es
+    ab Windows 10 / Server 2016.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Konto, das die Anmeldung auf dem lokalen Rechner angefordert hat — meist das Computerkonto
+      (`HOST$`) oder `-` bei Netzwerkanmeldungen. Nicht das angemeldete Konto.
+  - name: SubjectLogonId
+    description: Anmeldesitzung des Anfordernden; `0x3e7` ist die lokale SYSTEM-Sitzung.
+  - name: TargetUserName
+    description: Das angemeldete Konto. Dieses Feld prüfen, nicht die Subject-Felder.
+  - name: TargetDomainName
+    description: Domäne oder Computername des Zielkontos.
+  - name: TargetUserSid
+    description: SID des angemeldeten Kontos. Bleibt auch nach Umbenennung des Kontos gleich.
+  - name: TargetLogonId
+    description: >-
+      Hexadezimale ID der neuen Anmeldesitzung. Darauf pivotieren, um das zugehörige 4672, die in
+      der Sitzung erstellten Prozesse (4688 SubjectLogonId) und die Abmeldung (4634, 4647) zu
+      finden.
+  - name: LogonType
+    description: Art der Anmeldung. Dieses Feld zuerst lesen.
+    values:
+      - value: "2"
+        meaning: Interaktiv — Tastatur und Bildschirm an der Konsole (oder KVM-/Hypervisor-Konsole).
+      - value: "3"
+        meaning: >-
+          Netzwerk — Zugriff auf eine Ressource über das Netzwerk: SMB-Freigabe, Remote-Registry,
+          WMI, WinRM, PsExec. Auf dem Ziel werden keine Anmeldeinformationen zwischengespeichert.
+      - value: "4"
+        meaning: Batch — geplante Aufgabe, die als Benutzer ausgeführt wird.
+      - value: "5"
+        meaning: Dienst — ein unter einem Dienstkonto gestarteter Dienst.
+      - value: "7"
+        meaning: Entsperren — Arbeitsstation entsperrt.
+      - value: "8"
+        meaning: NetworkCleartext — Netzwerkanmeldung, bei der das Kennwort im Klartext übertragen wurde (IIS-Standardauthentifizierung, manche PowerShell-/WinRM-Konfigurationen).
+      - value: "9"
+        meaning: >-
+          NewCredentials — `runas /netonly` oder ein Prozess, der alternative Anmeldeinformationen
+          nur für ausgehende Verbindungen erhält. Die lokale Identität bleibt unverändert.
+      - value: "10"
+        meaning: RemoteInteractive — Anmeldung über Remotedesktop / Terminaldienste.
+      - value: "11"
+        meaning: CachedInteractive — interaktive Anmeldung mit zwischengespeicherten Domänen-Anmeldeinformationen (kein DC erreichbar).
+  - name: LogonProcessName
+    description: >-
+      Vertrauenswürdiger Anmeldeprozess, der die Anfrage verarbeitet hat, z. B. `User32`
+      (interaktiv/RDP), `NtLmSsp` (NTLM-Netzwerkanmeldung), `Kerberos`, `Advapi` (Dienste,
+      runas), `seclogo` (runas / NewCredentials).
+  - name: AuthenticationPackageName
+    description: >-
+      `Kerberos`, `NTLM` oder `Negotiate`. NTLM-Netzwerkanmeldungen von Arbeitsstationen, bei
+      denen Kerberos zu erwarten wäre, verdienen einen zweiten Blick.
+  - name: LmPackageName
+    description: >-
+      Bei NTLM-Anmeldungen die Protokollversion: `NTLM V1`, `NTLM V2` oder `LM`. NTLMv1 und LM
+      sind schwach und sollten in einer modernen Domäne nicht vorkommen.
+  - name: KeyLength
+    description: Länge des Sitzungsschlüssels bei NTLM; 0 bei Kerberos und bei NTLM ohne Sitzungssicherheit.
+  - name: WorkstationName
+    description: Vom Client übermittelter NetBIOS-Name des Quellcomputers (fälschbar oder leer).
+  - name: IpAddress
+    description: Quell-IP einer Remote-Anmeldung. `-` oder `::1` / `127.0.0.1` bei lokalen Anmeldungen.
+  - name: IpPort
+    description: Quell-TCP-Port; `0` oder `-` bei lokalen Anmeldungen.
+  - name: ProcessName
+    description: >-
+      Prozess, der die Anmeldung durchgeführt hat, z. B. `C:\Windows\System32\winlogon.exe` bei
+      interaktiven Anmeldungen, `services.exe` bei Dienstanmeldungen, `-` bei
+      Netzwerkanmeldungen.
+  - name: ElevatedToken
+    description: >-
+      `%%1842` (Ja), wenn die Sitzung ein vollständiges Administratortoken erhalten hat, sonst
+      `%%1843` (Nein). Ein schneller Weg, Admin-Anmeldungen zu erkennen.
+  - name: RestrictedAdminMode
+    description: >-
+      Bei LogonType 10: ob der RDP-Client den Restricted-Admin-Modus verwendet hat (keine
+      Anmeldeinformationen an den Server gesendet). `%%1843` (Nein) oder `%%1842` (Ja).
+  - name: VirtualAccount
+    description: Ja bei virtuellen Konten wie verwalteten Dienstidentitäten `NT SERVICE\...`.
+  - name: TargetLinkedLogonId
+    description: >-
+      Mit UAC erzeugt eine Administratoranmeldung zwei verknüpfte Sitzungen (gefiltert und
+      erhöht); dies ist die ID der jeweils anderen.
+benign:
+  - Benutzer, die sich an der Konsole anmelden (Typ 2), entsperren (Typ 7) oder per RDP verbinden (Typ 10).
+  - Anmeldungen von Computerkonten (`HOST$`) sowie `SYSTEM`, `LOCAL SERVICE`, `NETWORK SERVICE`, insbesondere Typ 5.
+  - "Datenverkehr auf Dateiservern und Domänencontrollern — Tausende Typ-3-Anmeldungen pro Stunde von Arbeitsstationen."
+  - Geplante Aufgaben (Typ 4) und IIS-Anwendungspools mit konfigurierten Konten.
+  - Administratoren, die `runas /netonly` (Typ 9) für Tools nutzen, die andere Anmeldeinformationen benötigen.
+attacker:
+  - >-
+    Lateral Movement mit gestohlenen Anmeldeinformationen: Typ-3-Anmeldungen von einer
+    Arbeitsstation auf Server (PsExec, SMB, WMI), oft mit einer Häufung neuer
+    Quelle-/Ziel-Paare.
+  - RDP-Zugriff (Typ 10) von ungewöhnlichen IP-Adressen, zu ungewöhnlichen Zeiten oder auf Hosts, die das Konto nie nutzt.
+  - >-
+    Pass-the-Hash: NTLM-Anmeldungen vom Typ 3, wo Kerberos zu erwarten wäre. Auf dem Quellhost
+    erscheint Mimikatz `sekurlsa::pth` als Typ 9 mit LogonProcessName `seclogo`.
+  - Eine erfolgreiche Anmeldung direkt nach vielen 4625-Fehlschlägen für dasselbe Konto (erfolgreicher Brute-Force- oder Password-Spraying-Angriff).
+  - Anmeldungen frisch angelegter Konten (4720) oder von Konten, die gerade einer Admin-Gruppe hinzugefügt wurden (4732, 4728).
+investigation:
+  - >-
+    Zuerst das Rauschen entfernen: TargetUserName mit `$` am Ende, `SYSTEM`, `ANONYMOUS LOGON`
+    (außer bei der Suche nach Null-Sessions) und LogonType 5.
+  - Nach TargetUserName, LogonType und IpAddress gruppieren, um erstmals auftretende Kombinationen zu erkennen.
+  - >-
+    Auf TargetLogonId pivotieren: ein 4672 in derselben Sekunde bedeutet eine Admin-Sitzung;
+    4688 mit derselben SubjectLogonId listet auf, was die Sitzung ausgeführt hat; 4634/4647
+    liefert das Sitzungsende.
+  - Bei Typ 10 mit den RDP-Events 1149, 21, 22, 24 und 25 korrelieren, um die vollständige Sitzungs-Timeline zu erhalten.
+  - >-
+    Auf Domänencontrollern Typ-3-Anmeldungen mit 4768/4769 (Kerberos) oder 4776 (NTLM)
+    abgleichen, um zu bestätigen, welches Protokoll tatsächlich verwendet wurde.

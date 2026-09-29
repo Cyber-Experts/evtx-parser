@@ -1,0 +1,45 @@
+id: 1117
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: The antimalware platform performed an action to protect your system from malware or other potentially unwanted software
+shortTitle: Action taken on malware
+category: antimalware
+summary: >-
+  Defender event 1117 confirms Microsoft Defender Antivirus acted on a detection — quarantine,
+  remove, clean or block — with threat, path and action.
+description: |-
+  Event 1117 follows a detection (1116) when Microsoft Defender Antivirus successfully applied an action: the item was quarantined, removed, cleaned or blocked. It repeats the threat details and adds the action taken (`Action Name`).
+
+  It is the "closure" record for a detection, but not proof the incident is over: the file may have run before it was caught, and other components of the same intrusion may not be detected at all.
+logging:
+  enabledByDefault: true
+  requirement: None — logged by Microsoft Defender Antivirus when it is the active antivirus.
+fields:
+  - name: Threat Name
+    description: Name of the detection.
+  - name: Path
+    description: Item that was acted upon.
+  - name: Process Name
+    description: Process involved in the detection.
+  - name: Detection User
+    description: User context of the detection.
+  - name: Action Name
+    description: Action applied (Quarantine, Remove, Clean, Block, Allow…).
+  - name: Source Name
+    description: Detecting component (Real-Time Protection, AMSI, scan…).
+benign:
+  - Routine quarantine of adware, PUA and test files.
+attacker:
+  - Payloads blocked during an intrusion; repeated 1117 for the same threat means the attacker keeps retrying.
+investigation:
+  - Pair with the preceding 1116; the time difference shows how long the item existed before action.
+  - Search for the same threat name or path on other hosts — the intrusion may not be limited to this one.
+  - Check whether the process that dropped the item is itself legitimate or also malicious.
+related:
+  - defender/1116
+  - defender/1118
+  - defender/1007
+attack: []
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

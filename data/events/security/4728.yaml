@@ -1,0 +1,86 @@
+id: 4728
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A member was added to a security-enabled global group
+shortTitle: Member added to global group
+category: group
+summary: >-
+  Security event 4728 is logged on a domain controller when a member is added to a
+  security-enabled global group, such as Domain Admins.
+description: |-
+  Event 4728 is written on the domain controller that processed the change when an account or group is added to a security-enabled **global** group. Global groups are domain groups — Domain Admins, Group Policy Creator Owners and most role groups created by administrators — so this event never appears on workstations or member servers. Local and domain local groups use 4732, universal groups 4756.
+
+  The fields are the same as in 4732: `TargetUserName`/`TargetSid` identify the group, `MemberName` (distinguished name) and `MemberSid` the new member, and `Subject*` who made the change. One event is logged per added member, usually alongside an empty 4737.
+
+  Additions to Domain Admins and other tier-0 global groups are among the highest-value alerts in Active Directory. Build the alert on the group SID (RID `512` for Domain Admins) rather than the name, which is localized and can be renamed.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Success is audited in the default Windows audit policy.
+  notes: >-
+    Only generated on domain controllers, on the DC where the change was written. Collect the
+    Security log from every DC to see all group changes.
+fields:
+  - name: MemberName
+    description: Distinguished name of the added member, e.g. `CN=jdoe,OU=Staff,DC=contoso,DC=local`.
+  - name: MemberSid
+    description: SID of the added member.
+  - name: TargetUserName
+    description: Name of the global group that received the member.
+  - name: TargetDomainName
+    description: Domain of the group.
+  - name: TargetSid
+    description: >-
+      SID of the group. The last component (RID) identifies well-known domain groups regardless
+      of their display name.
+    values:
+      - value: "*-512"
+        meaning: Domain Admins.
+      - value: "*-513"
+        meaning: Domain Users.
+      - value: "*-515"
+        meaning: Domain Computers.
+      - value: "*-516"
+        meaning: Domain Controllers.
+      - value: "*-520"
+        meaning: Group Policy Creator Owners.
+  - name: SubjectUserName
+    description: Account that added the member.
+  - name: SubjectDomainName
+    description: Domain of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject on the DC; correlate with 4624 to find the source host.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Identity management and HR-driven provisioning adding users to role groups.
+  - Administrators granting access through application or department groups.
+  - Temporary membership granted by privileged access management tools, followed later by 4729.
+attacker:
+  - Privilege escalation or persistence by adding a controlled account to Domain Admins or another privileged global group.
+  - Adding a newly created account (4720) to a privileged group within minutes of its creation.
+  - Adding accounts to groups that hold delegated rights on AD objects, Group Policy or servers, which is quieter than Domain Admins.
+investigation:
+  - Alert on additions to privileged groups by SID and verify each against an approved change.
+  - Check whether the member was created recently (4720) and what it did next (4624, 4672, 4769).
+  - Pivot on SubjectLogonId and the DC's 4624 events to find the host the change was made from.
+  - Look for a later 4729 removing the same member — brief membership is a common way to avoid detection.
+related:
+  - security/4729
+  - security/4727
+  - security/4737
+  - security/4732
+  - security/4756
+  - security/4720
+  - security/4624
+  - security/4672
+  - security/5136
+attack:
+  - T1098.007
+  - T1098
+references:
+  - title: "Microsoft Learn — Audit Security Group Management (4728 description)"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-group-management
+  - title: "Microsoft Learn — 4732(S): A member was added to a security-enabled local group"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4732

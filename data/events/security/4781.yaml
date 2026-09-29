@@ -1,0 +1,70 @@
+id: 4781
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: The name of an account was changed
+shortTitle: Account renamed
+category: account
+summary: >-
+  Security event 4781 is logged when the sAMAccountName of a user, computer or group is
+  changed. It gives the old and new names with the account's SID.
+description: |-
+  Event 4781 is written when an account's logon name (`sAMAccountName`) is changed. It covers user accounts — on domain controllers and on local machines — computer accounts (domain controllers only) and groups. `OldTargetUserName` and `NewTargetUserName` give the names before and after, `TargetSid` stays the same, and `Subject*` identifies who made the change.
+
+  Renames matter because many detections and reports key on names. Renaming the built-in Administrator account is a common hardening step; renaming an attacker-created account to look like a service account is a common evasion step. Always track accounts by SID.
+
+  Computer account renames are central to the **noPac** attack (CVE-2021-42278 / CVE-2021-42287): an attacker creates or controls a computer account, renames it to the name of a domain controller without the trailing `$`, requests a Kerberos ticket, then renames it back. A 4781 where `NewTargetUserName` matches a DC name without `$` is a strong indicator.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Enabled for Success in the default Windows audit policy.
+  notes: >-
+    The rename is also visible in 4738 (users), 4742 (computers) or the group change events
+    (4735, 4737, 4755) through the SamAccountName field.
+fields:
+  - name: OldTargetUserName
+    description: Account name before the change.
+  - name: NewTargetUserName
+    description: Account name after the change. For computer accounts, a new name without a trailing `$` is abnormal.
+  - name: TargetDomainName
+    description: Domain of the account, or the computer name for a local account.
+  - name: TargetSid
+    description: SID of the renamed account — the stable identifier to follow.
+  - name: SubjectUserName
+    description: Account that performed the rename.
+  - name: SubjectDomainName
+    description: Domain or computer name of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject; correlate with 4624.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Renaming the built-in Administrator or Guest account as a hardening measure (often via Group Policy).
+  - Name changes after marriage or naming-convention updates.
+  - Computers renamed by administrators, which produces 4781 for the computer account on the DC.
+attacker:
+  - noPac, renaming a computer account to a domain controller's name without the trailing `$` to obtain a ticket for the DC.
+  - Renaming a backdoor account to resemble a service or system account.
+investigation:
+  - Alert when NewTargetUserName of a computer account lacks the trailing `$` or equals the name of a domain controller.
+  - Check who performed the rename and whether the account was created recently (4720, 4741).
+  - Search all events for the TargetSid to track the account under both names.
+related:
+  - security/4738
+  - security/4742
+  - security/4741
+  - security/4720
+  - security/4735
+  - security/4737
+  - security/4755
+  - security/4768
+  - security/4769
+attack:
+  - T1098
+  - T1068
+  - T1036
+references:
+  - title: "Microsoft Learn — 4781(S): The name of an account was changed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4781
+  - title: Microsoft Learn — Audit User Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-user-account-management

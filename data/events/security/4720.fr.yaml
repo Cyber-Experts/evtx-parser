@@ -1,0 +1,94 @@
+title: Un compte d'utilisateur a été créé
+shortTitle: Compte utilisateur créé
+summary: >-
+  L'événement 4720 consigne la création d'un compte utilisateur local ou de domaine : auteur, nom
+  et SID du nouveau compte, et ses attributs initiaux.
+description: |-
+  L'événement 4720 est écrit à chaque création d'un objet utilisateur. Pour un compte local, il est consigné sur le poste de travail ou le serveur qui détient la base SAM ; pour un compte de domaine, sur le contrôleur de domaine qui a traité la demande. Les champs `Subject*` identifient l'auteur de la création, les champs `Target*` le nouveau compte.
+
+  Le reste de l'enregistrement est un instantané des attributs initiaux : `SamAccountName`, `UserPrincipalName`, `PrimaryGroupId`, `SidHistory`, `AllowedToDelegateTo` et les indicateurs de compte SAM dans `NewUacValue` et `UserAccountControl`. Un compte créé via Utilisateurs et ordinateurs Active Directory démarre généralement désactivé et sans mot de passe (`NewUacValue` `0x15`) : la création est donc habituellement suivie en quelques secondes d'un 4724 (mot de passe défini), d'un 4722 (activation) et d'un ou plusieurs 4738.
+
+  La création de comptes est suffisamment rare pour que la plupart des organisations examinent chaque 4720. Soyez particulièrement attentif aux comptes locaux créés sur des serveurs et postes de travail, aux comptes créés hors du processus de provisionnement habituel, et aux nouveaux comptes rapidement ajoutés à des groupes privilégiés (4728, 4732, 4756).
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Activé en succès dans la stratégie d'audit par défaut de Windows.
+  notes: >-
+    Consigné sur les contrôleurs de domaine pour les comptes de domaine et sur les serveurs membres
+    et postes de travail pour les comptes locaux : la création d'un compte local n'est donc visible
+    que dans le journal Sécurité du poste lui-même. Plusieurs attributs peuvent apparaître comme
+    `-` lorsqu'ils n'ont pas été capturés, et les comptes locaux affichent `<value not set>` pour
+    nombre d'entre eux.
+fields:
+  - name: SubjectUserName
+    description: Compte ayant créé le nouvel utilisateur. À comparer à votre liste d'administrateurs d'identités et de comptes de service de provisionnement.
+  - name: SubjectDomainName
+    description: Domaine (ou nom d'ordinateur pour les comptes locaux) du créateur.
+  - name: SubjectLogonId
+    description: >-
+      Session du créateur. Pivotez vers le 4624 ayant le même TargetLogonId pour savoir où et
+      comment le créateur s'est connecté.
+  - name: TargetUserName
+    description: Nom du nouveau compte.
+  - name: TargetDomainName
+    description: Domaine du nouveau compte, ou nom de l'ordinateur lorsqu'un compte local a été créé.
+  - name: TargetSid
+    description: SID du nouveau compte. Utilisez-le pour suivre le compte dans les événements ultérieurs, même s'il est renommé (4781).
+  - name: SamAccountName
+    description: Nom d'ouverture de session antérieur à Windows 2000. Une valeur vide ou `-` est anormale.
+  - name: UserPrincipalName
+    description: UPN d'un compte de domaine (`user@domain`). Toujours `-` pour les comptes locaux.
+  - name: PrimaryGroupId
+    description: >-
+      RID du groupe principal. `513` (Domain Users, ou Users pour les comptes locaux) est normal ;
+      toute autre valeur mérite un examen.
+  - name: NewUacValue
+    description: >-
+      Indicateurs de compte SAM du nouveau compte, en hexadécimal (définition SAM, différente des
+      valeurs de bits `userAccountControl` d'Active Directory). `OldUacValue` vaut toujours `0x0`
+      pour un nouveau compte.
+    values:
+      - value: "0x1"
+        meaning: Compte désactivé.
+      - value: "0x4"
+        meaning: Mot de passe non requis.
+      - value: "0x10"
+        meaning: Compte utilisateur normal.
+      - value: "0x200"
+        meaning: Le mot de passe n'expire jamais.
+      - value: "0x2000"
+        meaning: Approuvé pour la délégation (délégation Kerberos non contrainte).
+      - value: "0x10000"
+        meaning: Pré-authentification Kerberos non requise.
+      - value: "0x15"
+        meaning: >-
+          Valeur typique d'un compte créé dans Utilisateurs et ordinateurs Active Directory —
+          désactivé, mot de passe non requis, compte normal.
+  - name: UserAccountControl
+    description: >-
+      Les mêmes indicateurs sous forme de codes de message, par ex. `%%2080 %%2082 %%2084` pour
+      `0x15` (Account Disabled, Password Not Required, Normal Account).
+  - name: SidHistory
+    description: SID précédents d'un compte migré. Devrait valoir `-` pour un compte fraîchement créé.
+  - name: AllowedToDelegateTo
+    description: SPN vers lesquels le compte peut déléguer (délégation contrainte). Normalement `-` à la création.
+  - name: PrivilegeList
+    description: Privilèges utilisés pour l'opération, souvent `-`.
+benign:
+  - Helpdesk ou systèmes de gestion des identités provisionnant les nouveaux collaborateurs, généralement depuis un petit ensemble de comptes d'administration ou de service.
+  - Installateurs de logiciels et agents d'administration créant des comptes de service locaux.
+  - Promotion de contrôleur de domaine, migrations et construction de laboratoires créant de nombreux comptes d'un coup.
+attacker:
+  - >-
+    Persistance par création d'un compte local sur un hôte compromis, souvent avec
+    `net user <name> <password> /add` suivi de son ajout au groupe Administrateurs local (4732).
+  - Création d'un compte de domaine ajouté ensuite à Domain Admins ou à un autre groupe privilégié (4728, 4756).
+  - Noms de comptes choisis pour se fondre dans le décor, comme des sosies de comptes de service ou d'administration, ou des noms se terminant par `$` pour ressembler à des comptes ordinateur.
+investigation:
+  - Vérifiez si SubjectUserName est un compte de provisionnement attendu et si la création correspond à un ticket ou à une arrivée RH.
+  - Recherchez des modifications d'appartenance aux groupes pour le même TargetSid juste après la création (4728, 4732, 4756) ainsi que sa première ouverture de session (4624).
+  - >-
+    Pivotez sur SubjectLogonId pour trouver l'ouverture de session du créateur (4624) et, si
+    l'audit des processus est actif, le processus utilisé (4688, par ex. `net.exe`, `net1.exe` ou
+    PowerShell).
+  - Examinez les attributs initiaux à la recherche de valeurs inhabituelles — PrimaryGroupId différent de 513, SidHistory, paramètres de délégation ou pré-authentification désactivée.

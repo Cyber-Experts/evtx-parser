@@ -1,0 +1,51 @@
+id: 4778
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A session was reconnected to a Window Station
+shortTitle: Session reconnected
+category: remote-access
+summary: >-
+  Event 4778 is logged when a user reconnects to an existing interactive session, typically an
+  RDP reconnect or fast user switching.
+description: |-
+  Event 4778 records a reconnection to an existing logon session: an RDP client reattaching to a disconnected session, or a user switching back to a session with fast user switching. No new 4624 is written in that case for the session itself, so 4778 is how you see that someone came back.
+
+  The `ClientName` and `ClientAddress` fields identify the device that reconnected. Comparing them with the original logon shows when a session was picked up from a different machine.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Other Logon/Logoff Events
+    (Success).
+fields:
+  - name: AccountName
+    description: User who reconnected.
+  - name: AccountDomain
+    description: Domain of that user.
+  - name: LogonID
+    description: Logon session ID of the session that was resumed (matches its original 4624).
+  - name: SessionName
+    description: Window station/session name, e.g. `RDP-Tcp#3` or `Console`.
+  - name: ClientName
+    description: Computer name of the connecting client (for RDP).
+  - name: ClientAddress
+    description: IP address of the connecting client (for RDP).
+benign:
+  - Users reconnecting to their RDP sessions after a network drop or from another device.
+  - Fast user switching on shared workstations.
+attacker:
+  - An intruder reattaching to a disconnected admin session, possibly from a new IP.
+  - Session hijacking (for example with `tscon`) moves a session to another client; the reconnect is recorded here.
+investigation:
+  - Compare ClientAddress with the IP in the original 4624 type 10 for the same LogonID.
+  - Pair with LocalSessionManager event 25 (reconnection) and 4779 (disconnect) to build the RDP session timeline.
+related:
+  - security/4779
+  - security/4624
+  - rdp-local-session-manager/25
+  - rdp-local-session-manager/24
+attack:
+  - T1021.001
+  - T1563.002
+references:
+  - title: "Microsoft Learn — 4778(S): A session was reconnected to a Window Station"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4778

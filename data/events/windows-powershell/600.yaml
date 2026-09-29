@@ -1,0 +1,39 @@
+id: 600
+channel: windows-powershell
+provider: PowerShell
+title: Provider is Started
+shortTitle: Provider started
+category: powershell
+summary: >-
+  Windows PowerShell event 600 is logged as each provider (Registry, FileSystem, Variable…)
+  starts in a new session, repeating HostApplication.
+description: |-
+  Event 600 is written several times at the start of each PowerShell session, once per provider loaded: Registry, Alias, Environment, FileSystem, Function, Variable and others. Each record repeats the host details, including `HostApplication`.
+
+  The provider name itself is rarely interesting, but because six or so 600 events accompany every launch, they are a resilient source for the PowerShell command line when 400 events are missing.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Windows PowerShell classic event log is enabled by default.
+fields:
+  - name: ProviderName
+    description: Provider that started (`Registry`, `FileSystem`, `Variable`…).
+  - name: NewProviderState
+    description: "`Started`."
+  - name: HostApplication
+    description: Command line of the hosting process.
+benign:
+  - Every PowerShell launch.
+attacker:
+  - Same as 400 — the command line of encoded or hidden PowerShell launches.
+investigation:
+  - Collect HostApplication values from 600 when 400 is not available, and decode encoded commands.
+  - Group the 600 events of one launch by time to count distinct PowerShell sessions.
+related:
+  - windows-powershell/400
+  - windows-powershell/403
+attack:
+  - T1059.001
+references:
+  - title: Microsoft Learn — about_Logging_Windows
+    url: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_logging_windows

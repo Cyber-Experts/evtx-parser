@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Dict } from "@/src/dict/types";
 import type { Locale } from "@/src/dict/locales";
 import { locales, localeNames } from "@/src/dict/locales";
+import { getEventsDict } from "@/src/dict/events";
 import { Logo } from "./Logo";
 
 export function Footer({
@@ -23,10 +24,10 @@ export function Footer({
         </div>
         <div className="flex flex-col gap-3 sm:items-end">
           <Link
-            href={`/${locale}/event-ids`}
+            href={`/${locale}/events`}
             className="font-medium text-ink-700 underline-offset-2 hover:underline dark:text-ink-300"
           >
-            {dict.eventIds.title}
+            {getEventsDict(locale).navTitle}
           </Link>
           <Link
             href={`/${locale}/tools`}

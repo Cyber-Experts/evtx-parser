@@ -1,0 +1,59 @@
+id: 141
+channel: task-scheduler
+provider: Microsoft-Windows-TaskScheduler
+title: Task registration deleted
+shortTitle: Task deleted
+category: scheduled-task
+summary: >-
+  Task Scheduler event 141 records that a user deleted a scheduled task. Right after 106 and a
+  run, it points to one-shot remote execution or cleanup.
+description: |-
+  Event 141 is written when a task is removed from the Task Scheduler library, whether through `schtasks /delete`, `Unregister-ScheduledTask`, the console or a remote API call. It records the task path (`TaskName`) and the account that deleted it (`UserName`).
+
+  On its own a deletion is mundane — uninstallers remove their tasks all the time. Its value is in sequence: a task registered (106), launched (100, 129, 200) and deleted (141) within a few seconds or minutes is the typical footprint of remote execution tools that use the scheduler as a transport, and of attackers cleaning up persistence.
+
+  Once the task is deleted its XML file and registry keys are gone, so the Operational log (and Security 4698/4699 if enabled) may be the only remaining trace of what ran.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    The Microsoft-Windows-TaskScheduler/Operational channel must be enabled — "Enable All Tasks
+    History" in the Task Scheduler console, or `wevtutil sl Microsoft-Windows-TaskScheduler/Operational /e:true`.
+  notes: >-
+    The default state of this channel is not consistent across Windows versions, editions and
+    builds: on some installs it is already recording, on others task history is off and the log
+    stays empty until someone enables it. Check whether the log holds any records before treating
+    a missing event as evidence. On busy hosts the log rolls over quickly.
+fields:
+  - name: TaskName
+    description: Full path of the deleted task in the task library.
+  - name: UserName
+    description: Account that deleted the task (`DOMAIN\user` or `NT AUTHORITY\SYSTEM`).
+benign:
+  - Uninstallers removing their scheduled tasks.
+  - Windows servicing retiring built-in tasks during feature updates.
+  - Administrators cleaning up obsolete or duplicated tasks.
+attacker:
+  - Remote execution tools that create a task, run it once and delete it (for example Impacket `atexec`).
+  - Cleanup of persistence tasks after the objective is reached, or to hinder investigation.
+investigation:
+  - Look backward for 106 with the same TaskName to measure the task's lifetime; seconds or minutes is suspicious.
+  - Pull 100, 129, 200 and 201 for the same TaskName to find what ran and its process ID.
+  - Use Security 4698/4699 (if audited) to recover the task XML that was deleted.
+  - Correlate UserName with network logons (Security 4624 type 3) at the same time to find the source host.
+related:
+  - task-scheduler/142
+  - task-scheduler/106
+  - task-scheduler/100
+  - task-scheduler/129
+  - task-scheduler/200
+  - security/4699
+  - security/4698
+  - security/4624
+attack:
+  - T1053.005
+  - T1070.009
+references:
+  - title: Microsoft Learn — Task Scheduler
+    url: https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-start-page
+  - title: MITRE ATT&CK — Scheduled Task (T1053.005)
+    url: https://attack.mitre.org/techniques/T1053/005/

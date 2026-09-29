@@ -1,0 +1,52 @@
+id: 26
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: FileDeleteDetected (File Delete logged)
+shortTitle: File deleted (logged)
+category: file
+summary: >-
+  Sysmon event 26 logs a file deletion with the deleting process and hashes but, unlike event 23,
+  does not keep a copy. A low-cost way to track deletions.
+description: |-
+  Sysmon event 26 records a file deletion: which process deleted which file, with its hashes and whether it was an executable. It carries the same information as event 23, minus the archived copy and the `Archived` field, so it does not fill the disk.
+
+  It is well suited to broad rules — watching deletions in temp, download and staging folders or deletions of executables — while event 23 is kept for narrow cases where the file itself must be preserved.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon 13.10 or later with a `<FileDeleteDetected>` rule in the configuration.
+fields:
+  - name: ProcessGuid
+    description: Process that deleted the file.
+  - name: Image
+    description: Executable that deleted the file.
+  - name: User
+    description: Account of the process.
+  - name: TargetFilename
+    description: Path of the deleted file.
+  - name: Hashes
+    description: Hashes of the deleted file, which let you search for it elsewhere even though it is gone here.
+  - name: IsExecutable
+    description: "`true` when the deleted file is a PE executable."
+benign:
+  - Temp-file cleanup by applications, installers and Windows maintenance.
+  - Users emptying folders or the Recycle Bin.
+attacker:
+  - Self-deleting droppers and operators wiping tools after use.
+  - Mass deletions by ransomware or wipers.
+investigation:
+  - Pivot on TargetFilename to the event 11 that created it and on ProcessGuid to event 1.
+  - Use Hashes to find copies of the deleted file on other hosts.
+  - Look for bursts of deletions from one process.
+related:
+  - sysmon/23
+  - sysmon/11
+  - sysmon/1
+  - sysmon/28
+attack:
+  - T1070.004
+  - T1485
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Indicator Removal, File Deletion (T1070.004)
+    url: https://attack.mitre.org/techniques/T1070/004/

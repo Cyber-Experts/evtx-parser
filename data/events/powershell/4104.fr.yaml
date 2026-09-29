@@ -1,0 +1,45 @@
+title: Création du texte Scriptblock
+shortTitle: Blocs de script journalisés
+summary: >-
+  L'événement PowerShell 4104 consigne le texte des blocs de script exécutés, après décodage — la
+  trace la plus riche de ce que PowerShell a réellement exécuté.
+description: |-
+  L'événement 4104 est écrit par le moteur PowerShell lorsqu'il compile un bloc de script. Le champ `ScriptBlockText` contient le code tel que PowerShell le voit : commandes saisies à l'invite, scripts entiers, fonctions et — surtout — le code encodé en Base64, téléchargé ou construit à l'exécution, car la journalisation intervient une fois cette couche retirée.
+
+  Les scripts volumineux sont répartis sur plusieurs événements partageant un même `ScriptBlockId` ; `MessageNumber` et `MessageTotal` indiquent comment les réassembler. Le champ `Path` est renseigné lorsque le bloc provient d'un fichier de script.
+
+  Même sans aucune stratégie, PowerShell 5 et ultérieur consigne au niveau **Avertissement** les blocs de script contenant des mots-clés connus pour être suspects. La journalisation complète de chaque bloc exige la stratégie Script Block Logging, et c'est ce qui fait du 4104 la colonne vertébrale des investigations PowerShell.
+logging:
+  requirement: >-
+    Computer Configuration > Administrative Templates > Windows Components > Windows PowerShell >
+    Turn on PowerShell Script Block Logging (ou la valeur de registre
+    `HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging\EnableScriptBlockLogging = 1`).
+  notes: >-
+    Sans la stratégie, Windows PowerShell 5.x consigne tout de même les blocs qu'il juge suspects
+    sous forme de 4104 de niveau Avertissement. PowerShell 7 écrit dans le canal
+    PowerShellCore/Operational et dispose de ses propres paramètres de stratégie.
+fields:
+  - name: ScriptBlockText
+    description: Le code du bloc de script, une fois retirées les couches d'obfuscation comme `-EncodedCommand`.
+  - name: ScriptBlockId
+    description: GUID commun à toutes les parties d'un même bloc de script ; regroupez sur ce champ pour réassembler les longs scripts.
+  - name: MessageNumber
+    description: Numéro de la partie contenue dans cet événement pour un bloc de script découpé.
+  - name: MessageTotal
+    description: Nombre total de parties du bloc de script.
+  - name: Path
+    description: Fichier de script d'où provient le bloc ; vide pour du code interactif ou en mémoire.
+benign:
+  - Scripts d'administration, gestion de configuration (SCCM, Intune, DSC) et agents de supervision.
+  - Modules propres à PowerShell et scripts de profil chargés au démarrage.
+  - Installateurs de logiciels et automatisation IT utilisant PowerShell en coulisses.
+attacker:
+  - "Download cradles comme `IEX (New-Object Net.WebClient).DownloadString(...)` et `Invoke-WebRequest` récupérant des charges utiles."
+  - Commandes encodées ou obfusquées, récupérées ici sous forme lisible.
+  - Frameworks et outils offensifs chargés en mémoire (dump d'identifiants, reconnaissance AD, tentatives de contournement de l'AMSI).
+  - Commandes d'altération des défenses comme `Set-MpPreference -DisableRealtimeMonitoring`.
+investigation:
+  - Filtrez d'abord le niveau 3 (Avertissement) — ce sont les blocs que PowerShell lui-même a signalés comme suspects.
+  - Réassemblez les blocs découpés par ScriptBlockId dans l'ordre de MessageNumber avant de les lire.
+  - Recherchez dans ScriptBlockText des indicateurs réseau (URL, IP), `FromBase64String`, `Invoke-Expression`, `-bxor`, `Reflection.Assembly` et des chaînes liées à l'AMSI.
+  - Identifiez le processus qui a exécuté le bloc avec Sysmon 1 / Sécurité 4688 (ligne de commande de powershell.exe) et l'événement 400 du journal classique (HostApplication).

@@ -1,0 +1,69 @@
+id: 4703
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A token right was adjusted
+shortTitle: Token right adjusted
+category: process
+summary: >-
+  Security event 4703 logs privileges being enabled or disabled in an access token, such as a
+  process turning on SeDebugPrivilege before touching LSASS.
+description: |-
+  Event 4703 is written when a process enables or disables privileges in a token through the `AdjustTokenPrivileges` API. Privileges held by a token are usually disabled until needed; enabling one is the moment the process prepares to use it. `EnabledPrivilegeList` and `DisabledPrivilegeList` show exactly what changed, and `ProcessName` shows who did it.
+
+  The classic example is `SeDebugPrivilege`: tools that read or inject into other processes' memory, including credential dumpers, enable it first. Other privileges worth watching are `SeTakeOwnershipPrivilege`, `SeLoadDriverPrivilege`, `SeBackupPrivilege`, `SeRestorePrivilege` and `SeImpersonatePrivilege`.
+
+  Available from Windows 10 / Server 2016. Volume can be very high because many services adjust privileges on every operation; Microsoft calls out Configuration Manager WMI activity through `svchost.exe` as a heavy source.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Detailed Tracking > Audit Token Right Adjusted
+    (Success).
+  notes: >-
+    The Microsoft event page lists the subcategory as Audit Authorization Policy Change, while the
+    Audit Token Right Adjusted page documents 4703 as its event; check both with `auditpol`.
+    Windows 10 / Server 2016 and later only.
+fields:
+  - name: SubjectUserName
+    description: Account that requested the enable or disable operation.
+  - name: SubjectLogonId
+    description: Logon session of the requester.
+  - name: TargetUserName
+    description: Account whose token was adjusted — usually the same as the subject.
+  - name: TargetLogonId
+    description: Logon session of the adjusted token; pivot to 4624 and 4672.
+  - name: ProcessName
+    description: Process that adjusted its token. The key field for triage.
+  - name: ProcessId
+    description: Hexadecimal PID of that process.
+  - name: EnabledPrivilegeList
+    description: Privileges that were enabled, space separated, or `-`.
+  - name: DisabledPrivilegeList
+    description: Privileges that were disabled, or `-`.
+benign:
+  - "`svchost.exe`, `services.exe` and management agents enabling privileges as part of normal work."
+  - Configuration Manager and other WMI-heavy tooling generating bursts of 4703.
+  - Debuggers and administrative tools enabling `SeDebugPrivilege` for legitimate troubleshooting.
+attacker:
+  - >-
+    `SeDebugPrivilege` enabled by an unusual process (script host, binary in a temp or user
+    folder) shortly before LSASS access — typical of credential dumping.
+  - "`SeLoadDriverPrivilege` enabled by a non-system process, preceding a malicious driver load."
+  - "`SeTakeOwnershipPrivilege` or `SeRestorePrivilege` enabled to take over protected files or keys."
+investigation:
+  - Exclude known system processes, then group by `ProcessName` and `EnabledPrivilegeList`.
+  - Pivot on `ProcessId` and `SubjectLogonId` to 4688 for the command line and parent process.
+  - Look for follow-on activity, such as 4656 handles on `lsass.exe` or Sysmon 10 process access.
+related:
+  - security/4672
+  - security/4673
+  - security/4688
+  - security/4656
+  - sysmon/10
+attack:
+  - T1134
+  - T1003.001
+references:
+  - title: "Microsoft Learn — 4703(S): A user right was adjusted"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4703
+  - title: Microsoft Learn — Audit Token Right Adjusted
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-token-right-adjusted

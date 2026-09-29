@@ -1,0 +1,40 @@
+id: 5001
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: Real-time protection is disabled
+shortTitle: Real-time protection disabled
+category: antimalware
+summary: >-
+  Defender event 5001 is logged when real-time protection is turned off — a classic step before
+  attackers drop tools or ransomware.
+description: |-
+  Event 5001 records that Microsoft Defender Antivirus real-time protection was disabled, whether through the Windows Security UI, Group Policy, PowerShell (`Set-MpPreference -DisableRealtimeMonitoring $true`) or the registry.
+
+  Intruders disable real-time protection to run credential dumpers, remote access tools and ransomware without interference. Tamper protection blocks many of these changes on current systems (logged as 5013 instead), so a successful 5001 on a managed host is especially significant.
+logging:
+  enabledByDefault: true
+  requirement: None — logged by Microsoft Defender Antivirus.
+  notes: A third-party antivirus taking over also disables Defender's real-time protection.
+fields:
+  - name: Product Version
+    description: Defender platform version.
+benign:
+  - Administrators temporarily disabling protection for troubleshooting or software installs.
+  - Installation of a third-party antivirus.
+attacker:
+  - Disabling protection with PowerShell, Group Policy or registry edits before deploying tools or ransomware.
+investigation:
+  - Find who and what disabled it — 4104 / 4103 PowerShell logs, process creation of `powershell.exe` or `reg.exe`, and 5007 configuration changes at the same time.
+  - Measure the window until the next 5000 and review file and process activity in it.
+  - Check other hosts for 5001 at the same time — mass disabling indicates a domain-wide action (for example a GPO change, 5136).
+related:
+  - defender/5000
+  - defender/5007
+  - defender/5013
+  - powershell/4104
+  - security/5136
+attack:
+  - T1685
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

@@ -10,7 +10,7 @@
  *   4. `npm run indexnow` from CI.
  *
  * The script enumerates URLs from the filesystem (content/blog,
- * content/glossary, lib/event-id-data.ts, the static page list). It
+ * content/glossary, data/events, the static page list). It
  * intentionally avoids importing next-md-blog.config because that pulls in
  * an ESM-only dependency tsx can't always resolve.
  */
@@ -19,7 +19,7 @@ import { join } from "node:path";
 
 import { siteConfig } from "../site.config";
 import { LOCALES } from "../lib/i18n";
-import { allEventIds } from "../lib/event-id-data";
+import { allEntries, entryLocales } from "../lib/events";
 
 const KEY = process.env.NEXT_PUBLIC_INDEXNOW_KEY;
 const HOST = siteConfig.url.replace(/^https?:\/\//, "");
@@ -102,7 +102,7 @@ async function main() {
   const urls = new Set<string>();
   urls.add(siteConfig.url);
 
-  const eventIds = allEventIds();
+  const events = allEntries();
   const tagsAcross = new Set<string>();
 
   for (const lang of LOCALES) {
@@ -110,7 +110,7 @@ async function main() {
     urls.add(`${siteConfig.url}/${lang}`);
     urls.add(`${siteConfig.url}/${lang}/blog`);
     urls.add(`${siteConfig.url}/${lang}/glossary`);
-    urls.add(`${siteConfig.url}/${lang}/event-ids`);
+    urls.add(`${siteConfig.url}/${lang}/events`);
     urls.add(`${siteConfig.url}/${lang}/tools`);
     urls.add(`${siteConfig.url}/${lang}/authors`);
     urls.add(`${siteConfig.url}/${lang}/sitemap`);
@@ -136,9 +136,10 @@ async function main() {
       urls.add(`${siteConfig.url}/${lang}/glossary/${slug}`);
     }
 
-    // Event-ID landing pages.
-    for (const event of eventIds) {
-      urls.add(`${siteConfig.url}/${lang}/event-id/${event.id}`);
+    // Event ID encyclopedia entries that exist in this locale.
+    for (const event of events) {
+      if (entryLocales(event).includes(lang))
+        urls.add(`${siteConfig.url}/${lang}/events/${event.channel}/${event.id}`);
     }
   }
 

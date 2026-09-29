@@ -1,0 +1,38 @@
+title: Dateierstellung (FileCreate)
+shortTitle: Datei erstellt
+summary: >-
+  Sysmon-Event-ID 11 protokolliert das Erstellen oder Überschreiben einer Datei und den
+  schreibenden Prozess. Zentral für Payloads, Persistenzordner und Dumps.
+description: |-
+  Sysmon-Event 11 protokolliert das Erstellen oder Überschreiben einer Datei und nennt die Datei (`TargetFilename`) sowie den Prozess, der sie geschrieben hat. Es ist die Antwort von Sysmon auf die Frage „Woher kommt diese Datei?“.
+
+  Lohnende Ziele sind Autostart-Orte (Autostart-Ordner, `System32\Tasks`), Download- und Temp-Ordner, Skript- und ausführbare Dateiendungen sowie Dump-Dateien wie `lsass.dmp`. `CreationUtcTime` ist der Erstellungszeitstempel der Datei; bei einer überschriebenen Datei kann er älter sein als der Event-Zeitpunkt.
+
+  Dateiaktivität ist auf jedem System hoch, daher schließen Konfigurationen gezielt bestimmte Ordner und Dateiendungen ein, statt alles zu protokollieren.
+logging:
+  requirement: >-
+    Sysmon installiert; Filterung über Regeln `<FileCreate>` in der Konfiguration (relevante Ordner
+    und Dateiendungen einschließen).
+fields:
+  - name: ProcessGuid
+    description: Prozess, der die Datei geschrieben hat; auf sein Event 1 pivotieren.
+  - name: Image
+    description: Programm, das die Datei geschrieben hat.
+  - name: TargetFilename
+    description: Vollständiger Pfad der erstellten Datei.
+  - name: CreationUtcTime
+    description: Erstellungszeit der Datei (kann vor UtcTime liegen, wenn eine bestehende Datei überschrieben wird).
+  - name: User
+    description: Konto des Prozesses (neuere Sysmon-Versionen).
+benign:
+  - Browser, die Downloads schreiben, Installer, die nach Program Files schreiben, Updater, die Binärdateien ersetzen.
+  - Office und Windows, die Temp- und Cache-Dateien schreiben.
+attacker:
+  - In `%TEMP%`, `%APPDATA%`, `ProgramData` oder `C:\Users\Public` abgelegte Payloads.
+  - Persistenzdateien in `...\Start Menu\Programs\Startup` oder neue Aufgaben-XML in `C:\Windows\System32\Tasks`.
+  - Speicherabbilder wie `lsass.dmp`, geschrieben von ProcDump, dem Task-Manager oder `rundll32.exe`.
+  - Tools, die bei Lateral Movement à la PsExec von `System` über Admin-Freigaben nach `C:\Windows` kopiert werden.
+investigation:
+  - Über ProcessGuid auf Event 1 pivotieren, um zu sehen, welcher Prozess und Elternprozess die Datei geschrieben hat.
+  - Nach einem späteren Event 1 suchen, dessen Image gleich TargetFilename ist — die abgelegte Datei wurde ausgeführt.
+  - Bei heruntergeladenen Dateien Event 15 auf den Zone.Identifier-Stream prüfen, um die Quell-URL zu erhalten.

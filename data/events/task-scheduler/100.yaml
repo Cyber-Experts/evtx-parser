@@ -1,0 +1,63 @@
+id: 100
+channel: task-scheduler
+provider: Microsoft-Windows-TaskScheduler
+title: Task Started
+shortTitle: Task started
+category: scheduled-task
+summary: >-
+  Task Scheduler event 100 marks the start of a task instance: task path, run-as user and an
+  instance GUID that links the launch, actions and completion.
+description: |-
+  Event 100 is written each time the Task Scheduler service starts an instance of a task, whatever the trigger: schedule, logon, startup, an event, or a manual run. It records the task path (`TaskName`), the account the task runs under (`UserContext`) and an `InstanceId` GUID unique to this run.
+
+  The `InstanceId` is the thread through the rest of the run: the actions launched (200, with the same value in `TaskInstanceId`), the actions completed (201) and the instance finishing (102). Event 129 gives the process ID and image of the process created for the task, and is the bridge to process creation logs (Security 4688, Sysmon 1).
+
+  Built-in maintenance tasks make this event very frequent. It is most useful as a timestamp source: when exactly did a suspicious task run, and as whom.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    The Microsoft-Windows-TaskScheduler/Operational channel must be enabled — "Enable All Tasks
+    History" in the Task Scheduler console, or `wevtutil sl Microsoft-Windows-TaskScheduler/Operational /e:true`.
+  notes: >-
+    The default state of this channel is not consistent across Windows versions, editions and
+    builds: on some installs it is already recording, on others task history is off and the log
+    stays empty until someone enables it. Check whether the log holds any records before treating
+    a missing event as evidence. On busy hosts the log rolls over quickly.
+fields:
+  - name: TaskName
+    description: Full path of the task in the library, e.g. `\Microsoft\Windows\UpdateOrchestrator\Schedule Scan`.
+  - name: UserContext
+    description: >-
+      Account the task instance runs as. `NT AUTHORITY\SYSTEM` for many built-in tasks; a user or
+      service account for others.
+  - name: InstanceId
+    description: >-
+      GUID of this run of the task. The same value appears as `TaskInstanceId` in 200 and 201 and
+      as `InstanceId` in 102.
+benign:
+  - Built-in Windows maintenance, update, telemetry and defragmentation tasks, often dozens per hour.
+  - Application updaters (browsers, Office, vendor agents) running on their schedules.
+  - Tasks deployed by GPO or management tools running as configured.
+attacker:
+  - Persistence tasks firing at logon, startup or on a timer.
+  - A freshly registered (106) task running for the first time, often under `SYSTEM`, to execute a payload remotely.
+investigation:
+  - Filter out known built-in task paths, then review the remaining TaskName values and their run frequency.
+  - Pivot on InstanceId to 200/201 for the action and its result code, and use 129 for the process ID.
+  - Match the run time and process ID with Security 4688 or Sysmon 1 (parent is usually the `svchost.exe` hosting the Schedule service; `taskeng.exe` on Windows 7 era systems) for the full command line.
+  - For unknown tasks, look back for 106 or 140 to see who created or changed the task and when.
+related:
+  - task-scheduler/102
+  - task-scheduler/106
+  - task-scheduler/129
+  - task-scheduler/200
+  - task-scheduler/201
+  - security/4688
+  - sysmon/1
+attack:
+  - T1053.005
+references:
+  - title: Microsoft Learn — Task Scheduler
+    url: https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-start-page
+  - title: MITRE ATT&CK — Scheduled Task (T1053.005)
+    url: https://attack.mitre.org/techniques/T1053/005/

@@ -1,7 +1,7 @@
 # Site content and operations
 
 How to add content to the evtxparser.com website (blog, glossary, Event ID
-reference) and how the hosted site is operated. For the tool itself, see the
+encyclopedia) and how the hosted site is operated. For the tool itself, see the
 [README](../README.md).
 
 ## Adding content
@@ -53,10 +53,27 @@ One `.md` per term under `content/glossary/{locale}/`. The source list is in
 npx tsx scripts/extract-glossary.ts
 ```
 
-### Event ID page
+### Event ID encyclopedia
 
-Event ID reference pages are generated from `lib/event-id-data.ts`. Add an
-entry there and a page is produced at `/[lang]/event-id/<id>` at build time.
+One YAML file per event in `data/events/<channel-slug>/<id>.yaml` produces
+`/en/events/<channel-slug>/<id>` (index: `/[lang]/events`). The schema is
+`lib/events/types.ts`, validated by `lib/events/schema.ts`; channel slugs,
+names and providers are in `lib/events/channels.ts`. Translations of the prose
+go in `<id>.fr.yaml`, `<id>.es.yaml`, `<id>.de.yaml` (same keys, fields matched
+by name) and create `/fr|es|de/events/...` pages with hreflang; other locales
+link to the English page with an "English" badge instead of copying it.
+
+```bash
+npm run events:check     # validate data + refresh lib/events/manifest.json
+npm run attack:update    # refresh lib/events/attack.json (MITRE ATT&CK)
+```
+
+`attack:` lists technique IDs only; names and tactics come from
+`lib/events/attack.json`, and revoked IDs fail validation with their
+replacement. Sigma rules are linked automatically at build time from
+`lib/sigma/sigmahq-rules.json` (`lib/events/sigma-links.ts`). Deep-dive blog
+posts are mapped in `lib/events/blog-links.ts`. The keyword plan is in
+`content/SEO-PLAN.md`.
 
 ### Landing pages
 

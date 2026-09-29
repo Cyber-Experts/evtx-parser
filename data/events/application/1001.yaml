@@ -1,0 +1,53 @@
+id: 1001
+channel: application
+provider: Windows Error Reporting
+title: Fault bucket, type, event name, response
+shortTitle: Windows Error Reporting report
+category: software
+summary: >-
+  Application event 1001 records a Windows Error Reporting report (APPCRASH, BEX, BlueScreen...) and its report folder. Complements 1000.
+description: |-
+  Event 1001 is logged by the **Windows Error Reporting** (WER) source whenever a problem report is created or processed — application crashes and hangs, kernel crashes, and many Windows diagnostics. The event name tells you the kind of report: `APPCRASH` for an application crash, `BEX` / `BEX64` for crashes detected by buffer overrun or DEP protections, `AppHangB1` for hangs, `BlueScreen` for a kernel bugcheck, plus many product-specific names.
+
+  The report parameters (`P1`–`P10`) depend on the event type; for `APPCRASH` they carry the application name and version, the faulting module and the exception code, repeating the data of the matching **1000**. The report also lists attached files and the `StorePath` folder under `C:\ProgramData\Microsoft\Windows\WER\` where the report — and sometimes a memory dump — was stored.
+
+  For a responder, 1001 is the pointer to evidence on disk: WER report folders can survive long after the crash and may contain dumps of the crashed process. `BEX` events are notable because they come from exploit mitigations firing.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the Application log when WER creates or queues a report.
+  notes: >-
+    On many builds the data is a set of unnamed insertion strings; this viewer shows them joined
+    in `Data1`. Volume varies a lot with the number of diagnostic reports.
+fields:
+  - name: Data1
+    description: >-
+      Insertion strings in message order — fault bucket, bucket type, event name (e.g. `APPCRASH`),
+      response, CAB ID, parameters P1 to P10, attached files, store path, analysis symbol,
+      rechecking flag, report ID, report status and hashed bucket.
+benign:
+  - Routine application crashes and hangs, driver and update diagnostics.
+  - Many non-crash reports (e.g. network diagnostics, update telemetry) using the same event.
+attacker:
+  - >-
+    `BEX` / `BEX64` reports for Office, browsers or services: exploit mitigations stopped a memory
+    corruption attempt.
+  - Crash reports for `lsass.exe` or security products after tampering.
+  - >-
+    WER itself abused to dump process memory (for example LSASS via `WerFault.exe` command lines)
+    may leave related reports and dump files.
+investigation:
+  - Filter on event names `APPCRASH`, `BEX`, `BEX64` and `BlueScreen` first.
+  - Read the `StorePath` and collect the WER folder (Report.wer and any .dmp files) from the host.
+  - Correlate with the matching 1000 and with process activity just before the crash.
+related:
+  - application/1000
+  - system/41
+  - sysmon/10
+attack:
+  - T1203
+  - T1003.001
+references:
+  - title: Microsoft Learn — Windows Error Reporting
+    url: https://learn.microsoft.com/en-us/windows/win32/wer/windows-error-reporting
+  - title: Microsoft Learn — Collecting user-mode dumps
+    url: https://learn.microsoft.com/en-us/windows/win32/wer/collecting-user-mode-dumps

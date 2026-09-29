@@ -1,0 +1,74 @@
+title: Ein Netzwerkfreigabeobjekt wurde überprüft, um festzustellen, ob dem Client der gewünschte Zugriff gewährt werden kann
+shortTitle: Zugriffsprüfung auf Freigabeobjekt
+summary: >-
+  Event-ID 5145 protokolliert jede Datei, jeden Ordner und jede Named Pipe, die über eine Freigabe geöffnet wird: Konto, Quell-IP, Rechte. Sehr laut.
+description: |-
+  Event 5145 wird auf dem Computer, der die Freigabe bereitstellt, jedes Mal geschrieben, wenn ein Client darüber eine Datei, einen Ordner oder eine Named Pipe öffnet. Wo 5140 sagt „dieses Konto hat die Freigabe geöffnet“, ergänzt 5145 `RelativeTargetName`: das genaue Objekt innerhalb der Freigabe, dazu die angeforderte `AccessMask`.
+
+  Dieses Detail macht es zu einer der besten Quellen für SMB-basiertes Lateral Movement. Remote-Diensterstellung erscheint als Zugriff auf die Pipe `svcctl` an `IPC$`, Remote-Registry als `winreg`, Enumeration als `samr`, `lsarpc` oder `srvsvc` und das Kopieren von Payloads als Schreibzugriff auf Dateien unter `ADMIN$` oder `C$`.
+
+  Fehler-Events entstehen nur, wenn der Zugriff durch die **Freigabe**berechtigungen verweigert wird, nicht durch NTFS-Berechtigungen. Die Erfolgsüberwachung erzeugt ein Event pro Objektzugriff, daher kann das Volumen auf Dateiservern und Domänencontrollern (SYSVOL) überwältigend sein; viele Organisationen sammeln nur Fehler oder Erfolge auf ausgewählten Servern.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Detailed File Share (Success,
+    Failure). In der Standard-Überwachungsrichtlinie von Windows nicht überwacht.
+  notes: >-
+    Sehr hohes Volumen auf Dateiservern und Domänencontrollern. Microsoft empfiehlt auf
+    Domänencontrollern die Fehlerüberwachung und die Erfolgsüberwachung nur auf besonders
+    wertvollen Servern in Betracht zu ziehen.
+fields:
+  - name: SubjectUserSid
+    description: SID des Kontos, das den Zugriff angefordert hat.
+  - name: SubjectUserName
+    description: Konto, das den Zugriff auf das Objekt angefordert hat.
+  - name: SubjectDomainName
+    description: Domäne oder Computername des Kontos.
+  - name: SubjectLogonId
+    description: Anmeldesitzung des entfernten Benutzers; entspricht der 4624-Netzwerkanmeldung auf diesem Host.
+  - name: ObjectType
+    description: Bei diesem Event immer `File` (Dateien, Ordner und Named Pipes).
+  - name: IpAddress
+    description: IP-Adresse des Clients.
+  - name: IpPort
+    description: Quellport der Client-Verbindung; `0` bei lokalem Zugriff.
+  - name: ShareName
+    description: Verwendete Freigabe, z. B. `\\*\IPC$`, `\\*\ADMIN$`, `\\*\C$`.
+  - name: ShareLocalPath
+    description: Lokaler Pfad der Freigabe. Leer bei `IPC$`.
+  - name: RelativeTargetName
+    description: >-
+      Zugegriffenes Objekt relativ zur Freigabe: ein Dateipfad wie `Temp\payload.exe`, eine Named
+      Pipe wie `svcctl` oder `samr` oder `\` für den Stamm der Freigabe.
+  - name: AccessMask
+    description: Angeforderte Zugriffsrechte als hexadezimale Maske.
+    values:
+      - value: "0x1"
+        meaning: ReadData (Datei) oder ListDirectory (Ordner).
+      - value: "0x2"
+        meaning: WriteData (Datei) oder AddFile (Ordner).
+      - value: "0x4"
+        meaning: AppendData (Datei) oder AddSubdirectory (Ordner).
+      - value: "0x10000"
+        meaning: DELETE.
+      - value: "0x100000"
+        meaning: SYNCHRONIZE.
+  - name: AccessList
+    description: Angeforderte Rechte in symbolischer Form (`%%4416` ReadData, `%%4417` WriteData usw.).
+  - name: AccessReason
+    description: Für jedes angeforderte Recht der Grund, warum es gewährt oder verweigert wurde (beteiligter ACE oder beteiligtes Privileg).
+benign:
+  - Domänenmitglieder, die Gruppenrichtliniendateien unter `SYSVOL` auf Domänencontrollern lesen — die größte Rauschquelle.
+  - Benutzer, die Dokumente auf Dateiservern öffnen und speichern.
+  - Management- und Monitoring-Tools, die im Normalbetrieb Named Pipes an `IPC$` nutzen (`srvsvc`, `winreg`, `spoolss`).
+attacker:
+  - >-
+    Ausführung à la PsExec: Schreiben einer Datei unter `ADMIN$`, gefolgt von einem Zugriff auf die
+    Pipe `svcctl` an `IPC$` von derselben Quell-IP, dann ein neuer Dienst (7045, 4697).
+  - Remote-Registry- und Credential-bezogene Zugriffe über die Pipe `winreg`.
+  - Domänen- und Host-Enumeration über die Pipes `samr`, `lsarpc` und `srvsvc` (BloodHound/SharpHound, `net`-Befehle, Impacket-Tools).
+  - Massenhafte Lesezugriffe eines Kontos auf viele Dateien einer Freigabe in kurzer Zeit (Sammlung vor der Exfiltration).
+investigation:
+  - Auf `ShareName` `\\*\IPC$` filtern und die `RelativeTargetName`-Werte pro Quell-IP auflisten, um zu sehen, welche RPC-Dienste genutzt wurden.
+  - Bei `ADMIN$` und `C$` nach Schreibzugriffen (`0x2`) auf ausführbare Dateien oder Skripte suchen und Dateinamen mit Dienst- oder Aufgabenerstellung abgleichen.
+  - Über `SubjectLogonId` auf die 4624-Netzwerkanmeldung pivotieren, dann auf 4672, um zu sehen, ob die Sitzung privilegiert war.
+  - Nach Konto gruppieren und verschiedene `RelativeTargetName`-Werte zählen, um Massenzugriffe zu erkennen.

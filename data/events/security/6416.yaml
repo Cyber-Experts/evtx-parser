@@ -1,0 +1,72 @@
+id: 6416
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A new external device was recognized by the System
+shortTitle: External device recognized
+category: device
+summary: >-
+  Security event 6416 records a new device recognized by Windows, such as a USB drive, with device
+  ID, class and vendor IDs. Needs Audit PNP Activity.
+description: |-
+  Event 6416 is written when Windows recognizes a new external device — for example a USB mass-storage device, phone, keyboard or network adapter being connected or enabled. It records the device instance path (`DeviceId`), its friendly name (`DeviceDescription`), the device setup class (`ClassName`, `ClassId`) and the hardware and compatible IDs that identify vendor and model (`VendorIds`, `CompatibleIds`).
+
+  For investigations it answers "which device, when": USB storage used for data theft, rogue keyboards (HID injection devices), or unauthorized network adapters. The `VendorIds` string usually contains the vendor and product identifiers and, for storage, a product name, which can be matched with registry artifacts (USBSTOR) and partition events.
+
+  Expect entries for internal and virtual devices too, especially after driver updates or on virtual machines. Filter by `ClassName` — `DiskDrive`, `USB`, `WPD`, `HIDClass`, `Net` — to focus on what matters.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Detailed Tracking > Audit PNP Activity (Success). Not
+    enabled in the default audit policy.
+  notes: >-
+    Windows 10 / Server 2016 and later. `DeviceId`, `DeviceDescription` and `ClassName` were added
+    in event version 1 (Windows 10 1511).
+fields:
+  - name: SubjectUserName
+    description: Normally the computer account (SYSTEM). Microsoft suggests reviewing any other value.
+  - name: DeviceId
+    description: >-
+      Device instance path, e.g. `USBSTOR\Disk&Ven_...&Prod_...\<serial>`. The last part is often the
+      device serial number — a key pivot across hosts and registry artifacts.
+  - name: DeviceDescription
+    description: Friendly device name, e.g. the drive model.
+  - name: ClassName
+    description: Device setup class, e.g. `DiskDrive`, `USB`, `HIDClass`, `WPD`, `Net`.
+  - name: ClassId
+    description: GUID of the device setup class; `{4D36E967-E325-11CE-BFC1-08002BE10318}` is the disk drive class.
+  - name: VendorIds
+    description: Hardware IDs reported by the device, including vendor and product identifiers.
+  - name: CompatibleIds
+    description: Compatible IDs used by Windows to pick a generic driver (e.g. `USB\Class_08` for mass storage).
+  - name: LocationInformation
+    description: Physical location on the bus (port, hub, bus/target/LUN numbers).
+benign:
+  - Users plugging in approved peripherals — mice, headsets, webcams, docking stations.
+  - Virtual and internal devices enumerated after driver or Windows updates, or when VMs are provisioned.
+attacker:
+  - Insiders or intruders copying data to a USB storage device.
+  - >-
+    Keystroke-injection devices presenting themselves as keyboards (HIDClass) to type commands at
+    the console.
+  - Rogue network adapters (USB Ethernet, cellular modems) used to bypass network controls.
+investigation:
+  - Filter on ClassName `DiskDrive` / `WPD` and review DeviceId serials against your list of approved devices.
+  - >-
+    Correlate with Microsoft-Windows-Partition/Diagnostic 1006 and Kernel-PnP 400/410 for volume and
+    driver details, and with file access or process activity right after insertion.
+  - Check which user was logged on interactively at the time (4624, 4800/4801) to attribute the device use.
+related:
+  - kernel-pnp/400
+  - kernel-pnp/410
+  - partition/1006
+  - security/4624
+  - security/4663
+attack:
+  - T1200
+  - T1052.001
+  - T1091
+references:
+  - title: "Microsoft Learn — 6416(S): A new external device was recognized by the System"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-6416
+  - title: Microsoft Learn — Audit PNP Activity
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-pnp-activity

@@ -1,0 +1,85 @@
+id: 5157
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: The Windows Filtering Platform has blocked a connection
+shortTitle: WFP connection blocked
+category: network
+summary: >-
+  Security event 5157 logs each connection blocked by the Windows Filtering Platform, with process,
+  direction, addresses and ports. Reveals scans and blocked C2.
+description: |-
+  Event 5157 is the failure counterpart of 5156: the Windows Filtering Platform blocked a connection, usually because of a Windows Firewall rule or the default inbound block policy. It carries the same fields — `Application`, `ProcessID`, `Direction`, source and destination addresses and ports, `Protocol` and the ID of the blocking filter (`FilterRTID`).
+
+  Blocked inbound traffic shows who tried to reach the host and on which ports, which exposes internal scanning and failed lateral movement attempts. Blocked outbound traffic, where outbound rules exist, shows programs trying to reach destinations they are not allowed to.
+
+  As with 5156, the Source fields hold the local endpoint and the Dest fields the remote one in practice; read them together with `Direction`. Broadcast and multicast discovery protocols (NetBIOS, LLMNR, SSDP, mDNS) produce a steady background of blocks on most networks.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Filtering Platform Connection
+    (Failure). Not audited in the default Windows audit policy.
+  notes: >-
+    Failure auditing is far less voluminous than Success and is the setting Microsoft recommends
+    for this subcategory. Dropped packets (as opposed to blocked connections) are logged as 5152 by
+    the Filtering Platform Packet Drop subcategory.
+fields:
+  - name: ProcessID
+    description: PID of the process whose connection was blocked; `4` (System) for kernel traffic.
+  - name: Application
+    description: Executable path in device-path form; `System` for kernel-mode traffic.
+  - name: Direction
+    description: Direction of the blocked connection.
+    values:
+      - value: "%%14592"
+        meaning: Inbound.
+      - value: "%%14593"
+        meaning: Outbound.
+  - name: SourceAddress
+    description: Local IP address (in practice, regardless of direction).
+  - name: SourcePort
+    description: Local port. For inbound blocks, the port the remote host tried to reach.
+  - name: DestAddress
+    description: Remote IP address.
+  - name: DestPort
+    description: Remote port.
+  - name: Protocol
+    description: IANA protocol number (`6` TCP, `17` UDP, `1` ICMP, `58` ICMPv6).
+  - name: FilterRTID
+    description: Run-time ID of the blocking filter; `netsh wfp show filters` on the live host maps it to a rule.
+  - name: LayerName
+    description: WFP layer, e.g. `%%14610` (Receive/Accept) for inbound or `%%14611` (Connect) for outbound.
+  - name: LayerRTID
+    description: Run-time ID of the WFP layer.
+  - name: RemoteUserID
+    description: Remote user SID when provided by IPsec, otherwise `S-1-0-0`.
+  - name: RemoteMachineID
+    description: Remote machine SID when provided by IPsec, otherwise `S-1-0-0`.
+benign:
+  - NetBIOS, LLMNR, SSDP and mDNS broadcast/multicast traffic hitting the default inbound block policy.
+  - Vulnerability scanners and inventory tools probing closed ports on schedule.
+  - Applications blocked by an outbound allow-list policy after an update changed their path.
+attacker:
+  - Internal port scanning — one source IP hitting many local ports (or many hosts) in a short time.
+  - Failed lateral movement attempts to SMB (445), RDP (3389), WinRM (5985/5986) or RPC (135) on hardened hosts.
+  - Malware or a C2 implant repeatedly trying to reach an external address blocked by outbound rules.
+investigation:
+  - Group inbound blocks by remote address and count distinct local ports to spot scanning.
+  - For outbound blocks, identify the `Application` and check it against process creation (4688, Sysmon 1).
+  - Check whether the same source later succeeded (5156, 4624) after a firewall change (4946, 4947, 2004).
+  - Resolve `FilterRTID` on the live system to know which rule or default policy blocked the traffic.
+related:
+  - security/5156
+  - security/4946
+  - security/4947
+  - security/4688
+  - firewall/2004
+  - sysmon/3
+attack:
+  - T1046
+  - T1071
+  - T1021
+references:
+  - title: "Microsoft Learn — 5157(F): The Windows Filtering Platform has blocked a connection"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-5157
+  - title: Microsoft Learn — Audit Filtering Platform Connection
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-filtering-platform-connection

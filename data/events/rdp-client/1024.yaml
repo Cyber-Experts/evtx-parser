@@ -1,0 +1,40 @@
+id: 1024
+channel: rdp-client
+provider: Microsoft-Windows-TerminalServices-ClientActiveXCore
+title: RDP ClientActiveX is trying to connect to the server
+shortTitle: Outbound connection attempt
+category: remote-access
+summary: >-
+  RDP client event 1024 is logged on the source host when mstsc starts connecting to a server;
+  the Value field holds the target name or IP.
+description: |-
+  Event 1024 lives on the **client** side of Remote Desktop, in the TerminalServices-RDPClient/Operational log of the machine running `mstsc.exe` (or another client built on the RDP ActiveX control). It records each attempt to connect and the server name or address the user typed.
+
+  That makes it the source-side counterpart of the server's 1149 and 4624 type 10: on a compromised workstation or jump host it lists where an attacker went next over RDP. It is logged per user session, so pair it with the logon that was active at the time.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Microsoft-Windows-TerminalServices-RDPClient/Operational channel is enabled by
+    default on Windows.
+fields:
+  - name: Value
+    description: Target server as entered in the client — host name, FQDN or IP address, possibly with a port.
+benign:
+  - Administrators and users connecting to servers and jump hosts they manage.
+attacker:
+  - "Lateral movement over RDP from a compromised host — a list of internal targets, sometimes contacted in quick succession."
+  - Connections to external IPs from servers, which should rarely start outbound RDP.
+investigation:
+  - Build the list of targets per host and user; match each with 1149 / 4624 type 10 on the target servers.
+  - Look for targets addressed by IP rather than name, and for unusual ports.
+  - The user's `Default.rdp` file and Terminal Server Client registry keys (MRU) corroborate the targets.
+related:
+  - rdp-client/1102
+  - rdp-remote-connection-manager/1149
+  - security/4648
+  - security/4624
+attack:
+  - T1021.001
+references:
+  - title: JPCERT/CC — Detecting Lateral Movement through Tracking Event Logs
+    url: https://www.jpcert.or.jp/english/pub/sr/ir_research.html

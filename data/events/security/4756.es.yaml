@@ -1,0 +1,52 @@
+title: Se agregó un miembro a un grupo universal con seguridad habilitada
+shortTitle: Miembro añadido a grupo universal
+summary: >-
+  El evento 4756 se registra en un controlador de dominio cuando se añade un miembro a un grupo
+  universal de seguridad, como Enterprise Admins o Schema Admins.
+description: |-
+  El evento 4756 se escribe en el controlador de dominio que procesó el cambio cuando se añade una cuenta o un grupo a un grupo **universal** de seguridad. Los grupos universales pueden contener miembros de cualquier dominio del bosque y se usan para roles de ámbito de bosque, en particular **Enterprise Admins** y **Schema Admins** en el dominio raíz del bosque. Los grupos globales usan el 4728; los locales y locales de dominio, el 4732.
+
+  Los campos son los mismos que en el 4728 y el 4732: `TargetUserName`/`TargetSid` identifican el grupo, `MemberName` (nombre distintivo) y `MemberSid` el nuevo miembro, y `Subject*` quién hizo el cambio. Se registra un evento por cada miembro añadido, normalmente junto a un 4755 vacío.
+
+  Una adición a Enterprise Admins otorga control administrativo sobre cada dominio del bosque. Alerte sobre ella por SID y trate cada aparición fuera de un cambio planificado como un incidente.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). El éxito se audita en la directiva de auditoría predeterminada de Windows.
+  notes: >-
+    Solo se genera en los controladores de dominio. Enterprise Admins y Schema Admins residen en el
+    dominio raíz del bosque, así que esas adiciones se registran en los DC del dominio raíz.
+fields:
+  - name: MemberName
+    description: Nombre distintivo del miembro añadido.
+  - name: MemberSid
+    description: SID del miembro añadido. La parte de dominio indica de qué dominio del bosque procede.
+  - name: TargetUserName
+    description: Nombre del grupo universal.
+  - name: TargetDomainName
+    description: Dominio del grupo.
+  - name: TargetSid
+    description: SID del grupo; identifique los grupos conocidos por su RID.
+    values:
+      - value: "*-518"
+        meaning: Schema Admins (dominio raíz del bosque).
+      - value: "*-519"
+        meaning: Enterprise Admins (dominio raíz del bosque).
+  - name: SubjectUserName
+    description: Cuenta que añadió el miembro.
+  - name: SubjectDomainName
+    description: Dominio del sujeto.
+  - name: SubjectLogonId
+    description: Sesión del sujeto en el DC; correlacione con el 4624.
+  - name: PrivilegeList
+    description: Privilegios utilizados para la operación, a menudo `-`.
+benign:
+  - Administradores que mantienen grupos universales usados para Exchange, mensajería o acceso a recursos entre dominios.
+  - Pertenencia temporal a Schema Admins para una extensión de esquema aprobada, retirada después (4757).
+attacker:
+  - Inclusión de una cuenta controlada en Enterprise Admins tras comprometer un dominio para obtener el control de todo el bosque.
+  - Inclusión de cuentas en grupos universales con derechos delegados entre dominios.
+investigation:
+  - Alerte sobre cualquier cambio en Enterprise Admins y Schema Admins y confírmelo con los responsables del bosque.
+  - Compruebe el origen del miembro (parte de dominio de MemberSid), su fecha de creación (4720) y sus inicios de sesión posteriores (4624, 4672).
+  - Pivote sobre SubjectLogonId para encontrar el host de origen del cambio.

@@ -1,0 +1,57 @@
+id: 91
+channel: winrm
+provider: Microsoft-Windows-WinRM
+title: Creating WSMan shell on server
+shortTitle: WSMan shell created (server)
+category: remote-access
+summary: >-
+  WinRM event 91 is logged on the target when a remote WSMan shell is created, with the resource
+  URI showing whether it is PowerShell remoting or winrs.
+description: |-
+  Event 91 is written by the WinRM service on the machine that **receives** a remote shell request. Its field `resourceUri` identifies the kind of shell: `http://schemas.microsoft.com/powershell/Microsoft.PowerShell` (or another session configuration) for PowerShell remoting, `http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd` for `winrs`.
+
+  It is the target-side counterpart of event 6. Around the same timestamp expect a network logon (Security 4624 type 3), a `wsmprovhost.exe` process for PowerShell remoting or `winrshost.exe` for `winrs`, and PowerShell script block logging (4104) of the commands run in the session.
+
+  The event does not carry the source IP; get it from the logon event or from network telemetry.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Microsoft-Windows-WinRM/Operational channel is enabled by default. The WinRM service
+    must be running and listening, which is the default on Windows Server but not on client editions.
+fields:
+  - name: resourceUri
+    description: Resource URI of the shell requested by the client.
+    values:
+      - value: http://schemas.microsoft.com/powershell/Microsoft.PowerShell
+        meaning: Default PowerShell remoting endpoint (Enter-PSSession, Invoke-Command).
+      - value: http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd
+        meaning: Remote command shell (winrs).
+benign:
+  - Administrators and automation (configuration management, deployment tools) running remote PowerShell.
+  - Monitoring and management products that connect over WinRM.
+attacker:
+  - Incoming lateral movement through PowerShell remoting or `winrs` with valid or stolen credentials.
+  - Remote command execution by offensive tools that implement WinRM.
+investigation:
+  - Correlate with Security 4624 (type 3) at the same time for the account and source IP.
+  - Find `wsmprovhost.exe` / `winrshost.exe` in Security 4688 or Sysmon 1 and review their child processes.
+  - Read PowerShell 4104 on the target for the commands executed in the session.
+  - On the suspected source host, look for WinRM event 6 naming this machine.
+related:
+  - winrm/6
+  - winrm/169
+  - security/4624
+  - security/4688
+  - powershell/4104
+  - windows-powershell/400
+  - sysmon/1
+attack:
+  - T1021.006
+  - T1059.001
+references:
+  - title: Microsoft Learn — Windows Remote Management
+    url: https://learn.microsoft.com/en-us/windows/win32/winrm/portal
+  - title: MITRE ATT&CK — Windows Remote Management (T1021.006)
+    url: https://attack.mitre.org/techniques/T1021/006/
+  - title: JPCERT/CC — Detecting Lateral Movement through Tracking Event Logs
+    url: https://www.jpcert.or.jp/english/pub/sr/ir_research.html

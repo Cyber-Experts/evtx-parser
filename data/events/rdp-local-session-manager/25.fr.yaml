@@ -1,0 +1,27 @@
+title: "Services Bureau à distance : reconnexion de la session réussie"
+shortTitle: Session reconnectée
+summary: >-
+  L'événement RDP 25 est consigné quand un utilisateur se reconnecte à une session déconnectée
+  existante, avec l'adresse du nouveau client.
+description: |-
+  L'événement 25 consigne le rattachement d'un client à une session qui avait été déconnectée (24). Aucune nouvelle session n'est créée, donc aucun événement 21 — cet événement et le 4778 Sécurité sont les traces de la reconnexion.
+
+  Son champ `Address` est l'IP du client qui s'est reconnecté, qui peut différer de celle de l'ouverture de session d'origine. Le 25 est donc indispensable pour suivre les accès RDP : un attaquant qui se reconnecte à la session déconnectée d'un administrateur ne produit jamais de nouveau 21.
+logging:
+  requirement: >-
+    Aucune — le canal LocalSessionManager/Operational est activé par défaut.
+fields:
+  - name: User
+    description: Compte propriétaire de la session.
+  - name: SessionID
+    description: Numéro de la session reprise.
+  - name: Address
+    description: Adresse IP du client qui se reconnecte, ou `LOCAL`.
+benign:
+  - Utilisateurs reprenant leur session RDP après une déconnexion ou depuis un autre appareil.
+attacker:
+  - Reconnexion à une session privilégiée déconnectée avec les mêmes identifiants depuis un autre hôte.
+  - Prise de contrôle de session RDP, où une session est rattachée à un autre client.
+investigation:
+  - Comparez Address à celle du 21 d'origine pour le même SessionID.
+  - Associez au 1149 qui précède (la nouvelle connexion) et au 4778 / 4624 Sécurité de LogonType 7 ou 10.

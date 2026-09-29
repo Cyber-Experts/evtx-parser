@@ -1,0 +1,97 @@
+id: 5145
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A network share object was checked to see whether client can be granted desired access
+shortTitle: Share object access check
+category: network-share
+summary: >-
+  Security event 5145 logs each file, folder or named pipe accessed through a share, with account, source IP and requested rights. Detailed and noisy.
+description: |-
+  Event 5145 is written on the computer hosting the share each time a client opens a file, folder or named pipe through it. Where 5140 says "this account opened the share", 5145 adds `RelativeTargetName`: the exact object inside the share, plus the requested `AccessMask`.
+
+  This detail makes it one of the best sources for SMB-based lateral movement. Remote service creation shows up as access to the `svcctl` pipe on `IPC$`, remote registry as `winreg`, enumeration as `samr`, `lsarpc` or `srvsvc`, and payload copies as write access to files under `ADMIN$` or `C$`.
+
+  Failure events are only produced when access is denied by the **share** permissions, not by NTFS permissions. Success auditing generates an event per object access, so on file servers and domain controllers (SYSVOL) the volume can be overwhelming; many organizations collect failures only, or success on selected servers.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Detailed File Share (Success,
+    Failure). Not audited in the default Windows audit policy.
+  notes: >-
+    Very high volume on file servers and domain controllers. Microsoft recommends Failure auditing on
+    domain controllers and considering Success only on high-value servers.
+fields:
+  - name: SubjectUserSid
+    description: SID of the account that requested access.
+  - name: SubjectUserName
+    description: Account that requested access to the object.
+  - name: SubjectDomainName
+    description: Domain or computer name of the account.
+  - name: SubjectLogonId
+    description: Logon session of the remote user; matches the 4624 network logon on this host.
+  - name: ObjectType
+    description: Always `File` for this event (files, folders and named pipes).
+  - name: IpAddress
+    description: IP address of the client.
+  - name: IpPort
+    description: Source port of the client connection; `0` for local access.
+  - name: ShareName
+    description: Share used, e.g. `\\*\IPC$`, `\\*\ADMIN$`, `\\*\C$`.
+  - name: ShareLocalPath
+    description: Local path of the share. Empty for `IPC$`.
+  - name: RelativeTargetName
+    description: >-
+      Object accessed, relative to the share: a file path such as `Temp\payload.exe`, a named pipe
+      such as `svcctl` or `samr`, or `\` for the share root.
+  - name: AccessMask
+    description: Requested access rights as a hexadecimal mask.
+    values:
+      - value: "0x1"
+        meaning: ReadData (file) or ListDirectory (folder).
+      - value: "0x2"
+        meaning: WriteData (file) or AddFile (folder).
+      - value: "0x4"
+        meaning: AppendData (file) or AddSubdirectory (folder).
+      - value: "0x10000"
+        meaning: DELETE.
+      - value: "0x100000"
+        meaning: SYNCHRONIZE.
+  - name: AccessList
+    description: Requested rights in symbolic form (`%%4416` ReadData, `%%4417` WriteData, and so on).
+  - name: AccessReason
+    description: For each requested right, the reason it was granted or denied (the ACE or privilege involved).
+benign:
+  - Domain members reading Group Policy files under `SYSVOL` on domain controllers — the largest noise source.
+  - Users opening and saving documents on file servers.
+  - Management and monitoring tools using `IPC$` named pipes (`srvsvc`, `winreg`, `spoolss`) as part of normal operations.
+attacker:
+  - >-
+    PsExec-style execution: write to a file under `ADMIN$` followed by access to the `svcctl` pipe on
+    `IPC$` from the same source IP, then a new service (7045, 4697).
+  - Remote registry and credential-related access through the `winreg` pipe.
+  - Domain and host enumeration through the `samr`, `lsarpc` and `srvsvc` pipes (BloodHound/SharpHound, `net` commands, Impacket tools).
+  - Bulk read access to many files on a share by one account in a short period (collection before exfiltration).
+investigation:
+  - Filter on `ShareName` `\\*\IPC$` and list `RelativeTargetName` values per source IP to see which RPC services were used.
+  - For `ADMIN$` and `C$`, look for write access (`0x2`) to executables or scripts and match file names to service or task creation.
+  - Pivot on `SubjectLogonId` to the 4624 network logon, then to 4672 to see if the session was privileged.
+  - Group by account and count distinct `RelativeTargetName` values to spot mass file access.
+related:
+  - security/5140
+  - security/5142
+  - security/5144
+  - security/4624
+  - security/4672
+  - security/4697
+  - system/7045
+  - security/4663
+attack:
+  - T1021.002
+  - T1570
+  - T1135
+  - T1039
+references:
+  - title: "Microsoft Learn — 5145(S, F): A network share object was checked to see whether client can be granted desired access"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-5145
+  - title: Microsoft Learn — Audit Detailed File Share
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-detailed-file-share

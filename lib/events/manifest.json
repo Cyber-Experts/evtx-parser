@@ -1,0 +1,411 @@
+{
+ "application/1000": [],
+ "application/1001": [],
+ "application/1033": [],
+ "application/11707": [],
+ "application/18456": [],
+ "applocker/8002": [],
+ "applocker/8003": [],
+ "applocker/8004": [],
+ "applocker/8005": [],
+ "applocker/8006": [],
+ "applocker/8007": [],
+ "bits-client/3": [],
+ "bits-client/4": [],
+ "bits-client/59": [],
+ "bits-client/60": [],
+ "code-integrity/3033": [],
+ "code-integrity/3077": [],
+ "defender/1006": [],
+ "defender/1007": [],
+ "defender/1008": [],
+ "defender/1013": [],
+ "defender/1015": [],
+ "defender/1116": [],
+ "defender/1117": [],
+ "defender/1118": [],
+ "defender/1119": [],
+ "defender/1121": [],
+ "defender/2001": [],
+ "defender/5000": [],
+ "defender/5001": [],
+ "defender/5004": [],
+ "defender/5007": [],
+ "defender/5010": [],
+ "defender/5012": [],
+ "defender/5013": [],
+ "dns-client/3006": [],
+ "dns-client/3008": [],
+ "firewall/2004": [],
+ "firewall/2005": [],
+ "firewall/2006": [],
+ "firewall/2033": [],
+ "kernel-pnp/400": [],
+ "kernel-pnp/410": [],
+ "ntlm/8001": [],
+ "ntlm/8002": [],
+ "ntlm/8003": [],
+ "ntlm/8004": [],
+ "openssh/4": [],
+ "partition/1006": [],
+ "powershell/4103": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "powershell/4104": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "powershell/4105": [],
+ "powershell/4106": [],
+ "powershell/40961": [],
+ "powershell/40962": [],
+ "print-service/307": [],
+ "print-service/808": [],
+ "rdp-client/1024": [],
+ "rdp-client/1102": [],
+ "rdp-core-ts/131": [],
+ "rdp-local-session-manager/21": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "rdp-local-session-manager/22": [],
+ "rdp-local-session-manager/23": [],
+ "rdp-local-session-manager/24": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "rdp-local-session-manager/25": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "rdp-local-session-manager/39": [],
+ "rdp-local-session-manager/40": [],
+ "rdp-remote-connection-manager/1149": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/1100": [],
+ "security/1102": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/1104": [],
+ "security/4608": [],
+ "security/4616": [],
+ "security/4624": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4625": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4634": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4647": [],
+ "security/4648": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4656": [],
+ "security/4657": [],
+ "security/4658": [],
+ "security/4660": [],
+ "security/4661": [],
+ "security/4662": [],
+ "security/4663": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4670": [],
+ "security/4672": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4673": [],
+ "security/4688": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4689": [],
+ "security/4697": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4698": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4699": [],
+ "security/4700": [],
+ "security/4701": [],
+ "security/4702": [],
+ "security/4703": [],
+ "security/4704": [],
+ "security/4705": [],
+ "security/4713": [],
+ "security/4717": [],
+ "security/4718": [],
+ "security/4719": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4720": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4722": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4723": [],
+ "security/4724": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4725": [],
+ "security/4726": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4727": [],
+ "security/4728": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4729": [],
+ "security/4730": [],
+ "security/4731": [],
+ "security/4732": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4733": [],
+ "security/4734": [],
+ "security/4735": [],
+ "security/4737": [],
+ "security/4738": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4739": [],
+ "security/4740": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4741": [],
+ "security/4742": [],
+ "security/4743": [],
+ "security/4754": [],
+ "security/4755": [],
+ "security/4756": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4757": [],
+ "security/4765": [],
+ "security/4766": [],
+ "security/4767": [],
+ "security/4768": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4769": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4770": [],
+ "security/4771": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4776": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4778": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/4779": [],
+ "security/4780": [],
+ "security/4781": [],
+ "security/4794": [],
+ "security/4798": [],
+ "security/4799": [],
+ "security/4800": [],
+ "security/4801": [],
+ "security/4826": [],
+ "security/4886": [],
+ "security/4887": [],
+ "security/4907": [],
+ "security/4946": [],
+ "security/4947": [],
+ "security/4948": [],
+ "security/4964": [],
+ "security/5136": [],
+ "security/5137": [],
+ "security/5140": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/5141": [],
+ "security/5142": [],
+ "security/5144": [],
+ "security/5145": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "security/5156": [],
+ "security/5157": [],
+ "security/5376": [],
+ "security/5377": [],
+ "security/6416": [],
+ "smb-client/31001": [],
+ "smb-server/551": [],
+ "sysmon/1": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "sysmon/2": [],
+ "sysmon/3": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "sysmon/4": [],
+ "sysmon/5": [],
+ "sysmon/6": [],
+ "sysmon/7": [],
+ "sysmon/8": [],
+ "sysmon/9": [],
+ "sysmon/10": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "sysmon/11": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "sysmon/12": [],
+ "sysmon/13": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "sysmon/14": [],
+ "sysmon/15": [],
+ "sysmon/16": [],
+ "sysmon/17": [],
+ "sysmon/18": [],
+ "sysmon/19": [],
+ "sysmon/20": [],
+ "sysmon/21": [],
+ "sysmon/22": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "sysmon/23": [],
+ "sysmon/24": [],
+ "sysmon/25": [],
+ "sysmon/26": [],
+ "sysmon/27": [],
+ "sysmon/28": [],
+ "sysmon/29": [],
+ "sysmon/255": [],
+ "system/12": [],
+ "system/13": [],
+ "system/41": [],
+ "system/104": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "system/1014": [],
+ "system/1074": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "system/5827": [],
+ "system/6005": [],
+ "system/6006": [],
+ "system/6008": [],
+ "system/6013": [],
+ "system/7000": [],
+ "system/7009": [],
+ "system/7031": [],
+ "system/7034": [],
+ "system/7036": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "system/7040": [],
+ "system/7045": [
+  "de",
+  "es",
+  "fr"
+ ],
+ "system/20001": [],
+ "task-scheduler/100": [],
+ "task-scheduler/102": [],
+ "task-scheduler/106": [],
+ "task-scheduler/129": [],
+ "task-scheduler/140": [],
+ "task-scheduler/141": [],
+ "task-scheduler/142": [],
+ "task-scheduler/200": [],
+ "task-scheduler/201": [],
+ "windows-powershell/400": [],
+ "windows-powershell/403": [],
+ "windows-powershell/600": [],
+ "windows-powershell/800": [],
+ "winrm/6": [],
+ "winrm/91": [],
+ "winrm/169": [],
+ "wmi-activity/5857": [],
+ "wmi-activity/5858": [],
+ "wmi-activity/5860": [],
+ "wmi-activity/5861": []
+}

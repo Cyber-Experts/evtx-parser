@@ -76,7 +76,7 @@ export function ChannelLanding({
           {c.events.map((e) => (
             <li key={e.id}>
               <Link
-                href={`/${locale}/event-id/${e.id}`}
+                href={`/${locale}/events/${channel}/${e.id}`}
                 className="surface surface-interactive group flex h-full items-baseline gap-3 px-4 py-3"
               >
                 <span className="shrink-0 rounded-md bg-uv-50 px-1.5 font-mono text-sm font-medium text-uv-700 dark:bg-uv-400/10 dark:text-uv-300">

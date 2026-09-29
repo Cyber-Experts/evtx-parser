@@ -1,0 +1,31 @@
+title: "Remotedesktopdienste: Sitzungsanmeldung erfolgreich"
+shortTitle: Sitzungsanmeldung erfolgreich
+summary: >-
+  RDP-Event-ID 21 bestätigt eine Sitzungsanmeldung auf dem Ziel: Benutzer, Sitzungs-ID und
+  Quell-Netzwerkadresse („LOCAL“ bei Konsolenanmeldungen).
+description: |-
+  Event 21 wird vom Local Session Manager geschrieben, wenn eine Benutzersitzung erstellt und die Anmeldung abgeschlossen wird — für Remotedesktop ebenso wie für lokale Konsolenanmeldungen. Das Feld `Address` unterscheidet beide: eine IP-Adresse bei RDP, `LOCAL` bei der Konsole.
+
+  Während 1149 nur zeigt, dass eine RDP-Verbindung durchgekommen ist, zeigt 21, dass für den Benutzer tatsächlich eine Desktop-Sitzung erstellt wurde. Typischerweise folgen 22 (Shell-Start) und bei Sitzungsende 23 (Abmeldung) oder 24 (Trennung). Eine Wiederverbindung mit einer bestehenden Sitzung wird stattdessen als 25 protokolliert.
+logging:
+  requirement: >-
+    Keine — der Kanal Microsoft-Windows-TerminalServices-LocalSessionManager/Operational ist
+    standardmäßig aktiviert.
+  notes: Die Felder liegen unter UserData/EventXML (`User`, `SessionID`, `Address`).
+fields:
+  - name: User
+    description: Angemeldetes Konto in der Form `DOMAIN\user`.
+  - name: SessionID
+    description: Nummer der Terminaldienste-Sitzung; verknüpft 21, 22, 23, 24 und 25 derselben Sitzung.
+  - name: Address
+    description: Quell-IP-Adresse des RDP-Clients oder `LOCAL` bei Konsolenanmeldungen.
+benign:
+  - Interaktive Konsolenanmeldungen und routinemäßige RDP-Anmeldungen von Administratoren und Benutzern.
+  - Jump-Host- und VDI-Umgebungen mit vielen RDP-Sitzungen pro Tag.
+attacker:
+  - Hands-on-Keyboard-Zugriff per RDP mit gestohlenen Anmeldeinformationen, von externen IPs oder internen Hosts, die sonst kein RDP nutzen.
+  - Getunneltes RDP, bei dem Address `127.0.0.1` oder `::1` zeigt.
+investigation:
+  - Mit Security 4624 LogonType 10 in derselben Sekunde kombinieren, um Anmelde-ID und Authentifizierungsdetails zu erhalten.
+  - Sitzungen nach SessionID gruppieren, um die Dauer zu messen (21 → 23/24).
+  - Address mit den unmittelbar vorangehenden 1149-Einträgen vergleichen; sie sollten übereinstimmen.

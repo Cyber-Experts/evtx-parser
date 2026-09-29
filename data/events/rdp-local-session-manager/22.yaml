@@ -1,0 +1,40 @@
+id: 22
+channel: rdp-local-session-manager
+provider: Microsoft-Windows-TerminalServices-LocalSessionManager
+title: "Remote Desktop Services: Shell start notification received"
+shortTitle: Shell start
+category: remote-access
+summary: >-
+  RDP event 22 is logged when the user's shell (Explorer) starts in a new session, right after
+  the session logon event 21.
+description: |-
+  Event 22 records that the desktop shell started for a newly logged-on session. It normally follows event 21 within seconds and carries the same user, session ID and source address.
+
+  It adds little beyond 21, but its presence confirms the session reached a usable desktop. A 21 without a following 22 can indicate a session that was closed or failed during logon.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the LocalSessionManager/Operational channel is enabled by default.
+fields:
+  - name: User
+    description: Account whose shell started.
+  - name: SessionID
+    description: Session number, same as in the preceding 21.
+  - name: Address
+    description: Source IP of the RDP client or `LOCAL`.
+benign:
+  - Every normal interactive or RDP logon.
+attacker:
+  - Same significance as 21 — an interactive desktop became available to whoever logged on.
+investigation:
+  - Use it with 21 to confirm a full interactive session rather than an aborted logon.
+  - The Address should match 21 and the preceding 1149.
+related:
+  - rdp-local-session-manager/21
+  - rdp-local-session-manager/23
+  - rdp-remote-connection-manager/1149
+attack:
+  - T1021.001
+references:
+  - title: JPCERT/CC — Detecting Lateral Movement through Tracking Event Logs
+    url: https://www.jpcert.or.jp/english/pub/sr/ir_research.html

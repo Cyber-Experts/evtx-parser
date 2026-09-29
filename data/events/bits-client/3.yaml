@@ -1,0 +1,64 @@
+id: 3
+channel: bits-client
+provider: Microsoft-Windows-Bits-Client
+title: The BITS service created a new job
+shortTitle: Job created
+category: network
+summary: >-
+  BITS event 3 records the creation of a BITS transfer job: job title, job ID, owner and, on
+  newer builds, the process that created it.
+description: |-
+  Event 3 is written when a program asks the Background Intelligent Transfer Service to create a transfer job — through `bitsadmin`, the `Start-BitsTransfer` cmdlet or the BITS COM API. It records the job title (`jobTitle`), its GUID (`jobId`) and the owner account (`jobOwner`); newer versions of the event add the creating process (`processPath`, `processId`).
+
+  BITS downloads files in the background on behalf of Windows and many applications, so job creation is routine. It is also a favorite for attackers: the download is done by the `svchost.exe` hosting BITS rather than by the attacker's process, it survives reboots, and jobs can be configured to run a command when they finish.
+
+  Event 3 does not include the URL. Follow the `jobId` to 59 and 60 (same job, with the remote URL) and to 4 (job complete).
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Microsoft-Windows-Bits-Client/Operational channel is enabled by default.
+  notes: >-
+    Older versions of the event only carry generic `string` fields with the job name and owner.
+    The `processPath` and `processId` fields appear in newer versions of the event (Windows 10 era).
+fields:
+  - name: jobTitle
+    description: >-
+      Display name given to the job by the creating program. Legitimate software uses descriptive
+      names; `bitsadmin` jobs carry whatever name the operator typed.
+  - name: jobId
+    description: GUID of the job. Pivot on it to 59, 60 and 4.
+  - name: jobOwner
+    description: Account that owns the job (`DOMAIN\user` or `NT AUTHORITY\SYSTEM`).
+  - name: processPath
+    description: >-
+      Image of the process that created the job, e.g. `C:\Windows\System32\bitsadmin.exe` or
+      `powershell.exe`. Newer event versions only.
+  - name: processId
+    description: Process ID of the creating process. Newer event versions only.
+benign:
+  - Windows components and Microsoft software downloading updates in the background.
+  - Third-party updaters (browsers, vendor agents) that use BITS for their downloads.
+attacker:
+  - Payload download with `bitsadmin /transfer` or `Start-BitsTransfer` to evade process-based network controls.
+  - Persistent BITS jobs configured to run a command on completion (`bitsadmin /SetNotifyCmdLine`).
+  - Exfiltration through upload jobs to an attacker-controlled server.
+investigation:
+  - Flag jobs whose processPath is `bitsadmin.exe`, `powershell.exe` or another script host, or whose title is unusual.
+  - Follow jobId to 59/60 for the remote URL and status, and to 4 for completion.
+  - Check `bitsadmin /list /allusers /verbose` (or `Get-BitsTransfer -AllUsers`) on a live host for jobs still queued and any notify command line.
+  - Look for the downloaded file on disk (Sysmon 11) and for its execution afterward (Security 4688, Sysmon 1).
+related:
+  - bits-client/4
+  - bits-client/59
+  - bits-client/60
+  - sysmon/11
+  - sysmon/1
+  - security/4688
+attack:
+  - T1197
+  - T1105
+references:
+  - title: Microsoft Learn — Background Intelligent Transfer Service
+    url: https://learn.microsoft.com/en-us/windows/win32/bits/background-intelligent-transfer-service-portal
+  - title: MITRE ATT&CK — BITS Jobs (T1197)
+    url: https://attack.mitre.org/techniques/T1197/

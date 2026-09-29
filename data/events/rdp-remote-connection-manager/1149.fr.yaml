@@ -1,0 +1,37 @@
+title: "Services Bureau à distance : l'authentification de l'utilisateur a réussi"
+shortTitle: Connexion authentifiée
+summary: >-
+  L'événement RDP 1149 consigne une connexion Bureau à distance entrante : utilisateur, domaine,
+  IP source. Il atteste la connexion, pas l'ouverture de session.
+description: |-
+  L'événement 1149 est écrit sur le **serveur RDP** lorsque la connexion Bureau à distance d'un client franchit l'étape réseau. Malgré le texte du message « User authentication succeeded », il ne prouve pas qu'une session de bureau a été ouverte : avec l'authentification au niveau du réseau (NLA), il signifie que les identifiants ont été acceptés au niveau réseau ; sans NLA, il peut être consigné dès l'établissement de la connexion, avant toute vérification de mot de passe.
+
+  Sa valeur tient à la source : `Param3` contient l'adresse IP du client, avec le nom d'utilisateur et le domaine envoyés par le client. Ce journal est activé par défaut et survit souvent lorsque le journal Sécurité a tourné ou a été effacé : c'est donc fréquemment la meilleure trace restante de qui s'est connecté en RDP et d'où.
+
+  Confirmez l'ouverture de session effective avec le 4624 Sécurité (LogonType 10, ou 7 pour une reconnexion à une session verrouillée) et les événements LocalSessionManager 21, 22 ou 25.
+logging:
+  requirement: >-
+    Aucune — le canal Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational est
+    activé par défaut sur les hôtes qui acceptent les connexions Bureau à distance.
+  notes: >-
+    Les données se trouvent sous UserData/EventXML sous la forme `Param1`, `Param2` et `Param3`,
+    et non dans des champs EventData nommés.
+fields:
+  - name: Param1
+    description: Nom d'utilisateur fourni par le client.
+  - name: Param2
+    description: Domaine fourni par le client (peut être vide, ou le nom de l'ordinateur pour les comptes locaux).
+  - name: Param3
+    description: Adresse IP source du client RDP. En présence d'une passerelle RDP ou d'un tunnel, il s'agit de la passerelle ou de l'extrémité du tunnel.
+benign:
+  - Administrateurs et utilisateurs se connectant en RDP depuis leurs postes habituels ou des serveurs de rebond.
+  - Équipes de support à distance et supervision testant la disponibilité RDP avec des identifiants.
+attacker:
+  - Accès RDP externe avec des identifiants valides ou obtenus par force brute — IP sources publiques dans Param3.
+  - Mouvement latéral en RDP au sein du réseau, souvent depuis un serveur ou un poste qui ne se connecte jamais ailleurs en RDP.
+  - RDP tunnelisé via un hôte compromis (par exemple avec SSH ou des outils de proxy) — Param3 est alors une adresse locale comme `127.0.0.1` ou `::1`.
+investigation:
+  - Listez les valeurs de Param3 par utilisateur et signalez les IP jamais vues, les IP publiques et les adresses de bouclage.
+  - Confirmez chaque connexion avec le 4624 Sécurité de type 10 et les LocalSessionManager 21/25 au même moment ; un 1149 sans ouverture de session peut être une tentative échouée ou abandonnée.
+  - Utilisez ce journal pour combler les trous lorsque le journal Sécurité a été effacé (1102) — c'est un fichier distinct.
+  - Sur l'hôte source, le journal RDPClient (1024, 1102) montre les connexions sortantes vers ce serveur.

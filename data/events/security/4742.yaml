@@ -1,0 +1,78 @@
+id: 4742
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A computer account was changed
+shortTitle: Computer account changed
+category: account
+summary: >-
+  Security event 4742 is logged on a domain controller when a computer account is changed:
+  password, SPNs, DNS name, delegation or account flags.
+description: |-
+  Event 4742 is written on the domain controller that processed the change each time a computer object is modified, one event per change. `Subject*` identifies who made the change and `Target*` the computer account. Attributes that did not change are shown as `-`; a change to an attribute outside the event's list (for example the Description or the object's ACL) produces a 4742 in which everything is `-`.
+
+  Most 4742 events are routine: computers rotate their machine account password every 30 days by default (`PasswordLastSet`), and a newly joined machine updates its own `DnsHostName` and `ServicePrincipalNames` after rebooting — in that case the subject and target are the same computer account.
+
+  The interesting cases involve delegation and flags: `UserAccountControl` showing Trusted For Delegation (`%%2093`) enabled, a new `AllowedToDelegateTo` list, or a DC-only flag appearing on a regular computer. Resource-based constrained delegation is configured through the `msDS-AllowedToActOnBehalfOfOtherIdentity` attribute, which is not listed in 4742 — use 5136 for that.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Computer Account Management
+    (Success).
+  notes: >-
+    Only generated on domain controllers. This subcategory is not part of the Windows default
+    audit policy table published by Microsoft, although many domain controller baselines (Microsoft
+    security baselines, CIS) enable it; confirm with `auditpol /get /subcategory:"Computer Account Management"`. If a user-only flag is set on a computer account, the account becomes a user-type
+    account and later changes are logged as 4738.
+fields:
+  - name: SubjectUserName
+    description: Account that made the change. The computer itself (`HOST$`) for self-updates after a join or password rotation.
+  - name: SubjectLogonId
+    description: Logon session of the subject on the DC; correlate with 4624.
+  - name: TargetUserName
+    description: Computer account that was changed.
+  - name: TargetSid
+    description: SID of the changed computer account.
+  - name: SamAccountName
+    description: New account name if it changed (also logged as 4781).
+  - name: PasswordLastSet
+    description: New machine password timestamp. Changes much more frequent than the rotation interval are unusual.
+  - name: DnsHostName
+    description: New DNS host name if it changed.
+  - name: ServicePrincipalNames
+    description: Complete new SPN list if it changed (the full list, not the difference).
+  - name: AllowedToDelegateTo
+    description: New list of SPNs for constrained delegation, or `<value not set>` if cleared.
+  - name: PrimaryGroupId
+    description: New primary group RID; `515` for member computers, `516` for DCs, `521` for RODCs.
+  - name: OldUacValue
+    description: SAM account flags before the change.
+  - name: NewUacValue
+    description: SAM account flags after the change, e.g. `0x80` to `0x2080` when unconstrained delegation is enabled on a workstation account.
+  - name: UserAccountControl
+    description: Flags switched on or off, as message codes such as `%%2093` (Trusted For Delegation enabled).
+benign:
+  - Machine account password rotation (every 30 days by default).
+  - Newly joined computers updating their DNS host name and SPNs after the first reboot.
+  - Administrators configuring constrained delegation for application servers.
+attacker:
+  - Enabling unconstrained delegation on a computer the attacker controls to capture forwarded TGTs.
+  - Adding or changing SPNs and delegation targets on a computer account under attacker control.
+  - Renaming a computer account as part of noPac (with 4781).
+investigation:
+  - Filter out self-changes (subject equals target) and routine password rotation, then review the rest.
+  - Alert on Trusted For Delegation or AllowedToDelegateTo changes on any computer that is not a DC.
+  - Pull 5136 events for the same object to see attributes not covered by 4742, such as RBCD settings.
+related:
+  - security/4741
+  - security/4743
+  - security/4781
+  - security/4738
+  - security/4769
+  - security/5136
+attack:
+  - T1098
+references:
+  - title: "Microsoft Learn — 4742(S): A computer account was changed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4742
+  - title: Microsoft Learn — Audit Computer Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-computer-account-management

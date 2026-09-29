@@ -1,0 +1,79 @@
+title: Prozesserstellung (Process creation)
+shortTitle: Prozesserstellung
+summary: >-
+  Sysmon-Event-ID 1 protokolliert jeden neuen Prozess mit Befehlszeile, Hashes, Elternprozess und
+  ProcessGuid zur Korrelation. Das Rückgrat des Endpoint-Huntings.
+description: |-
+  Sysmon-Event 1 wird bei jedem Prozessstart geschrieben. Verglichen mit Security-Event 4688 ist es standardmäßig reichhaltiger: die vollständige `CommandLine`, `ParentImage` und `ParentCommandLine`, Datei-Hashes, PE-Versionsinformationen (`OriginalFileName`, `Description`, `Company`) und das `IntegrityLevel` kommen in einem einzigen Eintrag, ohne zusätzliche Überwachungsrichtlinie.
+
+  Das Schlüsselfeld ist `ProcessGuid`. Prozess-IDs werden wiederverwendet, die GUID ist aber pro Prozessinstanz eindeutig und verknüpft diesen Eintrag mit allem, was der Prozess danach in Sysmon getan hat: Netzwerkverbindungen (3), geladene Images (7), Dateierstellungen (11), Registry-Schreibvorgänge (12–14), DNS-Abfragen (22) und Beendigung (5). `ParentProcessGuid` führt den Baum nach oben.
+
+  `LogonId` entspricht der `TargetLogonId` des Security-4624, das die Sitzung erzeugt hat, und verknüpft einen Prozess so mit Anmeldetyp und Quell-IP. Auf stark genutzten Hosts ist Event 1 volumenstark; die meisten Konfigurationen schließen bekannte System- und Software-Update-Prozesse aus.
+logging:
+  requirement: >-
+    Sysmon installiert; die Prozesserstellung wird protokolliert, sobald Sysmon läuft. Filterung
+    über Regeln `<ProcessCreate onmatch="include|exclude">` in der Sysmon-Konfiguration.
+  notes: >-
+    `Hashes` wird nur befüllt, wenn `HashAlgorithms` konfiguriert ist (MD5, SHA1, SHA256, IMPHASH
+    oder *). `ParentUser` kam in späteren Sysmon-Versionen hinzu; ältere Protokolle enthalten es
+    nicht. Die Events liegen in Microsoft-Windows-Sysmon/Operational.
+fields:
+  - name: UtcTime
+    description: Startzeit des Prozesses in UTC, wie von Sysmon erfasst (unabhängig vom TimeCreated des Events).
+  - name: ProcessGuid
+    description: Eindeutige ID dieser Prozessinstanz. Darauf über alle Sysmon-Events hinweg pivotieren.
+  - name: ProcessId
+    description: PID des neuen Prozesses. Wird von Windows wiederverwendet, daher zur Korrelation ProcessGuid bevorzugen.
+  - name: Image
+    description: Vollständiger Pfad des Programms. Auf Namen von Systemprogrammen achten, die aus benutzerbeschreibbaren Ordnern laufen.
+  - name: OriginalFileName
+    description: >-
+      Interner Dateiname aus der PE-Versionsressource. Weicht er vom Dateinamen in `Image` ab (etwa
+      `Image` ist `svchost.exe`, OriginalFileName aber `PsExec.exe`), wurde die Binärdatei
+      umbenannt.
+  - name: CommandLine
+    description: Vollständige Befehlszeile. Das wertvollste Feld, um kodiertes PowerShell, LOLBins und Tool-Argumente zu erkennen.
+  - name: CurrentDirectory
+    description: Arbeitsverzeichnis des Prozesses; temporäre oder öffentliche Ordner verdienen einen Blick.
+  - name: User
+    description: Konto, unter dem der Prozess läuft, in der Form DOMAIN\user.
+  - name: LogonId
+    description: Anmeldesitzung des Prozesses; entspricht TargetLogonId in Security-4624.
+  - name: IntegrityLevel
+    description: >-
+      Integritätsstufe des Prozesstokens, z. B. `Low`, `Medium`, `High` (erhöhter Administrator)
+      oder `System`.
+  - name: Hashes
+    description: >-
+      Kommagetrennte Hashes des Images, z. B. `SHA256=...,IMPHASH=...`, abhängig von
+      `HashAlgorithms`. Für Reputationsabfragen und die Verbreitung in der gesamten Umgebung nutzen.
+  - name: ParentProcessGuid
+    description: ProcessGuid des Elternprozesses. Damit den Prozessbaum rekonstruieren.
+  - name: ParentImage
+    description: Pfad des Elternprozesses. Ungewöhnliche Eltern-Kind-Paare sind eine klassische Erkennung.
+  - name: ParentCommandLine
+    description: Befehlszeile des Elternprozesses, nützlich wenn der Elternprozess ein Skript-Host oder Dienst-Wrapper ist.
+  - name: ParentUser
+    description: Konto des Elternprozesses (neuere Sysmon-Versionen).
+benign:
+  - Software-Updater, Installer (`msiexec.exe`) und Management-Agenten, die viele kurzlebige Prozesse starten.
+  - Administratoren, die `cmd.exe`, `powershell.exe` und integrierte Tools aus einer erhöhten Konsole ausführen.
+  - Von `svchost.exe` gestartete geplante Aufgaben und von `services.exe` gestartete Dienste.
+attacker:
+  - >-
+    Office-Anwendungen, Browser oder PDF-Reader, die `cmd.exe`, `powershell.exe`, `wscript.exe`,
+    `mshta.exe` oder `rundll32.exe` starten, nachdem ein Benutzer ein bösartiges Dokument geöffnet hat.
+  - PowerShell mit `-EncodedCommand`, `-nop -w hidden` oder Download-Cradles in der CommandLine.
+  - >-
+    Artefakte von Remote-Ausführung wie `wmiprvse.exe`, das `cmd.exe` startet, `services.exe`, das
+    eine zufällige Binärdatei aus `C:\Windows` startet, oder Kindprozesse von `PSEXESVC.exe`.
+  - Umbenannte Tools, bei denen `OriginalFileName` nicht zum Namen in `Image` passt.
+  - Befehle zum Credential Dumping wie `rundll32.exe comsvcs.dll, MiniDump` gegen LSASS.
+investigation:
+  - Den Prozessbaum über ProcessGuid und ParentProcessGuid statt über PIDs rekonstruieren.
+  - "`Hashes` auf Reputation prüfen und zählen, wie viele Hosts denselben Hash ausgeführt haben."
+  - >-
+    Über ProcessGuid auf die Events 3, 11, 13 und 22 pivotieren, um zu sehen, womit sich der
+    Prozess verbunden, was er geschrieben und was er aufgelöst hat.
+  - LogonId mit Security-4624 abgleichen, um zu erfahren, wie und von wo sich der Benutzer angemeldet hat.
+  - Pfad in `Image`, `OriginalFileName` und `Company` vergleichen, um getarnte Binärdateien zu entlarven.

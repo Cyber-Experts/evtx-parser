@@ -1,0 +1,60 @@
+id: 4765
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: SID History was added to an account
+shortTitle: SID History added
+category: account
+summary: >-
+  Security event 4765 is logged on a domain controller when SID History is added to an
+  account — normal in migrations, a privilege escalation path otherwise.
+description: |-
+  Event 4765 is written on a domain controller when one or more SIDs are added to an account's `sIDHistory` attribute. SID History exists for domain migrations: a user moved to a new domain keeps the SID of their old account so that resources still granting access to the old SID keep working. When the user logs on, every SID in the history is added to the access token.
+
+  That is exactly why it is abused. A privileged SID (for example Domain Admins or Enterprise Admins of the same or another domain) in the SID History of an ordinary account makes that account privileged without any visible group membership. The event shows the subject that made the change, the target account, the source account the SIDs came from and the **SID List** that was added.
+
+  Outside an active migration project this event should not occur at all. Also note that writing `sIDHistory` through other means — for example directly from a rogue or compromised domain controller — may not produce 4765, so review `SidHistory` values in 4738, 4742 and 5136 as well.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Enabled for Success in the default Windows audit policy.
+  notes: >-
+    Only generated on domain controllers. Microsoft does not publish a sample of this event; the
+    message also contains Source Account and SID List sections describing where the added SIDs
+    came from.
+fields:
+  - name: SubjectUserName
+    description: Account that added the SID History, typically a migration service account.
+  - name: SubjectLogonId
+    description: Logon session of the subject; correlate with 4624.
+  - name: TargetUserName
+    description: Account that received the SID History.
+  - name: TargetDomainName
+    description: Domain of the target account.
+  - name: TargetSid
+    description: SID of the target account.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Domain or forest migrations with tools such as the Active Directory Migration Tool (ADMT), run by a known service account during a planned window.
+attacker:
+  - SID History injection — adding the SID of a privileged group or account to a controlled account to gain its rights while staying out of privileged group listings.
+investigation:
+  - Treat every 4765 outside a documented migration as an incident and identify the subject and source host.
+  - Check whether the added SIDs belong to privileged groups (RIDs 512, 518, 519 or the Builtin Administrators SID).
+  - Search 4738 and 5136 for SidHistory changes on other accounts that bypassed this event.
+  - Review logons (4624, 4672) of the target account after the change.
+related:
+  - security/4766
+  - security/4738
+  - security/4742
+  - security/4624
+  - security/4672
+  - security/5136
+attack:
+  - T1134.005
+references:
+  - title: "Microsoft Learn — 4765(S): SID History was added to an account"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4765
+  - title: Microsoft Learn — Audit User Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-user-account-management

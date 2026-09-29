@@ -1,0 +1,35 @@
+title: Pipeline wird ausgeführt (Executing Pipeline)
+shortTitle: Modulprotokollierung
+summary: >-
+  PowerShell-Event-ID 4103 (Modulprotokollierung) erfasst die Pipeline-Ausführung: jeden
+  aufgerufenen Befehl mit Parameterbindungen und Host-Kontext.
+description: |-
+  Event 4103 stammt aus der PowerShell-Modulprotokollierung. Statt des Skript-Quelltexts (das ist 4104) protokolliert es, **was in der Pipeline ausgeführt wurde**: jeden Befehl, die an seine Parameter gebundenen Werte und Kontext zu Host-Prozess und Benutzer.
+
+  Damit ergänzt es 4104. Verschleierte Skripte, die als Quelltext schwer zu lesen sind, werden hier oft klar, weil die tatsächlichen Cmdlet-Aufrufe und ihre aufgelösten Argumente protokolliert werden. Es ist aber auch lauter: Jeder Befehl in jeder Pipeline wird für die konfigurierten Module erfasst.
+logging:
+  requirement: >-
+    Computer Configuration > Administrative Templates > Windows Components > Windows PowerShell >
+    Turn on Module Logging (Modulprotokollierung aktivieren), mit den zu protokollierenden
+    Modulnamen (`*` für alle Module).
+fields:
+  - name: ContextInfo
+    description: >-
+      Ausführungskontext: Hostname und -version, Host-Anwendung (die Befehlszeile des
+      PowerShell-Prozesses), Engine-Version, Runspace-ID, Benutzer und der ausgeführte Befehl.
+  - name: Payload
+    description: >-
+      Die Aufrufdetails, z. B. `CommandInvocation(Invoke-WebRequest): "Invoke-WebRequest"`, gefolgt
+      von Zeilen `ParameterBinding(...)` mit jedem Parameterwert.
+  - name: UserData
+    description: Zusätzliche Benutzerdaten, meist leer.
+benign:
+  - Administrative Skripte und Management-Tools, die Cmdlets ausführen.
+  - Sehr hohes Volumen von Monitoring- oder Konfigurationsagenten, sobald die Modulprotokollierung alle Module abdeckt.
+attacker:
+  - Parameterwerte, die die Absicht des Angreifers offenlegen — Download-URLs, Dateipfade, als Argumente übergebene Anmeldeinformationen.
+  - Cmdlets wie `Invoke-WebRequest`, `Start-BitsTransfer`, `Add-MpPreference -ExclusionPath` mit ihren tatsächlichen Argumenten.
+investigation:
+  - Die Zeile HostApplication in ContextInfo lesen, um die PowerShell-Befehlszeile zu finden, die die Sitzung gestartet hat.
+  - Payload nach ParameterBinding-Werten mit URLs, IPs oder verdächtigen Pfaden durchsuchen.
+  - Mit 4104 im selben Zeitraum kombinieren, um den Quelltext zu sehen, der diese Aufrufe erzeugt hat.

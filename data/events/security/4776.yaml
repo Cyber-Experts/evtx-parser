@@ -1,0 +1,76 @@
+id: 4776
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: The computer attempted to validate the credentials for an account
+shortTitle: NTLM credential validation
+category: ntlm
+summary: >-
+  Event 4776 records an NTLM credential check: on the domain controller for domain accounts, on
+  the local machine for local accounts.
+description: |-
+  Event 4776 is written by the computer that is **authoritative for the account** when it validates credentials with NTLM: the domain controller for domain accounts, or the local machine for local accounts (SAM). It fires for successes and failures, and the `Status` field says which.
+
+  It fills the gap left by Kerberos events: NTLM logons do not produce 4768/4769, so on a DC 4776 is the only record of an NTLM authentication. The `Workstation` field is the client-supplied name of the source computer — there is no IP address, so map it back through 4624 on the target server.
+
+  Pass-the-hash and relay attacks use NTLM, so bursts of NTLM validations for privileged accounts, or from unexpected workstations, deserve attention.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Logon > Audit Credential Validation (Success,
+    Failure). Success is audited by default on servers; enable Failure explicitly.
+fields:
+  - name: PackageName
+    description: Authentication package, normally `MICROSOFT_AUTHENTICATION_PACKAGE_V1_0`.
+  - name: TargetUserName
+    description: Account whose credentials were validated.
+  - name: Workstation
+    description: Name of the client computer as supplied in the NTLM exchange (spoofable, may be empty).
+  - name: Status
+    description: Result (NTSTATUS).
+    values:
+      - value: "0x0"
+        meaning: Success.
+      - value: "0xC0000064"
+        meaning: User name does not exist.
+      - value: "0xC000006A"
+        meaning: Wrong password.
+      - value: "0xC000006F"
+        meaning: Logon outside allowed hours.
+      - value: "0xC0000070"
+        meaning: Workstation restriction.
+      - value: "0xC0000071"
+        meaning: Password expired.
+      - value: "0xC0000072"
+        meaning: Account disabled.
+      - value: "0xC0000193"
+        meaning: Account expired.
+      - value: "0xC0000224"
+        meaning: User must change password at next logon.
+      - value: "0xC0000234"
+        meaning: Account locked out.
+benign:
+  - Applications and devices that only speak NTLM (older NAS, printers, some web apps).
+  - Logons by IP address instead of host name, which fall back to NTLM.
+  - Local account logons on standalone machines.
+attacker:
+  - "Pass-the-hash — NTLM validations for admin accounts from workstations that normally use Kerberos."
+  - "NTLM password spraying — many accounts failing with `0xC000006A` from the same Workstation name."
+  - NTLM relay — validations for an account arriving from a machine that is not where the user is.
+investigation:
+  - On DCs, group by TargetUserName and Workstation; look for privileged accounts authenticating via NTLM.
+  - For failures, compare `0xC0000064` versus `0xC000006A` counts to separate enumeration from guessing.
+  - Find the matching 4624 (AuthenticationPackageName NTLM) on member servers to recover the source IP.
+  - Consider NTLM auditing (NTLM operational log 8001–8004) to see which servers still receive NTLM.
+related:
+  - security/4624
+  - security/4625
+  - security/4768
+  - security/4771
+  - ntlm/8004
+attack:
+  - T1550.002
+  - T1110
+  - T1110.003
+references:
+  - title: "Microsoft Learn — 4776(S, F): The computer attempted to validate the credentials for an account"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4776

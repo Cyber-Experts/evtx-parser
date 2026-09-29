@@ -1,0 +1,52 @@
+id: 7031
+channel: system
+provider: Service Control Manager
+title: The service terminated unexpectedly and a corrective action will be taken
+shortTitle: Service crashed (recovery action)
+category: service
+summary: >-
+  System event 7031: a service terminated unexpectedly and the SCM will apply a recovery action. Can reveal security tools being killed.
+description: |-
+  Event 7031 is written when a service process ends without the service reporting a stop, and the service has a **recovery action** configured. `param1` is the service display name, `param2` how many times this has happened, `param3` the delay in milliseconds before the action, and `param4` the action itself (for example restarting the service).
+
+  Its sibling **7034** is logged for the same situation when no recovery action is configured. Both mean the service process died: a crash, an out-of-memory condition, or something killing it.
+
+  For defenders, the important case is a security product or logging service dying: tools that terminate EDR processes, or attackers using `taskkill /f` on an agent, leave 7031/7034 rather than a clean 7036 `stopped`. Many agents restart themselves, so a single 7031 followed by 7036 `running` may be the only trace.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log.
+fields:
+  - name: param1
+    description: Display name of the service that terminated.
+  - name: param2
+    description: Number of times the service has terminated unexpectedly.
+  - name: param3
+    description: Delay before the corrective action, in milliseconds.
+  - name: param4
+    description: Corrective action, e.g. restarting the service.
+benign:
+  - Buggy or overloaded services crashing and being restarted.
+  - Services killed during software updates.
+attacker:
+  - >-
+    Security agents, Sysmon or backup services killed with `taskkill /f`, process-killing tools
+    or vulnerable drivers.
+  - Exploitation of a service that crashes it (repeated 7031 for the same service).
+investigation:
+  - Check whether the service is a security, logging or backup component.
+  - Look at Application 1000 (crash) for the same process; no crash record suggests it was killed.
+  - Search process creation (4688, Sysmon 1) and new drivers (7045) just before for the killer.
+related:
+  - system/7034
+  - system/7036
+  - system/7045
+  - application/1000
+  - security/4688
+attack:
+  - T1685
+  - T1489
+references:
+  - title: MITRE ATT&CK — Disable or Modify Tools (T1685)
+    url: https://attack.mitre.org/techniques/T1685/
+  - title: Microsoft Learn — Service Control Manager
+    url: https://learn.microsoft.com/en-us/windows/win32/services/service-control-manager

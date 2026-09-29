@@ -1,0 +1,68 @@
+id: 7
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: Image loaded
+shortTitle: Image (DLL) loaded
+category: process
+summary: >-
+  Sysmon event 7 logs a DLL or other module loaded into a process, with hashes and signature.
+  Used to catch DLL side-loading and unusual module loads.
+description: |-
+  Sysmon event 7 records a module being mapped into a process: the host process (`Image`), the loaded file (`ImageLoaded`), its hashes, version information and signature status.
+
+  Logging every module load would produce enormous volume, so the event is off by default and must be targeted. Typical rules watch for specific DLLs loaded by unexpected processes (for example the PowerShell automation DLL loaded outside PowerShell, or `dbghelp.dll` / `dbgcore.dll` loaded by a tool that then touches LSASS), and for unsigned DLLs loaded from user-writable folders.
+
+  For DLL side-loading, the telltale pattern is a signed legitimate executable running from an unusual folder and loading an unsigned DLL from the same folder.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Sysmon installed with image load monitoring enabled (`-l` switch or an `<ImageLoad>` rule in
+    the configuration). Use narrow include rules; logging all loads is very noisy.
+fields:
+  - name: ProcessGuid
+    description: Process that loaded the module; pivot to its event 1.
+  - name: Image
+    description: Executable of the loading process.
+  - name: ImageLoaded
+    description: Full path of the loaded module.
+  - name: OriginalFileName
+    description: Internal name of the module from its version resource; reveals renamed DLLs.
+  - name: Hashes
+    description: Hashes of the loaded module.
+  - name: Signed
+    description: "`true` or `false`: whether the module is signed."
+  - name: Signature
+    description: Signer of the module.
+  - name: SignatureStatus
+    description: Validation result of the signature, e.g. `Valid`.
+  - name: User
+    description: Account of the loading process (newer Sysmon versions).
+benign:
+  - Applications loading their own DLLs from their install folders.
+  - Security and monitoring products injecting their modules into many processes.
+attacker:
+  - >-
+    DLL side-loading — a signed executable copied to `ProgramData` or `%TEMP%` loading an
+    unsigned DLL placed next to it.
+  - "`System.Management.Automation.dll` loaded into a process that is not PowerShell (unmanaged PowerShell)."
+  - "`clr.dll` loaded into unusual native processes, a sign of in-memory .NET assembly execution."
+  - Credential dumping tools loading `dbghelp.dll` or `dbgcore.dll` before opening LSASS (event 10).
+investigation:
+  - Check `Signed` and path of `ImageLoaded` against the path of `Image`.
+  - Pivot on ProcessGuid to event 1 (parent, command line) and event 10 (process access).
+  - Count the hash of `ImageLoaded` across the fleet; one-off DLLs in common product folders stand out.
+related:
+  - sysmon/1
+  - sysmon/6
+  - sysmon/10
+  - code-integrity/3033
+attack:
+  - T1574.001
+  - T1129
+  - T1620
+  - T1059.001
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Hijack Execution Flow, DLL (T1574.001)
+    url: https://attack.mitre.org/techniques/T1574/001/

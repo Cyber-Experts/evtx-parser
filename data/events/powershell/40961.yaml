@@ -1,0 +1,38 @@
+id: 40961
+channel: powershell
+provider: Microsoft-Windows-PowerShell
+title: PowerShell console is starting up
+shortTitle: Console starting
+category: powershell
+summary: >-
+  PowerShell event 40961 is logged when a PowerShell host starts, giving a timestamp for each
+  PowerShell launch even without script logging.
+description: |-
+  Event 40961 is written by the PowerShell Operational log when a PowerShell console or host starts, and 40962 follows when it is ready for input. They carry little data, but they are logged by default, so they show **when** PowerShell ran even on systems with no script block or module logging.
+
+  In an investigation they are timestamps to pivot from: process creation logs, prefetch and the classic Windows PowerShell log (400) fill in who ran it and with which command line.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Microsoft-Windows-PowerShell/Operational channel is enabled by default.
+fields:
+  - name: Message
+    description: >-
+      Startup message; the record has little else (user and process come from the event's System
+      section: Security UserID and Execution ProcessID).
+benign:
+  - Every interactive PowerShell window and many management agents launching PowerShell.
+attacker:
+  - PowerShell started on hosts or by users that never use it — a lead even when content logging is off.
+investigation:
+  - Use the event's ProcessID and time to find the matching process creation (4688 / Sysmon 1) and its command line.
+  - Check the classic Windows PowerShell log 400 at the same time for HostApplication and EngineVersion.
+related:
+  - powershell/40962
+  - windows-powershell/400
+  - powershell/4104
+attack:
+  - T1059.001
+references:
+  - title: Microsoft Learn — about_Logging_Windows
+    url: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_logging_windows

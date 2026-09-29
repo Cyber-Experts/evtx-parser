@@ -1,0 +1,64 @@
+id: 4946
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: "A change has been made to Windows Firewall exception list. A rule was added."
+shortTitle: Firewall rule added
+category: policy
+summary: >-
+  Security event 4946 records a Windows Firewall rule added locally, with its name, ID and
+  profiles. Useful to catch attackers opening ports or allowing tools.
+description: |-
+  Event 4946 is written by the Windows Firewall service (MPSSVC) when a rule is added to the local firewall policy, whether through `wf.msc`, `netsh advfirewall`, the `New-NetFirewallRule` cmdlet, an installer or the firewall COM API. It is **not** generated for rules delivered by Group Policy.
+
+  The record is thin: `RuleName`, `RuleId` and `ProfileChanged`. It does not say who made the change, which program or port the rule covers, or whether it allows or blocks. For those details use the Windows Firewall channel event 2004 written at the same moment, which carries `ApplicationPath`, `LocalPorts`, `Action`, `ModifyingUser` and `ModifyingApplication`.
+
+  Software installs and Windows updates add rules routinely, so the value is in the rule name and timing: an unfamiliar rule created minutes after a suspicious logon or process launch deserves a look.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Policy Change > Audit MPSSVC Rule-Level Policy Change
+    (Success). Not audited in the default Windows audit policy.
+  notes: >-
+    The same subcategory also produces 4947 (rule modified), 4948 (rule deleted) and 4950 (setting
+    changed). The Windows Firewall operational channel (event 2004) is on by default and gives more
+    detail, so check it even when this subcategory is not enabled.
+fields:
+  - name: ProfileChanged
+    description: >-
+      Firewall profiles the rule applies to, e.g. `All`, `Domain`, `Private`, `Public` or a
+      combination such as `Domain,Public`.
+  - name: RuleId
+    description: >-
+      Unique ID of the rule — a GUID-like string or a built-in rule name. The rule is stored under
+      `HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules`
+      with this ID as the value name.
+  - name: RuleName
+    description: Display name of the rule as shown in `wf.msc`. Attackers often pick names that look like legitimate software.
+benign:
+  - Application installers (browsers, VPN clients, games, collaboration tools) registering their own inbound rules.
+  - Windows features and roles being enabled, which add their predefined rule groups.
+  - Administrators creating rules with `netsh advfirewall firewall add rule` or `New-NetFirewallRule`.
+attacker:
+  - >-
+    Opening inbound access for a backdoor, RAT listener or tunneling tool (for example allowing
+    TCP 3389, 5985 or a high port) with `netsh advfirewall firewall add rule`.
+  - Allowing an implant in a user-writable path (`AppData`, `ProgramData`, `C:\Users\Public`) so it can accept or make connections.
+  - Enabling Remote Desktop, WinRM or SMB rules as a preparation step for lateral movement.
+investigation:
+  - Pull the matching Windows Firewall event 2004 (same second) to see the program, ports, action and the modifying process.
+  - Check for `netsh.exe` or `powershell.exe` process creation (4688 or Sysmon 1) around the timestamp to identify the command line and user.
+  - Look up the rule under the `FirewallRules` registry key using `RuleId` to see its full definition if the host is still live.
+  - Baseline rule names across hosts; a rule that exists on one machine only is worth reviewing.
+related:
+  - security/4947
+  - security/4948
+  - firewall/2004
+  - security/4688
+  - sysmon/1
+attack:
+  - T1686.003
+references:
+  - title: "Microsoft Learn — 4946(S): A change has been made to Windows Firewall exception list. A rule was added."
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4946
+  - title: Microsoft Learn — Audit MPSSVC Rule-Level Policy Change
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-mpssvc-rule-level-policy-change

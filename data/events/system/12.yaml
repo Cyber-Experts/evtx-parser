@@ -1,0 +1,62 @@
+id: 12
+channel: system
+provider: Microsoft-Windows-Kernel-General
+title: The operating system started at system time
+shortTitle: Operating system started
+category: system
+summary: >-
+  System event 12 (Kernel-General) marks an operating system boot and records the exact
+  kernel start time and OS build. The anchor for every boot timeline.
+description: |-
+  Event 12 is written by the kernel early in every boot. It is the most precise boot marker in the System log: `StartTime` is the moment the kernel started, usually a few seconds before the first records of the new session, and the event also carries the OS version numbers (`MajorVersion`, `MinorVersion`, `BuildVersion`, `QfeVersion`).
+
+  Use it with its counterpart **13** (operating system shutting down) to split the log into power-on periods. A 12 that is not preceded by a 13 means the previous session ended without a clean shutdown; expect **41** (Kernel-Power) and **6008** (unexpected shutdown) around it. The EventLog service adds **6005** a few seconds later, when logging itself restarts.
+
+  Boot times matter in an investigation: changes that only take effect after a reboot (new services, drivers, boot-start persistence) show up right after a 12, and a reboot the user did not ask for can be the attacker restarting the host.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log; no configuration needed.
+  notes: >-
+    `BuildVersion` and `QfeVersion` change after cumulative updates, so a sequence of 12 events
+    also shows when the host was patched.
+fields:
+  - name: StartTime
+    description: UTC time at which the kernel started. More precise than the record timestamp.
+  - name: MajorVersion
+    description: Major OS version (`10` for Windows 10, Windows 11 and Server 2016 and later).
+  - name: MinorVersion
+    description: Minor OS version.
+  - name: BuildVersion
+    description: OS build number, e.g. `19045` or `22631`. Identifies the Windows release.
+  - name: QfeVersion
+    description: Update revision of the build (the number after the dot in `19045.xxxx`).
+  - name: BootMode
+    description: Boot mode reported by the kernel; `0` on a normal boot.
+benign:
+  - Every normal start, including restarts after Windows Update.
+  - Virtual machines powered on, resumed from a saved state with a reboot, or cloned.
+attacker:
+  - >-
+    A reboot forced by an attacker to load a boot-start driver or service installed just before
+    (look for 7045 in the minutes before the previous shutdown).
+  - A reboot in the middle of an intrusion that coincides with destructive activity such as ransomware or wiping.
+investigation:
+  - Pair every 12 with the preceding 13 and 1074 to learn who or what requested the restart.
+  - A 12 without a preceding 13 points to a crash or power loss; check 41 and 6008.
+  - Build all activity windows between 12 and 13 before reasoning about gaps in other logs.
+related:
+  - system/13
+  - system/41
+  - system/1074
+  - system/6005
+  - system/6006
+  - system/6008
+  - system/6013
+  - security/4608
+attack:
+  - T1529
+references:
+  - title: MITRE ATT&CK — System Shutdown/Reboot (T1529)
+    url: https://attack.mitre.org/techniques/T1529/
+  - title: Microsoft Learn — Advanced troubleshooting for Event ID 41
+    url: https://learn.microsoft.com/en-us/troubleshoot/windows-client/performance/event-id-41-restart

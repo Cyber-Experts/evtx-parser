@@ -1,0 +1,54 @@
+id: 4948
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: "A change has been made to Windows Firewall exception list. A rule was deleted."
+shortTitle: Firewall rule deleted
+category: policy
+summary: >-
+  Security event 4948 records the local deletion of a Windows Firewall rule. Useful to spot
+  attackers removing block rules or cleaning up rules they added.
+description: |-
+  Event 4948 is logged by the Windows Firewall service when a rule is removed from the local firewall policy. As with 4946 and 4947, rules removed through Group Policy do **not** produce it.
+
+  Only `RuleName`, `RuleId` and `ProfileChanged` are recorded. The Windows Firewall channel event 2006, written at the same moment, adds the SID of the user (`ModifyingUser`) and the program (`ModifyingApplication`) that deleted the rule.
+
+  Deletions are rarer than additions, which makes them easier to review. Two patterns matter: a block rule being removed so traffic can flow, and an attacker deleting the allow rule they created earlier to cover their tracks.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Policy Change > Audit MPSSVC Rule-Level Policy Change
+    (Success). Not audited in the default Windows audit policy.
+  notes: >-
+    When the whole rule set is wiped at once, the Windows Firewall channel logs 2033 (all rules
+    deleted); review it alongside this event.
+fields:
+  - name: ProfileChanged
+    description: Firewall profiles the deleted rule applied to.
+  - name: RuleId
+    description: Unique ID of the deleted rule. Search older 4946 or 2004 events for the same ID to learn what the rule allowed.
+  - name: RuleName
+    description: Display name of the deleted rule.
+benign:
+  - Software uninstallers removing the rules they created.
+  - Administrators cleaning up obsolete rules.
+  - Updates replacing rules (delete and re-add) during upgrades.
+attacker:
+  - Deleting block rules that prevented a tool, port or remote host from communicating.
+  - Removing the allow rule created for a backdoor after use, to reduce forensic traces.
+investigation:
+  - Find the matching Windows Firewall event 2006 for the modifying user SID and process.
+  - Look for the earlier creation of the same `RuleId` (4946, 2004) to reconstruct what the rule did and how long it existed.
+  - Check for bulk deletions (many 4948 in the same second) and for Windows Firewall event 2033 (all rules deleted).
+related:
+  - security/4946
+  - security/4947
+  - firewall/2006
+  - firewall/2033
+  - security/4688
+attack:
+  - T1686.003
+references:
+  - title: "Microsoft Learn — 4948(S): A change has been made to Windows Firewall exception list. A rule was deleted."
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4948
+  - title: Microsoft Learn — Audit MPSSVC Rule-Level Policy Change
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-mpssvc-rule-level-policy-change

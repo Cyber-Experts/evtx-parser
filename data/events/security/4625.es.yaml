@@ -1,0 +1,100 @@
+title: Error de inicio de sesión de una cuenta
+shortTitle: Inicio de sesión fallido
+summary: >-
+  El evento 4625 se registra al fallar un inicio de sesión. Status y SubStatus dan el
+  motivo: contraseña errónea, usuario inexistente o cuenta bloqueada.
+description: |-
+  El evento 4625 lo escribe el equipo que **rechazó** un intento de inicio de sesión. En las cuentas de dominio la contraseña se comprueba en un controlador de dominio, pero el fallo se registra igualmente en la máquina donde el usuario intentó iniciar sesión; el DC registra su parte como 4771 (Kerberos) o 4776 (NTLM).
+
+  Los dos campos más útiles son `Status` y `SubStatus`, códigos NTSTATUS que indican el motivo del fallo. `0xC000006D` por sí solo es genérico ("nombre de usuario desconocido o contraseña incorrecta"); el `SubStatus` precisa cuál: `0xC0000064` para un nombre de usuario que no existe, `0xC000006A` para una contraseña incorrecta. Combinado con `LogonType` e `IpAddress`, esto distingue a un usuario que se equivoca de contraseña de un ataque de fuerza bruta o de password spraying.
+
+  El volumen importa más que cualquier registro aislado: decenas de fallos para una cuenta desde un mismo origen es adivinación de contraseñas; un fallo por cada una de cientos de cuentas desde un mismo origen es spraying.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logon (Failure). La auditoría de
+    errores de esta subcategoría forma parte de la directiva de auditoría predeterminada en las
+    versiones actuales de Windows cliente y servidor; compruébelo con
+    `auditpol /get /subcategory:Logon`.
+  notes: >-
+    También lo genera Audit Account Lockout (Failure) cuando la cuenta está bloqueada (Status
+    `0xC0000234`). `IpAddress` está vacío en los intentos locales y en algunos fallos de red NTLM en
+    los que solo se conoce `WorkstationName`.
+fields:
+  - name: TargetUserName
+    description: >-
+      Nombre de cuenta que se intentó. Se registra tal como se escribió, así que aquí aparecen
+      errores tipográficos, nombres de usuario inexistentes y listas de spraying.
+  - name: TargetDomainName
+    description: Dominio o nombre de equipo proporcionado con la cuenta.
+  - name: Status
+    description: Motivo general del fallo (NTSTATUS).
+    values:
+      - value: "0xC000006D"
+        meaning: Nombre de usuario o información de autenticación incorrectos (genérico); consulte SubStatus.
+      - value: "0xC000015B"
+        meaning: Al usuario no se le ha concedido el tipo de inicio de sesión solicitado en esta máquina.
+      - value: "0xC0000234"
+        meaning: La cuenta está bloqueada.
+      - value: "0xC0000413"
+        meaning: Firewall de autenticación — la cuenta no tiene permitido autenticarse en esta máquina.
+  - name: SubStatus
+    description: Motivo detallado del fallo (NTSTATUS).
+    values:
+      - value: "0xC0000064"
+        meaning: El nombre de usuario no existe.
+      - value: "0xC000006A"
+        meaning: El nombre de usuario es correcto pero la contraseña es incorrecta.
+      - value: "0xC000006F"
+        meaning: Inicio de sesión fuera del horario permitido para la cuenta.
+      - value: "0xC0000070"
+        meaning: Inicio de sesión desde una estación de trabajo que la cuenta no tiene permitido usar.
+      - value: "0xC0000071"
+        meaning: La contraseña ha caducado.
+      - value: "0xC0000072"
+        meaning: La cuenta está deshabilitada.
+      - value: "0xC0000133"
+        meaning: La diferencia de hora entre la máquina y el controlador de dominio es demasiado grande.
+      - value: "0xC0000193"
+        meaning: La cuenta ha caducado.
+      - value: "0xC0000224"
+        meaning: El usuario debe cambiar la contraseña en el siguiente inicio de sesión.
+      - value: "0xC0000234"
+        meaning: La cuenta está bloqueada.
+  - name: FailureReason
+    description: >-
+      Texto del motivo del fallo (almacenado como una inserción `%%` como `%%2313`, que el Visor de
+      eventos muestra como "Nombre de usuario desconocido o contraseña incorrecta").
+  - name: LogonType
+    description: >-
+      Tipo de inicio de sesión que falló (mismos valores que en 4624): 2 consola, 3 red (SMB, NTLM
+      sobre HTTP), 8 red en texto claro, 10 RDP.
+  - name: LogonProcessName
+    description: Proceso de inicio de sesión, p. ej. `User32`, `NtLmSsp`, `Advapi`.
+  - name: AuthenticationPackageName
+    description: Paquete usado en el intento, normalmente `NTLM`, `Kerberos` o `Negotiate`.
+  - name: WorkstationName
+    description: Nombre del equipo de origen proporcionado por el cliente; falsificable, pero útil en fallos NTLM sin IP.
+  - name: IpAddress
+    description: Dirección IP de origen de un intento remoto.
+  - name: IpPort
+    description: Puerto TCP de origen.
+  - name: ProcessName
+    description: >-
+      Proceso local que intentó el inicio de sesión (por ejemplo `winlogon.exe` en la consola,
+      `svchost.exe` para RDP en algunas versiones); `-` en los inicios de sesión de red.
+benign:
+  - Usuarios que se equivocan al escribir la contraseña, o un cambio de contraseña que aún no se ha propagado a todos sus dispositivos.
+  - "Credenciales obsoletas almacenadas en servicios, tareas programadas, unidades asignadas o teléfonos: fallos repetidos a intervalos fijos."
+  - Escáneres de vulnerabilidades y herramientas de monitorización configurados con credenciales incorrectas.
+  - Cuentas deshabilitadas o caducadas que todavía usa un script antiguo.
+attacker:
+  - "Adivinación de contraseñas: muchos 4625 para una cuenta desde un mismo origen, SubStatus `0xC000006A`."
+  - "Password spraying: unos pocos fallos por cada una de muchas cuentas distintas desde un mismo origen, a menudo con SubStatus `0xC000006A` mezclado con `0xC0000064`."
+  - "Fuerza bruta RDP desde Internet: fallos de LogonType 3 o 10 desde direcciones IP públicas, a menudo con nombres de usuario genéricos como administrator, admin o test."
+  - Enumeración de usuarios, visible como una ráfaga de `0xC0000064` (el usuario no existe) para una lista de nombres.
+investigation:
+  - Cuente los fallos por IpAddress y por TargetUserName en ventanas cortas (5–15 minutos); el spraying aparece como un origen contra muchas cuentas.
+  - "Compruebe siempre si hay un 4624 con el mismo TargetUserName e IpAddress después de los fallos: una serie de fallos que termina en éxito es el hallazgo."
+  - Revise la distribución de SubStatus; `0xC0000064` para nombres de apariencia real significa que alguien está adivinando nombres de usuario.
+  - En los controladores de dominio, combínelo con 4771 (fallo de preautenticación Kerberos) y 4776 (NTLM) para ver fallos que nunca llegan al servidor miembro.
+  - Si la cuenta se bloqueó, el 4740 en el emulador de PDC indica el equipo llamador que provocó el bloqueo.

@@ -1,0 +1,57 @@
+id: 307
+channel: print-service
+provider: Microsoft-Windows-PrintService
+title: Document owned by user on computer was printed on printer through port
+shortTitle: Document printed
+category: device
+summary: >-
+  PrintService event 307 logs each printed job: document, user, client, printer, size and pages. Off by default; key for insider print exfiltration.
+description: |-
+  Event 307 is written to `Microsoft-Windows-PrintService/Operational` by the print spooler of the machine that processed the job — the print server for shared printers, or the workstation itself for local ones. It records who printed (`Param3`), from which computer (`Param4`), on which printer and port, the size in bytes and the number of pages.
+
+  The document name (`Param2`) is recorded as the generic `Print Document` unless the **Allow job name in event logs** policy is enabled, so on many systems you will see the volume and timing of printing but not the file titles.
+
+  Printing is a classic insider exfiltration channel. 307 records are the Windows-native way to show that a user printed large jobs from a sensitive system, and when.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Enable the Microsoft-Windows-PrintService/Operational log (Event Viewer or
+    `wevtutil sl Microsoft-Windows-PrintService/Operational /e:true`). Document names additionally
+    require Computer Configuration > Administrative Templates > Printers > Allow job name in event logs.
+  notes: >-
+    Data is in `UserData` with positional parameters `Param1` to `Param8`.
+fields:
+  - name: Param1
+    description: Job ID; links the job with other PrintService events for the same job.
+  - name: Param2
+    description: Document name, or `Print Document` if job names are not allowed in event logs.
+  - name: Param3
+    description: User who submitted the job.
+  - name: Param4
+    description: Client computer that sent the job (e.g. `\\WS042`).
+  - name: Param5
+    description: Printer name.
+  - name: Param6
+    description: Printer port.
+  - name: Param7
+    description: Size of the job in bytes.
+  - name: Param8
+    description: Number of pages printed.
+benign:
+  - Everyday printing by users; print servers log thousands of 307 events per day.
+  - Printing to virtual printers such as Microsoft Print to PDF.
+attacker:
+  - Insider data theft by printing large volumes of documents, often outside working hours or before resignation.
+  - Printing to PDF or file ports to extract content from restricted systems.
+investigation:
+  - Aggregate pages and bytes per user and per day; look for spikes and unusual hours.
+  - Check `Param4` for jobs from servers or hosts the user does not normally use.
+  - If document names are logged, search `Param2` for sensitive project or client names.
+related:
+  - print-service/808
+  - security/4624
+  - security/4663
+attack: []
+references:
+  - title: Microsoft Support — Event ID 307 does not show the printed document name
+    url: https://support.microsoft.com/en-us/topic/event-id-307-does-not-show-the-printed-document-name-in-windows-8ef93ff2-b501-c630-507b-849743e49286

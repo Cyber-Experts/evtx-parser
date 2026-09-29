@@ -1,0 +1,64 @@
+id: 4735
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A security-enabled local group was changed
+shortTitle: Local group changed
+category: group
+summary: >-
+  Security event 4735 is logged when a security-enabled local group is changed. It shows name
+  or SID history changes; most instances accompany membership changes.
+description: |-
+  Event 4735 is written when a security-enabled **local** group (local SAM group, or domain local group on a domain controller) is modified. Global and universal group changes are reported by 4737 and 4755.
+
+  The event only shows new values for `SamAccountName` and `SidHistory`; other attributes are shown as `-` even when something else changed. In practice most 4735 events carry no visible change at all: an empty 4735 is typically logged right before each 4732 or 4733 membership change. Renaming a group also produces 4781, and changing a group's type produces a group-type-change event rather than 4735. Some modifications, such as the Managed By tab in Active Directory Users and Computers, generate no 4735.
+
+  Treat 4735 as a pointer: read it together with the membership events around it and, on domain controllers, with directory change auditing (5136) when you need the exact attribute that changed.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Success is audited in the default Windows audit policy.
+fields:
+  - name: TargetUserName
+    description: Name of the changed group (the new name if it was renamed).
+  - name: TargetDomainName
+    description: Domain of the group, or the computer name for a local SAM group.
+  - name: TargetSid
+    description: SID of the changed group.
+  - name: SamAccountName
+    description: New pre-Windows 2000 name if it changed, otherwise `-`.
+  - name: SidHistory
+    description: New SID history value if it changed, otherwise `-`. A value here on a non-migrated group is suspicious.
+  - name: SubjectUserName
+    description: Account that changed the group.
+  - name: SubjectDomainName
+    description: Domain or computer name of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject; correlate with 4624.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Empty 4735 events logged alongside ordinary membership changes (4732, 4733).
+  - Administrators renaming local or domain local groups.
+attacker:
+  - Renaming a privileged group or adding SID history to hide its purpose or broaden its access.
+investigation:
+  - Look at the 4732 or 4733 events within the same second to see which membership change the 4735 belongs to.
+  - If SamAccountName is set, find the matching 4781 to get the old name.
+  - On domain controllers, use 5136 to see which attribute actually changed when 4735 shows no values.
+related:
+  - security/4731
+  - security/4732
+  - security/4733
+  - security/4734
+  - security/4737
+  - security/4755
+  - security/4781
+  - security/5136
+attack:
+  - T1098
+references:
+  - title: "Microsoft Learn — 4735(S): A security-enabled local group was changed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4735
+  - title: Microsoft Learn — Audit Security Group Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-group-management

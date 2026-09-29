@@ -1,0 +1,36 @@
+id: 5004
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: The real-time protection configuration changed
+shortTitle: Real-time protection config changed
+category: antimalware
+summary: >-
+  Defender event 5004 is logged when a real-time protection feature (on-access, behavior
+  monitoring, downloads scanning…) changes configuration.
+description: |-
+  Event 5004 records a change to one of the real-time protection features, such as on-access scanning, behavior monitoring, scanning of downloads and attachments (IOAV) or network inspection. The event names the feature and its new configuration.
+
+  Turning off individual features (behavior monitoring, IOAV) weakens protection without triggering the more visible 5001, so review which feature changed.
+logging:
+  enabledByDefault: true
+  requirement: None — logged by Microsoft Defender Antivirus.
+fields:
+  - name: Feature Name
+    description: Real-time protection feature that changed.
+  - name: Configuration
+    description: New configuration value of the feature.
+benign:
+  - Policy updates from Intune / Group Policy, platform updates.
+attacker:
+  - Selectively disabling behavior monitoring or download scanning (for example with `Set-MpPreference`).
+investigation:
+  - Correlate with 5007 (registry-level details) and PowerShell logs for the command used.
+  - List which feature changed and to what; a feature switched off outside a policy refresh is the finding.
+related:
+  - defender/5001
+  - defender/5007
+attack:
+  - T1685
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

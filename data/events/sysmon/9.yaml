@@ -1,0 +1,50 @@
+id: 9
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: RawAccessRead
+shortTitle: Raw disk access read
+category: file
+summary: >-
+  Sysmon event 9 logs a process reading a drive directly through the \\.\ device path, used to
+  copy locked files such as NTDS.dit or SAM without file APIs.
+description: |-
+  Sysmon event 9 fires when a process opens a volume or disk for raw reading with the `\\.\` device notation. Raw reads bypass the file system, so they can copy files that are locked by the OS and they avoid file-level auditing such as Security 4663.
+
+  Attackers use this to extract `NTDS.dit`, the `SAM` and `SYSTEM` hives or other locked files by parsing NTFS themselves. Legitimate raw readers exist — disk and backup utilities, defragmentation, antivirus and forensic tools — so baseline which processes normally appear.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon installed; filter with `<RawAccessRead>` rules in the configuration.
+fields:
+  - name: ProcessGuid
+    description: Process performing the raw read; pivot to its event 1.
+  - name: Image
+    description: Executable reading the device. `System` and disk utilities are common; script hosts are not.
+  - name: Device
+    description: Device read, e.g. `\Device\HarddiskVolume2`.
+  - name: User
+    description: Account of the process (newer Sysmon versions).
+benign:
+  - Backup, imaging and disk-management software.
+  - Antivirus scans, `defrag.exe`, `chkdsk` and Windows maintenance tasks.
+attacker:
+  - >-
+    PowerShell or a custom tool reading the system volume to copy `NTDS.dit` on a domain
+    controller or the `SAM` hive on a workstation.
+  - Forensic-style NTFS parsers dropped by attackers to grab locked files.
+investigation:
+  - Pivot on ProcessGuid to event 1 for the command line and parent.
+  - Look for files written by the same process (event 11), such as copies of NTDS.dit or registry hives.
+  - On domain controllers, treat any raw read by a non-backup process as critical.
+related:
+  - sysmon/1
+  - sysmon/11
+  - security/4663
+attack:
+  - T1006
+  - T1003.002
+  - T1003.003
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Direct Volume Access (T1006)
+    url: https://attack.mitre.org/techniques/T1006/

@@ -1,0 +1,34 @@
+title: Se volvió a conectar una sesión a una estación de ventana
+shortTitle: Sesión reconectada
+summary: >-
+  El evento 4778 se registra cuando un usuario se reconecta a una sesión interactiva existente, normalmente una reconexión RDP o un cambio rápido de usuario.
+description: |-
+  El evento 4778 registra una reconexión a una sesión existente: un cliente RDP que vuelve a engancharse a una sesión desconectada, o un usuario que regresa a una sesión mediante el cambio rápido de usuario. En ese caso no se escribe un nuevo 4624 para la propia sesión, así que el 4778 es la forma de ver que alguien volvió.
+
+  Los campos `ClientName` y `ClientAddress` identifican el dispositivo que se reconectó. Compararlos con el inicio de sesión original muestra cuándo una sesión se retomó desde otra máquina.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Other Logon/Logoff Events
+    (Success).
+fields:
+  - name: AccountName
+    description: Usuario que se reconectó.
+  - name: AccountDomain
+    description: Dominio de ese usuario.
+  - name: LogonID
+    description: ID de la sesión que se reanudó (coincide con su 4624 original).
+  - name: SessionName
+    description: Nombre de la estación de ventana/sesión, p. ej. `RDP-Tcp#3` o `Console`.
+  - name: ClientName
+    description: Nombre del equipo cliente que se conecta (en RDP).
+  - name: ClientAddress
+    description: Dirección IP del cliente que se conecta (en RDP).
+benign:
+  - Usuarios que se reconectan a sus sesiones RDP tras un corte de red o desde otro dispositivo.
+  - Cambio rápido de usuario en estaciones de trabajo compartidas.
+attacker:
+  - Un intruso que vuelve a engancharse a una sesión de administrador desconectada, posiblemente desde una IP nueva.
+  - El secuestro de sesiones (por ejemplo con `tscon`) traslada una sesión a otro cliente; la reconexión queda registrada aquí.
+investigation:
+  - Compare ClientAddress con la IP del 4624 de tipo 10 original para el mismo LogonID.
+  - Combínelo con el evento 25 de LocalSessionManager (reconexión) y el 4779 (desconexión) para construir la cronología de la sesión RDP.

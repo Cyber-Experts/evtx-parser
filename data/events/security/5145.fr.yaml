@@ -1,0 +1,75 @@
+title: Un objet de partage réseau a été vérifié pour savoir si le client peut recevoir l'accès désiré
+shortTitle: Vérification d'accès à un partage
+summary: >-
+  L'événement 5145 consigne chaque fichier, dossier ou canal nommé accédé via un partage, avec
+  compte, IP source et droits demandés. Détaillé et bruyant.
+description: |-
+  L'événement 5145 est écrit sur l'ordinateur hébergeant le partage chaque fois qu'un client ouvre un fichier, un dossier ou un canal nommé à travers lui. Là où le 5140 dit « ce compte a ouvert le partage », le 5145 ajoute `RelativeTargetName` : l'objet exact dans le partage, ainsi que l'`AccessMask` demandé.
+
+  Ce niveau de détail en fait l'une des meilleures sources pour le mouvement latéral via SMB. La création de service à distance apparaît comme un accès au canal `svcctl` sur `IPC$`, le registre distant comme `winreg`, l'énumération comme `samr`, `lsarpc` ou `srvsvc`, et les copies de charges utiles comme des accès en écriture à des fichiers sous `ADMIN$` ou `C$`.
+
+  Les événements d'échec ne sont produits que lorsque l'accès est refusé par les permissions du **partage**, et non par les permissions NTFS. L'audit des succès génère un événement par accès à un objet : sur les serveurs de fichiers et les contrôleurs de domaine (SYSVOL), le volume peut devenir ingérable ; beaucoup d'organisations ne collectent que les échecs, ou les succès sur des serveurs choisis.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Detailed File Share (Success,
+    Failure). Non audité dans la stratégie d'audit par défaut de Windows.
+  notes: >-
+    Volume très élevé sur les serveurs de fichiers et les contrôleurs de domaine. Microsoft
+    recommande d'auditer les échecs sur les contrôleurs de domaine et de n'envisager les succès que
+    sur les serveurs à forte valeur.
+fields:
+  - name: SubjectUserSid
+    description: SID du compte ayant demandé l'accès.
+  - name: SubjectUserName
+    description: Compte ayant demandé l'accès à l'objet.
+  - name: SubjectDomainName
+    description: Domaine ou nom d'ordinateur du compte.
+  - name: SubjectLogonId
+    description: Session de l'utilisateur distant ; correspond au 4624 réseau sur cet hôte.
+  - name: ObjectType
+    description: Toujours `File` pour cet événement (fichiers, dossiers et canaux nommés).
+  - name: IpAddress
+    description: Adresse IP du client.
+  - name: IpPort
+    description: Port source de la connexion cliente ; `0` pour un accès local.
+  - name: ShareName
+    description: Partage utilisé, par ex. `\\*\IPC$`, `\\*\ADMIN$`, `\\*\C$`.
+  - name: ShareLocalPath
+    description: Chemin local du partage. Vide pour `IPC$`.
+  - name: RelativeTargetName
+    description: >-
+      Objet accédé, relativement au partage : un chemin de fichier comme `Temp\payload.exe`, un
+      canal nommé comme `svcctl` ou `samr`, ou `\` pour la racine du partage.
+  - name: AccessMask
+    description: Droits d'accès demandés, sous forme de masque hexadécimal.
+    values:
+      - value: "0x1"
+        meaning: ReadData (fichier) ou ListDirectory (dossier).
+      - value: "0x2"
+        meaning: WriteData (fichier) ou AddFile (dossier).
+      - value: "0x4"
+        meaning: AppendData (fichier) ou AddSubdirectory (dossier).
+      - value: "0x10000"
+        meaning: DELETE.
+      - value: "0x100000"
+        meaning: SYNCHRONIZE.
+  - name: AccessList
+    description: Droits demandés sous forme symbolique (`%%4416` ReadData, `%%4417` WriteData, etc.).
+  - name: AccessReason
+    description: Pour chaque droit demandé, la raison pour laquelle il a été accordé ou refusé (ACE ou privilège en cause).
+benign:
+  - Membres du domaine lisant les fichiers de stratégie de groupe sous `SYSVOL` sur les contrôleurs de domaine — la plus grande source de bruit.
+  - Utilisateurs ouvrant et enregistrant des documents sur les serveurs de fichiers.
+  - Outils d'administration et de supervision utilisant les canaux nommés d'`IPC$` (`srvsvc`, `winreg`, `spoolss`) dans le cadre de leur fonctionnement normal.
+attacker:
+  - >-
+    Exécution de type PsExec : écriture d'un fichier sous `ADMIN$` suivie d'un accès au canal
+    `svcctl` sur `IPC$` depuis la même IP source, puis un nouveau service (7045, 4697).
+  - Accès au registre distant et à des éléments liés aux identifiants via le canal `winreg`.
+  - Énumération du domaine et des hôtes via les canaux `samr`, `lsarpc` et `srvsvc` (BloodHound/SharpHound, commandes `net`, outils Impacket).
+  - Lecture massive de nombreux fichiers d'un partage par un même compte en peu de temps (collecte avant exfiltration).
+investigation:
+  - Filtrez sur `ShareName` `\\*\IPC$` et listez les valeurs de `RelativeTargetName` par IP source pour voir quels services RPC ont été utilisés.
+  - Pour `ADMIN$` et `C$`, recherchez des accès en écriture (`0x2`) à des exécutables ou scripts et rapprochez les noms de fichiers des créations de services ou de tâches.
+  - Pivotez sur `SubjectLogonId` vers le 4624 réseau, puis vers le 4672 pour voir si la session était privilégiée.
+  - Regroupez par compte et comptez les valeurs distinctes de `RelativeTargetName` pour repérer les accès massifs aux fichiers.

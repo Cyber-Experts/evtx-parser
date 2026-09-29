@@ -1,0 +1,38 @@
+title: Se borró el archivo de registro
+shortTitle: Registro de eventos borrado
+summary: >-
+  El evento 104 de System registra que se borró un registro de eventos (System, Application, Sysmon,
+  PowerShell...) y quién lo hizo. Para Seguridad es el 1102.
+description: |-
+  El evento 104 lo escribe el servicio Registro de eventos en el registro **System** siempre que se borra un registro distinto de Seguridad, ya sea con `wevtutil cl`, `Clear-EventLog`, la acción "Borrar registro" del Visor de eventos o la API subyacente. El registro de Seguridad tiene su propio evento, el **1102**, escrito en el propio registro de Seguridad.
+
+  `Channel` indica el registro que se borró y `SubjectUserName` / `SubjectDomainName` la cuenta que lo hizo. Si el que se borró fue el propio registro System, el 104 es el primer evento del registro nuevo. Una ráfaga de eventos 104 para muchos canales en pocos segundos es la huella clásica de un script que borra cada registro del host.
+
+  El borrado no elimina todas las huellas: el 104 sobrevive, los demás registros conservan sus eventos y, a veces, los registros eliminados pueden recuperarse mediante carving de fragmentos EVTX no asignados o del disco.
+logging:
+  requirement: Se registra siempre en el registro System cuando se borra un registro distinto de Seguridad.
+  notes: >-
+    Detener el servicio Registro de eventos o eliminar archivos .evtx no produce un 104. En esos
+    casos, busque el 6006 y huecos en los ID de registro.
+fields:
+  - name: Channel
+    description: Nombre del registro que se borró, p. ej. `Application`, `Windows PowerShell`, `Microsoft-Windows-Sysmon/Operational`.
+  - name: SubjectUserName
+    description: Cuenta que borró el registro.
+  - name: SubjectDomainName
+    description: Dominio o nombre de equipo de esa cuenta.
+  - name: BackupPath
+    description: Ruta del archivo de copia de seguridad cuando el registro se guardó antes de borrarlo; normalmente vacía.
+benign:
+  - Administradores que borran registros ruidosos durante la resolución de problemas o antes de construir una imagen de laboratorio.
+  - Algunas herramientas de administración o de creación de imágenes restablecen los registros como parte del despliegue.
+attacker:
+  - >-
+    Antiforense tras una intrusión: `wevtutil cl System`, `wevtutil cl "Windows PowerShell"` o un
+    bucle sobre `wevtutil el`, que producen muchos eventos 104 en pocos segundos.
+  - Operadores de ransomware que borran los registros antes del cifrado para ralentizar la respuesta.
+investigation:
+  - Liste cada 104 con su `Channel` y su `SubjectUserName`; los borrados de los registros de Sysmon, PowerShell o RDP son señales fuertes.
+  - Busque en el registro de Seguridad un 1102 a la misma hora y el inicio de sesión (4624) de la cuenta sujeto.
+  - Busque el comando de borrado en los eventos de creación de procesos (4688, Sysmon 1) y en el 4104 de PowerShell.
+  - Recuerde que falta en ese canal lo anterior al borrado; amplíe la búsqueda a otros registros y hosts.

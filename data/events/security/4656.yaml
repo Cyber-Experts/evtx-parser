@@ -1,0 +1,85 @@
+id: 4656
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A handle to an object was requested
+shortTitle: Object handle requested
+category: object-access
+summary: >-
+  Security event 4656 logs a request for a handle to an audited file, registry key or kernel
+  object, with the access asked for and whether it was granted.
+description: |-
+  Event 4656 is written when a process asks for a handle to an object whose SACL audits the requested access: a file or folder, a registry key, a kernel object such as a process, or a file on removable storage. A **Success** record means the handle was granted; a **Failure** record means access was denied, which makes 4656 the only object-access event that shows refused attempts.
+
+  A granted handle proves intent, not action. The record lists what was requested (`AccessList`, `AccessMask`), while 4663 shows which rights were actually used. `HandleId` together with `ProcessId` ties 4656 to the matching 4663, 4660 (delete) and 4658 (handle closed).
+
+  Nothing is logged unless both conditions are met: the matching Object Access subcategory is enabled and the object carries an auditing ACE. Broad SACLs on busy folders produce very high volume.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit File System, Audit Registry,
+    Audit Kernel Object or Audit Removable Storage (Success and/or Failure), plus a SACL on the
+    object that audits the requested access.
+  notes: >-
+    Failure auditing of these subcategories can be noisy because applications routinely probe
+    for access they do not get. Pair Success 4656 with 4663 to see what was really done.
+fields:
+  - name: SubjectUserName
+    description: Account that requested the handle.
+  - name: SubjectLogonId
+    description: Logon session of the requester; pivot to 4624 to learn how and from where it logged on.
+  - name: ObjectServer
+    description: Subsystem that handled the request, normally `Security`.
+  - name: ObjectType
+    description: Type of object, e.g. `File`, `Key` (registry) or `Process`.
+  - name: ObjectName
+    description: >-
+      Full name of the object: file path, registry path in the `\REGISTRY\MACHINE\...` form, or
+      device path of a process image.
+  - name: HandleId
+    description: Handle value; correlate with 4663, 4660 and 4658 from the same `ProcessId`.
+  - name: AccessList
+    description: >-
+      Requested rights as message codes, e.g. `%%4416` ReadData, `%%4417` WriteData, `%%1537`
+      DELETE. See event 4663 for the full table.
+  - name: AccessMask
+    description: Hexadecimal mask of the requested rights (same bit values as in 4663).
+  - name: AccessReason
+    description: Which ACE or privilege granted or denied each requested right, when available.
+  - name: PrivilegeList
+    description: Privileges used to obtain the access, such as `SeBackupPrivilege`, or `-`.
+  - name: ProcessName
+    description: Full path of the process that requested the handle.
+  - name: ProcessId
+    description: Hexadecimal PID of the requesting process.
+benign:
+  - Backup and antivirus software opening large numbers of audited files.
+  - Applications probing a protected file or key and receiving Failure records they handle silently.
+  - System processes opening audited registry keys during boot and policy refresh.
+attacker:
+  - >-
+    Credential theft tools requesting a handle to `lsass.exe` (ObjectType `Process`) when Audit
+    Kernel Object is enabled and the process carries an auditing ACE.
+  - Repeated Failure 4656 records for sensitive files or shares from one account, showing someone probing for access.
+  - Handles requested with `SeBackupPrivilege` by a user account to read files it has no direct rights to.
+investigation:
+  - Separate Success from Failure first; failures show attempts, successes need a 4663 to prove use.
+  - Join on `HandleId` and `ProcessId` to follow the handle through 4663, 4660 and 4658.
+  - >-
+    Review `ProcessName` against the object: an unexpected binary opening sensitive files or
+    the LSASS process is more telling than the account name.
+  - Pivot `SubjectLogonId` to 4624 to see the logon type and source of the session.
+related:
+  - security/4663
+  - security/4658
+  - security/4660
+  - security/4670
+  - security/4624
+  - security/4688
+attack:
+  - T1003.001
+  - T1005
+references:
+  - title: "Microsoft Learn — 4656(S, F): A handle to an object was requested"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4656
+  - title: "Microsoft Learn — 4663(S): An attempt was made to access an object"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4663

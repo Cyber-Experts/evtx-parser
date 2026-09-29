@@ -1,0 +1,67 @@
+id: 4104
+channel: powershell
+provider: Microsoft-Windows-PowerShell
+title: Creating Scriptblock text
+shortTitle: Script block logging
+category: powershell
+summary: >-
+  PowerShell event 4104 logs the text of executed script blocks, after decoding — the richest
+  record of what PowerShell actually ran.
+description: |-
+  Event 4104 is written by the PowerShell engine when it compiles a script block. The `ScriptBlockText` field holds the code as PowerShell sees it: commands typed at the prompt, whole scripts, functions, and — crucially — code that was Base64-encoded, downloaded or built at run time, because logging happens after that layer is removed.
+
+  Large scripts are split across several events that share a `ScriptBlockId`; `MessageNumber` and `MessageTotal` tell you how to reassemble them. The `Path` field is filled when the block came from a script file.
+
+  Even without any policy, PowerShell 5 and later log script blocks that contain known-suspicious keywords at the **Warning** level. Full logging of every block requires the Script Block Logging policy, which is what makes 4104 the backbone of PowerShell investigations.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Computer Configuration > Administrative Templates > Windows Components > Windows PowerShell >
+    Turn on PowerShell Script Block Logging (or registry
+    `HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging\EnableScriptBlockLogging = 1`).
+  notes: >-
+    Without the policy, Windows PowerShell 5.x still logs blocks it considers suspicious as
+    Warning-level 4104 events. PowerShell 7 writes to the PowerShellCore/Operational channel and
+    has its own policy settings.
+fields:
+  - name: ScriptBlockText
+    description: The code of the script block, after de-obfuscation layers such as `-EncodedCommand` have been removed.
+  - name: ScriptBlockId
+    description: GUID shared by all parts of one script block; group by it to reassemble long scripts.
+  - name: MessageNumber
+    description: Part number of this event for a split script block.
+  - name: MessageTotal
+    description: Total number of parts for the script block.
+  - name: Path
+    description: Script file the block came from; empty for interactive or in-memory code.
+benign:
+  - Administrative scripts, configuration management (SCCM, Intune, DSC) and monitoring agents.
+  - PowerShell's own modules and profile scripts loading at startup.
+  - Software installers and IT automation that use PowerShell under the hood.
+attacker:
+  - "Download cradles such as `IEX (New-Object Net.WebClient).DownloadString(...)` and `Invoke-WebRequest` pulling payloads."
+  - Encoded or obfuscated commands, recovered here in readable form.
+  - Offensive frameworks and tools loaded in memory (credential dumping, AD reconnaissance, AMSI bypass attempts).
+  - Defense tampering commands such as `Set-MpPreference -DisableRealtimeMonitoring`.
+investigation:
+  - Filter Level 3 (Warning) first — those are the blocks PowerShell itself flagged as suspicious.
+  - Reassemble split blocks by ScriptBlockId in MessageNumber order before reading.
+  - Search ScriptBlockText for network indicators (URLs, IPs), `FromBase64String`, `Invoke-Expression`, `-bxor`, `Reflection.Assembly` and AMSI-related strings.
+  - Find the process that ran the block with Sysmon 1 / Security 4688 (powershell.exe command line) and the classic log's 400 event (HostApplication).
+related:
+  - powershell/4103
+  - powershell/4105
+  - windows-powershell/400
+  - windows-powershell/800
+  - security/4688
+  - sysmon/1
+attack:
+  - T1059.001
+  - T1027.010
+  - T1140
+  - T1105
+references:
+  - title: Microsoft Learn — about_Logging_Windows
+    url: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_logging_windows
+  - title: MITRE ATT&CK — PowerShell (T1059.001)
+    url: https://attack.mitre.org/techniques/T1059/001/

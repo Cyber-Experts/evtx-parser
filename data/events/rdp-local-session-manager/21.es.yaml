@@ -1,0 +1,31 @@
+title: "Servicios de Escritorio remoto: inicio de sesión correcto"
+shortTitle: Inicio de sesión correcto
+summary: >-
+  El evento RDP 21 confirma un inicio de sesión en el destino: usuario, ID de sesión y dirección
+  de red de origen ("LOCAL" para los inicios de sesión en consola).
+description: |-
+  El evento 21 lo escribe el Administrador de sesiones locales cuando se crea una sesión de usuario y el inicio de sesión se completa, tanto para Escritorio remoto como para los inicios de sesión en la consola local. El campo `Address` los distingue: una dirección IP para RDP, `LOCAL` para la consola.
+
+  Mientras que el 1149 solo muestra que una conexión RDP llegó a pasar, el 21 muestra que realmente se creó una sesión de escritorio para el usuario. Normalmente va seguido del 22 (inicio del shell) y, cuando la sesión termina, del 23 (cierre de sesión) o del 24 (desconexión). Una reconexión a una sesión existente se registra en cambio como 25.
+logging:
+  requirement: >-
+    Ninguno: el canal Microsoft-Windows-TerminalServices-LocalSessionManager/Operational está
+    habilitado por defecto.
+  notes: Los campos se encuentran en UserData/EventXML (`User`, `SessionID`, `Address`).
+fields:
+  - name: User
+    description: Cuenta que inició sesión, con el formato `DOMAIN\user`.
+  - name: SessionID
+    description: Número de sesión de Terminal Services; vincula los eventos 21, 22, 23, 24 y 25 de la misma sesión.
+  - name: Address
+    description: Dirección IP de origen del cliente RDP, o `LOCAL` para los inicios de sesión en consola.
+benign:
+  - Inicios de sesión interactivos en consola e inicios de sesión RDP rutinarios de administradores y usuarios.
+  - Entornos de jump hosts y VDI con muchas sesiones RDP al día.
+attacker:
+  - Acceso hands-on-keyboard por RDP con credenciales robadas, desde IP externas o desde hosts internos que normalmente no usan RDP.
+  - RDP tunelizado, en el que Address muestra `127.0.0.1` o `::1`.
+investigation:
+  - Combínelo con el 4624 LogonType 10 de Seguridad en el mismo segundo para obtener el ID de inicio de sesión y los detalles de autenticación.
+  - Agrupe las sesiones por SessionID para medir su duración (21 → 23/24).
+  - Compare Address con las entradas 1149 inmediatamente anteriores; deberían coincidir.

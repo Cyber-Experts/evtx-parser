@@ -1,0 +1,38 @@
+title: Die Protokolldatei wurde gelöscht
+shortTitle: Ereignisprotokoll gelöscht
+summary: >-
+  Event-ID 104 im System-Log zeigt, dass ein Ereignisprotokoll (System, Application, Sysmon,
+  PowerShell …) gelöscht wurde, und von wem. Security-Log: 1102.
+description: |-
+  Event 104 wird vom Ereignisprotokolldienst in das **System**-Protokoll geschrieben, sobald ein anderes Protokoll als Security gelöscht wird — mit `wevtutil cl`, `Clear-EventLog`, der Aktion „Protokoll löschen“ in der Ereignisanzeige oder über die zugrunde liegende API. Das Sicherheitsprotokoll hat einen eigenen Eintrag, **1102**, der in das Sicherheitsprotokoll selbst geschrieben wird.
+
+  `Channel` nennt das geleerte Protokoll, `SubjectUserName` / `SubjectDomainName` das Konto, das es geleert hat. Wurde das System-Protokoll selbst gelöscht, ist das 104 der erste Eintrag des neuen Protokolls. Eine Häufung von 104-Events für viele Kanäle innerhalb von Sekunden ist der klassische Fußabdruck eines Skripts, das jedes Protokoll auf dem Host löscht.
+
+  Das Löschen entfernt nicht alle Spuren: Das 104 bleibt bestehen, andere Protokolle behalten ihre Einträge, und gelöschte Einträge lassen sich mitunter aus nicht zugeordneten EVTX-Chunks oder vom Datenträger carven.
+logging:
+  requirement: Wird immer im System-Protokoll erfasst, wenn ein anderes Protokoll als Security gelöscht wird.
+  notes: >-
+    Das Beenden des Ereignisprotokolldienstes oder das Löschen von .evtx-Dateien erzeugt kein 104.
+    Dafür nach 6006 und Lücken in den Record-IDs suchen.
+fields:
+  - name: Channel
+    description: Name des gelöschten Protokolls, z. B. `Application`, `Windows PowerShell`, `Microsoft-Windows-Sysmon/Operational`.
+  - name: SubjectUserName
+    description: Konto, das das Protokoll gelöscht hat.
+  - name: SubjectDomainName
+    description: Domäne oder Computername dieses Kontos.
+  - name: BackupPath
+    description: Pfad der Sicherungsdatei, wenn das Protokoll vor dem Löschen gespeichert wurde; meist leer.
+benign:
+  - Administratoren, die bei der Fehlersuche oder vor dem Erstellen eines Labor-Images laute Protokolle leeren.
+  - Manche Management- oder Imaging-Tools setzen Protokolle im Rahmen der Bereitstellung zurück.
+attacker:
+  - >-
+    Anti-Forensik nach einem Einbruch: `wevtutil cl System`, `wevtutil cl "Windows PowerShell"`
+    oder eine Schleife über `wevtutil el`, die in wenigen Sekunden viele 104-Einträge erzeugt.
+  - Ransomware-Akteure, die vor der Verschlüsselung Protokolle löschen, um die Reaktion zu verlangsamen.
+investigation:
+  - Jedes 104 mit `Channel` und `SubjectUserName` auflisten; das Löschen von Sysmon-, PowerShell- oder RDP-Protokollen ist ein starkes Signal.
+  - Im Sicherheitsprotokoll nach einem 1102 zur selben Zeit und nach der Anmeldung (4624) des Subject-Kontos suchen.
+  - Den Löschbefehl in Prozesserstellungs-Events (4688, Sysmon 1) und PowerShell 4104 suchen.
+  - Bedenken, dass in diesem Kanal alles vor dem Löschen fehlt; die Suche auf andere Protokolle und Hosts ausweiten.

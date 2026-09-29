@@ -1,0 +1,47 @@
+id: 6008
+channel: system
+provider: EventLog
+title: The previous system shutdown was unexpected
+shortTitle: Unexpected shutdown
+category: system
+summary: >-
+  System event 6008 is logged at boot when the previous shutdown was unexpected, with the
+  approximate local time the system went down. Pairs with Kernel-Power 41.
+description: |-
+  Event 6008 is written by the Event Log service at startup when it finds that the previous session did not end with a clean shutdown. The message gives the **time and date** of the unexpected shutdown, in the local time zone and the system's date format.
+
+  That time is an approximation: it comes from a periodic "last alive" timestamp the system keeps while running, so the real stop may be slightly later than reported. It is still the best estimate of when the machine died, which **41** (Kernel-Power, logged at the same boot) does not provide.
+
+  6008 bounds a period with no logging. Use it to explain gaps in other logs and to check whether a crash or power cut coincides with suspicious activity.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log at the first boot after an unclean shutdown.
+  notes: >-
+    The data is a set of unnamed insertion strings; this viewer shows them joined in `Data1`. The
+    date may contain invisible left-to-right marks from locale formatting.
+fields:
+  - name: Data1
+    description: >-
+      Insertion strings; the first is the local time and the second the date of the unexpected
+      shutdown (e.g. `3:45:12 PM`, `4/4/2020`).
+benign:
+  - Power loss, battery exhaustion, blue screens and hard resets.
+  - Virtual machines killed or reset from the hypervisor.
+attacker:
+  - Crashes caused by kernel exploits or vulnerable drivers loaded to tamper with security tools.
+  - Deliberate hard resets to interrupt logging or response.
+investigation:
+  - Correlate with 41 at the same boot to read the bugcheck code, if any.
+  - Look at the last records before the reported time and at driver or service installs (7045) just before.
+  - Convert the local time to UTC using the host time zone (see 6013) before building the timeline.
+related:
+  - system/41
+  - system/12
+  - system/6005
+  - system/6006
+  - system/6013
+attack:
+  - T1529
+references:
+  - title: Microsoft Learn — Advanced troubleshooting for Event ID 41
+    url: https://learn.microsoft.com/en-us/troubleshoot/windows-client/performance/event-id-41-restart

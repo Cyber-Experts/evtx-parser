@@ -1,0 +1,67 @@
+id: 4648
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A logon was attempted using explicit credentials
+shortTitle: Logon with explicit credentials
+category: logon
+summary: >-
+  Event 4648 is logged on the source host when a process uses explicitly supplied credentials,
+  such as runas, net use /user or PsExec -u.
+description: |-
+  Event 4648 is written on the machine **where the credentials were typed or supplied**, not on the target. It fires when a process logs on with an account other than the one it is running as: `runas /user`, `net use \\server /user:...`, `PsExec -u`, a scheduled task with stored credentials, or a tool calling `LogonUser` or `CreateProcessWithLogonW`.
+
+  The record links three things: who was already logged on (`SubjectUserName`), which account's credentials were used (`TargetUserName`), and where they were sent (`TargetServerName`, `TargetInfo`). That makes it one of the few source-side records of lateral movement — the destination only shows a 4624 from the attacker's IP.
+
+  Expect noise: on domain controllers and servers `SYSTEM` produces 4648 constantly for service accounts. Filter for SubjectUserName values that are real users.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logon (Success). Enabled for
+    Success in the default audit policy.
+fields:
+  - name: SubjectUserName
+    description: Account that was running the process which supplied the credentials.
+  - name: SubjectLogonId
+    description: Logon session of that process; pivot to its 4624 and to 4688 events.
+  - name: TargetUserName
+    description: Account whose credentials were used.
+  - name: TargetDomainName
+    description: Domain of that account.
+  - name: TargetServerName
+    description: >-
+      Server the credentials were used against (`localhost` for local runas). A remote host name
+      here is a lateral movement lead.
+  - name: TargetInfo
+    description: Additional target information, often the SPN or the target name again.
+  - name: ProcessName
+    description: Process that used the credentials, e.g. `C:\Windows\System32\runas.exe`, `svchost.exe`, `lsass.exe`, a PsExec binary.
+  - name: ProcessId
+    description: PID of that process (hex).
+  - name: IpAddress
+    description: Target IP address when known.
+benign:
+  - Administrators using `runas` or Run as different user.
+  - Scheduled tasks and services configured with stored credentials.
+  - Mapping a drive with different credentials (`net use /user`).
+  - Domain controllers and management servers where SYSTEM performs explicit logons for service accounts.
+attacker:
+  - "Lateral movement with stolen passwords — PsExec -u, `net use` to admin shares, WMI or WinRM with explicit credentials, all logged on the source host."
+  - A compromised workstation where a regular user's session suddenly supplies a domain admin account's credentials to servers.
+  - Credential validation loops where one process tries many TargetUserName values against one server.
+investigation:
+  - Filter out SubjectUserName ending in `$` and SYSTEM, then list TargetUserName → TargetServerName pairs.
+  - Look for admin accounts used from workstations where those admins never log on interactively.
+  - Correlate with 4624 type 3 or type 9 on the target server at the same time; the 4624 IpAddress should be this host.
+  - Check ProcessName; unusual binaries in user-writable paths are a strong signal.
+related:
+  - security/4624
+  - security/4625
+  - security/4688
+  - security/4672
+  - sysmon/1
+attack:
+  - T1078
+  - T1021.002
+references:
+  - title: "Microsoft Learn — 4648(S): A logon was attempted using explicit credentials"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4648

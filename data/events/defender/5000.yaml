@@ -1,0 +1,33 @@
+id: 5000
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: Real-time protection is enabled
+shortTitle: Real-time protection enabled
+category: antimalware
+summary: >-
+  Defender event 5000 is logged when real-time protection is turned on — the counterpart of
+  5001, useful to measure how long protection was off.
+description: |-
+  Event 5000 records that Microsoft Defender Antivirus real-time protection was enabled. It appears at startup and whenever protection is turned back on after being disabled.
+
+  On its own it is routine. Its value is in pairing with 5001: the gap between a 5001 and the next 5000 is the window during which files were not scanned on access.
+logging:
+  enabledByDefault: true
+  requirement: None — logged by Microsoft Defender Antivirus.
+fields:
+  - name: Product Version
+    description: Defender platform version.
+benign:
+  - Boot, platform updates, users re-enabling protection.
+attacker:
+  - None directly; marks the end of a window opened by 5001.
+investigation:
+  - Pair with the preceding 5001 and list everything that happened on the host in between.
+  - Frequent 5001/5000 cycles suggest scripted toggling.
+related:
+  - defender/5001
+  - defender/5004
+attack: []
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

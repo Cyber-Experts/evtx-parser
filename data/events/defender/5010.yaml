@@ -1,0 +1,35 @@
+id: 5010
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: Scanning for malware and other potentially unwanted software is disabled
+shortTitle: Malware scanning disabled
+category: antimalware
+summary: >-
+  Defender event 5010 is logged when scanning for malware and potentially unwanted software is
+  disabled — a sign of defense tampering or another AV.
+description: |-
+  Event 5010 records that Microsoft Defender Antivirus scanning for malware and other potentially unwanted software (the antispyware component) was disabled. Its counterpart 5012 covers virus scanning.
+
+  Outside of a third-party antivirus installation, disabling scanning is rarely legitimate and is a common step in attacks that try to switch Defender off through policy or registry settings.
+logging:
+  enabledByDefault: true
+  requirement: None — logged by Microsoft Defender Antivirus.
+fields:
+  - name: Product Version
+    description: Defender platform version.
+benign:
+  - Another antivirus product registering and taking over.
+attacker:
+  - Tampering through the `DisableAntiSpyware` policy or registry value, or tools designed to disable Defender.
+investigation:
+  - Check 5007 for the setting change and the process that made it (registry and PowerShell logs).
+  - Confirm whether a third-party AV was installed at that time (Application log, software inventory).
+related:
+  - defender/5012
+  - defender/5001
+  - defender/5007
+attack:
+  - T1685
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

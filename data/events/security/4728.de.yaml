@@ -1,0 +1,63 @@
+title: Ein Mitglied wurde einer sicherheitsaktivierten globalen Gruppe hinzugefügt
+shortTitle: Neues Mitglied in globaler Gruppe
+summary: >-
+  Event-ID 4728 wird auf einem Domänencontroller protokolliert, wenn ein Mitglied einer
+  sicherheitsaktivierten globalen Gruppe wie Domain Admins hinzugefügt wird.
+description: |-
+  Event 4728 wird auf dem Domänencontroller geschrieben, der die Änderung verarbeitet hat, wenn ein Konto oder eine Gruppe einer sicherheitsaktivierten **globalen** Gruppe hinzugefügt wird. Globale Gruppen sind Domänengruppen — Domain Admins, Group Policy Creator Owners und die meisten von Administratoren angelegten Rollengruppen —, daher erscheint dieses Event nie auf Arbeitsstationen oder Mitgliedsservern. Lokale und domänenlokale Gruppen verwenden 4732, universelle Gruppen 4756.
+
+  Die Felder entsprechen denen von 4732: `TargetUserName`/`TargetSid` identifizieren die Gruppe, `MemberName` (Distinguished Name) und `MemberSid` das neue Mitglied und `Subject*`, wer die Änderung vorgenommen hat. Pro hinzugefügtem Mitglied wird ein Event protokolliert, meist zusammen mit einem leeren 4737.
+
+  Hinzufügungen zu Domain Admins und anderen globalen Tier-0-Gruppen gehören zu den wertvollsten Alarmen in Active Directory. Den Alarm auf die Gruppen-SID (RID `512` für Domain Admins) statt auf den Namen stützen, der lokalisiert ist und umbenannt werden kann.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). „Erfolg“ wird in der Standard-Überwachungsrichtlinie von Windows überwacht.
+  notes: >-
+    Wird nur auf Domänencontrollern erzeugt, und zwar auf dem DC, auf dem die Änderung geschrieben
+    wurde. Das Sicherheitsprotokoll aller DCs sammeln, um alle Gruppenänderungen zu sehen.
+fields:
+  - name: MemberName
+    description: Distinguished Name des hinzugefügten Mitglieds, z. B. `CN=jdoe,OU=Staff,DC=contoso,DC=local`.
+  - name: MemberSid
+    description: SID des hinzugefügten Mitglieds.
+  - name: TargetUserName
+    description: Name der globalen Gruppe, die das Mitglied erhalten hat.
+  - name: TargetDomainName
+    description: Domäne der Gruppe.
+  - name: TargetSid
+    description: >-
+      SID der Gruppe. Der letzte Bestandteil (RID) identifiziert bekannte Domänengruppen
+      unabhängig von ihrem Anzeigenamen.
+    values:
+      - value: "*-512"
+        meaning: Domain Admins (Domänen-Admins).
+      - value: "*-513"
+        meaning: Domain Users (Domänen-Benutzer).
+      - value: "*-515"
+        meaning: Domain Computers (Domänencomputer).
+      - value: "*-516"
+        meaning: Domain Controllers (Domänencontroller).
+      - value: "*-520"
+        meaning: Group Policy Creator Owners (Richtlinien-Ersteller-Besitzer).
+  - name: SubjectUserName
+    description: Konto, das das Mitglied hinzugefügt hat.
+  - name: SubjectDomainName
+    description: Domäne des Subjects.
+  - name: SubjectLogonId
+    description: Anmeldesitzung des Subjects auf dem DC; mit 4624 korrelieren, um den Quellhost zu finden.
+  - name: PrivilegeList
+    description: Für den Vorgang genutzte Privilegien, oft `-`.
+benign:
+  - Identity Management und HR-gesteuertes Provisioning, das Benutzer Rollengruppen hinzufügt.
+  - Administratoren, die Zugriff über Anwendungs- oder Abteilungsgruppen gewähren.
+  - Temporäre Mitgliedschaft durch Privileged-Access-Management-Tools, später gefolgt von 4729.
+attacker:
+  - Rechteausweitung oder Persistenz durch Hinzufügen eines kontrollierten Kontos zu Domain Admins oder einer anderen privilegierten globalen Gruppe.
+  - Hinzufügen eines neu angelegten Kontos (4720) zu einer privilegierten Gruppe innerhalb von Minuten nach der Erstellung.
+  - Hinzufügen von Konten zu Gruppen mit delegierten Rechten auf AD-Objekte, Gruppenrichtlinien oder Server — unauffälliger als Domain Admins.
+investigation:
+  - Bei Hinzufügungen zu privilegierten Gruppen per SID alarmieren und jede gegen eine genehmigte Änderung prüfen.
+  - Prüfen, ob das Mitglied kürzlich angelegt wurde (4720) und was es danach tat (4624, 4672, 4769).
+  - Über SubjectLogonId und die 4624-Events des DC den Host finden, von dem aus die Änderung vorgenommen wurde.
+  - Nach einem späteren 4729 suchen, das dasselbe Mitglied entfernt — kurzzeitige Mitgliedschaft ist ein gängiger Weg, der Erkennung zu entgehen.

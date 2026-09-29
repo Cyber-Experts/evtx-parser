@@ -1,0 +1,38 @@
+title: Le fichier journal a été effacé
+shortTitle: Journal d'événements effacé
+summary: >-
+  L'événement System 104 consigne l'effacement d'un journal (System, Application, Sysmon,
+  PowerShell...) et son auteur. Pour le journal Sécurité, c'est le 1102.
+description: |-
+  L'événement 104 est écrit par le service Journal d'événements dans le journal **System** chaque fois qu'un journal autre que Sécurité est effacé — avec `wevtutil cl`, `Clear-EventLog`, l'action « Effacer le journal » de l'Observateur d'événements, ou l'API sous-jacente. Le journal Sécurité a sa propre trace, le **1102**, écrite dans le journal Sécurité lui-même.
+
+  `Channel` nomme le journal effacé, et `SubjectUserName` / `SubjectDomainName` le compte qui l'a effacé. Si c'est le journal System lui-même qui a été effacé, le 104 est le premier enregistrement du nouveau journal. Une rafale de 104 pour de nombreux canaux en quelques secondes est l'empreinte classique d'un script qui efface tous les journaux de l'hôte.
+
+  L'effacement ne supprime pas toutes les traces : le 104 subsiste, les autres journaux conservent leurs enregistrements, et les enregistrements supprimés peuvent parfois être récupérés (carving) dans les chunks EVTX non alloués ou sur le disque.
+logging:
+  requirement: Toujours consigné dans le journal System lorsqu'un journal autre que Sécurité est effacé.
+  notes: >-
+    L'arrêt du service Journal d'événements ou la suppression de fichiers .evtx ne produit pas de
+    104. Pour ces cas, recherchez le 6006 et des trous dans les numéros d'enregistrement.
+fields:
+  - name: Channel
+    description: Nom du journal effacé, par ex. `Application`, `Windows PowerShell`, `Microsoft-Windows-Sysmon/Operational`.
+  - name: SubjectUserName
+    description: Compte ayant effacé le journal.
+  - name: SubjectDomainName
+    description: Domaine ou nom d'ordinateur de ce compte.
+  - name: BackupPath
+    description: Chemin du fichier de sauvegarde lorsque le journal a été enregistré avant l'effacement ; généralement vide.
+benign:
+  - Administrateurs effaçant des journaux bruyants lors d'un dépannage ou avant de construire une image de laboratoire.
+  - Certains outils d'administration ou de déploiement d'images réinitialisent les journaux lors du déploiement.
+attacker:
+  - >-
+    Anti-forensic après une intrusion : `wevtutil cl System`, `wevtutil cl "Windows PowerShell"`
+    ou une boucle sur `wevtutil el`, produisant de nombreux 104 en quelques secondes.
+  - Opérateurs de rançongiciels effaçant les journaux avant le chiffrement pour ralentir la réponse.
+investigation:
+  - Listez chaque 104 avec son `Channel` et son `SubjectUserName` ; l'effacement des journaux Sysmon, PowerShell ou RDP est un signal fort.
+  - Recherchez dans le journal Sécurité un 1102 au même moment et l'ouverture de session (4624) du compte concerné.
+  - Recherchez la commande d'effacement dans les événements de création de processus (4688, Sysmon 1) et PowerShell 4104.
+  - Gardez à l'esprit que tout ce qui précède l'effacement manque dans ce canal ; élargissez la recherche aux autres journaux et hôtes.

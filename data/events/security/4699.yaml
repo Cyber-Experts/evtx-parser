@@ -1,0 +1,71 @@
+id: 4699
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A scheduled task was deleted
+shortTitle: Scheduled task deleted
+category: scheduled-task
+summary: >-
+  Security event 4699 records a deleted scheduled task, including its last XML definition. Quick
+  create-then-delete pairs point to remote execution.
+description: |-
+  Event 4699 is written when a scheduled task is removed. Like 4698, it carries the task's XML in `TaskContent`, so even after the task is gone you can still read what it ran and as whom.
+
+  Deletion on its own is common — uninstallers and updaters clean up after themselves. It becomes significant when it closely follows the creation of the same task: tools that execute commands remotely through the Task Scheduler (Impacket `atexec`, scripted `schtasks /create /s ... & schtasks /run & schtasks /delete`) leave exactly that pattern. Attackers also delete their persistence tasks when cleaning up.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Other Object Access Events
+    (Success). Not enabled in the default audit policy.
+  notes: >-
+    No SACL is needed. Recent Windows builds add `ClientProcessId`, `ParentProcessId`,
+    `ClientProcessStartKey`, `RpcCallClientLocality` and `FQDN` to identify the process that made
+    the request. The Task Scheduler Operational log records similar lifecycle events (106, 140, 141)
+    without audit policy.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Account that made the change. For remote task management (`schtasks /s`, Impacket) this is
+      the remote account.
+  - name: SubjectDomainName
+    description: Domain or computer name of that account.
+  - name: SubjectLogonId
+    description: Logon session of the account; pivot to 4624 on the same host to find where it came from.
+  - name: TaskName
+    description: >-
+      Full task path, e.g. `\Microsoft\Windows\...` for built-in tasks. Tasks at the root (`\Name`)
+      or with names mimicking Microsoft ones deserve a look.
+  - name: TaskContent
+    description: >-
+      The task's full XML definition. Read `Actions/Exec/Command` and `Arguments` (what runs),
+      `Principals` (`UserId`, `RunLevel` — `HighestAvailable` means elevated), `Triggers` and
+      `Settings/Hidden`.
+  - name: ClientProcessId
+    description: PID of the process that requested the change, on builds that log it. Match it to 4688.
+benign:
+  - Software uninstalls and updates removing their tasks.
+  - Windows servicing replacing built-in tasks.
+attacker:
+  - >-
+    Remote command execution through the Task Scheduler: 4698 and 4699 for the same TaskName seconds
+    apart, created by a remote account.
+  - Cleanup of persistence tasks at the end of an intrusion to remove evidence.
+investigation:
+  - Match each 4699 to a 4698 with the same TaskName and compute the lifetime; seconds-long tasks are suspicious.
+  - Read TaskContent to recover the command that was executed, even though the task no longer exists.
+  - Check Task Scheduler Operational 141 (task deleted) and 200/201 to confirm the task actually ran before deletion.
+related:
+  - security/4698
+  - security/4702
+  - task-scheduler/141
+  - task-scheduler/200
+  - task-scheduler/201
+  - security/4624
+  - security/4688
+attack:
+  - T1053.005
+  - T1070
+references:
+  - title: "Microsoft Learn — 4699(S): A scheduled task was deleted"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4699
+  - title: Microsoft Learn — Audit Other Object Access Events
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-other-object-access-events

@@ -1,0 +1,106 @@
+title: Un nouveau processus a été créé
+shortTitle: Création de processus
+summary: >-
+  L'événement 4688 consigne chaque nouveau processus : exécutable, parent, compte, élévation et,
+  si activée, la ligne de commande complète. Désactivé par défaut.
+description: |-
+  L'événement 4688 est la trace native Windows de l'exécution de processus. Chaque enregistrement nomme le nouvel exécutable (`NewProcessName`), le processus qui l'a lancé (`ProcessId` et, à partir de Windows 10 / Server 2016, `ParentProcessName`), le compte et la session (`SubjectUserName`, `SubjectLogonId`), ainsi que le jeton reçu (`TokenElevationType`, `MandatoryLabel`).
+
+  Le champ le plus précieux, `CommandLine`, est **vide tant qu'une stratégie distincte n'est pas activée** : « Inclure la ligne de commande dans les événements de création de processus ». Sans elle, vous savez que `powershell.exe` a été exécuté, mais pas ce qu'il a exécuté. Activer à la fois la sous-catégorie d'audit et la stratégie de ligne de commande fait du 4688 une alternative légère à l'événement Sysmon 1 (qui ajoute les hashs et la ligne de commande du parent).
+
+  Lorsque le créateur et le nouveau processus s'exécutent dans des sessions différentes (par exemple un service qui lance un processus sous un autre utilisateur), les champs `Target*` nomment le compte sous lequel le processus s'exécute réellement ; sinon ils sont vides. `SubjectLogonId` / `TargetLogonId` rattachent chaque processus à son ouverture de session 4624.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Detailed Tracking > Audit Process Creation (Success).
+    Pour les lignes de commande, activez aussi Computer Configuration > Administrative Templates >
+    System > Audit Process Creation > Include command line in process creation events.
+  notes: >-
+    Non activé dans la stratégie d'audit par défaut. `CommandLine` existe depuis Windows 8.1 /
+    Server 2012 R2 (version 1 de l'événement) ; les champs `Target*`, `ParentProcessName` et
+    `MandatoryLabel` depuis Windows 10 / Server 2016 (version 2). Le volume est élevé —
+    dimensionnez la taille des journaux et leur collecte en conséquence. Les lignes de commande
+    peuvent contenir des secrets passés en arguments.
+fields:
+  - name: SubjectUserName
+    description: Compte ayant créé le processus (le créateur). `HOST$` signifie SYSTEM ou un autre service s'exécutant dans le contexte machine.
+  - name: SubjectLogonId
+    description: >-
+      Session du créateur. Faites-la correspondre au TargetLogonId d'un 4624 pour savoir comment la
+      session a démarré (interactive, RDP, réseau, service).
+  - name: NewProcessId
+    description: PID hexadécimal du nouveau processus. Faites-le correspondre au ProcessId du 4689 pour la fin, ou aux processus enfants ultérieurs.
+  - name: NewProcessName
+    description: Chemin complet du nouvel exécutable. Vérifiez le dossier autant que le nom.
+  - name: TokenElevationType
+    description: Type de jeton reçu par le processus sous l'UAC.
+    values:
+      - value: "%%1936"
+        meaning: >-
+          Type 1, jeton complet — l'UAC est désactivé pour ce compte, ou le compte est
+          l'Administrateur intégré, un compte de service ou SYSTEM.
+      - value: "%%1937"
+        meaning: >-
+          Type 2, jeton élevé — l'utilisateur a lancé le programme avec « Exécuter en tant
+          qu'administrateur », ou le programme exige l'élévation et l'utilisateur est administrateur.
+      - value: "%%1938"
+        meaning: Type 3, jeton limité — l'UAC est actif et le processus s'exécute sans ses droits d'administration.
+  - name: MandatoryLabel
+    description: Niveau d'intégrité du nouveau processus.
+    values:
+      - value: "S-1-16-0"
+        meaning: Non approuvé (Untrusted).
+      - value: "S-1-16-4096"
+        meaning: Intégrité faible (par ex. processus de navigateur en bac à sable).
+      - value: "S-1-16-8192"
+        meaning: Intégrité moyenne — processus utilisateur standard.
+      - value: "S-1-16-8448"
+        meaning: Moyenne plus (Medium plus).
+      - value: "S-1-16-12288"
+        meaning: Intégrité élevée — processus administrateur élevés.
+      - value: "S-1-16-16384"
+        meaning: Intégrité système — services SYSTEM.
+      - value: "S-1-16-20480"
+        meaning: Processus protégé.
+  - name: ProcessId
+    description: >-
+      PID hexadécimal du processus créateur (parent). Les PID sont réutilisés : faites-le
+      correspondre au 4688 du parent en tenant compte aussi de l'horodatage.
+  - name: ParentProcessName
+    description: Chemin complet du processus créateur (Windows 10 / Server 2016 et ultérieurs).
+  - name: CommandLine
+    description: >-
+      Ligne de commande complète du nouveau processus. Vide tant que la stratégie de ligne de
+      commande n'est pas activée ; à examiner en premier lorsqu'elle est présente.
+  - name: TargetUserName
+    description: >-
+      Compte sous lequel s'exécute le nouveau processus lorsqu'il diffère de la session du créateur ;
+      `-` lorsque le créateur et le nouveau processus partagent la même session.
+  - name: TargetLogonId
+    description: Session du nouveau processus lorsqu'elle diffère de celle du créateur ; `0x0` sinon.
+benign:
+  - Activité normale des utilisateurs et du système — des milliers d'enregistrements par jour et par hôte, dominés par les services, les outils de mise à jour et les navigateurs.
+  - Agents de déploiement et d'administration (SCCM, Intune, sauvegarde, supervision) qui lancent `cmd.exe` ou `powershell.exe` en tant que SYSTEM.
+  - Administrateurs lançant des outils avec « Exécuter en tant qu'administrateur », ce qui produit des jetons élevés `%%1937`.
+attacker:
+  - >-
+    Exécution living-off-the-land : `powershell.exe` avec `-enc` ou des download cradles,
+    `rundll32.exe`, `regsvr32.exe`, `mshta.exe`, `certutil.exe` utilisés avec des arguments
+    inhabituels.
+  - >-
+    Applications Office, navigateurs ou `w3wp.exe` qui lancent des interpréteurs de commandes —
+    signe courant de documents malveillants ou de web shells.
+  - >-
+    Artefacts d'exécution à distance sur la cible : enfants de `services.exe` aux noms aléatoires
+    (style PsExec), `WmiPrvSE.exe` lançant `cmd.exe` (WMI), `wsmprovhost.exe` (WinRM).
+  - Rafales de reconnaissance depuis une même session — `whoami`, `net`, `nltest`, `ipconfig`, `systeminfo` en quelques secondes.
+  - Exécutables lancés depuis des emplacements accessibles en écriture à l'utilisateur comme `%TEMP%`, `AppData`, `C:\ProgramData` ou `C:\Users\Public`.
+investigation:
+  - >-
+    Reconstituez l'arborescence des processus avec NewProcessId / ProcessId et ParentProcessName,
+    en gardant à l'esprit que les PID sont réutilisés dans le temps.
+  - >-
+    Regroupez par SubjectLogonId pour voir tout ce qu'une session a exécuté, puis pivotez vers le
+    4624 qui a créé cette session pour en connaître l'origine.
+  - Recherchez les couples parent/enfant rares à l'échelle du parc plutôt que des noms suspects isolés.
+  - Si CommandLine est vide partout, la stratégie de ligne de commande est désactivée — rabattez-vous sur Sysmon 1, PowerShell 4104 ou les données EDR.
+  - Utilisez le 4689 avec le même PID pour obtenir l'heure de fin et la durée des outils à durée de vie courte.

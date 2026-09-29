@@ -1,0 +1,27 @@
+title: "Servicios de Escritorio remoto: se desconectó la sesión"
+shortTitle: Sesión desconectada
+summary: >-
+  El evento RDP 24 se registra cuando una sesión de Escritorio remoto se desconecta sin cerrar
+  sesión, con el usuario, el ID de sesión y la dirección del cliente.
+description: |-
+  El evento 24 registra que una sesión se separó de su cliente: se cerró la ventana RDP, se cayó la red u otro cliente tomó la sesión. La sesión sigue ejecutándose en el servidor con sus procesos y credenciales, así que puede retomarse (evento 25).
+
+  El campo `Address` indica el cliente que estaba conectado en ese momento. Una serie de pares 24/25 con direcciones cambiantes muestra una sesión utilizada desde varios lugares.
+logging:
+  requirement: >-
+    Ninguno: el canal LocalSessionManager/Operational está habilitado por defecto.
+fields:
+  - name: User
+    description: Cuenta cuya sesión se desconectó.
+  - name: SessionID
+    description: Número de sesión.
+  - name: Address
+    description: Dirección IP del cliente que estaba conectado, o `LOCAL`.
+benign:
+  - Usuarios que cierran la ventana RDP en lugar de cerrar sesión, portátiles que entran en suspensión, redes inestables.
+attacker:
+  - Operadores que dejan una sesión en ejecución para volver más tarde con un 25.
+  - "Secuestro o toma de control de sesiones: una desconexión seguida de una reconexión de la misma sesión desde otra dirección o por otra sesión (véase el 39)."
+investigation:
+  - Siga el SessionID hasta el siguiente 25 o 23; compare los valores de Address.
+  - Combínelo con el 4779 de Seguridad para obtener el ID de inicio de sesión y con el 40 para el código de motivo de la desconexión.

@@ -1,0 +1,45 @@
+title: Un compte d'utilisateur a été verrouillé
+shortTitle: Compte verrouillé
+summary: >-
+  L'événement 4740 est consigné quand un compte est verrouillé après trop de mots de passe erronés.
+  Il nomme le compte et l'ordinateur appelant à l'origine.
+description: |-
+  L'événement 4740 est écrit lorsque le seuil de verrouillage est atteint et qu'un compte est verrouillé. Les verrouillages de comptes de domaine sont consignés sur les contrôleurs de domaine — l'émulateur PDC est l'endroit habituel où les trouver, puisque les tentatives avec mauvais mot de passe lui sont transmises — tandis que les verrouillages de comptes locaux sont consignés sur la machine qui détient le compte.
+
+  L'information la plus utile est le **Caller Computer Name** (nom de l'ordinateur appelant), stocké dans le champ `TargetDomainName` malgré son nom : c'est l'ordinateur d'où provenaient les ouvertures de session en échec. Il s'agit d'un nom NetBIOS, pas d'une adresse IP, et il peut être vide. Les champs `Subject*` décrivent le composant système qui a effectué le verrouillage (généralement le compte ordinateur du contrôleur de domaine ou `SYSTEM`), pas une personne.
+
+  Les verrouillages résultent le plus souvent d'un ancien mot de passe enregistré sur un téléphone, un lecteur mappé, un service ou une tâche planifiée. Ils sont aussi l'effet visible d'une devinette de mots de passe : un verrouillage isolé relève surtout du bruit, de nombreux verrouillages sur plusieurs comptes depuis un même appelant sont une attaque.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Activé en succès dans la stratégie d'audit par défaut de Windows.
+  notes: >-
+    Généré uniquement lorsqu'un seuil de verrouillage est configuré dans la stratégie de mots de
+    passe. Les ouvertures de session en échec sur un compte déjà verrouillé apparaissent en 4625
+    avec le Status `0xC0000234`.
+fields:
+  - name: TargetUserName
+    description: Compte verrouillé.
+  - name: TargetSid
+    description: SID du compte verrouillé.
+  - name: TargetDomainName
+    description: >-
+      Caller Computer Name — le nom NetBIOS de l'ordinateur qui a envoyé les tentatives
+      d'authentification en échec. C'est par là que commence l'investigation.
+  - name: SubjectUserName
+    description: Compte ayant effectué le verrouillage, normalement le compte ordinateur du contrôleur de domaine (`DC01$`) ou le système local.
+  - name: SubjectUserSid
+    description: SID du sujet, généralement `S-1-5-18` (SYSTEM).
+benign:
+  - Utilisateurs ayant changé leur mot de passe mais dont l'ancien est encore enregistré sur un téléphone, un portable, un lecteur mappé ou un client VPN.
+  - Services, tâches planifiées ou applications configurés avec un mot de passe obsolète, qui verrouillent le compte à répétition.
+  - Utilisateurs qui se trompent plusieurs fois de mot de passe.
+attacker:
+  - Devinette de mot de passe contre un seul compte depuis un hôte.
+  - Password spraying dépassant le seuil de verrouillage, provoquant le verrouillage de nombreux comptes depuis le même ordinateur appelant.
+  - Verrouillage délibéré d'administrateurs ou de comptes de service à des fins de déni de service.
+investigation:
+  - Rendez-vous sur l'ordinateur appelant et examinez ses 4625 et 4648, ses services et tâches planifiées pour le compte verrouillé.
+  - Sur les contrôleurs de domaine, corrélez avec les échecs 4771 (Kerberos) ou 4776 (NTLM) du compte pour voir la source et les codes d'échec.
+  - Comptez les verrouillages par ordinateur appelant et par fenêtre de temps pour distinguer un appareil mal configuré d'un spraying.
+  - Recherchez ensuite un 4767 (déverrouillage) et un 4724 (réinitialisation), ainsi qu'une ouverture de session réussie du même compte.

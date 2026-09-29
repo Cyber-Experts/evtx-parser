@@ -1,0 +1,52 @@
+id: 29
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: FileExecutableDetected
+shortTitle: Executable file detected
+category: file
+summary: >-
+  Sysmon event 29 logs the creation of a new executable (PE) file, with hashes, without blocking
+  it. Added in Sysmon 15.0; ideal for tracking dropped binaries.
+description: |-
+  Sysmon event 29 fires when Sysmon detects a new executable file being written to disk. It is the detect-only counterpart of event 27: same fields, but the file is allowed to stay.
+
+  Because Sysmon checks the file format rather than the extension, it catches executables written with misleading names such as `.txt` or `.dat`. That makes event 29 a more reliable way to track dropped binaries than event 11 filtered on `.exe` and `.dll`.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon 15.0 or later with a `<FileExecutableDetected>` rule in the configuration.
+fields:
+  - name: ProcessGuid
+    description: Process that wrote the executable.
+  - name: Image
+    description: Executable that wrote the file.
+  - name: User
+    description: Account of the process.
+  - name: TargetFilename
+    description: Path of the new executable file. Check for non-executable extensions.
+  - name: Hashes
+    description: Hashes of the new file for reputation lookups and fleet-wide prevalence.
+benign:
+  - Installers, Windows Update and software updaters writing binaries.
+  - Developers' compilers and build tools producing executables.
+attacker:
+  - Payloads written by Office, browsers or script hosts into user folders.
+  - Tools copied over SMB during lateral movement (written by `System`).
+  - PE files disguised with non-executable extensions.
+investigation:
+  - Pivot on ProcessGuid to event 1 to see the writing process chain.
+  - Look for a later event 1 or 7 using TargetFilename — the binary was executed or loaded.
+  - Count Hashes across the fleet; unique binaries in user folders are worth review.
+related:
+  - sysmon/27
+  - sysmon/11
+  - sysmon/1
+  - sysmon/15
+attack:
+  - T1105
+  - T1570
+  - T1036
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Ingress Tool Transfer (T1105)
+    url: https://attack.mitre.org/techniques/T1105/

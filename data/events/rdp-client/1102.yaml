@@ -1,0 +1,37 @@
+id: 1102
+channel: rdp-client
+provider: Microsoft-Windows-TerminalServices-ClientActiveXCore
+title: The client has initiated a multi-transport connection to the server
+shortTitle: Multi-transport connection
+category: remote-access
+summary: >-
+  RDP client event 1102 is logged on the source host when the client opens a multi-transport
+  connection; Value holds the server IP address.
+description: |-
+  Event 1102 in the RDPClient log (not to be confused with Security 1102, "audit log cleared") is written by the Remote Desktop client when it sets up an additional transport to the server, such as UDP alongside TCP. Its `Value` field usually holds the server's **IP address**, which complements event 1024 where the user may have typed a host name.
+
+  Seen together, 1024 and 1102 give both the name and the resolved address of each RDP target contacted from the host.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the TerminalServices-RDPClient/Operational channel is enabled by default.
+  notes: Not every connection negotiates multi-transport, so some 1024 events have no matching 1102.
+fields:
+  - name: Value
+    description: IP address of the server the client connected to.
+benign:
+  - Normal RDP use from administrators' workstations.
+attacker:
+  - Outbound RDP lateral movement; the IP helps when the attacker used names that no longer resolve.
+investigation:
+  - Pair with the 1024 just before it to map host names to IP addresses.
+  - Search target servers' 1149 and 4624 for this host's IP at the same time.
+related:
+  - rdp-client/1024
+  - rdp-remote-connection-manager/1149
+  - security/1102
+attack:
+  - T1021.001
+references:
+  - title: JPCERT/CC — Detecting Lateral Movement through Tracking Event Logs
+    url: https://www.jpcert.or.jp/english/pub/sr/ir_research.html

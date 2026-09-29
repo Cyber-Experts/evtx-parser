@@ -1,0 +1,72 @@
+title: Conexión de red
+shortTitle: Conexión de red
+summary: >-
+  El evento 3 de Sysmon vincula cada conexión TCP/UDP con el proceso que la hizo: origen, destino,
+  puertos y ProcessGuid. Clave para C2 y movimiento lateral.
+description: |-
+  El evento 3 de Sysmon registra una conexión TCP o UDP junto con el proceso responsable. Es la pieza que falta en los logs de firewall y de proxy: no solo que el host habló con una dirección, sino qué ejecutable lo hizo y con qué cuenta.
+
+  `Initiated` indica la dirección: `true` significa que el proceso local abrió la conexión (saliente) y `false` que aceptó una. Los nombres de host se rellenan mediante búsqueda DNS inversa cuando `DnsLookup` está habilitado, así que pueden no coincidir con lo que el proceso resolvió realmente; para eso, use el evento 22.
+
+  El evento está deshabilitado por defecto por su volumen. Las buenas configuraciones incluyen las conexiones de hosts de scripts, LOLBins y rutas en las que el usuario puede escribir, y excluyen navegadores y agentes conocidos.
+logging:
+  requirement: >-
+    Sysmon instalado con la monitorización de red habilitada (opción `-n` o una regla
+    `<NetworkConnect>` en la configuración).
+  notes: >-
+    Los nombres de host dependen del DNS inverso (entrada de configuración `DnsLookup`). Compare con
+    el evento 5156 de Windows Filtering Platform cuando esa subcategoría de auditoría esté
+    habilitada.
+fields:
+  - name: ProcessGuid
+    description: Proceso que realizó o aceptó la conexión; pivote hacia su evento 1.
+  - name: Image
+    description: Ejecutable que está detrás de la conexión.
+  - name: User
+    description: Cuenta del proceso.
+  - name: Protocol
+    description: Protocolo de transporte.
+    values:
+      - value: "tcp"
+        meaning: Conexión TCP.
+      - value: "udp"
+        meaning: Tráfico UDP.
+  - name: Initiated
+    description: Dirección de la conexión.
+    values:
+      - value: "true"
+        meaning: El proceso local inició la conexión (saliente).
+      - value: "false"
+        meaning: El proceso local aceptó una conexión entrante.
+  - name: SourceIp
+    description: Dirección de origen.
+  - name: SourcePort
+    description: Puerto de origen.
+  - name: DestinationIp
+    description: Dirección de destino.
+  - name: DestinationHostname
+    description: Nombre de destino obtenido por DNS inverso, cuando está disponible. No es necesariamente el nombre que consultó el proceso.
+  - name: DestinationPort
+    description: Puerto de destino.
+  - name: DestinationPortName
+    description: Nombre del servicio para los puertos conocidos, p. ej. `https` o `microsoft-ds`.
+  - name: SourceIsIpv6
+    description: "`true` cuando la conexión usa IPv6."
+benign:
+  - Navegadores, Office, Teams y agentes de actualización que hablan con servicios en la nube por el 443.
+  - Miembros del dominio que se conectan a los controladores de dominio por el 88, 389, 445 y 135.
+  - Agentes de administración y de copia de seguridad que consultan periódicamente sus servidores.
+attacker:
+  - >-
+    Hosts de scripts o LOLBins (`powershell.exe`, `rundll32.exe`, `regsvr32.exe`, `mshta.exe`,
+    `certutil.exe`) que realizan conexiones salientes hacia Internet.
+  - "Beaconing: conexiones regulares desde el mismo proceso hacia una IP externa poco común."
+  - >-
+    Movimiento lateral desde una estación de trabajo hacia otros hosts por el 445 (SMB), 135
+    (RPC/WMI), 5985/5986 (WinRM) o 3389 (RDP).
+  - Procesos desde `%TEMP%`, `Downloads` o `ProgramData` que se conectan hacia fuera por puertos no estándar.
+investigation:
+  - Pivote sobre ProcessGuid hacia el evento 1 para ver la línea de comandos y el padre del proceso que se conecta.
+  - Correlacione con el evento 22 del mismo ProcessGuid para saber qué nombre de dominio se resolvió.
+  - Agrupe por Image y DestinationIp para encontrar pares poco comunes en el parque.
+  - Para el movimiento lateral entrante, busque el 4624 de Seguridad (LogonType 3 o 10) del host de destino a la misma hora.

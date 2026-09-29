@@ -1,0 +1,80 @@
+id: 4657
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A registry value was modified
+shortTitle: Registry value modified
+category: registry
+summary: >-
+  Security event 4657 records a created, changed or deleted registry value on an audited key,
+  with old and new data and the process that made the change.
+description: |-
+  Event 4657 is written when a value under a registry key with an auditing SACL is created, modified or deleted. Unlike most object-access events it carries the actual content: `ObjectValueName`, `OldValue` and `NewValue`, plus the process and account responsible.
+
+  That makes it a native alternative to Sysmon event 13 for a small set of high-value keys such as Run keys, service configuration, LSA settings or Defender policies. It only covers keys you have explicitly audited, so coverage depends entirely on the SACLs deployed.
+
+  The event relates to the value, not the key: key creation and deletion show up as 4663/4660, and a 4656 for the same handle usually precedes the 4657.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Registry (Success), plus a SACL
+    on the key auditing Set Value (and Delete for deletions).
+  notes: >-
+    Auditing whole hives is not practical; target specific keys. `ObjectName` uses kernel paths
+    such as `\REGISTRY\MACHINE\SOFTWARE\...` and `\REGISTRY\USER\<SID>\...`.
+fields:
+  - name: SubjectUserName
+    description: Account that changed the value.
+  - name: SubjectLogonId
+    description: Logon session of that account; pivot to 4624 and 4688.
+  - name: ObjectName
+    description: Registry key path in kernel form, e.g. `\REGISTRY\MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run`.
+  - name: ObjectValueName
+    description: Name of the value that was created, modified or deleted.
+  - name: OperationType
+    description: >-
+      What happened to the value, rendered as "New registry value created", "Existing registry
+      value modified" or "Registry value deleted".
+  - name: OldValueType
+    description: Registry type of the previous data (e.g. `REG_SZ`, `REG_DWORD`); `-` for a new value.
+  - name: OldValue
+    description: Previous data of the value.
+  - name: NewValueType
+    description: Registry type of the new data.
+  - name: NewValue
+    description: New data written — the command line of a Run entry, a service ImagePath, a policy flag.
+  - name: HandleId
+    description: Handle used for the change; links to the preceding 4656.
+  - name: ProcessName
+    description: Full path of the process that wrote the value.
+  - name: ProcessId
+    description: Hexadecimal PID of that process.
+benign:
+  - Software installers and updaters writing to Run keys or their own service keys.
+  - Group Policy processing rewriting policy values on every refresh.
+  - Administrators changing settings with `regedit.exe` or `reg.exe` during maintenance.
+attacker:
+  - Persistence through a new value under a Run or RunOnce key pointing to a binary in a user-writable folder.
+  - Changing a service `ImagePath` to run an attacker binary.
+  - >-
+    Weakening defenses by setting security-relevant values, for example disabling Defender
+    features through policy keys.
+investigation:
+  - Read `NewValue` first; a path in `AppData`, `Temp` or `ProgramData`, or an encoded command, is a strong lead.
+  - Check `ProcessName`; `reg.exe`, `powershell.exe` or an unknown binary writing autostart keys deserves review.
+  - Pivot `SubjectLogonId` to 4688 to find the command line that made the change.
+  - Compare `OldValue` and `NewValue` to understand what was replaced and restore it if needed.
+related:
+  - security/4656
+  - security/4663
+  - security/4688
+  - sysmon/13
+  - sysmon/12
+  - sysmon/14
+attack:
+  - T1112
+  - T1547.001
+references:
+  - title: "Microsoft Learn — 4657(S): A registry value was modified"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4657
+  - title: Microsoft Learn — Audit Registry
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-registry

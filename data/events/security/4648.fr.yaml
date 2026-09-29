@@ -1,0 +1,50 @@
+title: Tentative d'ouverture de session avec des informations d'identification explicites
+shortTitle: Identifiants explicites
+summary: >-
+  L'événement 4648 est consigné sur l'hôte source quand un processus utilise des identifiants
+  fournis explicitement : runas, net use /user ou PsExec -u.
+description: |-
+  L'événement 4648 est écrit sur la machine **où les identifiants ont été saisis ou fournis**, et non sur la cible. Il se déclenche lorsqu'un processus ouvre une session avec un compte différent de celui sous lequel il s'exécute : `runas /user`, `net use \\server /user:...`, `PsExec -u`, une tâche planifiée avec identifiants enregistrés, ou un outil appelant `LogonUser` ou `CreateProcessWithLogonW`.
+
+  L'enregistrement relie trois éléments : qui était déjà connecté (`SubjectUserName`), quel compte a fourni ses identifiants (`TargetUserName`) et vers où ils ont été envoyés (`TargetServerName`, `TargetInfo`). C'est l'une des rares traces côté source d'un mouvement latéral — la destination ne montre qu'un 4624 depuis l'IP de l'attaquant.
+
+  Attendez-vous à du bruit : sur les contrôleurs de domaine et les serveurs, `SYSTEM` génère en permanence des 4648 pour les comptes de service. Filtrez sur les SubjectUserName correspondant à de vrais utilisateurs.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logon (Success). Activé en succès
+    dans la stratégie d'audit par défaut.
+fields:
+  - name: SubjectUserName
+    description: Compte sous lequel s'exécutait le processus qui a fourni les identifiants.
+  - name: SubjectLogonId
+    description: Session de ce processus ; pivotez vers son 4624 et vers les événements 4688.
+  - name: TargetUserName
+    description: Compte dont les identifiants ont été utilisés.
+  - name: TargetDomainName
+    description: Domaine de ce compte.
+  - name: TargetServerName
+    description: >-
+      Serveur auprès duquel les identifiants ont été utilisés (`localhost` pour un runas local). Un
+      nom d'hôte distant ici est une piste de mouvement latéral.
+  - name: TargetInfo
+    description: Informations complémentaires sur la cible, souvent le SPN ou de nouveau le nom de la cible.
+  - name: ProcessName
+    description: Processus ayant utilisé les identifiants, par ex. `C:\Windows\System32\runas.exe`, `svchost.exe`, `lsass.exe`, un binaire PsExec.
+  - name: ProcessId
+    description: PID de ce processus (en hexadécimal).
+  - name: IpAddress
+    description: Adresse IP de la cible lorsqu'elle est connue.
+benign:
+  - Administrateurs utilisant `runas` ou « Exécuter en tant qu'autre utilisateur ».
+  - Tâches planifiées et services configurés avec des identifiants enregistrés.
+  - Mappage d'un lecteur avec d'autres identifiants (`net use /user`).
+  - Contrôleurs de domaine et serveurs d'administration où SYSTEM effectue des ouvertures de session explicites pour des comptes de service.
+attacker:
+  - "Mouvement latéral avec des mots de passe volés — PsExec -u, `net use` vers les partages administratifs, WMI ou WinRM avec identifiants explicites, le tout consigné sur l'hôte source."
+  - Un poste de travail compromis où la session d'un utilisateur standard fournit soudain les identifiants d'un administrateur du domaine à des serveurs.
+  - Boucles de validation d'identifiants où un même processus essaie de nombreuses valeurs de TargetUserName contre un seul serveur.
+investigation:
+  - Éliminez les SubjectUserName se terminant par `$` et SYSTEM, puis listez les couples TargetUserName → TargetServerName.
+  - Recherchez des comptes d'administration utilisés depuis des postes de travail où ces administrateurs ne se connectent jamais en interactif.
+  - Corrélez avec les 4624 de type 3 ou 9 sur le serveur cible au même moment ; l'IpAddress du 4624 doit être celle de cet hôte.
+  - Vérifiez ProcessName ; des binaires inhabituels dans des chemins accessibles en écriture à l'utilisateur sont un signal fort.

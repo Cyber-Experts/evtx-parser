@@ -1,0 +1,88 @@
+id: 8004
+channel: applocker
+channelName: Microsoft-Windows-AppLocker/EXE and DLL
+provider: Microsoft-Windows-AppLocker
+title: File was prevented from running
+shortTitle: EXE or DLL blocked
+category: application-control
+summary: >-
+  AppLocker event 8004 records an executable or DLL blocked by an enforced AppLocker policy,
+  with file path, signer, hash and the user who tried to run it.
+description: |-
+  Event 8004 is written to the AppLocker **EXE and DLL** log when a rule collection is in **Enforce rules** mode and a file is denied — either by an explicit deny rule or because no allow rule covers it. The execution did not happen.
+
+  A block is both a success and a signal: something tried to run code outside the approved baseline. On well-managed hosts, 8004 events are rare enough to review individually. Clusters of blocks from user-writable folders shortly after a phishing email, a download or a new logon are a classic early indicator of intrusion.
+
+  Remember that the attacker may have tried again with another technique. Look around the block for allowed executions (8002), script activity (8005–8007) and process creation for signs of a successful workaround.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    An AppLocker policy with Executable (and optionally DLL) rules — Computer Configuration > Windows
+    Settings > Security Settings > Application Control Policies > AppLocker — and the Application
+    Identity service (AppIDSvc) running. Logged only when the rule collection is in Enforce rules mode.
+  notes: >-
+    DLL rules are off unless enabled in the policy's advanced settings, and they add significant
+    volume. Microsoft notes the EXE and DLL log is very verbose; many collectors keep only warnings
+    and errors from it. AppLocker enforcement depends on the Windows edition; unsupported editions
+    log 8008 instead.
+fields:
+  - name: PolicyName
+    description: Rule collection that evaluated the file.
+    values:
+      - value: EXE
+        meaning: Executable rules (.exe and .com).
+      - value: DLL
+        meaning: DLL rules (.dll and .ocx) — only evaluated when DLL rule enforcement is turned on.
+  - name: RuleId
+    description: >-
+      GUID of the AppLocker rule that matched. An all-zero GUID means no rule matched and the
+      file fell under the implicit deny.
+  - name: RuleName
+    description: Name of the matching rule (for example `(Default Rule) All files located in the Windows folder`), or `-` when none matched.
+  - name: RuleSddl
+    description: Security descriptor of the rule, showing which user or group SID the rule applies to.
+  - name: TargetUser
+    description: SID of the user who tried to run the file.
+  - name: TargetProcessId
+    description: ID of the process involved in the execution attempt; correlate with Security 4688 or Sysmon 1.
+  - name: TargetLogonId
+    description: Logon session of the user; pivot to Security 4624 and 4688 with the same logon ID.
+  - name: FilePath
+    description: >-
+      Path of the file written with AppLocker path variables, e.g. `%OSDRIVE%\USERS\...`,
+      `%SYSTEM32%\...`, `%PROGRAMFILES%\...`.
+  - name: FullFilePath
+    description: The same path in plain form (`C:\Users\...`). Present on current Windows versions.
+  - name: FileHash
+    description: AppLocker hash of the file, used by file hash rules.
+  - name: Fqbn
+    description: >-
+      Fully qualified binary name from the file's signature — publisher, product, file name and
+      version. `-` for unsigned files.
+benign:
+  - Users trying to run unapproved software, portable apps or installers from their profile.
+  - Legitimate updates that change a file path or signer not yet covered by the rules.
+attacker:
+  - Blocked execution of malware dropped by phishing attachments or downloads into `AppData`, `Temp` or `Downloads`.
+  - Attacker tools copied to a host during lateral movement and blocked on execution.
+investigation:
+  - Review every 8004 on servers and sensitive hosts; on workstations, prioritize user-writable paths and unsigned files.
+  - Pivot on TargetLogonId to Security 4624 to see how the user was logged on (interactive, RDP, network).
+  - Look for follow-up attempts that succeeded (8002, 8005, LOLBins in Security 4688 or Sysmon 1).
+  - Collect the blocked file by FullFilePath and FileHash for analysis.
+related:
+  - applocker/8002
+  - applocker/8003
+  - applocker/8007
+  - security/4688
+  - security/4624
+  - sysmon/1
+  - code-integrity/3033
+attack:
+  - T1204.002
+  - T1036.005
+references:
+  - title: Microsoft Learn — Using Event Viewer with AppLocker
+    url: https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/applocker/using-event-viewer-with-applocker
+  - title: Microsoft Learn — AppLocker overview
+    url: https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/applocker/applocker-overview

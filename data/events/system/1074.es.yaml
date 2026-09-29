@@ -1,0 +1,47 @@
+title: El proceso inició el reinicio o el apagado del equipo en nombre del usuario
+shortTitle: Apagado o reinicio solicitado
+summary: >-
+  El evento 1074 de System (User32) registra quién pidió un apagado o reinicio: proceso, usuario, código de motivo y comentario. Dice quién reinició el equipo.
+description: |-
+  El evento 1074 se escribe cuando un proceso pide a Windows que se apague o reinicie mediante la API estándar: el menú Inicio, `shutdown.exe`, `Restart-Computer`, Windows Update, los instaladores o una solicitud de apagado remoto. Es el mejor registro de la **intención**: qué proceso lo pidió, en nombre de qué cuenta y con qué motivo.
+
+  Los campos son posicionales: `param1` es el proceso solicitante seguido de un nombre de equipo entre paréntesis, `param2` el equipo que se apaga, `param3` el texto del motivo, `param4` el código de motivo, `param5` la acción (`restart`, `power off`), `param6` el comentario libre y `param7` el usuario. Los códigos de motivo siguen el formato documentado de motivos de apagado (motivo principal y secundario más el indicador de planificado).
+
+  Un reinicio limpio suele verse como 1074, después 6006 y 13, y luego 12 y 6005 al volver a arrancar. Un bloqueo del sistema no tiene ninguno de los tres primeros.
+logging:
+  requirement: Se registra siempre en el registro System cuando se solicita un apagado o reinicio mediante la API.
+  notes: >-
+    Los apagados forzados, los reinicios desde el hipervisor y los bloqueos no producen 1074.
+    `param3` y `param5` están localizados en sistemas que no están en inglés.
+fields:
+  - name: param1
+    description: >-
+      Proceso solicitante, p. ej. `C:\Windows\system32\shutdown.exe`, `winlogon.exe`,
+      `TrustedInstaller.exe`, seguido de un nombre de equipo entre paréntesis.
+  - name: param2
+    description: Nombre del equipo que se apaga o reinicia.
+  - name: param3
+    description: >-
+      Texto del motivo, p. ej. `Operating System: Upgrade (Planned)` u `Other (Unplanned)`.
+  - name: param4
+    description: Código de motivo de apagado en hexadecimal, p. ej. `0x80020003`. `0x0` significa que no se indicó ningún motivo.
+  - name: param5
+    description: Acción solicitada, p. ej. `restart` o `power off`.
+  - name: param6
+    description: Comentario proporcionado por el solicitante (por ejemplo `shutdown /c "..."`). A menudo vacío.
+  - name: param7
+    description: Cuenta en cuyo nombre se solicitó el apagado, p. ej. `NT AUTHORITY\SYSTEM` o `CONTOSO\admin`.
+benign:
+  - Usuarios que reinician desde el menú Inicio (`winlogon.exe`, `explorer.exe`, `RuntimeBroker.exe`).
+  - Reinicios de Windows Update y de mantenimiento por `TrustedInstaller.exe`, `MoUsoCoreWorker.exe` o `winlogon.exe` como `SYSTEM`.
+  - Instaladores de software y agentes de administración que reinician tras un despliegue.
+attacker:
+  - >-
+    `shutdown.exe /r` o `Restart-Computer` ejecutados por un atacante para activar la persistencia o
+    interrumpir la operación, a veces con un comentario que deja un mensaje.
+  - Reinicios masivos de servidores por operadores de ransomware, a menudo con `shutdown.exe` ejecutado desde una sesión remota.
+investigation:
+  - Revise `param7` y `param1` juntos; conviene confirmar los casos de cuentas de usuario interactivas que ejecutan `shutdown.exe` en servidores.
+  - Relacione la hora con la creación de procesos (4688, Sysmon 1) para ver la línea de comandos exacta y el proceso padre.
+  - En los apagados remotos, busque un inicio de sesión de red (4624 de tipo 3) en el host justo antes.
+  - Confirme la secuencia 1074, 6006, 13, 12, 6005 para validar un reinicio limpio.

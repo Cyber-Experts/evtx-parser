@@ -1,0 +1,66 @@
+id: 4740
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A user account was locked out
+shortTitle: Account locked out
+category: account
+summary: >-
+  Security event 4740 is logged when an account is locked out after too many bad passwords.
+  It names the account and the caller computer that triggered it.
+description: |-
+  Event 4740 is written when the account lockout threshold is reached and an account is locked. Domain account lockouts are logged on domain controllers — the PDC emulator is the usual place to find them, since bad password attempts are forwarded to it — while local account lockouts are logged on the machine that owns the account.
+
+  The most useful detail is the **Caller Computer Name**, stored in the `TargetDomainName` field despite its name: it is the computer from which the failed logons came. It is a NetBIOS name, not an IP address, and it can be empty. The `Subject*` fields describe the system component that performed the lockout (typically the domain controller's computer account or `SYSTEM`), not a person.
+
+  Lockouts are usually the result of a stale password saved on a phone, mapped drive, service or scheduled task. They are also the visible side effect of password guessing: a single lockout is mostly noise, many lockouts across accounts from one caller is an attack.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Enabled for Success in the default Windows audit policy.
+  notes: >-
+    Only generated when an account lockout threshold is configured in the password policy.
+    Failed logons against an already locked account show up as 4625 with Status `0xC0000234`.
+fields:
+  - name: TargetUserName
+    description: Account that was locked out.
+  - name: TargetSid
+    description: SID of the locked account.
+  - name: TargetDomainName
+    description: >-
+      Caller Computer Name — the NetBIOS name of the computer that sent the failed authentication
+      attempts. Start the investigation there.
+  - name: SubjectUserName
+    description: Account that performed the lockout, normally the domain controller's computer account (`DC01$`) or the local system.
+  - name: SubjectUserSid
+    description: SID of the subject, typically `S-1-5-18` (SYSTEM).
+benign:
+  - Users who changed their password but still have the old one saved on a phone, laptop, mapped drive or VPN client.
+  - Services, scheduled tasks or applications configured with an outdated password, locking the account repeatedly.
+  - Users mistyping their password several times.
+attacker:
+  - Password guessing against a single account from one host.
+  - Password spraying that overshoots the lockout threshold, causing lockouts of many accounts from the same caller computer.
+  - Deliberately locking out administrators or service accounts as a denial of service.
+investigation:
+  - Go to the caller computer and review its 4625 and 4648 events, services and scheduled tasks for the locked account.
+  - On domain controllers, correlate with 4771 (Kerberos) or 4776 (NTLM) failures for the account to see the source and failure codes.
+  - Count lockouts per caller computer and per time window to separate a misconfigured device from spraying.
+  - Check for 4767 (unlock) and 4724 (reset) afterward and for a successful logon by the same account.
+related:
+  - security/4625
+  - security/4767
+  - security/4771
+  - security/4776
+  - security/4724
+  - security/4624
+  - security/4648
+attack:
+  - T1110.001
+  - T1110.003
+  - T1531
+references:
+  - title: "Microsoft Learn — 4740(S): A user account was locked out"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4740
+  - title: Microsoft Learn — Audit User Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-user-account-management

@@ -1,0 +1,50 @@
+id: 28
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: FileBlockShredding
+shortTitle: File shredding blocked
+category: file
+summary: >-
+  Sysmon event 28 fires when Sysmon blocks a file-shredding attempt, such as SDelete
+  overwriting a file before deleting it. Added in Sysmon 14.1.
+description: |-
+  Sysmon event 28 is generated when Sysmon detects and blocks file shredding: overwriting a file's content before deleting it so it cannot be recovered, as done by tools such as Sysinternals SDelete. The file content is preserved.
+
+  Shredding is used by attackers and wipers to destroy evidence or data. On most business endpoints secure deletion is rare, so blocked attempts are worth reviewing, keeping in mind that some privacy and disk-cleaning tools do it on purpose.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon 14.1 or later with a `<FileBlockShredding>` rule in the configuration.
+fields:
+  - name: ProcessGuid
+    description: Process that attempted the shredding.
+  - name: Image
+    description: Executable that attempted the shredding, e.g. `sdelete.exe` or a renamed copy.
+  - name: User
+    description: Account of the process.
+  - name: TargetFilename
+    description: File the process tried to shred.
+  - name: Hashes
+    description: Hashes of the targeted file.
+  - name: IsExecutable
+    description: "`true` when the targeted file is a PE executable."
+benign:
+  - Administrators or privacy tools using SDelete or secure-erase features on purpose.
+attacker:
+  - Operators shredding their tools, scripts or staged archives to hinder recovery.
+  - Wipers overwriting user or system files.
+investigation:
+  - Pivot on ProcessGuid to event 1 to see the shredding tool and who launched it.
+  - Review the targeted files — tools and dumps point to anti-forensics, business data to destruction.
+  - Check for other deletions by the same process (events 23, 26).
+related:
+  - sysmon/26
+  - sysmon/23
+  - sysmon/1
+attack:
+  - T1070.004
+  - T1485
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Data Destruction (T1485)
+    url: https://attack.mitre.org/techniques/T1485/

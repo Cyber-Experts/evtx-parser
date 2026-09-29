@@ -1,0 +1,52 @@
+title: Das Überwachungsprotokoll wurde gelöscht
+shortTitle: Sicherheitsprotokoll gelöscht
+summary: >-
+  Event-ID 1102 wird geschrieben, wenn das Sicherheitsprotokoll gelöscht wird, samt Konto.
+  Im Normalbetrieb selten, klassisches Anti-Forensik-Indiz.
+description: |-
+  Event 1102 wird vom Windows-Ereignisprotokolldienst als erster Eintrag eines frisch geleerten Sicherheitsprotokolls geschrieben. Es übersteht das Löschen, weil es erst danach erzeugt wird, und hält im Element `UserData/LogFileCleared` das Konto fest, das den Löschvorgang ausgeführt hat: `SubjectUserName`, `SubjectDomainName`, `SubjectUserSid` und `SubjectLogonId`.
+
+  Es gibt kaum legitime Gründe, das Sicherheitsprotokoll auf einem Produktivsystem zu löschen — die Archivierung übernehmen normalerweise Log-Forwarding oder die Aufbewahrungseinstellungen. Wer ein 1102 findet, sollte alles davor als potenziell verloren betrachten und auf andere Quellen ausweichen: weitergeleitete Kopien im SIEM, andere Kanäle auf dem Host und die Protokolle der Systeme, auf die das Konto zugegriffen hat.
+
+  Das Löschen anderer Protokolle (System, Application, PowerShell usw.) wird als System-Event 104 protokolliert, nicht als 1102. Angreifer, die alles löschen, hinterlassen meist beide.
+logging:
+  requirement: >-
+    Wird vom Windows-Ereignisprotokolldienst immer protokolliert, wenn das Sicherheitsprotokoll
+    gelöscht wird; keine Überwachungsrichtlinie erforderlich.
+  notes: >-
+    Die Felder liegen unter `UserData/LogFileCleared`, nicht unter `EventData`. Das löschende
+    Konto benötigt das Recht „Verwalten von Überwachungs- und Sicherheitsprotokollen“
+    (Administratoren besitzen es standardmäßig).
+fields:
+  - name: SubjectUserName
+    description: Konto, das das Protokoll gelöscht hat.
+  - name: SubjectDomainName
+    description: Domäne oder Computername dieses Kontos.
+  - name: SubjectUserSid
+    description: SID des Kontos, das das Protokoll gelöscht hat; bleibt auch nach Umbenennung des Kontos gleich.
+  - name: SubjectLogonId
+    description: >-
+      Anmeldesitzung, die das Löschen ausgeführt hat. Pivotieren Sie in weitergeleiteten oder
+      anderen Protokollen auf das 4624 mit derselben TargetLogonId, um die Herkunft der Sitzung
+      zu ermitteln.
+benign:
+  - Laborsysteme, Golden Images und Systeme in der Bereitstellung, bei denen Protokolle im Rahmen des Builds geleert werden.
+  - Ein Administrator leert ein volles Protokoll auf einem Host, der so konfiguriert ist, dass Ereignisse nicht überschrieben werden (nach einem 1104).
+attacker:
+  - >-
+    Spurenverwischung nach einem Einbruch mit `wevtutil cl Security`, den PowerShell-Cmdlets
+    `Clear-EventLog` oder `Remove-EventLog` oder der Aktion „Protokoll löschen“ in der
+    Ereignisanzeige.
+  - Ransomware und Wiper, die alle Ereignisprotokolle kurz vor oder nach der Verschlüsselung löschen.
+  - Löschen des Protokolls auf einem einzelnen Server nach Lateral Movement, während andere Hosts unangetastet bleiben.
+investigation:
+  - >-
+    Sitzung identifizieren: SubjectLogonId und SubjectUserName, dann in weitergeleiteten
+    Protokollen oder auf den Domänencontrollern nach der Anmeldung (4624, 4768/4769, 4776)
+    suchen, die sie erzeugt hat.
+  - System-Event 104 zum selben Zeitpunkt prüfen — mehrere gleichzeitig gelöschte Protokolle deuten auf ein Skript oder Tool hin.
+  - >-
+    Prozesserstellungen (4688, Sysmon 1) und PowerShell 4104 rund um den Zeitstempel nach
+    Aufrufen von `wevtutil`, `Clear-EventLog` oder `ClearLog` durchsuchen, um den ausführenden
+    Prozess zu identifizieren.
+  - Die weitergeleiteten Events des Hosts mit dem lokal verbliebenen Bestand vergleichen, um genau zu sehen, was gelöscht wurde.

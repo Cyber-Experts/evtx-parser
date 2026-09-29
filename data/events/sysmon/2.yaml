@@ -1,0 +1,63 @@
+id: 2
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: A process changed a file creation time
+shortTitle: File creation time changed
+category: file
+summary: >-
+  Sysmon event 2 fires when a process explicitly changes a file's creation timestamp — the
+  classic trace of timestomping, but also common in installers.
+description: |-
+  Sysmon event 2 records a process setting the creation time of a file explicitly. It gives the new value (`CreationUtcTime`) and the old one (`PreviousCreationUtcTime`), plus the process that did it.
+
+  Attackers backdate dropped files to make them blend in with operating-system files, which defeats naive timeline analysis based on `$STANDARD_INFORMATION` timestamps. Seeing the change as it happens, with the responsible process, is often the fastest way to catch it.
+
+  The event is noisy on its own: browsers, installers, archive tools and cloud-sync clients routinely set creation times. Most configurations limit it to executables, scripts and sensitive folders, or exclude well-known updaters.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Sysmon installed with a configuration containing a `<FileCreateTime>` rule (include rules for
+    the paths or extensions you care about).
+fields:
+  - name: UtcTime
+    description: When Sysmon saw the change.
+  - name: ProcessGuid
+    description: Process that changed the timestamp; pivot to its event 1.
+  - name: ProcessId
+    description: PID of that process.
+  - name: Image
+    description: Executable that changed the timestamp.
+  - name: TargetFilename
+    description: File whose creation time was changed.
+  - name: CreationUtcTime
+    description: The new creation time set by the process.
+  - name: PreviousCreationUtcTime
+    description: >-
+      The creation time before the change. A new value that is years older than the previous
+      one on a freshly written executable is the classic timestomping pattern.
+  - name: User
+    description: Account of the process (newer Sysmon versions).
+benign:
+  - Browsers and download managers setting timestamps on downloaded files.
+  - Installers, archive extractors and file-copy tools preserving original timestamps.
+  - Cloud-sync clients such as OneDrive restoring file metadata.
+attacker:
+  - >-
+    Malware or an operator backdating a dropped DLL or EXE in `C:\Windows\System32` or
+    `ProgramData` to match neighboring system files.
+  - Timestomping tools or PowerShell (`(Get-Item x).CreationTime = ...`) run right after a payload drop.
+investigation:
+  - Compare CreationUtcTime with PreviousCreationUtcTime; large backwards jumps on new executables stand out.
+  - Pivot on ProcessGuid to event 1 to see who ran the process and to event 11 for the original file creation.
+  - Verify with the NTFS `$FILE_NAME` timestamps in the MFT, which timestomping tools usually do not change.
+related:
+  - sysmon/1
+  - sysmon/11
+  - sysmon/29
+attack:
+  - T1070.006
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Indicator Removal, Timestomp (T1070.006)
+    url: https://attack.mitre.org/techniques/T1070/006/

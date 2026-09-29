@@ -524,7 +524,7 @@ export function channelGraph(key: ChannelKey, locale: Locale) {
           "@type": "ListItem",
           position: i + 1,
           name: `${e.id} — ${e.name}`,
-          url: `${SITE_URL}/${locale}/event-id/${e.id}`,
+          url: `${SITE_URL}/${locale}/events/${key}/${e.id}`,
         })),
       },
       {

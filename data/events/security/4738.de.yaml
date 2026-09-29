@@ -1,0 +1,92 @@
+title: Ein Benutzerkonto wurde geändert
+shortTitle: Benutzerkonto geändert
+summary: >-
+  Event-ID 4738 wird bei Änderungen an einem Benutzerkonto protokolliert: neue Attributwerte, inklusive Kontoflags wie Delegierung oder Preauth.
+description: |-
+  Event 4738 wird jedes Mal geschrieben, wenn ein Benutzerobjekt geändert wird — auf Domänencontrollern für Domänenkonten und auf Mitgliedsservern und Arbeitsstationen für lokale Konten. Pro Änderung wird ein Event protokolliert. `Subject*` identifiziert, wer die Änderung vorgenommen hat, `Target*` das geänderte Konto.
+
+  Das Event listet eine feste Menge von Attributen: Anmeldename, UPN, Basisverzeichnis, Anmeldeskript, Profilpfad, `PasswordLastSet`, `AccountExpires`, `PrimaryGroupId`, `AllowedToDelegateTo`, `SidHistory`, Anmeldezeiten und die Kontoflags. Bei Domänenkonten wird ein unverändertes Attribut als `-` angezeigt. Bei lokalen Konten tragen unveränderte Attribute ihren aktuellen Wert, was es schwerer macht zu erkennen, was sich tatsächlich geändert hat. Eine Änderung an einem Attribut außerhalb dieser Liste (etwa an der ACL des Kontos oder seinen SPNs) erzeugt trotzdem ein 4738, in dem alles `-` ist.
+
+  Am wertvollsten ist die Änderung der Kontoflags: `OldUacValue` und `NewUacValue` enthalten die SAM-Kontoflags vorher und nachher, und `UserAccountControl` listet jedes ein- oder ausgeschaltete Flag. Flags, die ein Konto schwächen — Kennwort nicht erforderlich, Kennwort läuft nie ab, keine Kerberos-Vorauthentifizierung erforderlich, uneingeschränkte Delegierung, umkehrbare Verschlüsselung —, werden häufig von Angreifern gesetzt, um Credential-Diebstahl oder Persistenz vorzubereiten.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). In der Standard-Überwachungsrichtlinie von Windows für „Erfolg“ aktiviert.
+  notes: >-
+    Kennwortänderungen und -zurücksetzungen (4723, 4724), Aktivierung (4722) und Deaktivierung
+    (4725) werden jeweils von einem 4738 begleitet. Manche Änderungen erzeugen gar kein 4738; auf
+    Domänencontrollern liefert Audit Directory Service Changes (5136) das exakte Attribut mit
+    altem und neuem Wert. Wird ein nur für Benutzer vorgesehenes Flag auf einem Computerkonto
+    gesetzt, wird es zu einem Konto vom Typ Benutzer, und seine Änderungen werden dann von 4738
+    statt 4742 gemeldet.
+fields:
+  - name: SubjectUserName
+    description: Konto, das die Änderung vorgenommen hat.
+  - name: SubjectLogonId
+    description: Anmeldesitzung des Subjects; mit 4624 korrelieren.
+  - name: TargetUserName
+    description: Geändertes Konto.
+  - name: TargetDomainName
+    description: Domäne des geänderten Kontos oder der Computername bei einem lokalen Konto.
+  - name: TargetSid
+    description: SID des geänderten Kontos.
+  - name: PasswordLastSet
+    description: Neuer Kennwort-Zeitstempel, wenn das Kennwort geändert oder zurückgesetzt wurde.
+  - name: ScriptPath
+    description: Pfad des Anmeldeskripts, wenn er geändert wurde. Ein neues Anmeldeskript an einem Konto ist eine Persistenzmethode.
+  - name: PrimaryGroupId
+    description: Neue RID der primären Gruppe, falls geändert. Andere Werte als `513` (Domain Users) sind bei Benutzerkonten ungewöhnlich.
+  - name: AllowedToDelegateTo
+    description: >-
+      Neue SPN-Liste für eingeschränkte Delegierung oder `<value not set>`, wenn die Liste geleert
+      wurde. Jede Änderung hier an einem Benutzerkonto verdient eine Prüfung.
+  - name: SidHistory
+    description: Neuer SID-Verlaufswert. Außerhalb einer Domänenmigration sollte er `-` bleiben.
+  - name: OldUacValue
+    description: SAM-Kontoflags vor der Änderung (hexadezimal, SAM-Definition, nicht die AD-Bits von `userAccountControl`).
+  - name: NewUacValue
+    description: SAM-Kontoflags nach der Änderung. Bit für Bit mit OldUacValue vergleichen.
+    values:
+      - value: "0x1"
+        meaning: Konto deaktiviert.
+      - value: "0x4"
+        meaning: Kennwort nicht erforderlich.
+      - value: "0x10"
+        meaning: Normales Benutzerkonto.
+      - value: "0x200"
+        meaning: Kennwort läuft nie ab.
+      - value: "0x800"
+        meaning: Kennwort mit umkehrbarer Verschlüsselung erlaubt.
+      - value: "0x1000"
+        meaning: Smartcard erforderlich.
+      - value: "0x2000"
+        meaning: Für Delegierung vertraut (uneingeschränkte Kerberos-Delegierung).
+      - value: "0x4000"
+        meaning: Nicht delegiert (Konto ist vertraulich und kann nicht delegiert werden).
+      - value: "0x8000"
+        meaning: Nur DES-Schlüssel verwenden.
+      - value: "0x10000"
+        meaning: Keine Kerberos-Vorauthentifizierung erforderlich (anfällig für AS-REP-Roasting).
+      - value: "0x40000"
+        meaning: Für Delegierung zur Authentifizierung vertraut (Protokollübergang).
+  - name: UserAccountControl
+    description: >-
+      Ein Meldungscode pro ein- oder ausgeschaltetem Flag, von der Ereignisanzeige als Text wie
+      „'Don't Require Preauth' - Enabled“ dargestellt. In Microsofts Beispielen vorkommende Codes
+      sind `%%2080` (Account Disabled), `%%2082` (Password Not Required), `%%2084` (Normal
+      Account), `%%2087` (Workstation Trust Account) und `%%2093` (Trusted For Delegation), die
+      das jeweilige Flag als aktiviert kennzeichnen.
+benign:
+  - Kennwortänderungen und -zurücksetzungen, die jeweils ein 4738 mit neuem PasswordLastSet erzeugen.
+  - Helpdesk- und HR-Systeme, die Anzeigenamen, UPNs, Basisverzeichnisse oder Ablaufdaten aktualisieren.
+  - Aktivieren oder Deaktivieren von Konten, sichtbar als Änderung des Flags „Konto deaktiviert“.
+attacker:
+  - Deaktivieren der Kerberos-Vorauthentifizierung für einen Benutzer (Flag `0x10000`), um ihn offline per AS-REP-Roasting anzugreifen.
+  - Setzen von „Kennwort läuft nie ab“ oder „Kennwort nicht erforderlich“ auf einem Backdoor-Konto.
+  - Aktivieren uneingeschränkter oder eingeschränkter Delegierung (Trusted For Delegation, AllowedToDelegateTo) auf einem vom Angreifer kontrollierten Konto.
+  - Hinzufügen des SID-Verlaufs eines privilegierten Kontos oder eines Anmeldeskripts, das bei der Anmeldung Angreifercode ausführt.
+investigation:
+  - OldUacValue und NewUacValue dekodieren und alarmieren, wenn schwächende Flags (0x4, 0x200, 0x800, 0x2000, 0x10000, 0x40000) eingeschaltet werden.
+  - Das Subject prüfen — Änderungen an privilegierten Konten durch Nicht-Admins oder ungewöhnliche Konten haben hohe Priorität.
+  - Auf Domänencontrollern 5136 für dasselbe Objekt und denselben Zeitpunkt abrufen, um exakte Attribute und alte Werte zu sehen.
+  - Bei Änderungen an Vorauthentifizierung oder Delegierung nach nachfolgender Kerberos-Aktivität des Kontos suchen (4768, 4769).

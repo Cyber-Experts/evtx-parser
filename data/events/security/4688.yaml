@@ -1,0 +1,132 @@
+id: 4688
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A new process has been created
+shortTitle: Process creation
+category: process
+summary: >-
+  Security event 4688 logs every new process: executable, parent, account, elevation and, if
+  enabled, the full command line. Off by default.
+description: |-
+  Event 4688 is the native Windows record of process execution. Each record names the new executable (`NewProcessName`), the process that started it (`ProcessId` and, from Windows 10 / Server 2016, `ParentProcessName`), the account and logon session (`SubjectUserName`, `SubjectLogonId`), and the token it received (`TokenElevationType`, `MandatoryLabel`).
+
+  The most valuable field, `CommandLine`, is **empty unless a separate policy is enabled**: "Include command line in process creation events". Without it you know that `powershell.exe` ran but not what it ran. Enabling both the audit subcategory and the command-line policy turns 4688 into a lightweight alternative to Sysmon event 1 (which adds hashes and parent command line).
+
+  When the creator and the new process run under different logon sessions (for example a service launching a process as another user), the `Target*` fields name the account the process actually runs as; otherwise they are empty. `SubjectLogonId` / `TargetLogonId` tie each process back to its 4624 logon.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Detailed Tracking > Audit Process Creation (Success).
+    For command lines also enable Computer Configuration > Administrative Templates > System >
+    Audit Process Creation > Include command line in process creation events.
+  notes: >-
+    Not enabled in the default audit policy. `CommandLine` exists from Windows 8.1 / Server 2012 R2
+    (event version 1); `Target*` fields, `ParentProcessName` and `MandatoryLabel` from Windows 10 /
+    Server 2016 (version 2). Volume is high — plan log size and forwarding accordingly. Command lines
+    can contain secrets typed as arguments.
+fields:
+  - name: SubjectUserName
+    description: Account that created the process (the creator). `HOST$` means SYSTEM or another machine-context service.
+  - name: SubjectLogonId
+    description: >-
+      Creator's logon session. Match it to TargetLogonId in 4624 to learn how the session started
+      (interactive, RDP, network, service).
+  - name: NewProcessId
+    description: Hexadecimal PID of the new process. Match it to ProcessId in 4689 for the exit, or to later child processes.
+  - name: NewProcessName
+    description: Full path of the new executable. Check the folder as much as the name.
+  - name: TokenElevationType
+    description: What kind of token the process received under UAC.
+    values:
+      - value: "%%1936"
+        meaning: >-
+          Type 1, full token — UAC is off for this account, or the account is the built-in
+          Administrator, a service account or SYSTEM.
+      - value: "%%1937"
+        meaning: >-
+          Type 2, elevated token — the user started the program with Run as administrator, or the
+          program requires elevation and the user is an administrator.
+      - value: "%%1938"
+        meaning: Type 3, limited token — UAC is on and the process runs with administrative rights stripped.
+  - name: MandatoryLabel
+    description: Integrity level of the new process.
+    values:
+      - value: S-1-16-0
+        meaning: Untrusted.
+      - value: S-1-16-4096
+        meaning: Low integrity (e.g. sandboxed browser processes).
+      - value: S-1-16-8192
+        meaning: Medium integrity — standard user processes.
+      - value: S-1-16-8448
+        meaning: Medium plus.
+      - value: S-1-16-12288
+        meaning: High integrity — elevated administrator processes.
+      - value: S-1-16-16384
+        meaning: System integrity — SYSTEM services.
+      - value: S-1-16-20480
+        meaning: Protected process.
+  - name: ProcessId
+    description: >-
+      Hexadecimal PID of the creator (parent) process. PIDs are reused, so match it to the parent's
+      own 4688 by time as well.
+  - name: ParentProcessName
+    description: Full path of the creator process (Windows 10 / Server 2016 and later).
+  - name: CommandLine
+    description: >-
+      Full command line of the new process. Empty unless the command-line policy is enabled; check
+      it first when it is present.
+  - name: TargetUserName
+    description: >-
+      Account the new process runs as when it differs from the creator's session; `-` when the
+      creator and new process share the same logon.
+  - name: TargetLogonId
+    description: Logon session of the new process when it differs from the creator's; `0x0` otherwise.
+benign:
+  - Normal user and system activity — thousands of records per day per host, dominated by services, updaters and browsers.
+  - Software deployment and management agents (SCCM, Intune, backup, monitoring) spawning `cmd.exe` or `powershell.exe` as SYSTEM.
+  - Administrators running tools with Run as administrator, producing `%%1937` elevated tokens.
+attacker:
+  - >-
+    Living-off-the-land execution: `powershell.exe` with `-enc` or download cradles, `rundll32.exe`,
+    `regsvr32.exe`, `mshta.exe`, `certutil.exe` used with unusual arguments.
+  - >-
+    Office applications, browsers or `w3wp.exe` spawning command interpreters — a common sign of
+    malicious documents or web shells.
+  - >-
+    Remote execution artifacts on the target: children of `services.exe` with random names
+    (PsExec-style), `WmiPrvSE.exe` spawning `cmd.exe` (WMI), `wsmprovhost.exe` (WinRM).
+  - Discovery bursts from one session — `whoami`, `net`, `nltest`, `ipconfig`, `systeminfo` within seconds.
+  - Executables running from user-writable locations such as `%TEMP%`, `AppData`, `C:\ProgramData` or `C:\Users\Public`.
+investigation:
+  - >-
+    Rebuild the process tree with NewProcessId / ProcessId and ParentProcessName, remembering that
+    PIDs are reused over time.
+  - >-
+    Group by SubjectLogonId to see everything a single session ran, then pivot to the 4624 that
+    created that session to learn its origin.
+  - Look for rare parent/child pairs across the fleet rather than individual suspicious names.
+  - If CommandLine is empty everywhere, the command-line policy is off — fall back to Sysmon 1, PowerShell 4104 or EDR data.
+  - Use 4689 with the same PID to get the exit time and duration of short-lived tools.
+related:
+  - security/4689
+  - security/4624
+  - security/4672
+  - security/4697
+  - security/4698
+  - sysmon/1
+  - powershell/4104
+  - security/4648
+attack:
+  - T1059
+  - T1059.001
+  - T1059.003
+  - T1218
+  - T1047
+  - T1569.002
+references:
+  - title: "Microsoft Learn — 4688(S): A new process has been created"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4688
+  - title: Microsoft Learn — Command line process auditing
+    url: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/component-updates/command-line-process-auditing
+  - title: Microsoft Learn — Audit Process Creation
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-process-creation

@@ -1,0 +1,94 @@
+id: 4732
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A member was added to a security-enabled local group
+shortTitle: Member added to local group
+category: group
+summary: >-
+  Security event 4732 is logged when a member is added to a security-enabled local group,
+  such as the local Administrators group or a domain local group.
+description: |-
+  Event 4732 is written when an account or group is added to a security-enabled **local** group. On workstations and member servers that means groups in the local SAM such as `Administrators`, `Remote Desktop Users` or `Backup Operators`. On domain controllers it covers the Builtin groups of the domain (Administrators, Account Operators, Server Operators, Backup Operators…) and **domain local** groups such as `DnsAdmins`. Global and universal groups have their own events (4728, 4756).
+
+  `TargetUserName` and `TargetSid` identify the group, `MemberSid` the account that was added, and `Subject*` who made the change. On member servers and workstations, `MemberName` is usually `-`, even for domain accounts, so resolve `MemberSid` instead. One event is logged per added member, typically preceded by an empty 4735.
+
+  Adding an account to the local Administrators group is one of the most common persistence and privilege steps after compromise, which makes this event a high-value detection on every endpoint, not only on domain controllers.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Success is audited in the default Windows audit policy.
+  notes: >-
+    Local group changes are only recorded on the machine that owns the group, so collect Security
+    logs from endpoints and servers, not only from domain controllers. Membership pushed by Group
+    Policy (Restricted Groups, Local Users and Groups preferences) also produces 4732 on each target machine.
+fields:
+  - name: MemberSid
+    description: SID of the added account or group. The reliable field on workstations and member servers.
+  - name: MemberName
+    description: >-
+      Distinguished name of the added member when available (e.g. `CN=jdoe,CN=Users,DC=contoso,DC=local`).
+      Usually `-` for local groups on non-DC machines.
+  - name: TargetUserName
+    description: Name of the group that received the new member, e.g. `Administrators`.
+  - name: TargetDomainName
+    description: Domain of the group — `Builtin` for built-in local groups, the computer name for other local groups, the domain for domain local groups.
+  - name: TargetSid
+    description: SID of the group. Well-known Builtin SIDs make filtering language-independent.
+    values:
+      - value: "S-1-5-32-544"
+        meaning: Administrators.
+      - value: "S-1-5-32-548"
+        meaning: Account Operators.
+      - value: "S-1-5-32-549"
+        meaning: Server Operators.
+      - value: "S-1-5-32-551"
+        meaning: Backup Operators.
+      - value: "S-1-5-32-555"
+        meaning: Remote Desktop Users.
+      - value: "S-1-5-32-562"
+        meaning: Distributed COM Users.
+      - value: "S-1-5-32-580"
+        meaning: Remote Management Users (WinRM).
+  - name: SubjectUserName
+    description: Account that added the member.
+  - name: SubjectDomainName
+    description: Domain or computer name of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject; correlate with 4624 and 4688.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Group Policy (Restricted Groups or Group Policy Preferences) enforcing local Administrators membership at each refresh.
+  - IT staff granting local admin or Remote Desktop rights on a specific machine.
+  - Software installation adding service accounts to local groups.
+attacker:
+  - >-
+    Persistence or privilege escalation by adding a controlled account to local Administrators,
+    e.g. `net localgroup administrators <user> /add`.
+  - Adding an account to Remote Desktop Users or Remote Management Users to enable RDP or WinRM access for lateral movement.
+  - On domain controllers, adding accounts to Builtin Administrators, Backup Operators or DnsAdmins, which lead to domain compromise.
+investigation:
+  - Resolve MemberSid and check whether the member is new (4720), expected in that group, and how it is used afterward (4624, 4672).
+  - Pivot on SubjectLogonId to find the logon session and command (4624, 4688) that performed the change.
+  - Check whether the matching 4733 removal appears later — short-lived membership is a common way to hide.
+  - Distinguish Group Policy re-applying membership (subject is the computer account, periodic) from interactive changes.
+related:
+  - security/4733
+  - security/4731
+  - security/4735
+  - security/4728
+  - security/4756
+  - security/4720
+  - security/4624
+  - security/4672
+  - security/4688
+  - security/4799
+attack:
+  - T1098.007
+  - T1098
+references:
+  - title: "Microsoft Learn — 4732(S): A member was added to a security-enabled local group"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4732
+  - title: Microsoft Learn — Audit Security Group Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-group-management

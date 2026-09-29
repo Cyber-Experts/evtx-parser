@@ -1,0 +1,84 @@
+id: 4826
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: Boot Configuration Data loaded
+shortTitle: Boot configuration loaded
+category: system
+summary: >-
+  Security event 4826 records the Boot Configuration Data settings loaded at startup, such as test
+  signing, integrity checks and kernel debugging.
+description: |-
+  Event 4826 is written at every boot, when Windows loads its Boot Configuration Data (BCD). It captures a snapshot of security-relevant boot options: whether test signing is on (`TestSigning`), whether driver integrity checks are disabled (`DisableIntegrityChecks`), whether kernel or hypervisor debugging is enabled (`KernelDebug`, `HypervisorDebug`), plus flight signing and hypervisor settings.
+
+  On a healthy production system these values are the same boot after boot, and the Yes/No options are almost always No. A change to Yes — especially `TestSigning` or `DisableIntegrityChecks` — means someone ran `bcdedit` to weaken code-signing enforcement, which lets unsigned or test-signed drivers load. That is a technique for loading rootkits and malicious kernel drivers.
+
+  Because the event reflects settings **at boot**, it shows the effect of a change only after the next restart. The `bcdedit` command itself is best found in process creation logs.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Policy Change > Audit Other Policy Change Events (Success).
+    Microsoft documents that 4826 is logged regardless of this subcategory's setting.
+  notes: >-
+    Windows 8 / Server 2012 and later. Yes/No values are stored as `%%1842` (Yes) and `%%1843`
+    (No) in the raw XML.
+fields:
+  - name: SubjectUserSid
+    description: Normally `S-1-5-18` (SYSTEM). Anything else is unusual.
+  - name: AdvancedOptions
+    description: Whether the advanced boot options (F8) menu is set to show on the next boot.
+  - name: KernelDebug
+    description: >-
+      Whether kernel debugging is enabled (`bcdedit /debug on`). Should be No outside of driver
+      development machines.
+  - name: TestSigning
+    description: >-
+      Whether test-signed kernel code is allowed to load (`bcdedit /set testsigning on`). Yes on a
+      production host is a strong warning sign.
+    values:
+      - value: "%%1842"
+        meaning: "Yes"
+      - value: "%%1843"
+        meaning: "No"
+  - name: FlightSigning
+    description: Whether flight-signed (Windows Insider) code is trusted.
+  - name: DisableIntegrityChecks
+    description: >-
+      Whether driver signature integrity checks are disabled (`bcdedit /set nointegritychecks on`).
+      Yes weakens kernel code-signing enforcement.
+    values:
+      - value: "%%1842"
+        meaning: "Yes"
+      - value: "%%1843"
+        meaning: "No"
+  - name: HypervisorLaunchType
+    description: Hypervisor launch setting, Off or Auto (the hypervisor starts at boot).
+  - name: HypervisorDebug
+    description: Whether hypervisor debugging is enabled.
+benign:
+  - One record at every boot with unchanged settings.
+  - Developer and driver test machines where test signing or kernel debugging is intentionally enabled.
+  - Changes to hypervisor settings after enabling Hyper-V or virtualization-based security.
+attacker:
+  - >-
+    Enabling test signing or disabling integrity checks with `bcdedit` to load an unsigned or
+    self-signed malicious driver or rootkit.
+  - Enabling kernel debugging to tamper with the running kernel.
+investigation:
+  - Compare each 4826 with the previous boot's record on the same host; any Yes/No flip needs an explanation.
+  - >-
+    Search 4688 / Sysmon 1 before the reboot for `bcdedit.exe` with `testsigning`,
+    `nointegritychecks` or `debug` arguments, and identify the session that ran it.
+  - Check for new driver services (4697, System 7045 with ServiceType `0x1`) installed around the same time.
+related:
+  - security/4608
+  - security/4697
+  - security/4688
+  - system/7045
+  - code-integrity/3033
+  - sysmon/6
+attack:
+  - T1553.006
+  - T1542
+references:
+  - title: "Microsoft Learn — 4826(S): Boot Configuration Data loaded"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4826

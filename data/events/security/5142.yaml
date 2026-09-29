@@ -1,0 +1,64 @@
+id: 5142
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A network share object was added
+shortTitle: Network share added
+category: network-share
+summary: >-
+  Security event 5142 records a new network share: who created it, its name and local path. Watch for shares exposing drives or staging folders.
+description: |-
+  Event 5142 is written on the computer where a new share is created, whether through Explorer, `net share`, `New-SmbShare`, WMI or a remote API call. It records the account (`SubjectUserName`, `SubjectLogonId`), the share name and the local folder it exposes.
+
+  New shares are infrequent on most servers and rare on workstations, so this event is easy to review. A share created on a workstation, pointing to a whole drive, or pointing to a temp or user-profile folder is a reason to look closer.
+
+  Attackers create shares to stage data for exfiltration, to move tools between hosts, or to expose a drive for later access. Ransomware operators sometimes share drives to spread encryption across the network.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit File Share (Success). Not audited in
+    the default Windows audit policy.
+  notes: >-
+    Share changes and deletions are logged by the same subcategory as 5143 and 5144.
+fields:
+  - name: SubjectUserSid
+    description: SID of the account that created the share.
+  - name: SubjectUserName
+    description: Account that created the share.
+  - name: SubjectDomainName
+    description: Domain or computer name of the account.
+  - name: SubjectLogonId
+    description: Logon session that created the share; pivot to 4624 to learn whether it was local or remote.
+  - name: ShareName
+    description: New share name in the form `\\*\NAME`. A trailing `$` hides it from casual browsing.
+  - name: ShareLocalPath
+    description: >-
+      Folder exposed by the share, e.g. `C:\Data`. A drive root (`C:\`) or a folder under `Temp`,
+      `AppData` or `ProgramData` is unusual.
+benign:
+  - Administrators creating departmental or project shares on file servers.
+  - Server roles and applications creating their shares during installation (e.g. print, deployment and backup software).
+  - Users sharing a folder from their workstation where policy allows it.
+attacker:
+  - Creating a share over a staging directory to collect data from many hosts before exfiltration.
+  - Sharing a full drive (`net share x=C:\ /grant:everyone,full`) to give remote access to the whole disk.
+  - Creating a share to distribute tools or ransomware payloads to other machines.
+investigation:
+  - Check whether the share was created by a user or by `SYSTEM` and which process ran (`net.exe`, `powershell.exe` in 4688 or Sysmon 1).
+  - Review the share permissions on the live host (`Get-SmbShare`, `Get-SmbShareAccess`); `Everyone` with full control is a red flag.
+  - Look for 5140 events on the new share afterwards to see who connected to it and from where.
+  - Check for a matching 5144 later, which may indicate cleanup after use.
+related:
+  - security/5144
+  - security/5140
+  - security/5145
+  - security/4624
+  - security/4688
+attack:
+  - T1074
+  - T1039
+  - T1570
+references:
+  - title: "Microsoft Learn — 5142(S): A network share object was added"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-5142
+  - title: Microsoft Learn — Audit File Share
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-file-share

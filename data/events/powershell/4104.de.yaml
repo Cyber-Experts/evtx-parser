@@ -1,0 +1,45 @@
+title: Skriptblocktext wird erstellt (Creating Scriptblock text)
+shortTitle: Skriptblockprotokollierung
+summary: >-
+  PowerShell-Event-ID 4104 protokolliert den Text ausgeführter Skriptblöcke nach der Dekodierung — der beste Nachweis dessen, was PowerShell ausführte.
+description: |-
+  Event 4104 wird von der PowerShell-Engine geschrieben, wenn sie einen Skriptblock kompiliert. Das Feld `ScriptBlockText` enthält den Code so, wie PowerShell ihn sieht: an der Eingabeaufforderung eingegebene Befehle, ganze Skripte, Funktionen und — entscheidend — Code, der Base64-kodiert, heruntergeladen oder zur Laufzeit zusammengesetzt wurde, denn die Protokollierung erfolgt, nachdem diese Schicht entfernt ist.
+
+  Große Skripte werden auf mehrere Events mit gemeinsamer `ScriptBlockId` aufgeteilt; `MessageNumber` und `MessageTotal` zeigen, wie sie wieder zusammenzusetzen sind. Das Feld `Path` ist befüllt, wenn der Block aus einer Skriptdatei stammt.
+
+  Auch ganz ohne Richtlinie protokollieren PowerShell 5 und neuer Skriptblöcke mit bekannten verdächtigen Schlüsselwörtern auf der Stufe **Warnung**. Die vollständige Protokollierung jedes Blocks erfordert die Richtlinie für Skriptblockprotokollierung — sie macht 4104 zum Rückgrat von PowerShell-Untersuchungen.
+logging:
+  requirement: >-
+    Computer Configuration > Administrative Templates > Windows Components > Windows PowerShell >
+    Turn on PowerShell Script Block Logging (Protokollierung von PowerShell-Skriptblöcken
+    aktivieren) oder per Registry
+    `HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging\EnableScriptBlockLogging = 1`.
+  notes: >-
+    Ohne die Richtlinie protokolliert Windows PowerShell 5.x als verdächtig eingestufte Blöcke
+    dennoch als 4104 der Stufe Warnung. PowerShell 7 schreibt in den Kanal
+    PowerShellCore/Operational und hat eigene Richtlinieneinstellungen.
+fields:
+  - name: ScriptBlockText
+    description: Der Code des Skriptblocks, nachdem Verschleierungsschichten wie `-EncodedCommand` entfernt wurden.
+  - name: ScriptBlockId
+    description: GUID, die alle Teile eines Skriptblocks teilen; danach gruppieren, um lange Skripte wieder zusammenzusetzen.
+  - name: MessageNumber
+    description: Teilnummer dieses Events bei einem aufgeteilten Skriptblock.
+  - name: MessageTotal
+    description: Gesamtzahl der Teile des Skriptblocks.
+  - name: Path
+    description: Skriptdatei, aus der der Block stammt; leer bei interaktivem oder In-Memory-Code.
+benign:
+  - Administrative Skripte, Konfigurationsmanagement (SCCM, Intune, DSC) und Monitoring-Agenten.
+  - PowerShell-eigene Module und Profilskripte, die beim Start geladen werden.
+  - Software-Installer und IT-Automatisierung, die im Hintergrund PowerShell nutzen.
+attacker:
+  - "Download-Cradles wie `IEX (New-Object Net.WebClient).DownloadString(...)` und `Invoke-WebRequest`, die Payloads nachladen."
+  - Kodierte oder verschleierte Befehle, die hier in lesbarer Form wiederhergestellt werden.
+  - Im Speicher geladene offensive Frameworks und Tools (Credential Dumping, AD-Aufklärung, Versuche zur AMSI-Umgehung).
+  - Befehle zur Manipulation der Abwehr wie `Set-MpPreference -DisableRealtimeMonitoring`.
+investigation:
+  - Zuerst nach Level 3 (Warnung) filtern — das sind die Blöcke, die PowerShell selbst als verdächtig markiert hat.
+  - Aufgeteilte Blöcke vor dem Lesen per ScriptBlockId in der Reihenfolge von MessageNumber zusammensetzen.
+  - ScriptBlockText nach Netzwerkindikatoren (URLs, IPs), `FromBase64String`, `Invoke-Expression`, `-bxor`, `Reflection.Assembly` und AMSI-bezogenen Zeichenfolgen durchsuchen.
+  - Den Prozess, der den Block ausgeführt hat, über Sysmon 1 / Security 4688 (Befehlszeile von powershell.exe) und Event 400 des klassischen Protokolls (HostApplication) finden.

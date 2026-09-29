@@ -1,0 +1,44 @@
+id: 4647
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: User initiated logoff
+shortTitle: User-initiated logoff
+category: logon
+summary: >-
+  Event 4647 is logged when a user actively signs out of an interactive or RDP session, before
+  the session teardown event 4634.
+description: |-
+  Event 4647 records a deliberate sign-out: the user chose Sign out, ran `logoff`, or a script called the logoff API for an interactive (type 2), RDP (type 10) or cached (type 11) session. It is logged when the logoff starts, while 4634 is logged when the session is actually destroyed, so both usually appear a moment apart with the same logon ID.
+
+  Network logons never produce 4647 — they end with 4634 only. Because 4647 requires an interactive user action, it is a cleaner "end of hands-on-keyboard session" marker than 4634.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logoff (Success). Enabled for
+    Success in the default audit policy.
+fields:
+  - name: TargetUserSid
+    description: SID of the user who logged off.
+  - name: TargetUserName
+    description: User who logged off.
+  - name: TargetDomainName
+    description: Domain or computer of the user.
+  - name: TargetLogonId
+    description: Logon session ID; matches the 4624 that started the session and the 4634 that follows.
+benign:
+  - Users signing out at the end of the day or of an RDP session.
+  - Administrators logging off after maintenance.
+attacker:
+  - An intruder closing an RDP session after hands-on activity — the 4647 time marks when they left.
+investigation:
+  - Pair TargetLogonId with 4624 (type 2 or 10) to reconstruct interactive session windows.
+  - A 4624 type 10 without a later 4647 means the session was disconnected rather than logged off — check 4779 and LocalSessionManager 24.
+related:
+  - security/4624
+  - security/4634
+  - security/4779
+  - rdp-local-session-manager/23
+attack: []
+references:
+  - title: "Microsoft Learn — 4647(S): User initiated logoff"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4647

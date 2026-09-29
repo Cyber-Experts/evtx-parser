@@ -1,0 +1,50 @@
+id: 25
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: ProcessTampering (Process image change)
+shortTitle: Process tampering detected
+category: process
+summary: >-
+  Sysmon event 25 fires when a process image is changed in memory or on disk, as in process
+  hollowing or herpaderping. Rare and high-signal.
+description: |-
+  Sysmon event 25 is generated when Sysmon detects process-hiding techniques: the in-memory image of a process no longer matches the file it was started from (process hollowing), or the file on disk was changed after the process was created (process herpaderping).
+
+  These techniques let malware run under the name of a legitimate executable, so event 1 alone may look clean. `Type` says what was detected. False positives exist — some software updates or self-modifying programs, and certain browsers or JIT-heavy applications — so baseline before alerting.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon 13.0 or later with a `<ProcessTampering>` rule in the configuration.
+fields:
+  - name: ProcessGuid
+    description: Process whose image was tampered with; pivot to its event 1.
+  - name: Image
+    description: Executable path the process claims to run.
+  - name: Type
+    description: Kind of tampering detected.
+    values:
+      - value: Image is replaced
+        meaning: The in-memory image differs from the file on disk (process hollowing and similar).
+  - name: User
+    description: Account of the process.
+benign:
+  - Some browsers, installers and applications that modify their own images, depending on the version.
+attacker:
+  - Loaders hollowing a legitimate process such as `svchost.exe`, `RegAsm.exe` or `explorer.exe` to host a payload.
+  - Herpaderping tools that overwrite the file after starting the process to hide its real content.
+investigation:
+  - Pivot on ProcessGuid to event 1 and check the parent; a hollowed system binary usually has an odd parent.
+  - Review the process's network (3) and DNS (22) activity, which reflects the real payload.
+  - Capture process memory before remediation if possible.
+related:
+  - sysmon/1
+  - sysmon/8
+  - sysmon/10
+  - sysmon/3
+attack:
+  - T1055.012
+  - T1055
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Process Injection, Process Hollowing (T1055.012)
+    url: https://attack.mitre.org/techniques/T1055/012/

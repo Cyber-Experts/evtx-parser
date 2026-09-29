@@ -1,0 +1,44 @@
+title: Ein Benutzerkonto wurde aktiviert
+shortTitle: Benutzerkonto aktiviert
+summary: >-
+  Event-ID 4722 wird protokolliert, wenn ein Benutzer- oder Computerkonto aktiviert wird. Es
+  zeigt, wer es aktiviert hat und welches Konto, per Name und SID.
+description: |-
+  Event 4722 wird geschrieben, wenn ein deaktiviertes Konto aktiviert wird. Bei Benutzerkonten erscheint es auf Domänencontrollern (Domänenkonten) sowie auf Mitgliedsservern und Arbeitsstationen (lokale Konten); bei Computerkonten wird es nur auf Domänencontrollern protokolliert. Der Eintrag ist kurz: `Subject*` identifiziert, wer die Änderung vorgenommen hat, `Target*` das Konto.
+
+  Die meisten 4722 gehören zum normalen Provisioning: In „Active Directory-Benutzer und -Computer“ angelegte Konten starten deaktiviert, daher folgt auf ein 4720 meist innerhalb von Sekunden ein 4722. Ein alleinstehendes 4722 für ein Konto, das lange deaktiviert war, ist interessanter.
+
+  Besonders beobachten: die integrierten lokalen Konten `Administrator` (RID 500) und `Guest` (RID 501), die in aktuellen Windows-Versionen standardmäßig deaktiviert sind, sowie ruhende Konten ehemaliger Mitarbeitender.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). In der Standard-Überwachungsrichtlinie von Windows für „Erfolg“ aktiviert.
+  notes: >-
+    Das Aktivieren eines Kontos erzeugt zusätzlich ein 4738 (Benutzer) oder 4742 (Computer), dessen
+    Feld UserAccountControl zeigt, dass das Flag „Konto deaktiviert“ entfernt wurde.
+fields:
+  - name: SubjectUserName
+    description: Konto, das das Zielkonto aktiviert hat.
+  - name: SubjectDomainName
+    description: Domäne oder Computername des Subjects.
+  - name: SubjectLogonId
+    description: Anmeldesitzung des Subjects; mit 4624 korrelieren, um zu sehen, von wo die Änderung vorgenommen wurde.
+  - name: TargetUserName
+    description: Aktiviertes Konto.
+  - name: TargetDomainName
+    description: Domäne des aktivierten Kontos oder der Computername bei einem lokalen Konto.
+  - name: TargetSid
+    description: >-
+      SID des aktivierten Kontos. Eine SID mit Endung `-500` ist der integrierte Administrator,
+      `-501` das Gastkonto.
+benign:
+  - Teil der normalen Abfolge 4720, 4724, 4722, wenn Administratoren ein neues Konto anlegen.
+  - Rückkehrende Mitarbeitende oder Dienstleister, deren Konten vom Helpdesk reaktiviert werden.
+  - Identity-Management-Systeme, die Konten zu einem Startdatum aktivieren.
+attacker:
+  - Aktivieren des integrierten lokalen Administrator- oder Gastkontos, um ein bekanntes Konto für Persistenz oder Lateral Movement zu erhalten.
+  - Reaktivieren eines ruhenden Domänenkontos oder des Kontos eines ehemaligen Mitarbeitenden, was weniger auffällt als ein neues.
+investigation:
+  - Prüfen, ob das Zielkonto absichtlich deaktiviert war (Offboarding, Sicherheitsvorfall) und wer es reaktiviert hat.
+  - Nach 4724 (Kennwortzurücksetzung) und 4738 für dieselbe TargetSid zur selben Zeit suchen, dann nach den nächsten Anmeldungen (4624).
+  - Über SubjectLogonId die Sitzung und die Werkzeuge des Administrators rekonstruieren.

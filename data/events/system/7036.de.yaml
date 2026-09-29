@@ -1,0 +1,38 @@
+title: Der Dienst hat den Status „Wird ausgeführt“ oder „Beendet“ erreicht
+shortTitle: Dienststatus geändert
+summary: >-
+  Event-ID 7036 protokolliert jeden Wechsel eines Dienstes in den Status „läuft“ oder „beendet“. Zeigt, wann Sicherheitstools gestoppt wurden.
+description: |-
+  Event 7036 wird vom Dienststeuerungs-Manager (Service Control Manager) geschrieben, sobald ein Dienst seinen Status ändert. `param1` ist der Anzeigename des Dienstes, `param2` der neue Status, meist `running` oder `stopped`. Es ist mit Abstand das häufigste Event des Service Control Managers, da viele Dienste bei Bedarf starten und stoppen.
+
+  Sein Wert ergibt sich aus der Korrelation. Nach einem **7045** ist ein Paar `running` / `stopped` im Abstand von Sekunden der typische Fußabdruck einer einmaligen Remote-Ausführung (à la PsExec). Vor einer Verschlüsselungs- oder Löschphase ist eine Reihe von `stopped`-Einträgen für Backup-, Datenbank- und Sicherheitsdienste ein klassischer Vorbereitungsschritt von Ransomware. Erreicht ein Sicherheitsagent oder das Windows-Ereignisprotokoll außerhalb eines Herunterfahrens den Status `stopped`, ist das ein Warnsignal.
+
+  Das Event sagt nicht, wer den Dienst gestoppt hat. Das findet man in Prozesserstellungen (4688, Sysmon 1: `sc stop`, `net stop`, `Stop-Service`, `taskkill`) zur selben Zeit.
+logging:
+  requirement: Wird immer im System-Protokoll erfasst.
+  notes: >-
+    Sehr laut. Der Statustext in `param2` kann auf nicht englischsprachigen Systemen lokalisiert
+    sein, und die Binärdaten des Eintrags enthalten den Schlüsselnamen des Dienstes.
+fields:
+  - name: param1
+    description: Anzeigename des Dienstes, z. B. `Windows Defender Antivirus Service`, `Volume Shadow Copy`.
+  - name: param2
+    description: Neuer Status des Dienstes.
+    values:
+      - value: "running"
+        meaning: Der Dienst wurde gestartet.
+      - value: "stopped"
+        meaning: Der Dienst wurde beendet, sauber oder auf Anforderung.
+benign:
+  - Bedarfsgesteuerte Dienste, die den ganzen Tag starten und stoppen (Windows Update, BITS, Windows Modules Installer).
+  - Dienste, die beim Patchen und bei Software-Updates gestoppt und neu gestartet werden.
+attacker:
+  - >-
+    Dienste für Remote-Ausführung (PSEXESVC oder zufällige Namen), die direkt nach ihrer
+    Installation per 7045 in `running` und dann `stopped` wechseln.
+  - Ransomware, die vor der Verschlüsselung Backup-, SQL-, Exchange-, VSS- und Antivirendienste stoppt.
+  - Defense Evasion durch Stoppen von EDR-, Defender- oder Sysmon-Diensten.
+investigation:
+  - Die lauten bedarfsgesteuerten Dienste herausfiltern, dann nach Sicherheits-, Backup- und Protokollierungsdiensten suchen, die in `stopped` wechseln.
+  - "`running`-/`stopped`-Einträge mit 7045 kombinieren, um zu messen, wie lange ein installierter Dienst lief."
+  - Den Befehl, der den Dienst gestoppt hat, in 4688 oder Sysmon 1 in derselben Sekunde finden.

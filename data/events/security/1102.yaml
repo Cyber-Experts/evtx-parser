@@ -1,0 +1,67 @@
+id: 1102
+channel: security
+provider: Microsoft-Windows-Eventlog
+title: The audit log was cleared
+shortTitle: Security log cleared
+category: log-integrity
+summary: >-
+  Security event 1102 is written when the Security log is cleared, naming the account that did it.
+  Rare in normal operations and a classic anti-forensics sign.
+description: |-
+  Event 1102 is written by the Windows Event Log service as the first record of a freshly cleared Security log. It survives the wipe because it is created after it, and it records the account that performed the clear in the `UserData/LogFileCleared` element: `SubjectUserName`, `SubjectDomainName`, `SubjectUserSid` and `SubjectLogonId`.
+
+  There are very few legitimate reasons to clear the Security log on a production system — archival is normally handled by log forwarding or by the retention settings. An analyst who finds a 1102 should treat everything before it as potentially lost and turn to other sources: forwarded copies in a SIEM, other channels on the host, and logs on the machines the account touched.
+
+  Clearing other logs (System, Application, PowerShell and so on) is recorded as System event 104, not 1102. Attackers who clear everything usually leave both.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Always logged by the Windows Event Log service when the Security log is cleared; no audit
+    policy is required.
+  notes: >-
+    The fields live under `UserData/LogFileCleared`, not `EventData`. The clearing account needs
+    the Manage auditing and security log right (administrators have it by default).
+fields:
+  - name: SubjectUserName
+    description: Account that cleared the log.
+  - name: SubjectDomainName
+    description: Domain or computer name of that account.
+  - name: SubjectUserSid
+    description: SID of the account that cleared the log; stable even if the account is renamed.
+  - name: SubjectLogonId
+    description: >-
+      Logon session that performed the clear. Pivot to the 4624 with the same TargetLogonId on
+      forwarded or other logs to find where the session came from.
+benign:
+  - Lab machines, golden images and systems being prepared for deployment, where logs are wiped as part of a build.
+  - An administrator clearing a full log on a host configured to not overwrite events (after a 1104).
+attacker:
+  - >-
+    Covering tracks after intrusion with `wevtutil cl Security`, PowerShell `Clear-EventLog` or
+    `Remove-EventLog`, or Event Viewer's Clear Log action.
+  - Ransomware and wipers clearing all event logs just before or after encryption.
+  - Clearing the log on a single server after lateral movement, while leaving other hosts intact.
+investigation:
+  - >-
+    Identify the session: SubjectLogonId and SubjectUserName, then look in forwarded logs or on
+    domain controllers for the logon (4624, 4768/4769, 4776) that created it.
+  - Check System event 104 at the same time — several logs cleared together points to a script or tool.
+  - >-
+    Search process creation (4688, Sysmon 1) and PowerShell 4104 around the timestamp for
+    `wevtutil`, `Clear-EventLog` or `ClearLog` calls to identify the executing process.
+  - Compare the host's forwarded events with what remains locally to see exactly what was wiped.
+related:
+  - security/1100
+  - security/1104
+  - system/104
+  - security/4624
+  - security/4688
+  - powershell/4104
+  - sysmon/1
+attack:
+  - T1685.005
+references:
+  - title: "Microsoft Learn — 1102(S): The audit log was cleared"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-1102
+  - title: MITRE ATT&CK — Clear Windows Event Logs
+    url: https://attack.mitre.org/techniques/T1685/005/

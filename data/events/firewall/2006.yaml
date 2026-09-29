@@ -1,0 +1,57 @@
+id: 2006
+channel: firewall
+provider: Microsoft-Windows-Windows Firewall With Advanced Security
+title: A rule has been deleted in the Windows Defender Firewall exception list
+shortTitle: Rule deleted
+category: policy
+summary: >-
+  Firewall event 2006 records the deletion of a Windows Firewall rule, with the rule ID, name, and
+  the user SID and process that removed it. On by default.
+description: |-
+  Event 2006 is written to the Windows Firewall operational log when a rule is deleted. It is short: `RuleId`, `RuleName`, `ModifyingUser` (SID) and `ModifyingApplication` (process path). The rule's former settings are not included.
+
+  To know what the rule did, search earlier 2004 or 2005 events for the same `RuleId`, or the Security log (4946, 4947) if MPSSVC auditing was on.
+
+  Uninstallers and updates delete rules routinely. The interesting cases are block rules removed by a scripting tool, and rules deleted shortly after being created — a sign of an attacker cleaning up.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Microsoft-Windows-Windows Firewall With Advanced Security/Firewall channel, enabled by default.
+    No audit policy needed.
+  notes: >-
+    Recent Windows 11 builds log rule deletions under event 2052 in the same channel (as used by
+    public Sigma rules); include both IDs in hunts.
+fields:
+  - name: RuleId
+    description: Unique ID of the deleted rule; search earlier 2004/2005 events for it.
+  - name: RuleName
+    description: Display name of the deleted rule.
+  - name: ModifyingUser
+    description: SID of the account that deleted the rule.
+  - name: ModifyingApplication
+    description: Full path of the process that deleted the rule (`netsh.exe`, `powershell.exe`, an uninstaller).
+benign:
+  - Application uninstallers removing their own rules.
+  - Updates that delete and recreate rules during upgrades.
+  - Administrators removing obsolete rules.
+attacker:
+  - Deleting block rules to let malware or a C2 channel communicate.
+  - Removing the allow rule created earlier for a backdoor, to reduce traces.
+investigation:
+  - Rebuild the deleted rule from earlier 2004/2005 events with the same `RuleId`.
+  - Check `ModifyingApplication` and correlate with process creation (4688, Sysmon 1) to get the command line and parent.
+  - Measure the rule's lifetime; a rule created and deleted within the same intrusion window is suspicious.
+related:
+  - firewall/2004
+  - firewall/2005
+  - firewall/2033
+  - security/4948
+  - security/4688
+attack:
+  - T1686.003
+  - T1070
+references:
+  - title: Microsoft Learn — Windows Firewall rules
+    url: https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-firewall/rules
+  - title: MITRE ATT&CK — T1686.003 Disable or Modify System Firewall - Windows Host Firewall
+    url: https://attack.mitre.org/techniques/T1686/003/

@@ -1,0 +1,95 @@
+title: Ein Kerberos-Authentifizierungsticket (TGT) wurde angefordert
+shortTitle: Kerberos-TGT angefordert
+summary: >-
+  Event-ID 4768 protokolliert auf dem DC jede Kerberos-TGT-Anforderung: Konto, Client-IP, Verschlüsselungs- und Vorauthentifizierungstyp, Ergebnis.
+description: |-
+  Event 4768 wird vom Key Distribution Center auf einem **Domänencontroller** jedes Mal protokolliert, wenn ein Konto ein Ticket Granting Ticket anfordert — der erste Schritt jeder Kerberos-Domänenanmeldung. Benutzeranmeldungen, Computerstarts und unter Domänenkonten laufende Dienste erzeugen es alle.
+
+  Forensisch ist es der DC-seitige Nachweis, dass sich ein Konto authentifiziert hat, und von welcher IP (`IpAddress`). Die Felder `TicketEncryptionType` und `PreAuthType` legen schwache oder ungewöhnliche Authentifizierung offen: RC4, wo die Domäne AES verwendet, oder Vorauthentifizierungstyp `0`, was bedeutet, dass das Konto keine Kerberos-Vorauthentifizierung erfordert und für AS-REP-Roasting anfällig ist.
+
+  Fehlgeschlagene TGT-Anforderungen werden als 4768 mit einem `Status` ungleich null protokolliert (für unbekannte oder gesperrte Konten); ein falsches Kennwort erzeugt stattdessen 4771.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Logon > Audit Kerberos Authentication Service
+    (Success, sowie Failure für fehlgeschlagene Anforderungen). Nur auf Domänencontrollern
+    sinnvoll.
+  notes: >-
+    Hohes Volumen auf DCs. Die Fehlerüberwachung explizit aktivieren, wenn fehlgeschlagene
+    Anforderungen gewünscht sind; die effektive Richtlinie mit
+    `auditpol /get /subcategory:"Kerberos Authentication Service"` prüfen.
+fields:
+  - name: TargetUserName
+    description: Konto, das das TGT angefordert hat (Benutzer- oder Computerkonto mit `$` am Ende).
+  - name: TargetDomainName
+    description: Vom Client übermittelter Kerberos-Realm (Domäne).
+  - name: TargetSid
+    description: SID des Kontos, sofern es existiert.
+  - name: ServiceName
+    description: Bei einer TGT-Anforderung immer `krbtgt`.
+  - name: TicketOptions
+    description: Angeforderte Kerberos-Ticketoptionen (hexadezimal), z. B. `0x40810010` bei einem typischen Windows-Client.
+  - name: Status
+    description: Kerberos-Ergebniscode.
+    values:
+      - value: "0x0"
+        meaning: Erfolg — ein TGT wurde ausgestellt.
+      - value: "0x6"
+        meaning: KDC_ERR_C_PRINCIPAL_UNKNOWN — der Benutzername existiert nicht.
+      - value: "0x12"
+        meaning: KDC_ERR_CLIENT_REVOKED — Konto deaktiviert, abgelaufen oder gesperrt.
+      - value: "0x17"
+        meaning: KDC_ERR_KEY_EXPIRED — das Kennwort ist abgelaufen.
+      - value: "0x25"
+        meaning: KRB_AP_ERR_SKEW — Zeitabweichung zwischen Client und DC zu groß.
+  - name: TicketEncryptionType
+    description: Verschlüsselungstyp des ausgestellten Tickets.
+    values:
+      - value: "0x11"
+        meaning: AES128-CTS-HMAC-SHA1-96
+      - value: "0x12"
+        meaning: AES256-CTS-HMAC-SHA1-96 — normal in modernen Domänen.
+      - value: "0x17"
+        meaning: RC4-HMAC — veraltet; verdächtig, wenn Konto und Domäne AES unterstützen.
+      - value: "0x18"
+        meaning: RC4-HMAC-EXP
+      - value: "0x1"
+        meaning: DES-CBC-CRC (seit Windows 7 / Server 2008 R2 standardmäßig deaktiviert).
+      - value: "0x3"
+        meaning: DES-CBC-MD5 (seit Windows 7 / Server 2008 R2 standardmäßig deaktiviert).
+      - value: "0xffffffff"
+        meaning: Kein Ticket ausgestellt (Fehlschlag).
+  - name: PreAuthType
+    description: Verwendete Vorauthentifizierungsmethode.
+    values:
+      - value: "0"
+        meaning: Keine Vorauthentifizierung — beim Konto ist „Keine Kerberos-Präauthentifizierung erforderlich“ gesetzt.
+      - value: "2"
+        meaning: PA-ENC-TIMESTAMP — normale kennwortbasierte Anmeldung.
+      - value: "15"
+        meaning: PA-PK-AS-REP_OLD — Smartcard-Anmeldung.
+      - value: "16"
+        meaning: PA-PK-AS-REQ — Smartcard-/Zertifikatsanmeldung.
+      - value: "138"
+        meaning: PA-ENCRYPTED-CHALLENGE — Kerberos Armoring (FAST).
+  - name: IpAddress
+    description: Client-IP-Adresse (IPv4-Adressen können als `::ffff:10.0.0.5` erscheinen).
+  - name: IpPort
+    description: Quellport des Clients.
+  - name: CertIssuerName
+    description: Bei Zertifikatsanmeldungen die ausstellende CA — nützlich bei der Untersuchung von Zertifikatsmissbrauch.
+  - name: CertThumbprint
+    description: Fingerabdruck des für PKINIT-Anmeldungen verwendeten Zertifikats.
+benign:
+  - Jede Anmeldung von Domänenbenutzern und -computern; Computer erneuern ihr TGT regelmäßig.
+  - Dienstkonten, die sich beim Start von Diensten oder geplanten Aufgaben authentifizieren.
+  - Zertifikatsbasierte Anmeldungen (Smartcard, Windows Hello for Business) mit PreAuthType 16.
+attacker:
+  - "AS-REP-Roasting — TGT-Anforderungen mit PreAuthType `0` für Konten ohne Vorauthentifizierung, oft RC4 (`0x17`), von einem Host, der nicht der des Benutzers ist."
+  - Ein gestohlenes Kennwort oder ein gestohlener Hash, der von einer neuen IP-Adresse genutzt wird — die TGT-Anforderung ist die erste Spur auf dem DC.
+  - "Benutzer-Enumeration über Kerberos — Häufungen von Status `0x6` für viele Namen von einer IP."
+  - Zertifikatsmissbrauch (etwa über Fehlkonfigurationen in AD CS erlangte Zertifikate) zeigt sich als PKINIT-Anmeldungen mit unerwartetem CertIssuerName oder CertThumbprint.
+investigation:
+  - Pro Konto eine Baseline der Client-IPs aufbauen; ein TGT für ein privilegiertes Konto von einer bisher nie genutzten Arbeitsstation ist eine Spur.
+  - Nach PreAuthType 0 suchen und auflisten, bei welchen Konten die Vorauthentifizierung deaktiviert ist.
+  - RC4-Tickets (`0x17`) in Domänen markieren, in denen AES Standard ist, und prüfen, wer sie angefordert hat.
+  - Dasselbe Konto und dieselbe IP zu 4769 (Diensttickets) verfolgen, um zu sehen, auf welche Dienste nach der Authentifizierung zugegriffen wurde.

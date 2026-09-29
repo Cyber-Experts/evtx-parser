@@ -1,0 +1,63 @@
+id: 5141
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A directory service object was deleted
+shortTitle: AD object deleted
+category: directory
+summary: >-
+  Security event 5141 logs the deletion of an Active Directory object, with its DN, class, the
+  account responsible and whether a subtree delete was used.
+description: |-
+  Event 5141 is written on a domain controller when an audited Active Directory object is deleted. It names the object (`ObjectDN`, `ObjectGUID`, `ObjectClass`), the account that deleted it, and whether the deletion used the **Delete Subtree** control (`TreeDelete`), which removes an object and everything beneath it in one operation.
+
+  Deleted objects are not immediately gone: they become tombstones, or recoverable deleted objects when the AD Recycle Bin is enabled. 5141 tells you what to restore and who removed it.
+
+  Deletions of OUs, groups, GPOs or service accounts can disrupt operations. The event is also the second half of the DCShadow pattern, where rogue DC objects created under the Sites container (5137) are deleted after the malicious replication.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > DS Access > Audit Directory Service Changes (Success),
+    applied to domain controllers, plus a SACL auditing Delete on the objects.
+fields:
+  - name: SubjectUserName
+    description: Account that deleted the object.
+  - name: SubjectLogonId
+    description: Logon session on the DC; pivot to 4624 for the source.
+  - name: DSName
+    description: Directory partition of the deleted object.
+  - name: ObjectDN
+    description: Distinguished name of the object when it was deleted.
+  - name: ObjectGUID
+    description: objectGUID; use it to find the tombstone or Recycle Bin copy and earlier 5137/5136 records.
+  - name: ObjectClass
+    description: Class of the deleted object, e.g. `user`, `group`, `organizationalUnit`, `groupPolicyContainer`.
+  - name: TreeDelete
+    description: >-
+      Yes when the Delete Subtree control was used (the object and all its children were
+      removed), No for a single-object delete.
+  - name: OpCorrelationID
+    description: Links the deletion to other records from the same LDAP operation.
+benign:
+  - Administrators removing stale users, computers, groups and GPOs.
+  - Identity lifecycle tools deprovisioning accounts.
+  - Domain controller demotion removing its server objects.
+attacker:
+  - Destructive deletion of OUs, groups or accounts, often with TreeDelete, to disrupt the organization.
+  - DCShadow cleanup, deleting the temporary server objects created under `CN=Sites,CN=Configuration`.
+  - Deleting accounts or GPOs that were created for an intrusion to cover tracks.
+investigation:
+  - Prioritize TreeDelete Yes and deletions of OUs, privileged groups and GPOs.
+  - Search for a 5137 with the same `ObjectGUID` to spot short-lived objects.
+  - Identify the source via `SubjectLogonId` and 4624, and restore from the Recycle Bin if needed.
+related:
+  - security/5137
+  - security/5136
+  - security/4726
+  - security/4743
+  - security/4730
+attack:
+  - T1485
+  - T1207
+references:
+  - title: "Microsoft Learn — 5141(S): A directory service object was deleted"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-5141

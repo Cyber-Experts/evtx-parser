@@ -1,0 +1,36 @@
+title: "Servicios de Escritorio remoto: autenticación de usuario correcta"
+shortTitle: Conexión autenticada
+summary: >-
+  El evento RDP 1149 registra una conexión entrante de Escritorio remoto con usuario, dominio e IP de origen. Prueba la conexión de red, no el inicio de sesión.
+description: |-
+  El evento 1149 se escribe en el **servidor RDP** cuando la conexión de Escritorio remoto de un cliente supera la fase de nivel de red. Pese al texto del mensaje "User authentication succeeded", no demuestra que se abriera una sesión de escritorio: con Network Level Authentication (NLA) significa que las credenciales se aceptaron a nivel de red y, sin NLA, puede registrarse en cuanto se establece la conexión, antes de comprobar ninguna contraseña.
+
+  Su valor es el origen: `Param3` contiene la dirección IP del cliente, junto con el nombre de usuario y el dominio que envió el cliente. El registro está habilitado por defecto y a menudo sobrevive cuando el registro de Seguridad se ha sobrescrito o se ha borrado, por lo que con frecuencia es el mejor registro que queda de quién se conectó por RDP y desde dónde.
+
+  Confirme el inicio de sesión real con el 4624 de Seguridad (LogonType 10, o 7 para una reconexión a una sesión bloqueada) y los eventos 21, 22 o 25 de LocalSessionManager.
+logging:
+  requirement: >-
+    Ninguno: el canal Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational está
+    habilitado por defecto en los hosts que aceptan conexiones de Escritorio remoto.
+  notes: >-
+    Los datos se encuentran en UserData/EventXML como `Param1`, `Param2` y `Param3`, en lugar de en
+    campos con nombre de EventData.
+fields:
+  - name: Param1
+    description: Nombre de usuario proporcionado por el cliente.
+  - name: Param2
+    description: Dominio proporcionado por el cliente (puede estar vacío o ser el nombre del equipo en las cuentas locales).
+  - name: Param3
+    description: Dirección IP de origen del cliente RDP. Si se usa una puerta de enlace RDP o un túnel, es el extremo de la puerta de enlace o del túnel.
+benign:
+  - Administradores y usuarios que se conectan por RDP desde sus estaciones de trabajo habituales o desde jump hosts.
+  - Personal de soporte remoto y monitorización que comprueba la disponibilidad de RDP con credenciales.
+attacker:
+  - "Acceso RDP externo con credenciales válidas u obtenidas por fuerza bruta: IP de origen públicas en Param3."
+  - Movimiento lateral por RDP dentro de la red, a menudo desde un servidor o una estación de trabajo que nunca se conecta por RDP a otros equipos.
+  - "RDP tunelizado a través de un host comprometido (por ejemplo, con SSH o herramientas de proxy): Param3 es entonces una dirección local como `127.0.0.1` o `::1`."
+investigation:
+  - Liste los valores de Param3 por usuario y marque las IP vistas por primera vez, las IP públicas y las direcciones de loopback.
+  - Confirme cada conexión con el 4624 de tipo 10 de Seguridad y los eventos 21/25 de LocalSessionManager a la misma hora; un 1149 sin inicio de sesión puede ser un intento fallido o abortado.
+  - "Use este registro para cubrir huecos cuando el registro de Seguridad se haya borrado (1102): es un archivo distinto."
+  - En el host de origen, el registro RDPClient (1024, 1102) muestra las conexiones salientes hacia este servidor.

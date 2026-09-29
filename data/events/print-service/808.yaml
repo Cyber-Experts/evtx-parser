@@ -1,0 +1,61 @@
+id: 808
+channel: print-service
+channelName: Microsoft-Windows-PrintService/Admin
+provider: Microsoft-Windows-PrintService
+title: The print spooler failed to load a plug-in module
+shortTitle: Spooler plug-in load failed
+category: software
+summary: >-
+  PrintService Admin event 808: the spooler failed to load a plug-in or driver DLL. Error 0x45A with an odd DLL path is a PrintNightmare sign.
+description: |-
+  Event 808 is written to `Microsoft-Windows-PrintService/Admin` when the spooler (`spoolsv.exe`) cannot load a plug-in module such as a printer driver, rendering or configuration DLL. The message gives the DLL path and an error code.
+
+  Day to day, it comes from broken or mismatched printer drivers: a missing file (`0x7e`), a 32/64-bit mismatch (`0xc1`) and similar. It became a key detection during **PrintNightmare** (CVE-2021-1675 / CVE-2021-34527): exploits make the spooler load an attacker-supplied DLL as a printer driver, and many payload DLLs are not valid driver plug-ins, so the spooler reports the load as failed — typically with `0x45A` — **after** the DLL's code has already run as `SYSTEM`.
+
+  A DLL under `C:\Windows\System32\spool\drivers\x64\3\` with a name that does not belong to any installed driver, or a path on a remote share, is the pattern to look for.
+logging:
+  enabledByDefault: true
+  requirement: Microsoft-Windows-PrintService/Admin log, enabled by default.
+  notes: >-
+    Successful malicious driver loads may produce no 808 at all; also review the PrintService
+    Operational log (disabled by default) and file creation in the spool drivers folder.
+fields:
+  - name: ErrorCode
+    description: Win32 error returned when loading the module.
+    values:
+      - value: "0x45A"
+        meaning: >-
+          ERROR_DLL_INIT_FAILED — the DLL's initialization routine failed. Typical of payload DLLs
+          loaded through PrintNightmare.
+      - value: "0x7e"
+        meaning: ERROR_MOD_NOT_FOUND — the module or one of its dependencies was not found.
+      - value: "0xc1"
+        meaning: ERROR_BAD_EXE_FORMAT — not a valid image for this architecture (e.g. 32-bit DLL in a 64-bit spooler).
+benign:
+  - Old or incompatible printer drivers that fail to load after upgrades.
+  - Leftover driver files from removed printers.
+attacker:
+  - >-
+    PrintNightmare exploitation: a remote or local attacker installs a malicious DLL as a printer
+    driver; the spooler executes it as SYSTEM and logs 808 with `0x45A`.
+  - Local privilege escalation or lateral movement through the spooler on unpatched hosts.
+investigation:
+  - Check the DLL path in the message; unknown DLL names in the spool drivers folder, user folders or UNC paths are suspicious.
+  - Hash and retrieve the DLL; look for its creation (Sysmon 11) and child processes of `spoolsv.exe` (4688, Sysmon 1).
+  - Look for the preceding network logon (4624 type 3) and SMB access to the spooler pipe (5145) to find the source.
+  - Confirm the patch level and whether the Print Spooler service is needed on the host (disable it on domain controllers).
+related:
+  - print-service/307
+  - security/4624
+  - security/5145
+  - security/4688
+  - sysmon/1
+  - sysmon/11
+attack:
+  - T1068
+  - T1210
+references:
+  - title: Microsoft Security Response Center — CVE-2021-34527
+    url: https://msrc.microsoft.com/update-guide/vulnerability/CVE-2021-34527
+  - title: Microsoft Learn — Event IDs associated with Point and Print restrictions
+    url: https://learn.microsoft.com/en-us/troubleshoot/windows-server/printing/event-ids-associated-point-print-restrictions

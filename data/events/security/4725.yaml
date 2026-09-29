@@ -1,0 +1,58 @@
+id: 4725
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A user account was disabled
+shortTitle: User account disabled
+category: account
+summary: >-
+  Security event 4725 is logged when a user or computer account is disabled, recording who
+  disabled it and which account was affected.
+description: |-
+  Event 4725 is written when an account is disabled. For user accounts it appears on domain controllers (domain accounts) and on member servers and workstations (local accounts); for computer accounts it is only logged on domain controllers. `Subject*` identifies who disabled the account, `Target*` which account was disabled.
+
+  Disabling is normally an offboarding or containment action, so most events are expected. It becomes suspicious when administrator, service or security-tool accounts are disabled unexpectedly, or when many accounts are disabled in a short time by a single subject — a pattern seen when intruders try to lock defenders out before deploying ransomware.
+
+  A disabled account that is later re-enabled produces 4722; the flag change is also visible in 4738 (users) or 4742 (computers).
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Enabled for Success in the default Windows audit policy.
+fields:
+  - name: SubjectUserName
+    description: Account that disabled the target account.
+  - name: SubjectDomainName
+    description: Domain or computer name of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject; correlate with 4624.
+  - name: TargetUserName
+    description: Account that was disabled.
+  - name: TargetDomainName
+    description: Domain of the disabled account, or the computer name for a local account.
+  - name: TargetSid
+    description: SID of the disabled account.
+benign:
+  - Offboarding of departing employees and contractors.
+  - Scripts that disable stale user or computer accounts after a period of inactivity.
+  - Incident responders disabling compromised accounts.
+attacker:
+  - Disabling administrator or backup-operator accounts to hamper recovery before encryption or data destruction.
+  - Disabling accounts used by security tooling or monitoring so their activity stops.
+investigation:
+  - Count 4725 per SubjectUserName over time; a burst of disables by one account is a strong signal.
+  - Check whether the disabled accounts are privileged or belong to IT and security staff.
+  - Pivot on SubjectLogonId to find the subject's logon (4624) and processes (4688).
+related:
+  - security/4722
+  - security/4726
+  - security/4738
+  - security/4742
+  - security/4723
+  - security/4724
+attack:
+  - T1531
+references:
+  - title: "Microsoft Learn — 4725(S): A user account was disabled"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4725
+  - title: Microsoft Learn — Audit User Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-user-account-management

@@ -1,0 +1,36 @@
+title: Exécution du pipeline
+shortTitle: Journalisation des modules
+summary: >-
+  L'événement PowerShell 4103 (journalisation des modules) consigne l'exécution du pipeline :
+  chaque commande, ses paramètres liés et le contexte de l'hôte.
+description: |-
+  L'événement 4103 provient de la journalisation des modules PowerShell. Au lieu du code source du script (c'est le rôle du 4104), il consigne **ce qui a été exécuté** dans le pipeline : chaque commande, les valeurs liées à ses paramètres, et le contexte du processus hôte et de l'utilisateur.
+
+  Il est donc complémentaire du 4104. Des scripts obfusqués difficiles à lire sous forme de source deviennent souvent limpides ici, car les appels réels de cmdlets et leurs arguments résolus sont consignés. Il est aussi plus bruyant : chaque commande de chaque pipeline est enregistrée pour les modules configurés.
+logging:
+  requirement: >-
+    Computer Configuration > Administrative Templates > Windows Components > Windows PowerShell >
+    Turn on Module Logging, avec les noms des modules à journaliser (utilisez `*` pour tous les
+    modules).
+fields:
+  - name: ContextInfo
+    description: >-
+      Contexte d'exécution : nom et version de l'hôte, application hôte (la ligne de commande du
+      processus PowerShell), version du moteur, identifiant du runspace, utilisateur et commande en
+      cours d'exécution.
+  - name: Payload
+    description: >-
+      Le détail des invocations, par ex. `CommandInvocation(Invoke-WebRequest): "Invoke-WebRequest"`
+      suivi de lignes `ParameterBinding(...)` avec la valeur de chaque paramètre.
+  - name: UserData
+    description: Données utilisateur supplémentaires, généralement vides.
+benign:
+  - Scripts d'administration et outils de gestion exécutant des cmdlets.
+  - Volume très élevé généré par les agents de supervision ou de configuration dès que la journalisation couvre tous les modules.
+attacker:
+  - Valeurs de paramètres qui révèlent l'intention de l'attaquant — URL de téléchargement, chemins de fichiers, identifiants passés en arguments.
+  - Cmdlets comme `Invoke-WebRequest`, `Start-BitsTransfer`, `Add-MpPreference -ExclusionPath` avec leurs arguments réels.
+investigation:
+  - Lisez la ligne HostApplication de ContextInfo pour retrouver la ligne de commande PowerShell qui a démarré la session.
+  - Recherchez dans Payload des valeurs ParameterBinding contenant des URL, des IP ou des chemins suspects.
+  - Associez aux 4104 de la même période pour voir le code source qui a produit ces invocations.

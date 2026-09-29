@@ -1,0 +1,44 @@
+title: Un compte d'utilisateur a été activé
+shortTitle: Compte utilisateur activé
+summary: >-
+  L'événement 4722 est consigné quand un compte utilisateur ou ordinateur est activé. Il indique
+  l'auteur et le compte concerné, par nom et SID.
+description: |-
+  L'événement 4722 est écrit lorsqu'un compte désactivé est activé. Pour les comptes utilisateurs, il apparaît sur les contrôleurs de domaine (comptes de domaine) et sur les serveurs membres et postes de travail (comptes locaux) ; pour les comptes ordinateur, il n'est consigné que sur les contrôleurs de domaine. L'enregistrement est court : `Subject*` identifie l'auteur de la modification, `Target*` le compte.
+
+  La plupart des 4722 relèvent du provisionnement normal : les comptes créés dans Utilisateurs et ordinateurs Active Directory démarrent désactivés, si bien qu'un 4720 est habituellement suivi d'un 4722 en quelques secondes. Un 4722 isolé, pour un compte désactivé depuis longtemps, est plus intéressant.
+
+  Surveillez en particulier les comptes locaux intégrés `Administrator` (RID 500) et `Guest` (RID 501), désactivés par défaut sur les versions actuelles de Windows, ainsi que les comptes dormants d'anciens collaborateurs.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Activé en succès dans la stratégie d'audit par défaut de Windows.
+  notes: >-
+    L'activation d'un compte génère aussi un 4738 (utilisateur) ou un 4742 (ordinateur) dont le
+    champ UserAccountControl montre la levée de l'indicateur Account Disabled.
+fields:
+  - name: SubjectUserName
+    description: Compte ayant activé le compte cible.
+  - name: SubjectDomainName
+    description: Domaine ou nom d'ordinateur du sujet.
+  - name: SubjectLogonId
+    description: Session du sujet ; corrélez avec le 4624 pour savoir d'où la modification a été faite.
+  - name: TargetUserName
+    description: Compte activé.
+  - name: TargetDomainName
+    description: Domaine du compte activé, ou nom de l'ordinateur pour un compte local.
+  - name: TargetSid
+    description: >-
+      SID du compte activé. Un SID se terminant par `-500` correspond à l'Administrateur intégré,
+      `-501` au compte Invité.
+benign:
+  - Élément de la séquence normale 4720, 4724, 4722 lorsque des administrateurs créent un nouveau compte.
+  - Retour de collaborateurs ou de prestataires dont les comptes sont réactivés par le helpdesk.
+  - Systèmes de gestion des identités activant des comptes à une date d'arrivée.
+attacker:
+  - Activation du compte Administrateur ou Invité local intégré pour disposer d'un compte connu à des fins de persistance ou de mouvement latéral.
+  - Réactivation d'un compte de domaine dormant ou d'un ancien collaborateur, moins susceptible d'être remarquée qu'un nouveau compte.
+investigation:
+  - Vérifiez si le compte cible avait été désactivé volontairement (départ, incident de sécurité) et qui l'a réactivé.
+  - Recherchez un 4724 (réinitialisation du mot de passe) et un 4738 sur le même TargetSid au même moment, puis ses ouvertures de session suivantes (4624).
+  - Pivotez sur SubjectLogonId pour reconstituer la session de l'administrateur et les outils utilisés.

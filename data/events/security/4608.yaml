@@ -1,0 +1,55 @@
+id: 4608
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: Windows is starting up
+shortTitle: Windows starting up
+category: system
+summary: >-
+  Security event 4608 is logged when LSASS starts and auditing initializes during boot. Use it to
+  mark system startups on the Security log timeline.
+description: |-
+  Event 4608 is written when `lsass.exe` starts and the auditing subsystem initializes, which happens early in every boot. It has no event data; its value is purely as a timestamp that says "the machine started here".
+
+  Paired with 1100 (Event Log service shut down) it brackets each reboot on the Security log timeline. A 4608 with no 1100 before it indicates the previous session ended uncleanly — crash, power loss or forced reset — which System events 41 and 6008 will confirm.
+
+  During an investigation, reboots matter: they end every logon session, restart persistence mechanisms (services, run keys, startup tasks) and are sometimes forced by attackers to activate a driver, a boot configuration change or a ransomware payload.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > System > Audit Security State Change (Success). Enabled
+    for Success in the default Windows audit policy.
+fields:
+  - name: TimeCreated
+    description: >-
+      The `System/TimeCreated` timestamp is the only useful data — `EventData` is empty. It marks
+      when auditing came up during boot, shortly after the kernel started.
+benign:
+  - Every normal boot, including restarts after patching and VM starts.
+  - Frequent startups on laptops and virtual desktops that are powered off daily.
+attacker:
+  - >-
+    A reboot forced shortly after a new service, driver or boot configuration change, to load a
+    persistence mechanism or bootkit.
+  - Ransomware restarting a host (sometimes into Safe Mode) to encrypt without interference.
+investigation:
+  - Build a boot timeline from 4608, System 6005/6006 and 12/13, and look for reboots at unusual times.
+  - >-
+    Check whether a 1100 precedes each 4608; a missing one means an unclean shutdown worth
+    explaining (System 41, 6008).
+  - Look at what changed just before an unexpected reboot — 4697/7045 service installs, 4826 boot settings, 4688 of `shutdown.exe` or `bcdedit.exe`.
+related:
+  - security/1100
+  - security/4826
+  - system/12
+  - system/13
+  - system/6005
+  - system/6006
+  - system/6008
+  - system/41
+  - system/1074
+attack: []
+references:
+  - title: "Microsoft Learn — 4608(S): Windows is starting up"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4608
+  - title: Microsoft Learn — Audit Security State Change
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-state-change

@@ -1,0 +1,67 @@
+id: 8
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: CreateRemoteThread
+shortTitle: Remote thread created
+category: process
+summary: >-
+  Sysmon event 8 fires when a process creates a thread in another process — a classic code
+  injection technique. Low volume, high signal.
+description: |-
+  Sysmon event 8 records one process starting a thread inside another process. That is how many injection techniques get their code to run: allocate memory in the target, write a payload, then start a remote thread on it.
+
+  The event names the source and target processes and describes where the new thread starts: `StartAddress`, and when Sysmon can infer them, `StartModule` and `StartFunction`. A start function of `LoadLibraryA` or `LoadLibraryW` means a DLL is being injected; an empty `StartModule` means the thread starts in memory not backed by a loaded module, which is typical of shellcode.
+
+  Legitimate remote threads exist but are few, so the event is usually worth reviewing in full after excluding known pairs.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon installed; filter with `<CreateRemoteThread>` rules in the configuration.
+fields:
+  - name: SourceProcessGuid
+    description: Process that created the thread.
+  - name: SourceImage
+    description: Executable of the injecting process.
+  - name: TargetProcessGuid
+    description: Process that received the thread.
+  - name: TargetImage
+    description: >-
+      Executable of the target. Injection into `lsass.exe`, `explorer.exe`, `svchost.exe` or
+      browsers is common.
+  - name: NewThreadId
+    description: ID of the new thread in the target.
+  - name: StartAddress
+    description: Address where the thread starts.
+  - name: StartModule
+    description: Module containing StartAddress, when known. Empty means unbacked memory.
+  - name: StartFunction
+    description: Exported function at StartAddress, when known (e.g. `LoadLibraryW`).
+  - name: SourceUser
+    description: Account of the source process (newer Sysmon versions).
+  - name: TargetUser
+    description: Account of the target process (newer Sysmon versions).
+benign:
+  - >-
+    `csrss.exe` creating threads in console processes on Ctrl+C / Ctrl+Break (StartFunction
+    `CtrlRoutine`).
+  - Debuggers, accessibility and some security or monitoring tools.
+attacker:
+  - Malware injecting a DLL (StartFunction `LoadLibraryA`/`LoadLibraryW`) into `explorer.exe` or a browser.
+  - Shellcode injection with an empty StartModule into a long-lived process for stealth.
+  - Post-exploitation frameworks migrating into another process.
+investigation:
+  - Pivot on SourceProcessGuid to event 1 to see how the injector started.
+  - Look for event 10 from the same source to the same target just before (memory write access).
+  - Check the target's later network (3) and DNS (22) activity to see what the injected code did.
+related:
+  - sysmon/10
+  - sysmon/1
+  - sysmon/25
+  - sysmon/7
+attack:
+  - T1055
+  - T1055.001
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Process Injection (T1055)
+    url: https://attack.mitre.org/techniques/T1055/

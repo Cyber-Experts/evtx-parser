@@ -1,0 +1,93 @@
+title: Se cambió una cuenta de usuario
+shortTitle: Cuenta de usuario modificada
+summary: >-
+  El evento 4738 se registra al modificar una cuenta de usuario. Los atributos cambiados llevan su
+  nuevo valor, incluidos indicadores como delegación o preauth.
+description: |-
+  El evento 4738 se escribe cada vez que se modifica un objeto de usuario: en los controladores de dominio para las cuentas de dominio y en los servidores miembro y las estaciones de trabajo para las cuentas locales. Se registra un evento por cada cambio. `Subject*` identifica quién hizo el cambio y `Target*` la cuenta modificada.
+
+  El evento enumera un conjunto fijo de atributos: nombre de inicio de sesión, UPN, directorio particular, script de inicio de sesión, ruta del perfil, `PasswordLastSet`, `AccountExpires`, `PrimaryGroupId`, `AllowedToDelegateTo`, `SidHistory`, horas de inicio de sesión y los indicadores de cuenta. En las cuentas de dominio, un atributo que no cambió se muestra como `-`. En las cuentas locales, los atributos sin cambios llevan su valor actual, lo que dificulta saber qué cambió realmente. Un cambio en un atributo fuera de esta lista (por ejemplo la ACL de la cuenta o sus SPN) produce igualmente un 4738 en el que todos los campos valen `-`.
+
+  La parte más valiosa es el cambio de indicadores de cuenta: `OldUacValue` y `NewUacValue` contienen los indicadores de cuenta SAM antes y después, y `UserAccountControl` enumera cada indicador que se activó o desactivó. Los indicadores que debilitan una cuenta (contraseña no requerida, la contraseña nunca caduca, no requiere preautenticación Kerberos, delegación sin restricciones, cifrado reversible) los establecen con frecuencia los atacantes para preparar el robo de credenciales o la persistencia.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Habilitado para Correcto en la directiva de auditoría predeterminada de Windows.
+  notes: >-
+    Los cambios y restablecimientos de contraseña (4723, 4724), la habilitación (4722) y la
+    deshabilitación (4725) van acompañados cada uno de un 4738. Algunos cambios no producen ningún
+    4738; en los controladores de dominio, Audit Directory Service Changes (5136) da el atributo
+    exacto y los valores anterior y nuevo. Si se establece en una cuenta de equipo un indicador
+    exclusivo de usuario, se convierte en una cuenta de tipo usuario y sus cambios pasan a
+    notificarse con el 4738 en lugar del 4742.
+fields:
+  - name: SubjectUserName
+    description: Cuenta que hizo el cambio.
+  - name: SubjectLogonId
+    description: Sesión del sujeto; correlacione con el 4624.
+  - name: TargetUserName
+    description: Cuenta modificada.
+  - name: TargetDomainName
+    description: Dominio de la cuenta modificada, o el nombre del equipo en el caso de una cuenta local.
+  - name: TargetSid
+    description: SID de la cuenta modificada.
+  - name: PasswordLastSet
+    description: Nueva marca de tiempo de la contraseña cuando esta se cambió o restableció.
+  - name: ScriptPath
+    description: Ruta del script de inicio de sesión cuando se cambió. Un nuevo script de inicio de sesión en una cuenta es un método de persistencia.
+  - name: PrimaryGroupId
+    description: Nuevo RID del grupo principal si cambió. Los valores distintos de `513` (Domain Users) son inusuales en cuentas de usuario.
+  - name: AllowedToDelegateTo
+    description: >-
+      Nueva lista de SPN para la delegación restringida, o `<value not set>` si se vació la lista.
+      Cualquier cambio aquí en una cuenta de usuario merece revisión.
+  - name: SidHistory
+    description: Nuevo valor del historial de SID. Fuera de una migración de dominio debería seguir siendo `-`.
+  - name: OldUacValue
+    description: Indicadores de cuenta SAM antes del cambio (hexadecimal, definición SAM, no los bits de `userAccountControl` de AD).
+  - name: NewUacValue
+    description: Indicadores de cuenta SAM después del cambio. Compárelos bit a bit con OldUacValue.
+    values:
+      - value: "0x1"
+        meaning: Cuenta deshabilitada.
+      - value: "0x4"
+        meaning: Contraseña no requerida.
+      - value: "0x10"
+        meaning: Cuenta de usuario normal.
+      - value: "0x200"
+        meaning: La contraseña nunca caduca.
+      - value: "0x800"
+        meaning: Se permite contraseña con cifrado reversible.
+      - value: "0x1000"
+        meaning: Se requiere tarjeta inteligente.
+      - value: "0x2000"
+        meaning: De confianza para delegación (delegación Kerberos sin restricciones).
+      - value: "0x4000"
+        meaning: No delegada (la cuenta es confidencial y no se puede delegar).
+      - value: "0x8000"
+        meaning: Usar solo claves DES.
+      - value: "0x10000"
+        meaning: No requiere preautenticación Kerberos (vulnerable a AS-REP roasting).
+      - value: "0x40000"
+        meaning: De confianza para autenticarse para delegación (transición de protocolo).
+  - name: UserAccountControl
+    description: >-
+      Un código de mensaje por cada indicador activado o desactivado, que el Visor de eventos muestra
+      como texto del tipo "'Don't Require Preauth' - Enabled". Entre los códigos que aparecen en los
+      ejemplos de Microsoft figuran `%%2080` (Account Disabled), `%%2082` (Password Not Required),
+      `%%2084` (Normal Account), `%%2087` (Workstation Trust Account) y `%%2093` (Trusted For
+      Delegation), cada uno marcando el indicador como habilitado.
+benign:
+  - Cambios y restablecimientos de contraseña, cada uno de los cuales produce un 4738 con un nuevo PasswordLastSet.
+  - Sistemas de help desk y de RR. HH. que actualizan nombres para mostrar, UPN, directorios particulares o fechas de caducidad.
+  - Cuentas que se habilitan o deshabilitan, lo que aparece como un cambio del indicador Account Disabled.
+attacker:
+  - Desactivación de la preautenticación Kerberos en un usuario (indicador `0x10000`) para hacerle AS-REP roasting offline.
+  - Establecimiento de Password Never Expires o Password Not Required en una cuenta de puerta trasera.
+  - Habilitación de delegación sin restricciones o restringida (Trusted For Delegation, AllowedToDelegateTo) en una cuenta que controla el atacante.
+  - Adición del historial de SID de una cuenta privilegiada, o de un script de inicio de sesión que ejecuta código del atacante al iniciar sesión.
+investigation:
+  - Decodifique OldUacValue y NewUacValue y alerte cuando se activen indicadores que debilitan la cuenta (0x4, 0x200, 0x800, 0x2000, 0x10000, 0x40000).
+  - "Revise el sujeto: los cambios en cuentas privilegiadas realizados por cuentas no administrativas o inusuales son de alta prioridad."
+  - En los controladores de dominio, obtenga el 5136 del mismo objeto y a la misma hora para ver los atributos exactos y los valores anteriores.
+  - Ante cambios de preautenticación o de delegación, busque actividad Kerberos posterior de la cuenta (4768, 4769).

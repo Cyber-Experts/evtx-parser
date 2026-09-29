@@ -1,0 +1,82 @@
+id: 3006
+channel: dns-client
+provider: Microsoft-Windows-DNS-Client
+title: DNS query is called
+shortTitle: DNS query started
+category: network
+summary: >-
+  DNS Client event 3006 records the start of a DNS query on the host: queried name, record type
+  and DNS servers. Channel is off by default; pair it with 3008.
+description: |-
+  Event 3006 is written by the Windows DNS client when a name resolution is requested. It records the name (`QueryName`), the record type (`QueryType`), query options, the DNS server list and interface information. The result is logged separately by 3008 when the query completes.
+
+  The DNS Client operational channel gives host-level DNS visibility without Sysmon: every domain a machine tried to resolve, including names that never resolved. That is valuable for command-and-control, phishing and data exfiltration investigations, and for scoping which hosts contacted a malicious domain.
+
+  The EventData has no process field. The `ProcessID` in the event's System section is the only pointer to the requester; treat it as a lead and confirm with process or network telemetry. The channel is very verbose, so 3006 is often dropped in favor of 3008, which carries the name, the status and the answers.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Enable the Microsoft-Windows-DNS-Client/Operational channel (Event Viewer, or
+    `wevtutil sl Microsoft-Windows-DNS-Client/Operational /e:true`). It is disabled by default.
+  notes: >-
+    Very high volume on busy hosts; increase the channel size or forward events to a collector.
+    Sysmon event 22 (DNSEvent) is an alternative that records the querying process image.
+fields:
+  - name: QueryName
+    description: Name being resolved, e.g. `login.microsoftonline.com`.
+  - name: QueryType
+    description: DNS record type requested (numeric).
+    values:
+      - value: "1"
+        meaning: A (IPv4 address).
+      - value: "5"
+        meaning: CNAME.
+      - value: "12"
+        meaning: PTR (reverse lookup).
+      - value: "15"
+        meaning: MX.
+      - value: "16"
+        meaning: TXT — sometimes used for DNS tunneling or payload staging.
+      - value: "28"
+        meaning: AAAA (IPv6 address).
+      - value: "33"
+        meaning: SRV (e.g. domain controller location).
+  - name: QueryOptions
+    description: Query option flags passed by the caller (hexadecimal).
+  - name: ServerList
+    description: DNS servers the client will use for the query.
+  - name: IsNetworkQuery
+    description: Whether the query is sent to the network (as opposed to answered locally).
+  - name: NetworkQueryIndex
+    description: Index of the network query attempt.
+  - name: InterfaceIndex
+    description: Index of the network interface used.
+  - name: IsAsyncQuery
+    description: Whether the query is asynchronous.
+benign:
+  - Browsers, Office, update and telemetry services resolving cloud endpoints continuously.
+  - SRV lookups for domain controllers and LDAP/Kerberos services on domain members.
+  - Reverse (PTR) lookups by management and security tools.
+attacker:
+  - Resolution of known malicious or newly registered domains by an implant or phishing payload.
+  - High volumes of long, random-looking subdomains of one domain (DNS tunneling or exfiltration), often with TXT queries.
+  - Algorithmically generated domain names (DGA) queried in bursts, most failing to resolve.
+investigation:
+  - Pair each 3006 with the 3008 for the same `QueryName` to get the status and returned addresses.
+  - Search all collected hosts for an indicator domain to scope which machines resolved it and when.
+  - Count distinct subdomains per parent domain to reveal tunneling; long labels and TXT types are strong hints.
+  - Use the System `ProcessID` as a lead and confirm the requesting program with 4688, Sysmon 1 or Sysmon 22.
+related:
+  - dns-client/3008
+  - sysmon/22
+  - security/5156
+  - sysmon/3
+attack:
+  - T1071.004
+  - T1568.002
+  - T1572
+references:
+  - title: MITRE ATT&CK — T1071.004 Application Layer Protocol - DNS
+    url: https://attack.mitre.org/techniques/T1071/004/
+  - title: Microsoft Learn — DNS constants (record types)
+    url: https://learn.microsoft.com/en-us/windows/win32/dns/dns-constants

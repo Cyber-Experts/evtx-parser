@@ -1,0 +1,36 @@
+id: 5013
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: Tamper protection blocked a change to Microsoft Defender Antivirus
+shortTitle: Tamper protection blocked a change
+category: antimalware
+summary: >-
+  Defender event 5013 is logged when tamper protection blocks a change to Defender settings —
+  evidence that something tried to weaken the antivirus.
+description: |-
+  Event 5013 records that tamper protection refused a change to a Microsoft Defender Antivirus setting — for example disabling real-time monitoring or adding a setting through the registry. The event states which setting was targeted.
+
+  Tamper protection exists precisely to stop malware and intruders from switching Defender off, so a 5013 is evidence of an attempt even though it failed. Administrators changing settings through supported management tools do not trigger it.
+logging:
+  enabledByDefault: true
+  requirement: None — logged when tamper protection is enabled (the default on current Windows versions with Microsoft Defender).
+fields:
+  - name: Value
+    description: Setting that the blocked change targeted (registry-style path), e.g. `...\Real-Time Protection\DisableRealtimeMonitoring`.
+benign:
+  - Legacy scripts or third-party tools still trying to change Defender settings directly.
+attacker:
+  - Attempts to disable Defender through the registry, `Set-MpPreference` or dedicated tools, blocked by tamper protection.
+investigation:
+  - Identify the process and account behind the attempt (PowerShell logs, Sysmon 13, process creation at that time).
+  - Assume the actor may try other evasion methods next — look for new services, drivers (Sysmon 6) or other security tools stopped.
+related:
+  - defender/5007
+  - defender/5001
+  - sysmon/13
+  - powershell/4104
+attack:
+  - T1685
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

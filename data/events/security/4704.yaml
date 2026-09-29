@@ -1,0 +1,54 @@
+id: 4704
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A user right was assigned
+shortTitle: User right assigned
+category: policy
+summary: >-
+  Security event 4704 logs a user right (privilege) being assigned to an account or group in
+  local security policy, such as SeDebugPrivilege or SeBackupPrivilege.
+description: |-
+  Event 4704 is written when a user right — a privilege such as `SeDebugPrivilege`, `SeBackupPrivilege` or `SeImpersonatePrivilege` — is assigned to a security principal in the computer's local security policy. `TargetSid` is who received it and `PrivilegeList` lists what was granted.
+
+  Rights usually arrive through Group Policy, in which case the subject is the computer account and the change is applied on every host in scope. A right granted by an interactive admin on a single host, outside a GPO refresh, deserves a closer look.
+
+  Logon rights such as `SeRemoteInteractiveLogonRight` are not privileges and are logged separately in 4717 and 4718.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Policy Change > Audit Authorization Policy Change
+    (Success).
+fields:
+  - name: SubjectUserName
+    description: Account that made the change; the computer account (`HOST$`) when applied by Group Policy.
+  - name: SubjectLogonId
+    description: Logon session of the subject; `0x3e7` for SYSTEM.
+  - name: TargetSid
+    description: SID of the account or group that received the right. Resolve it; the name is not included.
+  - name: PrivilegeList
+    description: One or more privileges assigned, e.g. `SeDebugPrivilege`, `SeBackupPrivilege`, `SeLoadDriverPrivilege`.
+benign:
+  - Group Policy applying the User Rights Assignment settings defined for the host.
+  - Installation of server roles or software that grants rights to their service accounts.
+attacker:
+  - >-
+    Granting a compromised or newly created account powerful privileges such as
+    `SeDebugPrivilege`, `SeBackupPrivilege` or `SeLoadDriverPrivilege` for later abuse.
+  - A malicious GPO that adds rights to an attacker-controlled group across many hosts.
+investigation:
+  - Resolve `TargetSid` and check whether that principal should hold the listed privileges.
+  - If the subject is a user rather than the computer account, find the tool used through 4688 in that session.
+  - For GPO-delivered changes, review recent 5136 edits of Group Policy objects on the domain controllers.
+related:
+  - security/4705
+  - security/4717
+  - security/4672
+  - security/5136
+  - security/4688
+attack:
+  - T1098
+references:
+  - title: "Microsoft Learn — 4704(S): A user right was assigned"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4704
+  - title: Microsoft Learn — Audit Authorization Policy Change
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-authorization-policy-change

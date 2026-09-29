@@ -1,0 +1,54 @@
+id: 4800
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: The workstation was locked
+shortTitle: Workstation locked
+category: logon
+summary: >-
+  Security event 4800 records a user locking their workstation, with the account and logon
+  session. Useful to tell when a user was really at the keyboard.
+description: |-
+  Event 4800 is written when an interactive session is locked, whether by the user (Win+L, Ctrl+Alt+Del > Lock) or automatically by the screen saver or inactivity policy. It names the user (`TargetUserName`, `TargetUserSid`), the logon session (`TargetLogonId`) and the terminal session number (`SessionId`).
+
+  Lock and unlock events (4800/4801) build a presence timeline: activity inside a session while it was locked is unlikely to be the user at the keyboard. That helps separate a user's own actions from those of malware or a remote operator using the same session.
+
+  The event is part of the Other Logon/Logoff Events subcategory, which is not audited by default, so many machines will not have it.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Other Logon/Logoff Events (Success).
+    Not enabled in the default audit policy.
+fields:
+  - name: TargetUserName
+    description: Account whose session was locked.
+  - name: TargetDomainName
+    description: Domain or computer name of that account.
+  - name: TargetUserSid
+    description: SID of that account.
+  - name: TargetLogonId
+    description: Logon session that was locked; the same value appears in the session's 4624 and in 4801 on unlock.
+  - name: SessionId
+    description: Terminal Services session number (console, RDP session) that was locked.
+benign:
+  - Users locking their screen when leaving their desk.
+  - Automatic locks from screen saver or inactivity timeouts.
+attacker:
+  - >-
+    Process activity (4688) or outbound connections in a session while it was locked suggests
+    malware or a remote operator rather than the user.
+investigation:
+  - Build lock/unlock intervals per TargetLogonId and overlay other activity from the same session.
+  - Pair with 4801 and 4624 LogonType 7 to confirm who unlocked the session and when.
+  - Compare with RDP events (4778/4779, 24/25) when the session is remote.
+related:
+  - security/4801
+  - security/4624
+  - security/4778
+  - security/4779
+  - security/4647
+attack: []
+references:
+  - title: "Microsoft Learn — 4800(S): The workstation was locked"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4800
+  - title: Microsoft Learn — Audit Other Logon/Logoff Events
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-other-logonlogoff-events

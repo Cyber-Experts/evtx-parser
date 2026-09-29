@@ -1,0 +1,59 @@
+id: 4886
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: Certificate Services received a certificate request
+shortTitle: Certificate request received
+category: directory
+summary: >-
+  Security event 4886 is logged on an AD CS certification authority when it receives a
+  certificate request, with the request ID and the requesting account.
+description: |-
+  Event 4886 is written by an Active Directory Certificate Services CA each time it receives a certificate request. It records the `RequestId`, the `Requester` account and the request `Attributes`. What happens next is logged under the same request ID: 4887 when the certificate is issued, 4888 when denied, 4889 when set to pending.
+
+  Certificates are credentials. A certificate that allows client authentication can be used to obtain Kerberos tickets for the account named in it, so abuse of misconfigured templates is a direct path to domain privilege escalation and persistence. 4886 is the first place the CA records such a request and the account that made it.
+
+  The event only exists when auditing is enabled twice: in the audit policy and in the CA's own audit filter.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Certification Services
+    (Success), plus "Issue and manage certificate requests" enabled on the Auditing tab of the
+    CA properties (the CA audit filter).
+  notes: >-
+    Logged only on servers running the AD CS certification authority role. Older builds do not
+    record the subject alternative name requested in the CSR; review the issued certificate in
+    the CA database when a request looks suspicious.
+fields:
+  - name: RequestId
+    description: CA request number. Use it to join 4886 with 4887, 4888 or 4889 and to look the request up in the CA database.
+  - name: Requester
+    description: Account that submitted the request, as `DOMAIN\user` or `DOMAIN\HOST$`.
+  - name: Attributes
+    description: >-
+      Request attributes supplied with the request, such as the client machine name (`ccm:`).
+      On a CA that accepts SAN attributes, a `san:` attribute here names the identity being requested.
+benign:
+  - Autoenrollment of user and computer certificates across the domain.
+  - Web server, domain controller and device certificate renewals.
+  - Administrators or PKI operators requesting certificates through the Certificates MMC or `certreq`.
+attacker:
+  - >-
+    Abuse of a vulnerable template (e.g. one that lets the requester supply the subject) to
+    request a certificate for a privileged account, using tools such as Certify or Certipy.
+  - A low-privileged account requesting certificates from templates it has never used, or at unusual volume.
+investigation:
+  - Join on `RequestId` with 4887 to see whether and for which subject the certificate was issued.
+  - Look up the request in the CA database (`certutil -view` or the CA console) to see the template and requested SAN.
+  - Compare `Requester` with the identity in the issued certificate; a mismatch for a privileged account is a strong lead.
+  - Follow the certificate's use with 4768 on domain controllers (PKINIT authentication).
+related:
+  - security/4887
+  - security/4768
+  - security/4624
+attack:
+  - T1649
+references:
+  - title: Microsoft Learn — Audit Certification Services
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-certification-services
+  - title: "MITRE ATT&CK — T1649 Steal or Forge Authentication Certificates"
+    url: https://attack.mitre.org/techniques/T1649/

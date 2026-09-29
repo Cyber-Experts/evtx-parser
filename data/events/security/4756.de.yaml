@@ -1,0 +1,52 @@
+title: Ein Mitglied wurde einer sicherheitsaktivierten universellen Gruppe hinzugefügt
+shortTitle: Mitglied in universeller Gruppe
+summary: >-
+  Event-ID 4756 protokolliert auf dem DC das Hinzufügen eines Mitglieds zu einer universellen Gruppe wie Enterprise Admins oder Schema Admins.
+description: |-
+  Event 4756 wird auf dem Domänencontroller geschrieben, der die Änderung verarbeitet hat, wenn ein Konto oder eine Gruppe einer sicherheitsaktivierten **universellen** Gruppe hinzugefügt wird. Universelle Gruppen können Mitglieder aus jeder Domäne der Gesamtstruktur enthalten und werden für gesamtstrukturweite Rollen genutzt — allen voran **Enterprise Admins** und **Schema Admins** in der Stammdomäne der Gesamtstruktur. Globale Gruppen verwenden 4728, lokale und domänenlokale Gruppen 4732.
+
+  Die Felder entsprechen denen von 4728 und 4732: `TargetUserName`/`TargetSid` identifizieren die Gruppe, `MemberName` (Distinguished Name) und `MemberSid` das neue Mitglied, `Subject*`, wer die Änderung vorgenommen hat. Pro hinzugefügtem Mitglied wird ein Event protokolliert, meist neben einem leeren 4755.
+
+  Eine Hinzufügung zu Enterprise Admins verschafft administrative Kontrolle über jede Domäne der Gesamtstruktur. Per SID darauf alarmieren und jedes Auftreten außerhalb einer geplanten Änderung als Vorfall behandeln.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). „Erfolg“ wird in der Standard-Überwachungsrichtlinie von Windows überwacht.
+  notes: >-
+    Wird nur auf Domänencontrollern erzeugt. Enterprise Admins und Schema Admins liegen in der
+    Stammdomäne der Gesamtstruktur, daher werden diese Hinzufügungen auf den DCs der Stammdomäne
+    protokolliert.
+fields:
+  - name: MemberName
+    description: Distinguished Name des hinzugefügten Mitglieds.
+  - name: MemberSid
+    description: SID des hinzugefügten Mitglieds. Der Domänenteil zeigt, aus welcher Domäne der Gesamtstruktur es stammt.
+  - name: TargetUserName
+    description: Name der universellen Gruppe.
+  - name: TargetDomainName
+    description: Domäne der Gruppe.
+  - name: TargetSid
+    description: SID der Gruppe; bekannte Gruppen über ihre RID identifizieren.
+    values:
+      - value: "*-518"
+        meaning: Schema Admins (Stammdomäne der Gesamtstruktur).
+      - value: "*-519"
+        meaning: Enterprise Admins (Stammdomäne der Gesamtstruktur).
+  - name: SubjectUserName
+    description: Konto, das das Mitglied hinzugefügt hat.
+  - name: SubjectDomainName
+    description: Domäne des Subjects.
+  - name: SubjectLogonId
+    description: Anmeldesitzung des Subjects auf dem DC; mit 4624 korrelieren.
+  - name: PrivilegeList
+    description: Für den Vorgang genutzte Privilegien, oft `-`.
+benign:
+  - Administratoren, die universelle Gruppen für Exchange, Messaging oder domänenübergreifenden Ressourcenzugriff pflegen.
+  - Temporäre Mitgliedschaft in Schema Admins für eine genehmigte Schemaerweiterung, danach wieder entfernt (4757).
+attacker:
+  - Hinzufügen eines kontrollierten Kontos zu Enterprise Admins nach Kompromittierung einer Domäne, um die gesamte Gesamtstruktur zu kontrollieren.
+  - Hinzufügen von Konten zu universellen Gruppen, die domänenübergreifend delegierte Rechte besitzen.
+investigation:
+  - Bei jeder Änderung an Enterprise Admins und Schema Admins alarmieren und sie mit den Verantwortlichen der Gesamtstruktur bestätigen.
+  - Herkunft des Mitglieds (Domänenteil der MemberSid), Erstellungsdatum (4720) und nachfolgende Anmeldungen (4624, 4672) prüfen.
+  - Über SubjectLogonId den Quellhost der Änderung finden.

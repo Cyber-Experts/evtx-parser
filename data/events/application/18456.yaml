@@ -1,0 +1,54 @@
+id: 18456
+channel: application
+provider: MSSQLSERVER
+title: Login failed for user
+shortTitle: SQL Server login failed
+category: logon
+summary: >-
+  Application event 18456 from SQL Server logs a failed database login with user, reason and client IP. Brute force against MSSQL.
+description: |-
+  Event 18456 is written to the Windows Application log by the SQL Server Database Engine when a login attempt fails. The source is `MSSQLSERVER` for the default instance and `MSSQL$<InstanceName>` for named instances. The message includes the login name, a **reason** and the client address in the form `[CLIENT: 10.0.0.5]`.
+
+  The reason text explains the failure — for example "Password did not match that for the login provided" (wrong password for an existing SQL login) or "Could not find a login matching the name provided" (unknown login). The SQL Server error log records the same failure with a numeric **state** (8 = wrong password, 2 and 5 = invalid user ID, 7 = login disabled with a wrong password, 18 = password must be changed, 38 = requested database not found, 58 = SQL authentication attempted on a Windows-only server).
+
+  Internet-exposed SQL Servers receive constant `sa` brute force. Inside a network, bursts of 18456 from one client against many logins, or against `sa`, point to password spraying or lateral movement attempts.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    SQL Server "Login auditing" set to "Failed logins only" (the default) or "Both failed and
+    successful logins".
+  notes: >-
+    The data is a set of unnamed insertion strings; this viewer shows them joined in `Data1`. The
+    state number is not in the message text; read it from the SQL Server error log.
+fields:
+  - name: Data1
+    description: >-
+      Insertion strings — the login name, then the reason text with the client address
+      (`[CLIENT: <ip>]`).
+benign:
+  - Applications with outdated connection strings or expired passwords retrying in a loop.
+  - Users mistyping passwords in SQL Server Management Studio.
+  - Monitoring tools probing with default or disabled accounts.
+attacker:
+  - >-
+    Brute force of `sa` and other SQL logins from the internet or from a compromised host, often
+    hundreds of attempts per minute.
+  - Password spraying with a few passwords across many logins.
+  - A success after many failures, followed by `xp_cmdshell` use for code execution.
+investigation:
+  - Group by login name and client IP; count attempts per minute to separate brute force from misconfiguration.
+  - Check whether the client IP is internal, and if so investigate that host.
+  - Look for a successful login from the same source (SQL audit, 18453/18454 when success auditing is on) and for `xp_cmdshell` child processes of `sqlservr.exe` (4688, Sysmon 1).
+related:
+  - security/4625
+  - security/4624
+  - security/4688
+  - sysmon/1
+attack:
+  - T1110
+  - T1110.001
+references:
+  - title: Microsoft Learn — MSSQLSERVER_18456
+    url: https://learn.microsoft.com/en-us/sql/relational-databases/errors-events/mssqlserver-18456-database-engine-error
+  - title: MITRE ATT&CK — Brute Force (T1110)
+    url: https://attack.mitre.org/techniques/T1110/

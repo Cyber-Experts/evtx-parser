@@ -1,0 +1,64 @@
+id: 4755
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A security-enabled universal group was changed
+shortTitle: Universal group changed
+category: group
+summary: >-
+  Security event 4755 is logged on a domain controller when a security-enabled universal
+  group is changed; most instances accompany membership changes.
+description: |-
+  Event 4755 is written on the domain controller that processed the change when a security-enabled **universal** group is modified. It is the universal-group equivalent of 4735 (local and domain local groups) and 4737 (global groups), with the same fields.
+
+  Only `SamAccountName` and `SidHistory` are shown when they change; other modifications leave every attribute at `-`. An empty 4755 typically accompanies each membership change (4756, 4757), and a rename also produces 4781.
+
+  Use it as a marker and read it together with the membership events in the same second, or with 5136 when directory service change auditing is enabled.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Success is audited in the default Windows audit policy.
+  notes: Only generated on domain controllers.
+fields:
+  - name: TargetUserName
+    description: Name of the changed group (the new name after a rename).
+  - name: TargetDomainName
+    description: Domain of the group.
+  - name: TargetSid
+    description: SID of the group.
+  - name: SamAccountName
+    description: New pre-Windows 2000 name if it changed, otherwise `-`.
+  - name: SidHistory
+    description: New SID history if it changed, otherwise `-`.
+  - name: SubjectUserName
+    description: Account that changed the group.
+  - name: SubjectDomainName
+    description: Domain of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject on the DC; correlate with 4624.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Empty 4755 events logged with ordinary membership changes.
+  - Group renames or conversions during directory reorganizations.
+attacker:
+  - Renaming or adding SID history to a privileged universal group to disguise it.
+investigation:
+  - Correlate with 4756 and 4757 in the same second to identify the membership change.
+  - When SamAccountName is set, find the matching 4781 for the old name.
+  - Use 5136 to see which attribute changed when the event shows only dashes.
+related:
+  - security/4754
+  - security/4756
+  - security/4757
+  - security/4735
+  - security/4737
+  - security/4781
+  - security/5136
+attack:
+  - T1098
+references:
+  - title: "Microsoft Learn — Audit Security Group Management (4755 description)"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-group-management
+  - title: "Microsoft Learn — 4735(S): A security-enabled local group was changed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4735

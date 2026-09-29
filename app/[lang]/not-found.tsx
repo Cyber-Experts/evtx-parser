@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { defaultLocale, isLocale, type Locale } from "@/src/dict/locales";
 import { getDict } from "@/src/dict";
+import { getEventsDict } from "@/src/dict/events";
 import { BTN_PRIMARY, PageHero } from "@/components/PageHero";
 
 const CHIP =
@@ -22,7 +23,7 @@ export default function LocaleNotFound() {
   const links = [
     { href: `/${locale}/blog`, label: dict.footer.blog },
     { href: `/${locale}/glossary`, label: dict.glossary.title },
-    { href: `/${locale}/event-ids`, label: dict.eventIds.title },
+    { href: `/${locale}/events`, label: getEventsDict(locale).navTitle },
     { href: `/${locale}/tools`, label: dict.tools.title },
   ];
 

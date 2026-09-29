@@ -1,0 +1,27 @@
+title: "Remotedesktopdienste: Wiederherstellung der Sitzungsverbindung erfolgreich"
+shortTitle: Sitzung wiederverbunden
+summary: >-
+  RDP-Event-ID 25 wird protokolliert, wenn sich ein Benutzer erneut mit einer bestehenden,
+  getrennten Sitzung verbindet, mit der neuen Client-Adresse.
+description: |-
+  Event 25 protokolliert, dass sich ein Client wieder an eine getrennte Sitzung (24) angehängt hat. Es wird keine neue Sitzung erstellt, daher gibt es kein Event 21 — dieses Event und Security 4778 sind die Nachweise der Wiederverbindung.
+
+  Das Feld `Address` enthält die IP des Clients, der sich wieder verbunden hat, und kann von der ursprünglich angemeldeten abweichen. Das macht 25 unverzichtbar bei der Verfolgung von RDP-Zugriffen: Ein Angreifer, der sich wieder mit der getrennten Sitzung eines Admins verbindet, erzeugt nie ein neues 21.
+logging:
+  requirement: >-
+    Keine — der Kanal LocalSessionManager/Operational ist standardmäßig aktiviert.
+fields:
+  - name: User
+    description: Konto, dem die Sitzung gehört.
+  - name: SessionID
+    description: Nummer der wiederaufgenommenen Sitzung.
+  - name: Address
+    description: IP-Adresse des sich wieder verbindenden Clients oder `LOCAL`.
+benign:
+  - Benutzer, die ihre RDP-Sitzung nach einer Trennung oder von einem anderen Gerät fortsetzen.
+attacker:
+  - Wiederverbinden mit einer getrennten privilegierten Sitzung mit denselben Anmeldeinformationen von einem anderen Host.
+  - Übernahme einer RDP-Sitzung, bei der eine Sitzung an einen anderen Client angehängt wird.
+investigation:
+  - Address mit der im ursprünglichen 21 für die SessionID vergleichen.
+  - Mit dem vorangehenden 1149 (der neuen Verbindung) und Security 4778 / 4624 LogonType 7 oder 10 kombinieren.

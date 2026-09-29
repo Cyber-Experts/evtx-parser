@@ -1,0 +1,63 @@
+title: Un membre a été ajouté à un groupe global de sécurité
+shortTitle: Ajout à un groupe global
+summary: >-
+  L'événement 4728 est consigné sur un contrôleur de domaine quand un membre est ajouté à un groupe
+  global de sécurité, comme Domain Admins.
+description: |-
+  L'événement 4728 est écrit sur le contrôleur de domaine qui a traité la modification lorsqu'un compte ou un groupe est ajouté à un groupe de sécurité **global**. Les groupes globaux sont des groupes de domaine — Domain Admins, Group Policy Creator Owners et la plupart des groupes de rôles créés par les administrateurs — cet événement n'apparaît donc jamais sur les postes de travail ni sur les serveurs membres. Les groupes locaux et locaux de domaine utilisent le 4732, les groupes universels le 4756.
+
+  Les champs sont les mêmes que pour le 4732 : `TargetUserName`/`TargetSid` identifient le groupe, `MemberName` (nom unique, DN) et `MemberSid` le nouveau membre, et `Subject*` l'auteur de la modification. Un événement est consigné par membre ajouté, généralement accompagné d'un 4737 vide.
+
+  Les ajouts à Domain Admins et aux autres groupes globaux tier 0 figurent parmi les alertes les plus précieuses d'Active Directory. Construisez l'alerte sur le SID du groupe (RID `512` pour Domain Admins) plutôt que sur le nom, qui est localisé et peut être renommé.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Les succès sont audités dans la stratégie d'audit par défaut de Windows.
+  notes: >-
+    Généré uniquement sur les contrôleurs de domaine, sur le DC où la modification a été écrite.
+    Collectez le journal Sécurité de tous les DC pour voir l'ensemble des modifications de groupes.
+fields:
+  - name: MemberName
+    description: Nom unique (DN) du membre ajouté, par ex. `CN=jdoe,OU=Staff,DC=contoso,DC=local`.
+  - name: MemberSid
+    description: SID du membre ajouté.
+  - name: TargetUserName
+    description: Nom du groupe global ayant reçu le membre.
+  - name: TargetDomainName
+    description: Domaine du groupe.
+  - name: TargetSid
+    description: >-
+      SID du groupe. Le dernier composant (RID) identifie les groupes de domaine bien connus quel
+      que soit leur nom affiché.
+    values:
+      - value: "*-512"
+        meaning: Domain Admins.
+      - value: "*-513"
+        meaning: Domain Users.
+      - value: "*-515"
+        meaning: Domain Computers.
+      - value: "*-516"
+        meaning: Domain Controllers.
+      - value: "*-520"
+        meaning: Group Policy Creator Owners.
+  - name: SubjectUserName
+    description: Compte ayant ajouté le membre.
+  - name: SubjectDomainName
+    description: Domaine du sujet.
+  - name: SubjectLogonId
+    description: Session du sujet sur le DC ; corrélez avec le 4624 pour trouver l'hôte source.
+  - name: PrivilegeList
+    description: Privilèges utilisés pour l'opération, souvent `-`.
+benign:
+  - Gestion des identités et provisionnement piloté par les RH ajoutant des utilisateurs à des groupes de rôles.
+  - Administrateurs accordant des accès via des groupes applicatifs ou de service.
+  - Appartenance temporaire accordée par des outils de gestion des accès privilégiés (PAM), suivie plus tard d'un 4729.
+attacker:
+  - Élévation de privilèges ou persistance par ajout d'un compte contrôlé à Domain Admins ou à un autre groupe global privilégié.
+  - Ajout d'un compte nouvellement créé (4720) à un groupe privilégié quelques minutes après sa création.
+  - Ajout de comptes à des groupes disposant de droits délégués sur des objets AD, des GPO ou des serveurs, plus discret que Domain Admins.
+investigation:
+  - Alertez sur les ajouts aux groupes privilégiés par SID et vérifiez chacun au regard d'une modification approuvée.
+  - Vérifiez si le membre a été créé récemment (4720) et ce qu'il a fait ensuite (4624, 4672, 4769).
+  - Pivotez sur SubjectLogonId et les 4624 du DC pour trouver l'hôte depuis lequel la modification a été faite.
+  - Recherchez un 4729 ultérieur retirant le même membre — une appartenance brève est un moyen courant d'échapper à la détection.

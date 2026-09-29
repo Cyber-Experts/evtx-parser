@@ -1,0 +1,43 @@
+id: 131
+channel: rdp-core-ts
+provider: Microsoft-Windows-RemoteDesktopServices-RdpCoreTS
+title: The server accepted a new TCP connection from client
+shortTitle: TCP connection accepted
+category: remote-access
+summary: >-
+  RdpCoreTS event 131 is logged when the RDP server accepts a TCP connection, with the client
+  IP and port — even for failed or scanner connections.
+description: |-
+  Event 131 is written by the RDP protocol stack when a TCP connection to the Remote Desktop listener is accepted. It happens before any authentication, so it captures every client that reached the port: legitimate users, brute-force tools and internet scanners alike.
+
+  That makes it useful for two things: seeing connection attempts that never produced 1149 or 4624 (failed or aborted logons, scanning), and getting the client's source port for correlation with firewall or network logs.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Microsoft-Windows-RemoteDesktopServices-RdpCoreTS/Operational channel is enabled
+    by default on hosts with Remote Desktop enabled.
+fields:
+  - name: ConnType
+    description: Transport of the accepted connection (for example `TCP`).
+  - name: ClientIP
+    description: Client IP address and source port (`address:port`).
+benign:
+  - Every legitimate RDP connection starts with one.
+  - Load balancers and monitoring probes checking that the port is open.
+attacker:
+  - Internet-wide scanning and RDP brute force, visible as many 131 events from external IPs, most without a following 1149.
+  - The first trace of a tunneled RDP connection (ClientIP on loopback).
+investigation:
+  - Count 131 per ClientIP and compare with 1149 and 4624 type 10; a high ratio of connections to successful logons means brute force or scanning.
+  - For a confirmed malicious logon, use the source port with network logs to identify the flow.
+related:
+  - rdp-remote-connection-manager/1149
+  - security/4625
+  - security/4624
+  - rdp-local-session-manager/21
+attack:
+  - T1021.001
+  - T1110
+references:
+  - title: Microsoft Learn — Remote Desktop Services overview
+    url: https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/remote-desktop-services-overview

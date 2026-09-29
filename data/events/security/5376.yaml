@@ -1,0 +1,54 @@
+id: 5376
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: Credential Manager credentials were backed up
+shortTitle: Credential Manager backup
+category: account
+summary: >-
+  Security event 5376 records a backup of a user's Credential Manager vault. Rarely used by real users, so worth checking every time.
+description: |-
+  Event 5376 is written when a user backs up their Credential Manager credentials — the saved Windows and web credentials used for network shares, RDP, and applications. The usual route is Control Panel > Credential Manager > **Back up Credentials**, which writes the vault to a protected backup file.
+
+  Few users ever do this, which is why Microsoft recommends reviewing every occurrence. A backup moves stored credentials into a portable file, so an unexpected 5376 on a server or in an administrator's session is worth explaining.
+
+  The record is minimal: it names only the account and logon session. Surrounding process activity (4688, Sysmon 1) is needed to tell which program was running at the time.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Enabled in the default audit policy.
+  notes: >-
+    Generated on workstations, member servers and domain controllers. The event does not include
+    the backup file path or the process that performed the operation.
+fields:
+  - name: SubjectUserName
+    description: Account that backed up its Credential Manager credentials.
+  - name: SubjectDomainName
+    description: Domain or computer name of that account.
+  - name: SubjectUserSid
+    description: SID of that account.
+  - name: SubjectLogonId
+    description: >-
+      Logon session that performed the operation. Pivot to 4624 (LogonType) and 4688 (processes run
+      in the same session).
+benign:
+  - A user migrating saved credentials to a new computer.
+  - Help desk procedures backing up a profile's credentials before a rebuild.
+attacker:
+  - Exporting a user's saved credentials from their session as a step toward stealing stored passwords.
+  - Backup activity in a session that was just created remotely (RDP or other remote logon).
+investigation:
+  - Verify with the user whether the backup was intentional.
+  - >-
+    Pivot on SubjectLogonId to the 4624 to see whether the session was local or remote, and to
+    4688 for the processes run in that session around the same time.
+  - Look for a later 5377 on another host with the same account, which shows where the credentials were restored.
+related:
+  - security/5377
+  - security/4624
+  - security/4688
+attack:
+  - T1555.004
+references:
+  - title: "Microsoft Learn — 5376(S): Credential Manager credentials were backed up"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-5376

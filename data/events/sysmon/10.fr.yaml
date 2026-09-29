@@ -1,0 +1,71 @@
+title: Accès à un processus (ProcessAccess)
+shortTitle: Accès à un processus
+summary: >-
+  L'événement Sysmon 10 consigne l'ouverture d'un handle vers un autre processus, avec masque
+  d'accès et pile d'appels. La référence pour le dump LSASS.
+description: |-
+  L'événement Sysmon 10 consigne l'ouverture d'un processus par un autre, avec les droits obtenus (`GrantedAccess`) et la pile d'appels ayant mené à l'ouverture (`CallTrace`). Lire ou écrire la mémoire d'un autre processus commence toujours par un tel handle.
+
+  Son usage le plus connu est la détection du vol d'identifiants dans `lsass.exe` : des outils comme Mimikatz, ProcDump ou le MiniDump de `comsvcs.dll` doivent ouvrir LSASS avec des droits de lecture mémoire. Le `CallTrace` apporte du contexte — une pile passant par `dbghelp.dll` ou `dbgcore.dll` indique un minidump, et des frames `UNKNOWN` signifient que l'appel provient d'une mémoire non adossée à un module, comme un shellcode injecté.
+
+  Sans filtrage, l'événement est extrêmement bruyant (les produits de sécurité et les processus système ouvrent sans cesse d'autres processus). Configurez-le pour des cibles sensibles comme `lsass.exe` et excluez les scanners connus.
+logging:
+  requirement: >-
+    Sysmon installé avec une règle `<ProcessAccess>` dans la configuration, incluant généralement
+    le TargetImage `lsass.exe` et excluant les outils de sécurité connus.
+fields:
+  - name: SourceProcessGUID
+    description: GUID du processus ayant ouvert le handle (notez le GUID en majuscules dans cet événement).
+  - name: SourceProcessId
+    description: PID du processus source.
+  - name: SourceThreadId
+    description: Thread ayant ouvert le handle.
+  - name: SourceImage
+    description: Exécutable du processus source.
+  - name: TargetProcessGUID
+    description: GUID du processus ouvert.
+  - name: TargetImage
+    description: Exécutable de la cible, par ex. `C:\Windows\system32\lsass.exe`.
+  - name: GrantedAccess
+    description: >-
+      Masque d'accès accordé. Les bits intéressants sont PROCESS_VM_READ (`0x10`),
+      PROCESS_VM_WRITE (`0x20`), PROCESS_VM_OPERATION (`0x8`) et PROCESS_CREATE_THREAD (`0x2`).
+    values:
+      - value: "0x1000"
+        meaning: PROCESS_QUERY_LIMITED_INFORMATION seul. Très courant et généralement bénin.
+      - value: "0x1010"
+        meaning: >-
+          Requête limitée + VM_READ. Suffisant pour lire la mémoire de LSASS ; le masque classique
+          des commandes `sekurlsa` de Mimikatz.
+      - value: "0x1410"
+        meaning: >-
+          Requête d'informations + requête limitée + VM_READ. Également associé aux outils de dump
+          d'identifiants, mais utilisé par certains logiciels légitimes.
+      - value: "0x1438"
+        meaning: Requête + VM_READ, VM_WRITE et VM_OPERATION — lecture et écriture mémoire, comme avant une injection.
+      - value: "0x1FFFFF"
+        meaning: PROCESS_ALL_ACCESS. Contrôle total ; suspect contre LSASS en dehors d'outils de confiance.
+  - name: CallTrace
+    description: >-
+      Pile de frames module+offset séparées par des barres verticales. Recherchez
+      `dbghelp.dll`/`dbgcore.dll` (minidump), `comsvcs.dll` ou des frames `UNKNOWN` (mémoire non
+      adossée à un module).
+  - name: SourceUser
+    description: Compte du processus source (versions récentes de Sysmon).
+  - name: TargetUser
+    description: Compte du processus cible (versions récentes de Sysmon).
+benign:
+  - Antivirus/EDR, `MsMpEng.exe` et processus système comme `csrss.exe`, `wininit.exe` et `svchost.exe` interrogeant LSASS.
+  - Gestionnaire des tâches, Process Explorer et outils de performance avec des masques de simple requête comme `0x1000`.
+  - Rapport d'erreurs Windows (`WerFault.exe`) lisant un processus qui plante.
+attacker:
+  - Mimikatz ou un clone ouvrant `lsass.exe` avec `0x1010` ou `0x1410`.
+  - >-
+    `rundll32.exe` chargeant `comsvcs.dll` et appelant MiniDump sur LSASS, ou `procdump.exe -ma
+    lsass.exe`, avec un CallTrace passant par `dbghelp.dll`/`dbgcore.dll`.
+  - Préparation d'injection — un processus obtenant `0x1438` ou plus sur un autre processus avant un événement 8.
+investigation:
+  - Filtrez sur TargetImage `lsass.exe` et excluez une référence de valeurs SourceImage connues.
+  - Lisez le CallTrace ; des frames `UNKNOWN` et des DLL de minidump sont des indicateurs forts.
+  - Pivotez sur SourceProcessGUID vers l'événement 1 et recherchez un fichier de dump écrit par le même processus (événement 11).
+  - Examinez ensuite les ouvertures de session du compte depuis d'autres hôtes (4624, 4648 Sécurité) après l'heure du dump.

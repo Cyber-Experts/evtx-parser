@@ -1,0 +1,105 @@
+title: Se ha creado un nuevo proceso
+shortTitle: Creación de proceso
+summary: >-
+  El evento 4688 registra cada nuevo proceso: ejecutable, padre, cuenta, elevación y, si se
+  habilita, la línea de comandos completa. Desactivado por defecto.
+description: |-
+  El evento 4688 es el registro nativo de Windows de la ejecución de procesos. Cada registro indica el nuevo ejecutable (`NewProcessName`), el proceso que lo inició (`ProcessId` y, desde Windows 10 / Server 2016, `ParentProcessName`), la cuenta y la sesión (`SubjectUserName`, `SubjectLogonId`) y el token que recibió (`TokenElevationType`, `MandatoryLabel`).
+
+  El campo más valioso, `CommandLine`, está **vacío salvo que se habilite una directiva aparte**: "Incluir línea de comandos en eventos de creación de procesos". Sin ella se sabe que se ejecutó `powershell.exe`, pero no qué ejecutó. Habilitar tanto la subcategoría de auditoría como la directiva de línea de comandos convierte el 4688 en una alternativa ligera al evento 1 de Sysmon (que añade hashes y la línea de comandos del padre).
+
+  Cuando el creador y el nuevo proceso se ejecutan en sesiones distintas (por ejemplo, un servicio que lanza un proceso como otro usuario), los campos `Target*` indican la cuenta con la que realmente se ejecuta el proceso; en caso contrario están vacíos. `SubjectLogonId` / `TargetLogonId` vinculan cada proceso con su inicio de sesión 4624.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Detailed Tracking > Audit Process Creation (Success).
+    Para las líneas de comandos, habilite también Computer Configuration > Administrative Templates >
+    System > Audit Process Creation > Include command line in process creation events.
+  notes: >-
+    No está habilitado en la directiva de auditoría predeterminada. `CommandLine` existe desde
+    Windows 8.1 / Server 2012 R2 (versión 1 del evento); los campos `Target*`, `ParentProcessName` y
+    `MandatoryLabel` desde Windows 10 / Server 2016 (versión 2). El volumen es alto: planifique el
+    tamaño del registro y el reenvío en consecuencia. Las líneas de comandos pueden contener secretos
+    escritos como argumentos.
+fields:
+  - name: SubjectUserName
+    description: Cuenta que creó el proceso (el creador). `HOST$` significa SYSTEM u otro servicio en contexto de máquina.
+  - name: SubjectLogonId
+    description: >-
+      Sesión del creador. Relaciónela con el TargetLogonId del 4624 para saber cómo empezó la sesión
+      (interactiva, RDP, red, servicio).
+  - name: NewProcessId
+    description: PID hexadecimal del nuevo proceso. Relaciónelo con el ProcessId del 4689 para la finalización, o con procesos hijos posteriores.
+  - name: NewProcessName
+    description: Ruta completa del nuevo ejecutable. Revise la carpeta tanto como el nombre.
+  - name: TokenElevationType
+    description: Qué tipo de token recibió el proceso bajo UAC.
+    values:
+      - value: "%%1936"
+        meaning: >-
+          Tipo 1, token completo — UAC está desactivado para esta cuenta, o la cuenta es el
+          Administrador integrado, una cuenta de servicio o SYSTEM.
+      - value: "%%1937"
+        meaning: >-
+          Tipo 2, token elevado — el usuario inició el programa con Ejecutar como administrador, o el
+          programa requiere elevación y el usuario es administrador.
+      - value: "%%1938"
+        meaning: Tipo 3, token limitado — UAC está activado y el proceso se ejecuta sin los derechos administrativos.
+  - name: MandatoryLabel
+    description: Nivel de integridad del nuevo proceso.
+    values:
+      - value: "S-1-16-0"
+        meaning: Que no es de confianza (Untrusted).
+      - value: "S-1-16-4096"
+        meaning: Integridad baja (p. ej. procesos de navegador en sandbox).
+      - value: "S-1-16-8192"
+        meaning: Integridad media — procesos de usuario estándar.
+      - value: "S-1-16-8448"
+        meaning: Integridad media plus.
+      - value: "S-1-16-12288"
+        meaning: Integridad alta — procesos de administrador elevados.
+      - value: "S-1-16-16384"
+        meaning: Integridad de sistema — servicios SYSTEM.
+      - value: "S-1-16-20480"
+        meaning: Proceso protegido.
+  - name: ProcessId
+    description: >-
+      PID hexadecimal del proceso creador (padre). Los PID se reutilizan, así que relaciónelo también
+      por hora con el propio 4688 del padre.
+  - name: ParentProcessName
+    description: Ruta completa del proceso creador (Windows 10 / Server 2016 y posteriores).
+  - name: CommandLine
+    description: >-
+      Línea de comandos completa del nuevo proceso. Vacía salvo que la directiva de línea de comandos
+      esté habilitada; cuando está presente, revísela primero.
+  - name: TargetUserName
+    description: >-
+      Cuenta con la que se ejecuta el nuevo proceso cuando difiere de la sesión del creador; `-` cuando
+      el creador y el nuevo proceso comparten el mismo inicio de sesión.
+  - name: TargetLogonId
+    description: Sesión del nuevo proceso cuando difiere de la del creador; `0x0` en caso contrario.
+benign:
+  - "Actividad normal de usuarios y del sistema: miles de registros diarios por host, dominados por servicios, actualizadores y navegadores."
+  - Agentes de despliegue y administración de software (SCCM, Intune, copia de seguridad, monitorización) que lanzan `cmd.exe` o `powershell.exe` como SYSTEM.
+  - Administradores que ejecutan herramientas con Ejecutar como administrador, lo que produce tokens elevados `%%1937`.
+attacker:
+  - >-
+    Ejecución living-off-the-land: `powershell.exe` con `-enc` o download cradles, `rundll32.exe`,
+    `regsvr32.exe`, `mshta.exe`, `certutil.exe` usados con argumentos inusuales.
+  - >-
+    Aplicaciones de Office, navegadores o `w3wp.exe` que lanzan intérpretes de comandos, señal
+    habitual de documentos maliciosos o web shells.
+  - >-
+    Artefactos de ejecución remota en el destino: hijos de `services.exe` con nombres aleatorios
+    (estilo PsExec), `WmiPrvSE.exe` lanzando `cmd.exe` (WMI), `wsmprovhost.exe` (WinRM).
+  - "Ráfagas de reconocimiento desde una misma sesión: `whoami`, `net`, `nltest`, `ipconfig`, `systeminfo` en cuestión de segundos."
+  - Ejecutables que se ejecutan desde ubicaciones en las que el usuario puede escribir, como `%TEMP%`, `AppData`, `C:\ProgramData` o `C:\Users\Public`.
+investigation:
+  - >-
+    Reconstruya el árbol de procesos con NewProcessId / ProcessId y ParentProcessName, teniendo en
+    cuenta que los PID se reutilizan con el tiempo.
+  - >-
+    Agrupe por SubjectLogonId para ver lo que ejecutó una sesión concreta y después pivote hacia el
+    4624 que creó esa sesión para conocer su origen.
+  - Busque pares padre/hijo poco frecuentes en el conjunto del parque en lugar de nombres sospechosos aislados.
+  - "Si CommandLine está vacío en todas partes, la directiva de línea de comandos está desactivada: recurra a Sysmon 1, PowerShell 4104 o datos del EDR."
+  - Use el 4689 con el mismo PID para obtener la hora de finalización y la duración de herramientas de vida corta.

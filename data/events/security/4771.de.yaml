@@ -1,0 +1,53 @@
+title: Fehler bei der Kerberos-Vorauthentifizierung
+shortTitle: Kerberos-Pre-Auth fehlgeschlagen
+summary: >-
+  Event-ID 4771 wird auf Domänencontrollern protokolliert, wenn die Kerberos-Vorauthentifizierung
+  fehlschlägt, meist wegen eines falschen Kennworts (Status 0x18).
+description: |-
+  Event 4771 ist der Nachweis des Domänencontrollers über eine fehlgeschlagene Kerberos-Anmeldung beim Schritt der Vorauthentifizierung. Häufigste Ursache ist ein falsches Kennwort (`0x18`); weitere sind ein abgelaufenes Kennwort, ein deaktiviertes oder gesperrtes Konto oder eine Zeitabweichung.
+
+  Da Kerberos das Standardprotokoll in einer Domäne ist, erscheinen fehlgeschlagene Kennwortversuche gegen Domänenkonten hier und nicht als 4625 auf dem DC. Password Spraying über Kerberos zeigt sich als eine IP, die 4771 für viele Konten erzeugt — und berührt Mitgliedsserver nie, sodass dieses Event die einzige Spur sein kann.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Logon > Audit Kerberos Authentication Service
+    (Failure). Nur auf Domänencontrollern sinnvoll.
+fields:
+  - name: TargetUserName
+    description: Konto, dessen Vorauthentifizierung fehlgeschlagen ist.
+  - name: TargetSid
+    description: SID dieses Kontos.
+  - name: ServiceName
+    description: Angeforderter Dienst, normalerweise `krbtgt/<DOMAIN>`.
+  - name: TicketOptions
+    description: Ticketoptionen (hexadezimal).
+  - name: Status
+    description: Kerberos-Fehlercode.
+    values:
+      - value: "0x18"
+        meaning: KDC_ERR_PREAUTH_FAILED — falsches Kennwort.
+      - value: "0x12"
+        meaning: KDC_ERR_CLIENT_REVOKED — Konto deaktiviert, abgelaufen oder gesperrt.
+      - value: "0x17"
+        meaning: KDC_ERR_KEY_EXPIRED — Kennwort abgelaufen.
+      - value: "0x25"
+        meaning: KRB_AP_ERR_SKEW — Zeitabweichung zu groß.
+      - value: "0x10"
+        meaning: KDC_ERR_PADATA_TYPE_NOSUPP — Problem bei der Smartcard-Anmeldung (z. B. fehlendes KDC-Zertifikat).
+  - name: PreAuthType
+    description: Versuchter Vorauthentifizierungstyp (2 = Kennwort, 15/16 = Smartcard oder Zertifikat).
+  - name: IpAddress
+    description: Client-IP-Adresse.
+  - name: IpPort
+    description: Quellport des Clients.
+benign:
+  - Benutzer, die ein falsches Kennwort eingeben; Geräte mit zwischengespeichertem altem Kennwort nach einer Änderung.
+  - Dienste oder geplante Aufgaben, die noch mit einem alten Kennwort konfiguriert sind — wiederholte Fehlschläge nach festem Zeitplan.
+  - Uhrzeitprobleme auf einem Client (`0x25`).
+attacker:
+  - "Password Spraying über Kerberos — eine Quelle, viele Konten, Status `0x18`, oft nur wenige Versuche pro Konto, um unter dem Sperrschwellenwert zu bleiben (Kerbrute, Rubeus)."
+  - Kennwortraten gegen ein einzelnes Konto, das meist mit einer Sperrung (4740) endet.
+investigation:
+  - Die Anzahl verschiedener TargetUserName pro IpAddress in kurzen Zeitfenstern zählen, um Spraying von Benutzerfehlern zu unterscheiden.
+  - Nach den Fehlschlägen nach einem 4768 mit Status `0x0` für dieselben Konten und dieselbe IP suchen.
+  - IpAddress einem Host zuordnen; Fehlschläge von Servern bedeuten meist ein falsch konfiguriertes Dienstkonto.
+  - Für gesperrte Konten mit 4740 auf dem PDC-Emulator korrelieren.

@@ -1,0 +1,74 @@
+id: 4756
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A member was added to a security-enabled universal group
+shortTitle: Member added to universal group
+category: group
+summary: >-
+  Security event 4756 is logged on a domain controller when a member is added to a
+  security-enabled universal group, such as Enterprise Admins or Schema Admins.
+description: |-
+  Event 4756 is written on the domain controller that processed the change when an account or group is added to a security-enabled **universal** group. Universal groups can contain members from any domain of the forest and are used for forest-wide roles — most importantly **Enterprise Admins** and **Schema Admins** in the forest root domain. Global groups use 4728, local and domain local groups 4732.
+
+  The fields are the same as 4728 and 4732: `TargetUserName`/`TargetSid` identify the group, `MemberName` (distinguished name) and `MemberSid` the new member, `Subject*` who made the change. One event is logged per added member, usually next to an empty 4755.
+
+  An addition to Enterprise Admins gives administrative control over every domain in the forest. Alert on it by SID and treat every occurrence outside a planned change as an incident.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Success is audited in the default Windows audit policy.
+  notes: >-
+    Only generated on domain controllers. Enterprise Admins and Schema Admins live in the forest
+    root domain, so those additions are logged on the root domain's DCs.
+fields:
+  - name: MemberName
+    description: Distinguished name of the added member.
+  - name: MemberSid
+    description: SID of the added member. The domain part shows which domain of the forest it comes from.
+  - name: TargetUserName
+    description: Name of the universal group.
+  - name: TargetDomainName
+    description: Domain of the group.
+  - name: TargetSid
+    description: SID of the group; identify well-known groups by their RID.
+    values:
+      - value: "*-518"
+        meaning: Schema Admins (forest root domain).
+      - value: "*-519"
+        meaning: Enterprise Admins (forest root domain).
+  - name: SubjectUserName
+    description: Account that added the member.
+  - name: SubjectDomainName
+    description: Domain of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject on the DC; correlate with 4624.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Administrators maintaining universal groups used for Exchange, messaging or cross-domain resource access.
+  - Temporary Schema Admins membership for an approved schema extension, removed afterward (4757).
+attacker:
+  - Adding a controlled account to Enterprise Admins after compromising a domain to gain control of the whole forest.
+  - Adding accounts to universal groups that hold delegated rights across domains.
+investigation:
+  - Alert on any change to Enterprise Admins and Schema Admins and confirm it with the forest owners.
+  - Check the member's origin (MemberSid domain part), creation date (4720) and subsequent logons (4624, 4672).
+  - Pivot on SubjectLogonId to find the source host of the change.
+related:
+  - security/4757
+  - security/4754
+  - security/4755
+  - security/4728
+  - security/4732
+  - security/4720
+  - security/4624
+  - security/4672
+attack:
+  - T1098.007
+  - T1098
+references:
+  - title: "Microsoft Learn — Audit Security Group Management (4756 description)"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-group-management
+  - title: "Microsoft Learn — 4732(S): A member was added to a security-enabled local group"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4732

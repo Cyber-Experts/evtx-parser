@@ -1,0 +1,60 @@
+id: 4
+channel: openssh
+provider: OpenSSH
+title: OpenSSH informational message
+shortTitle: sshd informational message
+category: remote-access
+summary: >-
+  OpenSSH event 4 carries informational sshd messages on Windows: accepted and failed logons,
+  invalid users and disconnects, with source IP and port in the text.
+description: |-
+  Event 4 is the generic informational event of the Windows port of OpenSSH. Every INFO-level line that `sshd` would write to syslog on Linux becomes an event 4 in `OpenSSH/Operational`, with two fields: `process` (the emitting program) and `payload` (the log line itself).
+
+  All the forensic value is in `payload`. Typical messages are `Accepted password for <user> from <ip> port <port> ssh2`, `Accepted publickey for <user> ...`, `Failed password for <user> ...`, `Invalid user <name> from <ip>`, and connection close or disconnect lines. You have to parse the text to extract user, source IP and authentication method.
+
+  OpenSSH Server ships as an optional Windows feature since Windows 10 1809 and Windows Server 2019. An SSH server on a workstation is unusual; attackers sometimes install or enable it for persistent remote access or tunneling, so its presence and its accepted logons deserve attention.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Logged by default once the OpenSSH Server (sshd) service is installed and running: sshd logs to
+    ETW, which feeds the OpenSSH/Operational channel.
+  notes: >-
+    Setting `SyslogFacility LOCAL0` in `%programdata%\ssh\sshd_config` switches sshd to file logging
+    under `%programdata%\ssh\logs` instead of the event log. Warnings use event 3 in the same
+    channel; errors and critical messages go to OpenSSH/Admin. A successful SSH logon also creates a
+    Windows logon session (4624) on the server.
+fields:
+  - name: process
+    description: Program that emitted the message, e.g. `sshd`. The process ID is also in the event's System section.
+  - name: payload
+    description: >-
+      The log line. Parse it for the outcome (`Accepted` / `Failed`), the method (`password`,
+      `publickey`), the user name, and `from <ip> port <port>`.
+benign:
+  - Administrators or automation (Ansible, backup, deployment tools) connecting with keys to managed Windows servers.
+  - Developers using SSH or SFTP to reach build servers.
+  - Internet or network scanners producing `Invalid user` and `Failed password` lines on exposed hosts.
+attacker:
+  - Password guessing against sshd — many `Failed password` or `Invalid user` messages from one or many source IPs.
+  - Logons with stolen credentials or planted keys (`Accepted publickey` for an account that never used SSH before).
+  - OpenSSH Server installed or enabled by an intruder on a workstation to keep remote access or tunnel traffic.
+investigation:
+  - Extract user, method and source IP from `payload` and build a table of accepted logons; review first-seen sources and accounts.
+  - Look for failures followed by an `Accepted` line from the same IP (successful brute force).
+  - Correlate accepted logons with 4624 on the host and with processes launched by `sshd.exe` (4688, Sysmon 1).
+  - For public-key logons, review `administrators_authorized_keys` and users' `.ssh\authorized_keys` files for unexpected keys.
+related:
+  - security/4624
+  - security/4625
+  - security/4688
+  - security/5156
+  - sysmon/1
+attack:
+  - T1021
+  - T1110
+  - T1133
+references:
+  - title: Microsoft Learn — OpenSSH Server configuration for Windows
+    url: https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh-server-configuration
+  - title: Microsoft Learn — OpenSSH for Windows overview
+    url: https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh-overview

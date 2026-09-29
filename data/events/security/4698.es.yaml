@@ -1,0 +1,63 @@
+title: Se creó una tarea programada
+shortTitle: Tarea programada creada
+summary: >-
+  El evento 4698 registra una nueva tarea programada con su XML completo: comando, argumentos,
+  cuenta y desencadenadores. Señal clave de persistencia.
+description: |-
+  El evento 4698 se escribe cuando se registra una tarea programada. Su núcleo es `TaskContent`, el XML completo de la tarea tal como lo almacena el Programador de tareas; así, un solo registro indica qué se ejecutará (`<Exec><Command>` y `<Arguments>`), con qué identidad (`<Principals>`), cuándo (`<Triggers>`) y con qué configuración, además de la cuenta que la creó.
+
+  Las tareas programadas sirven a los atacantes de dos maneras: **persistencia** (una tarea que ejecuta un payload al iniciar sesión, al arrancar o con un temporizador) y **ejecución remota** (crear una tarea en otro host, ejecutarla una vez y eliminarla: el patrón de `schtasks /create /s`, `atexec` de Impacket y muchos despliegues de ransomware). El segundo patrón aparece como un 4698 seguido en pocos segundos de un 4699 para el mismo TaskName.
+
+  Las tareas integradas bajo `\Microsoft\Windows\` y los actualizadores de software (navegadores, Office, herramientas de fabricantes) crean y vuelven a crear tareas constantemente, especialmente tras las actualizaciones. Establezca una línea base de esos nombres y céntrese en lo que ejecutan.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Other Object Access Events
+    (Success). No está habilitado en la directiva de auditoría predeterminada.
+  notes: >-
+    No se necesita SACL. Las compilaciones recientes de Windows añaden `ClientProcessId`,
+    `ParentProcessId`, `ClientProcessStartKey`, `RpcCallClientLocality` y `FQDN` para identificar el
+    proceso que hizo la solicitud. El registro Operational del Programador de tareas registra eventos
+    de ciclo de vida similares (106, 140, 141) sin directiva de auditoría.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Cuenta que realizó el cambio. En la administración remota de tareas (`schtasks /s`, Impacket)
+      es la cuenta remota.
+  - name: SubjectDomainName
+    description: Dominio o nombre de equipo de esa cuenta.
+  - name: SubjectLogonId
+    description: Sesión de la cuenta; pivote hacia el 4624 del mismo host para saber de dónde venía.
+  - name: TaskName
+    description: >-
+      Ruta completa de la tarea, p. ej. `\Microsoft\Windows\...` para las tareas integradas. Las
+      tareas en la raíz (`\Name`) o con nombres que imitan a los de Microsoft merecen una revisión.
+  - name: TaskContent
+    description: >-
+      Definición XML completa de la tarea. Lea `Actions/Exec/Command` y `Arguments` (qué se
+      ejecuta), `Principals` (`UserId`, `RunLevel` — `HighestAvailable` significa elevado),
+      `Triggers` y `Settings/Hidden`.
+  - name: ClientProcessId
+    description: PID del proceso que solicitó el cambio, en las compilaciones que lo registran. Relaciónelo con el 4688.
+benign:
+  - Mantenimiento de Windows y actualizaciones de características que registran tareas bajo `\Microsoft\Windows\`.
+  - Actualizadores de navegadores y aplicaciones (Google, Edge, Adobe, Office) que crean sus tareas de actualización.
+  - Administradores o preferencias de GPO que despliegan tareas de mantenimiento.
+attacker:
+  - >-
+    Tareas de persistencia que ejecutan `powershell.exe`, `cmd.exe`, `rundll32.exe`, `mshta.exe` o
+    un binario en `AppData` / `ProgramData` / `C:\Users\Public`, a menudo al iniciar sesión o cada
+    pocos minutos.
+  - >-
+    Ejecución remota: una tarea creada por una cuenta remota (inicio de sesión de red), ejecutada
+    como SYSTEM y eliminada (4699) en cuestión de segundos.
+  - Tareas con `Hidden` en true, nombres que imitan tareas de Microsoft o ubicadas en la raíz de la biblioteca de tareas.
+  - Operadores de ransomware que distribuyen una tarea a muchos hosts a la vez mediante GPO o `schtasks` remoto.
+investigation:
+  - >-
+    Analice TaskContent y extraiga Command, Arguments, UserId y RunLevel; revise lo que no esté en
+    su línea base de nombres de tareas y comandos conocidos.
+  - "Busque un 4699 con el mismo TaskName poco después: crear/ejecutar/eliminar es típico de la ejecución remota."
+  - >-
+    Pivote sobre SubjectLogonId hacia el 4624 del mismo host; un inicio de sesión de tipo 3 significa
+    que la tarea se creó de forma remota y proporciona la IP de origen.
+  - Confirme la ejecución en Task Scheduler Operational (106, 200, 201) y con hijos 4688 de `svchost.exe` / `taskeng.exe`.

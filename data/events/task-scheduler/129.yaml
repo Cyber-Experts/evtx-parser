@@ -1,0 +1,59 @@
+id: 129
+channel: task-scheduler
+provider: Microsoft-Windows-TaskScheduler
+title: Created Task Process
+shortTitle: Task process created
+category: scheduled-task
+summary: >-
+  Task Scheduler event 129 records the process created for a task: task path, image path and
+  process ID — the link to process creation logs.
+description: |-
+  Event 129 is written when the Task Scheduler service creates a process to carry out a task's executable action. The record holds the task path (`TaskName`), the image that was launched (`Path`), its `ProcessID` and the process `Priority`.
+
+  This is the event that turns a scheduled task into something you can find in process telemetry. Take the `ProcessID` and timestamp to Security 4688 or Sysmon 1 to get the full command line, the parent process and the hashes, then follow the process tree from there.
+
+  Tasks whose action is a COM handler rather than a program do not necessarily create a new process of their own; in that case the work runs inside a task host process and 129 may not tell the whole story.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    The Microsoft-Windows-TaskScheduler/Operational channel must be enabled — "Enable All Tasks
+    History" in the Task Scheduler console, or `wevtutil sl Microsoft-Windows-TaskScheduler/Operational /e:true`.
+  notes: >-
+    The default state of this channel is not consistent across Windows versions, editions and
+    builds: on some installs it is already recording, on others task history is off and the log
+    stays empty until someone enables it. Check whether the log holds any records before treating
+    a missing event as evidence. On busy hosts the log rolls over quickly.
+fields:
+  - name: TaskName
+    description: Full path of the task in the library.
+  - name: Path
+    description: >-
+      Image path of the process launched for the task, e.g. `C:\Windows\System32\cmd.exe`. Script
+      hosts and LOLBins here (`powershell.exe`, `cmd.exe`, `mshta.exe`, `rundll32.exe`) deserve review.
+  - name: ProcessID
+    description: Process ID of the created process. Pivot on it (with the timestamp) to 4688 / Sysmon 1.
+  - name: Priority
+    description: Priority class assigned to the task process, taken from the task settings.
+benign:
+  - Built-in and vendor tasks launching their own binaries from `System32` or `Program Files`.
+  - Admin scripts run by scheduled tasks through `powershell.exe` or `cmd.exe`.
+attacker:
+  - Payloads launched from user-writable paths (`AppData`, `Temp`, `ProgramData`, `Public`) by a scheduled task.
+  - Tasks launching `powershell.exe`, `cmd.exe`, `mshta.exe`, `rundll32.exe` or `regsvr32.exe` to proxy execution.
+investigation:
+  - Stack Path values across hosts; rare images or user-writable directories stand out quickly.
+  - Match ProcessID and time with Security 4688 or Sysmon 1 for the command line and hashes.
+  - Walk back to 106 or 140 for the same TaskName to find who created or modified the task.
+related:
+  - task-scheduler/100
+  - task-scheduler/200
+  - task-scheduler/106
+  - security/4688
+  - sysmon/1
+attack:
+  - T1053.005
+references:
+  - title: Microsoft Learn — Task Scheduler
+    url: https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-start-page
+  - title: MITRE ATT&CK — Scheduled Task (T1053.005)
+    url: https://attack.mitre.org/techniques/T1053/005/

@@ -1,0 +1,86 @@
+id: 4661
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A handle to an object was requested
+shortTitle: SAM or AD handle requested
+category: directory
+summary: >-
+  Security event 4661 logs a handle request on a SAM or Active Directory object. On DCs it
+  exposes SAMR enumeration of users and groups such as Domain Admins.
+description: |-
+  Event 4661 is the SAM and directory counterpart of 4656. It is written when a process opens a handle to a Security Account Manager object — a domain, user, group or alias — or to an Active Directory object. `ObjectServer` tells the two apart: `Security Account Manager` or `DS`.
+
+  Its main use in hunting is **SAMR reconnaissance**. Tools such as `net user /domain`, `net group "Domain Admins" /domain` and AD collectors that enumerate sessions and group membership over SAMR open handles on SAM user and group objects on the domain controller. The records show who asked, for which object type and from which logon session.
+
+  Volume on domain controllers is high, since legitimate Windows components query SAM constantly. Treat 4661 as a source for baselining and targeted hunts rather than a single-event alert.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit SAM, or DS Access > Audit
+    Directory Service Access (Success and/or Failure), with an auditing ACE on the object.
+  notes: >-
+    Microsoft documents that the event also depends on Audit Handle Manipulation (Success) being
+    enabled. Verify the effective policy with `auditpol` before relying on it.
+fields:
+  - name: SubjectUserName
+    description: Account that requested the handle.
+  - name: SubjectLogonId
+    description: Logon session of that account; on a DC, pivot to the network logon (4624 type 3) for the source IP.
+  - name: ObjectServer
+    description: "`Security Account Manager` for SAM objects, `DS` for Active Directory objects."
+  - name: ObjectType
+    description: Kind of object requested.
+    values:
+      - value: SAM_DOMAIN
+        meaning: A domain; the typical value for Active Directory events.
+      - value: SAM_USER
+        meaning: A user account.
+      - value: SAM_GROUP
+        meaning: A group that is not a local group (domain global or universal group).
+      - value: SAM_ALIAS
+        meaning: A local (alias) group, including domain-local and builtin groups.
+      - value: SAM_SERVER
+        meaning: The SAM server object.
+  - name: ObjectName
+    description: >-
+      Name of the object; depending on the type, a distinguished name or a SID. SIDs ending in
+      `-512` (Domain Admins) or `-500` (built-in Administrator) are common enumeration targets.
+  - name: HandleId
+    description: Handle value for correlation with later events on the same object.
+  - name: AccessList
+    description: Requested rights as message codes.
+  - name: AccessMask
+    description: Hexadecimal mask of the requested rights.
+  - name: Properties
+    description: For DS objects, the access type and GUIDs of the classes or property sets involved.
+  - name: ProcessName
+    description: Process that requested the handle; on DCs usually `lsass.exe` acting for a remote client.
+benign:
+  - Windows clients and servers resolving group memberships and account names during logon and policy processing.
+  - Management tools (ADUC, identity management and audit products) reading accounts and groups.
+  - Domain controllers and member servers querying their own SAM during normal operation.
+attacker:
+  - >-
+    Domain reconnaissance over SAMR: a user workstation account session enumerating many
+    SAM_USER and SAM_GROUP objects, or specifically Domain Admins, in a short time.
+  - Automated AD collection tools producing bursts of handle requests from one logon session.
+investigation:
+  - >-
+    Baseline which accounts normally generate 4661 on DCs, then look for regular users with
+    unusually high counts or queries for privileged groups.
+  - Pivot `SubjectLogonId` to the DC's 4624 to find the source computer and IP of the enumeration.
+  - Correlate with 4799 and 4798 on member servers, which record local group and user enumeration.
+related:
+  - security/4662
+  - security/4656
+  - security/4624
+  - security/4798
+  - security/4799
+attack:
+  - T1087.002
+  - T1069.002
+references:
+  - title: "Microsoft Learn — 4661(S, F): A handle to an object was requested"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4661
+  - title: Microsoft Learn — Audit SAM
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-sam

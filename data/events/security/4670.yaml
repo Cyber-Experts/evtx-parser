@@ -1,0 +1,69 @@
+id: 4670
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: Permissions on an object were changed
+shortTitle: Object permissions changed
+category: object-access
+summary: >-
+  Security event 4670 records a change to an object's permissions (DACL or owner), with old
+  and new security descriptors in SDDL and the process responsible.
+description: |-
+  Event 4670 is written when the permissions of a file, folder, registry key or security token object change. It carries both the previous (`OldSd`) and new (`NewSd`) security descriptors as SDDL strings, so the exact change can be reconstructed: which ACE was added or removed, and whether the owner moved.
+
+  For files and registry keys it depends on the object's SACL: file objects need Change Permissions and/or Take Ownership audited, registry keys need Write DAC and/or Write Owner. SACL changes are not covered here; they produce 4907.
+
+  Permission changes are a quiet but important signal: attackers grant themselves access to protected data or binaries, and ransomware or cleanup scripts sometimes reset ACLs before acting.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit File System or Audit Registry
+    (Success) with a SACL auditing permission or ownership changes; token object changes fall
+    under Policy Change > Audit Authorization Policy Change or Audit Authentication Policy Change.
+  notes: >-
+    Microsoft lists four subcategories that can generate 4670. Token-related records can be
+    frequent and are rarely interesting; focus on file and registry objects.
+fields:
+  - name: SubjectUserName
+    description: Account that changed the permissions.
+  - name: SubjectLogonId
+    description: Logon session of that account.
+  - name: ObjectServer
+    description: Subsystem, normally `Security`.
+  - name: ObjectType
+    description: "`File`, `Key` or `Token`, for example."
+  - name: ObjectName
+    description: Path of the file, folder or registry key whose permissions changed.
+  - name: HandleId
+    description: Handle used for the change.
+  - name: OldSd
+    description: Previous security descriptor in SDDL (owner `O:`, group `G:`, DACL `D:`).
+  - name: NewSd
+    description: >-
+      New security descriptor in SDDL. Compare it with `OldSd`; a new `(A;;FA;;;WD)` style ACE
+      granting Everyone (`WD`) full access is a typical red flag.
+  - name: ProcessName
+    description: Process that made the change, e.g. `icacls.exe`, `explorer.exe` or `powershell.exe`.
+  - name: ProcessId
+    description: Hexadecimal PID of that process.
+benign:
+  - Administrators adjusting folder permissions through Explorer or `icacls`.
+  - Installers and Windows servicing setting ACLs on program and system files.
+  - Applications creating per-user folders and setting their own permissions.
+attacker:
+  - Granting a controlled account full control on sensitive files, shares or service binaries.
+  - Taking ownership of system files or registry keys to replace or modify them.
+  - Opening permissions on a folder (e.g. Everyone full control) to stage or share data.
+investigation:
+  - Diff `OldSd` and `NewSd`; identify the SIDs gained or lost and the rights they carry.
+  - Check `ProcessName` and pivot `SubjectLogonId` to 4688 to get the exact command line.
+  - Look for 4663 records on the same object shortly after, showing use of the new access.
+related:
+  - security/4663
+  - security/4656
+  - security/4907
+  - security/4688
+attack:
+  - T1222.001
+references:
+  - title: "Microsoft Learn — 4670(S): Permissions on an object were changed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4670

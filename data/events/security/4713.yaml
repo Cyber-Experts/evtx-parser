@@ -1,0 +1,64 @@
+id: 4713
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: Kerberos policy was changed
+shortTitle: Kerberos policy changed
+category: policy
+summary: >-
+  Security event 4713 is logged on domain controllers when the domain Kerberos policy (ticket
+  lifetimes, renewal, clock skew) is changed.
+description: |-
+  Event 4713 is written on domain controllers when the Kerberos policy of the domain changes, typically through the Default Domain Policy GPO. The `KerberosPolicyChange` field lists the parameters that changed with their new and old values, for example `KerMaxT` (maximum user ticket lifetime) and `KerMaxR` (maximum user ticket renewal lifetime).
+
+  Kerberos policy changes are rare in a stable domain. Lengthening ticket lifetimes extends how long a stolen ticket remains usable, and loosening the policy can make forged or replayed tickets harder to spot.
+
+  Because the policy is applied by Group Policy, the subject is often the DC computer account or SYSTEM; the account that edited the GPO shows up in directory change events on the Group Policy object.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Policy Change > Audit Authentication Policy Change
+    (Success). Enabled for Success in the default Windows audit policy.
+  notes: Only logged on domain controllers.
+fields:
+  - name: SubjectUserName
+    description: Account that applied the change, often the DC computer account.
+  - name: SubjectLogonId
+    description: Logon session of the subject; `0x3e7` for SYSTEM.
+  - name: KerberosPolicyChange
+    description: >-
+      Each change as `Name: new_value (old_value)` in hex, or `--` when nothing changed. Unchanged
+      parameters are not listed.
+    values:
+      - value: KerMaxT
+        meaning: Maximum lifetime for user ticket (TGT); decimal value / 36000000000 = hours.
+      - value: KerMaxR
+        meaning: Maximum lifetime for user ticket renewal; decimal value / 864000000000 = days.
+      - value: KerMinT
+        meaning: Maximum lifetime for service ticket; decimal value / 600000000 = minutes.
+      - value: KerProxy
+        meaning: Maximum tolerance for computer clock synchronization; decimal value / 600000000 = minutes.
+      - value: KerOpts
+        meaning: Enforce user logon restrictions — `0x80` enabled, `0x0` disabled.
+benign:
+  - Planned changes to the Default Domain Policy Kerberos settings by domain administrators.
+  - Domain functional level upgrades or hardening projects that adjust ticket lifetimes.
+attacker:
+  - >-
+    Extending ticket and renewal lifetimes in the Default Domain Policy after gaining domain
+    admin rights, so stolen or forged tickets stay valid longer.
+investigation:
+  - Decode the changed parameters and compare with the documented domain baseline.
+  - Find the GPO edit with 5136 on the Default Domain Policy object to identify who changed it.
+  - Treat any change without a change ticket as suspicious and review recent 4769 anomalies.
+related:
+  - security/4739
+  - security/5136
+  - security/4768
+  - security/4769
+attack:
+  - T1484
+references:
+  - title: "Microsoft Learn — 4713(S): Kerberos policy was changed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4713
+  - title: Microsoft Learn — Audit Authentication Policy Change
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-authentication-policy-change

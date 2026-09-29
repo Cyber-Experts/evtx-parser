@@ -1,0 +1,89 @@
+id: 7045
+channel: system
+provider: Service Control Manager
+title: A service was installed in the system
+shortTitle: Service installed
+category: service
+summary: >-
+  System event 7045 records every new service or driver: name, binary path, start type and account. A top lateral movement signal.
+description: |-
+  Event 7045 is written by the Service Control Manager when a new service is created — through `sc create`, `New-Service`, an installer, the `CreateService` API or remotely over the SCM RPC interface. Kernel drivers registered as services appear here too. Unlike Security **4697**, it is logged by default, which makes it one of the most reliable persistence and lateral movement artifacts on Windows.
+
+  `ImagePath` is the field to read first. Legitimate services point to signed binaries under `C:\Windows\System32` or `C:\Program Files`. Paths in `C:\Windows\Temp`, user profiles, `C:\ProgramData` or `ADMIN$`, and command lines such as `cmd.exe /c ...`, `%COMSPEC%` or `powershell -enc ...`, are strong indicators of remote execution tools and malware. Random 8-character or GUID-like service names are typical of Impacket, Metasploit and Cobalt Strike service-based execution.
+
+  Remote execution through the SCM (PsExec and its clones) leaves a 7045 on the **target** host, usually right after a type 3 logon (4624) from the source, then 7036 as the service starts and stops.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log when a service is installed.
+  notes: >-
+    Security 4697 carries similar data but requires Audit Security System Extension. A 7045 is
+    only written at creation; changes to an existing service's binary path do not produce one.
+fields:
+  - name: ServiceName
+    description: Display name of the new service. `PSEXESVC`, random letters or GUID-like names deserve attention.
+  - name: ImagePath
+    description: >-
+      Binary path or command line the service will run. Look for temp folders, user directories,
+      `cmd.exe /c`, `powershell`, `rundll32`, `mshta` or UNC paths.
+  - name: ServiceType
+    description: Type of service.
+    values:
+      - value: user mode service
+        meaning: Normal service running a user-mode executable.
+      - value: kernel mode driver
+        meaning: Kernel driver. Unexpected drivers can be rootkits or vulnerable drivers loaded to kill security tools.
+      - value: file system driver
+        meaning: File system or filter driver.
+  - name: StartType
+    description: When the service starts.
+    values:
+      - value: auto start
+        meaning: Starts at every boot — persistence.
+      - value: demand start
+        meaning: Manual start; typical of one-shot remote execution services.
+      - value: disabled
+        meaning: Cannot be started until reconfigured.
+      - value: boot start
+        meaning: Driver loaded by the boot loader.
+      - value: system start
+        meaning: Driver loaded during kernel initialization.
+  - name: AccountName
+    description: >-
+      Account the service runs as, e.g. `LocalSystem`, `NT AUTHORITY\LocalService` or a domain
+      account. Empty for drivers.
+benign:
+  - Software installers and updates registering their services and drivers.
+  - Endpoint agents, backup and remote support tools deployed by IT.
+  - Hardware drivers installed when new devices are connected.
+  - Legitimate PsExec use by administrators (service `PSEXESVC`).
+attacker:
+  - >-
+    Remote execution with PsExec, Impacket `psexec.py` / `smbexec.py`, Metasploit or Cobalt
+    Strike `jump psexec`: short-lived services with random names or `cmd.exe /c` in `ImagePath`.
+  - Persistence via a new auto-start service pointing to a dropped payload.
+  - Loading a vulnerable signed driver (BYOVD) to disable EDR, visible as a new kernel mode driver.
+investigation:
+  - Review every 7045 on the timeline; the volume is low enough to read them all.
+  - Check `ImagePath` location, signature and hash; retrieve the binary if it still exists.
+  - Correlate with 4624 type 3 and 5145 (ADMIN$ / IPC$ `svcctl`) just before on the same host to identify the source.
+  - Follow with 7036 (running/stopped), 7009 or 7000 (start failures) to see whether it ran and for how long.
+related:
+  - security/4697
+  - security/4624
+  - security/5145
+  - system/7036
+  - system/7040
+  - system/7000
+  - system/7009
+  - sysmon/1
+attack:
+  - T1543.003
+  - T1569.002
+  - T1021.002
+references:
+  - title: MITRE ATT&CK — Windows Service (T1543.003)
+    url: https://attack.mitre.org/techniques/T1543/003/
+  - title: MITRE ATT&CK — Service Execution (T1569.002)
+    url: https://attack.mitre.org/techniques/T1569/002/
+  - title: "Microsoft Learn — 4697(S): A service was installed in the system"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4697

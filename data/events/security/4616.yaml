@@ -1,0 +1,68 @@
+id: 4616
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: The system time was changed
+shortTitle: System time changed
+category: system
+summary: >-
+  Security event 4616 records a system clock change with old and new time, account and process.
+  Routine time sync is normal; manual jumps skew timelines.
+description: |-
+  Event 4616 is written whenever the system time is changed. It records the time before (`PreviousTime`) and after (`NewTime`), both in UTC, the account that made the change and — since Windows 7 / Server 2008 R2 — the process that did it (`ProcessId`, `ProcessName`).
+
+  Most records are the Windows Time service making small corrections: Subject `LOCAL SERVICE`, process `svchost.exe`, and a difference of milliseconds to seconds. Those can be ignored. The records that matter are large jumps, changes made by an interactive user, and changes made by unexpected executables.
+
+  For a forensic timeline, a clock change is critical context: every timestamp recorded between a jump and its correction is offset by the difference. Kerberos also depends on synchronized clocks, so large changes on domain members can cause authentication failures.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > System > Audit Security State Change (Success). Microsoft
+    documents that 4616 is logged regardless of this subcategory's setting.
+  notes: >-
+    `ProcessId` and `ProcessName` were added in event version 1 (Windows 7 / Server 2008 R2).
+    Time zone changes do not change the system (UTC) time and are not what this event records.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Account that changed the time. `LOCAL SERVICE` is the Windows Time service; a named user
+      points to a manual change.
+  - name: SubjectUserSid
+    description: SID of that account.
+  - name: SubjectLogonId
+    description: Logon session of the account; pivot to 4624 to see how it logged on.
+  - name: PreviousTime
+    description: System time before the change, in UTC.
+  - name: NewTime
+    description: System time after the change, in UTC. Compute the difference with PreviousTime.
+  - name: ProcessId
+    description: Hexadecimal PID of the process that changed the time; matches NewProcessId in 4688.
+  - name: ProcessName
+    description: >-
+      Full path of that process, e.g. `C:\Windows\System32\svchost.exe` for the time service.
+      Anything else deserves a look.
+benign:
+  - Windows Time service (`LOCAL SERVICE`, `svchost.exe`) correcting drift by small amounts.
+  - Virtual machines resyncing their clock after resume from suspend or restore from snapshot.
+  - Laptops correcting a large offset at boot after a dead CMOS battery or long power-off.
+attacker:
+  - >-
+    Moving the clock back or forward to make malicious activity fall outside the investigated
+    window or to confuse timeline analysis.
+  - Changing the time to run software or reuse licenses, certificates or tokens past their validity period.
+investigation:
+  - >-
+    Filter out `LOCAL SERVICE` changes of a few seconds, then review the rest by size of the jump
+    and by SubjectUserName.
+  - When a large jump exists, note both boundaries and adjust the timeline of every artifact written in between.
+  - >-
+    Pivot on ProcessId and SubjectLogonId to 4688 / Sysmon 1 to find the command (`date`, `time`,
+    `Set-Date`, `w32tm`) and the session that ran it.
+related:
+  - security/4608
+  - security/4624
+  - security/4688
+  - sysmon/1
+attack: []
+references:
+  - title: "Microsoft Learn — 4616(S): The system time was changed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4616

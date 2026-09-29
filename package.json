@@ -12,7 +12,10 @@
     "wasm:build": "cd crates/evtx-wasm && wasm-pack build --target web --release --out-dir ../../lib/evtx-wasm && cp ../../lib/evtx-wasm/evtx_wasm_bg.wasm ../../public/evtx_wasm_bg.wasm",
     "prepare": "husky",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "sigma:update": "tsx scripts/sigma-update.ts",
+    "events:check": "tsx scripts/events-check.ts",
+    "attack:update": "tsx scripts/attack-update.ts"
   },
   "lint-staged": {
     "content/**/*.{md,mdx}": "tsx scripts/lint-content.ts"
@@ -50,7 +53,8 @@
     "tailwind-merge": "^3.6.0",
     "tw-animate-css": "^1.4.0",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.1.0"
+    "unist-util-visit": "^5.1.0",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -1,0 +1,61 @@
+title: Se obtuvo acceso a un objeto de recurso compartido de red
+shortTitle: Acceso a recurso compartido
+summary: >-
+  El evento 5140 registra el primer acceso a un recurso compartido en una sesión SMB: cuenta, IP de origen y recurso. Clave para seguir C$, ADMIN$ e IPC$.
+description: |-
+  El evento 5140 se escribe en el equipo que **aloja** el recurso compartido cuando un cliente se conecta a él. Se genera una vez por sesión, en el primer intento de acceso, así que muestra qué recursos compartidos abrió una cuenta remota y no cada archivo que tocó (para eso está el 5145).
+
+  Los campos clave son `SubjectUserName` / `SubjectDomainName` (quién), `IpAddress` / `IpPort` (desde dónde), `ShareName` y `ShareLocalPath` (qué recurso compartido). `SubjectLogonId` vincula el acceso con el inicio de sesión de red (4624 LogonType 3) que creó la sesión.
+
+  Los recursos compartidos administrativos son el principal motivo para recopilarlo: `ADMIN$` y `C$` los usan las herramientas del estilo de PsExec y los atacantes que copian payloads, e `IPC$` se usa para las canalizaciones con nombre (control de servicios, registro remoto, enumeración SAMR/LSARPC). En los controladores de dominio, los accesos a `SYSVOL` y `NETLOGON` de cada equipo generan mucho ruido.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit File Share (Success, Failure). No se
+    audita en la directiva de auditoría predeterminada de Windows.
+  notes: >-
+    El volumen es alto en servidores de archivos y controladores de dominio (acceso a SYSVOL por la
+    directiva de grupo) y bajo en estaciones de trabajo. La misma subcategoría produce 5142, 5143,
+    5144 y 5168. Se registra un 5140 de error cuando se deniega el acceso a nivel de recurso
+    compartido.
+fields:
+  - name: SubjectUserSid
+    description: SID de la cuenta que accedió al recurso compartido.
+  - name: SubjectUserName
+    description: Cuenta que accedió al recurso compartido. Las cuentas de equipo (`HOST$`) son habituales y normalmente benignas.
+  - name: SubjectDomainName
+    description: Dominio o nombre de equipo de la cuenta.
+  - name: SubjectLogonId
+    description: Sesión del usuario remoto; coincide con el `TargetLogonId` del inicio de sesión de red 4624 en este host.
+  - name: ObjectType
+    description: Siempre `File` en este evento.
+  - name: IpAddress
+    description: Dirección IP del cliente. `::1` o `127.0.0.1` para un acceso local mediante una ruta UNC.
+  - name: IpPort
+    description: Puerto de origen de la conexión del cliente.
+  - name: ShareName
+    description: >-
+      Nombre del recurso compartido con el formato `\\*\SHARE`, p. ej. `\\*\C$`, `\\*\ADMIN$`,
+      `\\*\IPC$`, `\\*\SYSVOL`.
+  - name: ShareLocalPath
+    description: Ruta local del recurso compartido, p. ej. `\??\C:\Windows` para `ADMIN$`. Vacía para `IPC$`.
+  - name: AccessMask
+    description: Derechos de acceso solicitados. En el 5140 suele ser `0x1` (ReadData / ListDirectory).
+  - name: AccessList
+    description: Derechos de acceso en forma simbólica, p. ej. `%%4416` (ReadData o ListDirectory).
+benign:
+  - Estaciones de trabajo y servidores que leen `SYSVOL` y `NETLOGON` en los controladores de dominio para la directiva de grupo y los scripts de inicio de sesión.
+  - Usuarios que asignan recursos compartidos departamentales y unidades particulares.
+  - Herramientas de administración y de copia de seguridad, despliegue de software y agentes de inventario que se conectan a `ADMIN$`, `C$` o `IPC$`.
+attacker:
+  - >-
+    Movimiento lateral con PsExec, `smbexec`/`psexec` de Impacket o herramientas similares: un acceso
+    a `ADMIN$` o `IPC$` desde una estación de trabajo, seguido de la instalación de un servicio
+    (7045, 4697).
+  - Depósito o recuperación de archivos a través de `C$` en un host remoto con credenciales robadas.
+  - Enumeración de recursos compartidos y usuarios a través de `IPC$` (canalizaciones con nombre SAMR, LSARPC, SRVSVC) desde un host que normalmente no consulta este servidor.
+  - Recopilación de datos de servidores de archivos por parte de una cuenta que rara vez accede a ellos.
+investigation:
+  - Excluya las cuentas de equipo y `SYSVOL`/`NETLOGON` y después revise `ADMIN$`, `C$` y otros recursos compartidos administrativos por IP de origen y cuenta.
+  - Pivote sobre `SubjectLogonId` hacia el 4624 LogonType 3 del mismo host para confirmar el paquete de autenticación (NTLM frente a Kerberos).
+  - Si Detailed File Share está habilitado, revise el 5145 para ver los archivos y canalizaciones con nombre usados en la misma sesión (`svcctl`, `samr`, `lsarpc`, `srvsvc`).
+  - En el host de origen, busque la conexión saliente correspondiente (Sysmon 3, 5156) y la herramienta que la inició.

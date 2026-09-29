@@ -1,0 +1,104 @@
+id: 4697
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A service was installed in the system
+shortTitle: Service installed
+category: service
+summary: >-
+  Security event 4697 records a new Windows service with its name, binary path, start type and
+  account. Key for PsExec-style lateral movement and persistence.
+description: |-
+  Event 4697 is written when a service is registered with the Service Control Manager. It records the service name (`ServiceName`), the command it will run (`ServiceFileName`), how it starts (`ServiceStartType`), its type (`ServiceType`) and the account it runs as (`ServiceAccount`), together with the account that installed it (`Subject*`).
+
+  It is the Security-log twin of System event 7045, which is logged by the Service Control Manager on every system without any audit policy. 4697 needs the Security System Extension subcategory, but adds the installing account and logon session — useful to tie the install to a specific remote logon.
+
+  New services are a favorite for both persistence and remote execution: PsExec, Impacket `smbexec`/`psexec`, Cobalt Strike `jump psexec` and many ransomware operators create a service on the target to run their payload as SYSTEM. Driver installations (kernel services) also show up here.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > System > Audit Security System Extension (Success). Not
+    enabled in the default audit policy.
+  notes: >-
+    System event 7045 covers the same installs by default and should be checked when 4697 is not
+    audited.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Account that installed the service. For remote installs this is the remote admin account;
+      `HOST$` means SYSTEM.
+  - name: SubjectLogonId
+    description: Logon session of the installer; pivot to its 4624 (often a type 3 network logon) to find the source.
+  - name: ServiceName
+    description: Name of the new service. Random-looking or very short names are a red flag.
+  - name: ServiceFileName
+    description: >-
+      Command line the service runs. Look for `cmd.exe /c`, `powershell`, paths under `\Temp\`,
+      `ADMIN$` / `C:\Windows\` root, or encoded arguments.
+  - name: ServiceType
+    description: Kind of service.
+    values:
+      - value: "0x1"
+        meaning: Kernel driver.
+      - value: "0x2"
+        meaning: File system driver.
+      - value: "0x8"
+        meaning: Recognizer driver.
+      - value: "0x10"
+        meaning: Win32 service running in its own process.
+      - value: "0x20"
+        meaning: Win32 service sharing a process (svchost-hosted).
+      - value: "0x110"
+        meaning: Own-process service allowed to interact with the desktop.
+      - value: "0x120"
+        meaning: Shared-process service allowed to interact with the desktop.
+  - name: ServiceStartType
+    description: When the service starts.
+    values:
+      - value: "0"
+        meaning: Boot — driver loaded by the boot loader.
+      - value: "1"
+        meaning: System — driver started during kernel initialization.
+      - value: "2"
+        meaning: Automatic — started at boot by the Service Control Manager.
+      - value: "3"
+        meaning: Manual (demand start).
+      - value: "4"
+        meaning: Disabled.
+  - name: ServiceAccount
+    description: Account the service runs as, e.g. `LocalSystem`, `NT AUTHORITY\LocalService` or a domain account.
+benign:
+  - Software installs and updates (drivers, agents, browsers' update services).
+  - Management and remote support tools that install a temporary service on the target.
+  - Windows feature and role installation.
+attacker:
+  - >-
+    Remote execution via PsExec or Impacket: a new demand-start service with a random or tool-specific
+    name, running a binary from `ADMIN$` or a `cmd.exe /c` / `%COMSPEC%` command line.
+  - Persistence through an automatic-start service pointing to a payload in a user-writable folder.
+  - Loading a malicious or vulnerable kernel driver (ServiceType `0x1`, start type 0–3) to disable security tools.
+investigation:
+  - >-
+    Review ServiceFileName first: anything outside `Program Files` / `System32` or containing a
+    shell, script host or encoded blob deserves attention.
+  - >-
+    Pivot on SubjectLogonId to the 4624 on the same host — a type 3 logon seconds before the
+    install reveals the source IP of remote execution.
+  - Correlate with System 7045 and 7036 (service started/stopped) to see whether it ran and was removed.
+  - Look for 4688 children of `services.exe` right after the install to see what the service executed.
+related:
+  - system/7045
+  - system/7036
+  - system/7040
+  - security/4624
+  - security/4688
+  - sysmon/6
+  - sysmon/13
+attack:
+  - T1543.003
+  - T1569.002
+  - T1021.002
+references:
+  - title: "Microsoft Learn — 4697(S): A service was installed in the system"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4697
+  - title: Microsoft Learn — Audit Security System Extension
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-system-extension

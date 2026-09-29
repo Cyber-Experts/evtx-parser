@@ -1,0 +1,74 @@
+id: 3033
+channel: code-integrity
+provider: Microsoft-Windows-CodeIntegrity
+title: Code Integrity determined that a process attempted to load a file that did not meet the signing level requirements
+shortTitle: Image blocked (signing level)
+category: application-control
+summary: >-
+  Code Integrity event 3033: a process tried to load a DLL or driver below its required signing level and was blocked. Seen with LSA protection.
+description: |-
+  Event 3033 is written to `Microsoft-Windows-CodeIntegrity/Operational` when Code Integrity refuses to load an image because its signature does not meet the signing level the loading process requires. It occurs with or without an App Control (WDAC) policy: protected processes (for example **LSASS running as PPL**), processes using Code Integrity Guard, and App Control policies all enforce signing levels. When App Control is the cause, a **3077** is logged alongside it, and **3089** carries the signature details.
+
+  `ProcessNameBuffer` is the process that attempted the load, `FileNameBuffer` the rejected file, and `RequestedPolicy` / `ValidatedPolicy` the signing level required versus the level the file achieved. A common benign case is a third-party security or password filter DLL that is not Microsoft-signed being refused by a protected LSASS. Microsoft also notes revoked signatures and expired Lifetime Signing certificates as frequent causes.
+
+  From an attacker's perspective, 3033 is the trace left when an injection or DLL-loading technique runs into a protected process — for example an unsigned DLL pushed into LSASS, or a malicious SSP / authentication package that fails to load.
+logging:
+  enabledByDefault: true
+  requirement: Microsoft-Windows-CodeIntegrity/Operational log, enabled by default.
+  notes: >-
+    Its audit-mode equivalent is 3034. Antivirus and other third-party products trigger 3033
+    frequently; baseline before alerting.
+fields:
+  - name: ProcessNameBuffer
+    description: Process that attempted to load the file, e.g. `\Device\HarddiskVolume3\Windows\System32\lsass.exe`.
+  - name: FileNameBuffer
+    description: File that was rejected (device path form).
+  - name: RequestedPolicy
+    description: Signing level the process required.
+    values:
+      - value: "4"
+        meaning: Authenticode signed
+      - value: "6"
+        meaning: Microsoft Store signed
+      - value: "7"
+        meaning: Antimalware vendor signed (AMPPL)
+      - value: "8"
+        meaning: Microsoft signed
+      - value: "12"
+        meaning: Windows signed
+      - value: "14"
+        meaning: Windows Trusted Computing Base signed
+  - name: ValidatedPolicy
+    description: Signing level the file actually achieved (same scale); `1` means unsigned or no valid signature.
+  - name: Status
+    description: NTSTATUS code of the failed validation.
+benign:
+  - Third-party antivirus, backup or password filter DLLs refused by LSASS running as a protected process.
+  - Graphics, audio or overlay DLLs refused by browsers and Office processes that enforce signing (Code Integrity Guard).
+  - Files with revoked or expired Lifetime Signing certificates.
+attacker:
+  - >-
+    Attempts to load an unsigned DLL into LSASS — malicious SSPs, authentication packages or
+    credential-dumping injection — blocked by LSA protection.
+  - DLL side-loading or injection into processes that require Microsoft-signed modules.
+investigation:
+  - Focus on `ProcessNameBuffer` = `lsass.exe` and on `FileNameBuffer` in user-writable or unusual paths.
+  - Retrieve the file, check its signature and hash, and find how it got there (Sysmon 11, 4663).
+  - Look for the registry change that tried to register it (LSA `Security Packages`, `Notification Packages`) in Sysmon 13 or 4657.
+  - If App Control is deployed, read the matching 3077 and 3089 for policy and signer details.
+related:
+  - code-integrity/3077
+  - sysmon/7
+  - sysmon/13
+  - security/4657
+  - security/4688
+attack:
+  - T1574.001
+  - T1003.001
+references:
+  - title: Microsoft Learn — Understanding App Control event IDs
+    url: https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/operations/event-id-explanations
+  - title: Microsoft Learn — Understanding App Control event tags
+    url: https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/operations/event-tag-explanations
+  - title: Microsoft Learn — Configure added LSA protection
+    url: https://learn.microsoft.com/en-us/windows-server/security/credentials-protection-and-management/configuring-additional-lsa-protection

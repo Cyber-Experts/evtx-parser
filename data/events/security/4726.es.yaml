@@ -1,0 +1,44 @@
+title: Se eliminó una cuenta de usuario
+shortTitle: Cuenta de usuario eliminada
+summary: >-
+  El evento 4726 se registra cuando se elimina una cuenta de usuario local o de dominio, con el
+  sujeto que la eliminó y el nombre y SID de la cuenta.
+description: |-
+  El evento 4726 se escribe cuando se elimina un objeto de usuario: en los controladores de dominio para las cuentas de dominio y en los servidores miembro y las estaciones de trabajo para las cuentas locales. `Subject*` identifica quién realizó la eliminación y `Target*` la cuenta eliminada.
+
+  Una eliminación es más difícil de deshacer que una deshabilitación (4725), por lo que muchas organizaciones primero deshabilitan y después eliminan. La eliminación de una cuenta creada poco antes (4720) es un patrón clásico de limpieza: un intruso crea una cuenta temporal, la usa y luego la elimina. Como la cuenta ya no existe, `TargetSid` es la única clave fiable para vincular la eliminación con eventos anteriores de la misma cuenta.
+
+  La eliminación masiva de cuentas por un mismo sujeto es también una técnica destructiva utilizada para impedir el acceso a usuarios y administradores legítimos.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Habilitado para Correcto en la directiva de auditoría predeterminada de Windows.
+  notes: >-
+    Las eliminaciones de cuentas de equipo se notifican con el 4743 (Computer Account Management),
+    no con el 4726.
+fields:
+  - name: SubjectUserName
+    description: Cuenta que eliminó el usuario.
+  - name: SubjectDomainName
+    description: Dominio o nombre de equipo del sujeto.
+  - name: SubjectLogonId
+    description: Sesión del sujeto; correlacione con el 4624.
+  - name: TargetUserName
+    description: Nombre de la cuenta eliminada.
+  - name: TargetDomainName
+    description: Dominio de la cuenta eliminada, o el nombre del equipo en el caso de una cuenta local.
+  - name: TargetSid
+    description: SID de la cuenta eliminada. Búsquelo en eventos anteriores (4720, 4624, 4728, 4732).
+  - name: PrivilegeList
+    description: Privilegios utilizados para la operación, a menudo `-`.
+benign:
+  - Limpieza programada de cuentas deshabilitadas durante las bajas.
+  - Eliminación de cuentas locales por desinstaladores de software o por la gestión de configuración.
+  - Entornos de laboratorio y de pruebas en los que se crean y eliminan cuentas de forma rutinaria.
+attacker:
+  - Eliminación de una cuenta de puerta trasera temporal tras su uso para borrar huellas.
+  - Eliminación de muchas cuentas, incluidos administradores, como parte de una operación destructiva o de ransomware.
+investigation:
+  - Busque el TargetSid en eventos 4720, 4624 y de pertenencia a grupos anteriores para reconstruir la vida de la cuenta.
+  - Marque las eliminaciones de cuentas creadas pocos días antes, sobre todo por el mismo SubjectUserName.
+  - Compruebe si la cuenta eliminada era privilegiada o una cuenta de servicio cuya eliminación podría romper aplicaciones.

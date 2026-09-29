@@ -229,3 +229,75 @@ export async function renderPostOg(opts: {
     { ...ogSize, fonts: await loadFonts() },
   );
 }
+
+/** Event ID encyclopedia card: the ID large, channel, title and summary. */
+export async function renderEventOg(opts: {
+  id: number;
+  channel: string;
+  title: string;
+  summary: string;
+  locale: Locale;
+}) {
+  const { id, channel, title, summary, locale } = opts;
+  const titleSize = title.length > 60 ? 50 : title.length > 40 ? 58 : 66;
+  return new ImageResponse(
+    (
+      <Frame
+        footer={
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 26,
+              fontFamily: "Plex Mono",
+              fontSize: 22,
+              color: INK_FAINT,
+              borderTop: "1px solid rgba(214,208,255,0.12)",
+              paddingTop: 20,
+            }}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: 10, color: GLOW }}>
+              <span style={{ display: "flex", width: 10, height: 10, borderRadius: 10, background: GLOW }} />
+              Event ID encyclopedia
+            </span>
+            <span>{channel}</span>
+            <span style={{ marginLeft: "auto" }}>{locale.toUpperCase()}</span>
+          </div>
+        }
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 44 }}>
+          <div
+            style={{
+              display: "flex",
+              fontFamily: "Plex Mono",
+              fontWeight: 600,
+              fontSize: String(id).length > 4 ? 112 : 150,
+              letterSpacing: "-0.04em",
+              color: GLOW,
+              lineHeight: 1,
+            }}
+          >
+            {id}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 720 }}>
+            <div
+              style={{
+                fontFamily: "Plex Condensed",
+                fontWeight: 700,
+                fontSize: titleSize,
+                lineHeight: 1.05,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              {title}
+            </div>
+            <div style={{ fontSize: 25, lineHeight: 1.4, color: INK_MUTED }}>
+              {summary.length > 150 ? `${summary.slice(0, 147)}…` : summary}
+            </div>
+          </div>
+        </div>
+      </Frame>
+    ),
+    { ...ogSize, fonts: await loadFonts() },
+  );
+}

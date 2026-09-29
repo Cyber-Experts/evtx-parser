@@ -1,0 +1,99 @@
+title: Fehler beim Anmelden eines Kontos
+shortTitle: Fehlgeschlagene Anmeldung
+summary: >-
+  Event-ID 4625 protokolliert fehlgeschlagene Anmeldeversuche. Status und
+  SubStatus nennen den Grund: falsches Kennwort, unbekannter Benutzer, Sperre.
+description: |-
+  Event 4625 wird von dem Computer geschrieben, der einen Anmeldeversuch **abgelehnt** hat. Bei Domänenkonten erfolgt die Kennwortprüfung auf einem Domänencontroller, der Fehlschlag wird aber trotzdem auf dem Rechner protokolliert, an dem sich der Benutzer anmelden wollte — der DC protokolliert seine Seite als 4771 (Kerberos) oder 4776 (NTLM).
+
+  Die beiden nützlichsten Felder sind `Status` und `SubStatus`, NTSTATUS-Codes mit dem Fehlergrund. `0xC000006D` allein ist generisch („Unbekannter Benutzername oder falsches Kennwort“); `SubStatus` verrät, was zutrifft: `0xC0000064` für einen nicht existierenden Benutzernamen, `0xC000006A` für ein falsches Kennwort. Zusammen mit `LogonType` und `IpAddress` lässt sich so ein Benutzer, der sich vertippt, von Brute Force oder Password Spraying unterscheiden.
+
+  Die Menge ist aussagekräftiger als jeder einzelne Eintrag: Dutzende Fehlschläge für ein Konto von einer Quelle sind Raten; je ein Fehlschlag für Hunderte Konten von einer Quelle ist Spraying.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logon (Failure). Die
+    Fehlerüberwachung dieser Unterkategorie ist Teil der Standard-Überwachungsrichtlinie aktueller
+    Windows-Client- und -Serverversionen; mit `auditpol /get /subcategory:Logon` prüfen.
+  notes: >-
+    Wird auch von Audit Account Lockout (Failure) erzeugt, wenn das Konto gesperrt ist (Status
+    `0xC0000234`). `IpAddress` ist bei lokalen Versuchen leer und bei manchen
+    NTLM-Netzwerkfehlschlägen, bei denen nur `WorkstationName` bekannt ist.
+fields:
+  - name: TargetUserName
+    description: >-
+      Versuchter Kontoname. Er wird wie eingegeben protokolliert, daher erscheinen hier Tippfehler,
+      nicht existierende Benutzernamen und Spraying-Listen.
+  - name: TargetDomainName
+    description: Mit dem Konto angegebene Domäne oder Computername.
+  - name: Status
+    description: Übergeordneter Fehlergrund (NTSTATUS).
+    values:
+      - value: "0xC000006D"
+        meaning: Generisch falscher Benutzername oder falsche Authentifizierungsinformationen — SubStatus lesen.
+      - value: "0xC000015B"
+        meaning: Dem Benutzer wurde der angeforderte Anmeldetyp auf diesem Rechner nicht gewährt.
+      - value: "0xC0000234"
+        meaning: Konto ist gesperrt.
+      - value: "0xC0000413"
+        meaning: Authentication Firewall — das Konto darf sich an diesem Rechner nicht authentifizieren.
+  - name: SubStatus
+    description: Detaillierter Fehlergrund (NTSTATUS).
+    values:
+      - value: "0xC0000064"
+        meaning: Benutzername existiert nicht.
+      - value: "0xC000006A"
+        meaning: Benutzername ist korrekt, aber das Kennwort ist falsch.
+      - value: "0xC000006F"
+        meaning: Anmeldung außerhalb der zulässigen Anmeldezeiten des Kontos.
+      - value: "0xC0000070"
+        meaning: Anmeldung von einer Arbeitsstation, die das Konto nicht verwenden darf.
+      - value: "0xC0000071"
+        meaning: Kennwort ist abgelaufen.
+      - value: "0xC0000072"
+        meaning: Konto ist deaktiviert.
+      - value: "0xC0000133"
+        meaning: Zeitabweichung zwischen Rechner und Domänencontroller ist zu groß.
+      - value: "0xC0000193"
+        meaning: Konto ist abgelaufen.
+      - value: "0xC0000224"
+        meaning: Benutzer muss das Kennwort bei der nächsten Anmeldung ändern.
+      - value: "0xC0000234"
+        meaning: Konto ist gesperrt.
+  - name: FailureReason
+    description: >-
+      Meldungstext zum Fehlschlag (gespeichert als `%%`-Einfügung wie `%%2313`, von der
+      Ereignisanzeige als „Unbekannter Benutzername oder falsches Kennwort“ dargestellt).
+  - name: LogonType
+    description: >-
+      Art der fehlgeschlagenen Anmeldung (gleiche Werte wie bei 4624): 2 Konsole, 3 Netzwerk (SMB,
+      NTLM über HTTP), 8 Klartext-Netzwerk, 10 RDP.
+  - name: LogonProcessName
+    description: Anmeldeprozess, z. B. `User32`, `NtLmSsp`, `Advapi`.
+  - name: AuthenticationPackageName
+    description: Für den Versuch verwendetes Paket, meist `NTLM`, `Kerberos` oder `Negotiate`.
+  - name: WorkstationName
+    description: Vom Client übermittelter Name des Quellcomputers — fälschbar, aber nützlich bei NTLM-Fehlschlägen ohne IP.
+  - name: IpAddress
+    description: Quell-IP-Adresse eines Remote-Versuchs.
+  - name: IpPort
+    description: Quell-TCP-Port.
+  - name: ProcessName
+    description: >-
+      Lokaler Prozess, der die Anmeldung versucht hat (z. B. `winlogon.exe` für die Konsole,
+      `svchost.exe` für RDP in manchen Versionen); `-` bei Netzwerkanmeldungen.
+benign:
+  - Benutzer, die sich beim Kennwort vertippen, oder eine Kennwortänderung, die noch nicht auf allen Geräten angekommen ist.
+  - "Veraltete Anmeldeinformationen in Diensten, geplanten Aufgaben, verbundenen Laufwerken oder Smartphones — wiederholte Fehlschläge in festem Intervall."
+  - Schwachstellenscanner und Monitoring-Tools mit falsch konfigurierten Anmeldeinformationen.
+  - Deaktivierte oder abgelaufene Konten, die noch von einem alten Skript verwendet werden.
+attacker:
+  - "Kennwortraten — viele 4625 für ein Konto von einer Quelle, SubStatus `0xC000006A`."
+  - "Password Spraying — wenige Fehlschläge für jeweils viele verschiedene Konten von einer Quelle, oft SubStatus `0xC000006A` gemischt mit `0xC0000064`."
+  - "RDP-Brute-Force aus dem Internet — Fehlschläge mit LogonType 3 oder 10 von öffentlichen IP-Adressen, oft mit generischen Benutzernamen wie administrator, admin oder test."
+  - Benutzer-Enumeration, erkennbar an einer Häufung von `0xC0000064` (Benutzer existiert nicht) für eine Namensliste.
+investigation:
+  - Fehlschläge nach IpAddress und TargetUserName in kurzen Zeitfenstern (5–15 Minuten) zählen; Spraying zeigt sich als eine Quelle über viele Konten.
+  - "Immer nach einem 4624 mit demselben TargetUserName und derselben IpAddress nach den Fehlschlägen suchen — eine Fehlerserie, die mit Erfolg endet, ist der eigentliche Befund."
+  - Verteilung der SubStatus-Werte betrachten; `0xC0000064` für realistisch wirkende Namen bedeutet, dass jemand Benutzernamen rät.
+  - Auf Domänencontrollern mit 4771 (Kerberos-Vorauthentifizierung fehlgeschlagen) und 4776 (NTLM) kombinieren, um Fehlschläge zu sehen, die den Mitgliedsserver nie erreichen.
+  - Wurde das Konto gesperrt, nennt 4740 auf dem PDC-Emulator den aufrufenden Computer, der die Sperre verursacht hat.

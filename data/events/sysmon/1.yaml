@@ -1,0 +1,104 @@
+id: 1
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: Process creation
+shortTitle: Process creation
+category: process
+summary: >-
+  Sysmon event 1 logs every new process with full command line, hashes, parent process and a
+  ProcessGuid for correlation. The backbone of endpoint hunting.
+description: |-
+  Sysmon event 1 is written each time a process starts. Compared with Security event 4688 it is richer by default: the full `CommandLine`, the `ParentImage` and `ParentCommandLine`, file hashes, PE version information (`OriginalFileName`, `Description`, `Company`) and the `IntegrityLevel` all come in one record, without extra audit policy.
+
+  The key field is `ProcessGuid`. Process IDs are reused, but the GUID is unique per process instance, so it links this record to everything the process did afterwards in Sysmon: network connections (3), image loads (7), file creations (11), registry writes (12–14), DNS queries (22) and termination (5). `ParentProcessGuid` walks the tree upwards.
+
+  `LogonId` matches the `TargetLogonId` of the Security 4624 that created the session, which ties a process back to a logon type and source IP. On busy hosts event 1 is high volume; most configurations exclude well-known system and software-update processes.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Sysmon installed; process creation is logged by default once Sysmon runs. Filter with
+    `<ProcessCreate onmatch="include|exclude">` rules in the Sysmon configuration.
+  notes: >-
+    `Hashes` is only filled when `HashAlgorithms` is configured (MD5, SHA1, SHA256, IMPHASH or *).
+    `ParentUser` was added in later Sysmon versions; older logs lack it. Events live in
+    Microsoft-Windows-Sysmon/Operational.
+fields:
+  - name: UtcTime
+    description: Process start time in UTC, as recorded by Sysmon (independent of the event's TimeCreated).
+  - name: ProcessGuid
+    description: Unique ID of this process instance. Pivot on it across all Sysmon events.
+  - name: ProcessId
+    description: PID of the new process. Reused by Windows, so prefer ProcessGuid for correlation.
+  - name: Image
+    description: Full path of the executable. Check for system binary names running from user-writable folders.
+  - name: OriginalFileName
+    description: >-
+      Internal file name from the PE version resource. If it differs from the `Image` file name
+      (for example `Image` is `svchost.exe` but OriginalFileName is `PsExec.exe`), the binary was renamed.
+  - name: CommandLine
+    description: Full command line. The most valuable field for spotting encoded PowerShell, LOLBins and tool arguments.
+  - name: CurrentDirectory
+    description: Working directory of the process; temp or public folders are worth a look.
+  - name: User
+    description: Account the process runs as, in DOMAIN\user form.
+  - name: LogonId
+    description: Logon session of the process; matches TargetLogonId in Security 4624.
+  - name: IntegrityLevel
+    description: >-
+      Mandatory integrity level of the process token, e.g. `Low`, `Medium`, `High` (elevated
+      administrator) or `System`.
+  - name: Hashes
+    description: >-
+      Comma-separated hashes of the image, e.g. `SHA256=...,IMPHASH=...`, depending on
+      `HashAlgorithms`. Use them for reputation lookups and fleet-wide prevalence.
+  - name: ParentProcessGuid
+    description: ProcessGuid of the parent. Use it to rebuild the process tree.
+  - name: ParentImage
+    description: Path of the parent process. Unusual parent-child pairs are a classic detection.
+  - name: ParentCommandLine
+    description: Command line of the parent, useful when the parent is a script host or service wrapper.
+  - name: ParentUser
+    description: Account of the parent process (newer Sysmon versions).
+benign:
+  - Software updaters, installers (`msiexec.exe`) and management agents spawning many short-lived processes.
+  - Administrators running `cmd.exe`, `powershell.exe` and built-in tools from an elevated console.
+  - Scheduled tasks started by `svchost.exe` and services started by `services.exe`.
+attacker:
+  - >-
+    Office applications, browsers or PDF readers spawning `cmd.exe`, `powershell.exe`,
+    `wscript.exe`, `mshta.exe` or `rundll32.exe` after a user opens a malicious document.
+  - PowerShell with `-EncodedCommand`, `-nop -w hidden` or download cradles in the CommandLine.
+  - >-
+    Remote execution artifacts such as `wmiprvse.exe` spawning `cmd.exe`, `services.exe`
+    spawning a random binary from `C:\Windows`, or `PSEXESVC.exe` children.
+  - Renamed tools where `OriginalFileName` does not match the `Image` name.
+  - Credential dumping commands such as `rundll32.exe comsvcs.dll, MiniDump` against LSASS.
+investigation:
+  - Rebuild the process tree with ProcessGuid and ParentProcessGuid instead of PIDs.
+  - Look up `Hashes` for reputation and count how many hosts ran the same hash.
+  - >-
+    Pivot on ProcessGuid to events 3, 11, 13 and 22 to see what the process connected to,
+    wrote and resolved.
+  - Match LogonId to Security 4624 to learn how the user logged on and from where.
+  - Compare `Image` path, `OriginalFileName` and `Company` to catch masquerading binaries.
+related:
+  - sysmon/5
+  - sysmon/3
+  - sysmon/7
+  - sysmon/10
+  - sysmon/11
+  - sysmon/22
+  - security/4688
+  - security/4624
+attack:
+  - T1059
+  - T1059.001
+  - T1059.003
+  - T1218
+  - T1036.003
+  - T1047
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Command and Scripting Interpreter (T1059)
+    url: https://attack.mitre.org/techniques/T1059/

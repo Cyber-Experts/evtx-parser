@@ -1,0 +1,59 @@
+id: 5860
+channel: wmi-activity
+provider: Microsoft-Windows-WMI-Activity
+title: Temporary WMI event consumer registered
+shortTitle: Temporary event consumer
+category: wmi
+summary: >-
+  WMI-Activity event 5860 logs a temporary WMI event subscription: the namespace, the WQL
+  notification query and the client process that registered it.
+description: |-
+  Event 5860 is written when a client registers a temporary event subscription — a WQL notification query that WMI answers for as long as the client process is running (for example `Register-WmiEvent`, `Register-CimIndicationEvent` or `ExecNotificationQuery` from a script or program). Unlike a permanent subscription (5861), nothing is stored in the WMI repository and the subscription disappears when the client exits.
+
+  The record holds the namespace (`NamespaceName`), the notification query (`Query`), the user (`User`), the client process ID (`processid`) and the client machine (`MachineName`). The query shows what the client is watching: process starts, logons, USB insertion, service changes and so on.
+
+  Many legitimate programs register temporary subscriptions, so the event is noisy; its value is in the query text and in the client process behind it.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Microsoft-Windows-WMI-Activity/Operational channel is enabled by default.
+  notes: >-
+    Event 5860 is defined from Windows 10 1511 onward. Temporary subscriptions are not covered by
+    Sysmon's WMI events (19–21), which only track permanent ones.
+fields:
+  - name: NamespaceName
+    description: WMI namespace the query was registered in, usually `root\cimv2`.
+  - name: Query
+    description: >-
+      The WQL notification query, e.g. `SELECT * FROM __InstanceCreationEvent WITHIN 5 WHERE
+      TargetInstance ISA 'Win32_Process'`.
+  - name: User
+    description: Account of the client that registered the subscription.
+  - name: processid
+    description: Process ID of the client that registered the subscription. Map it to a process with 4688 / Sysmon 1.
+  - name: MachineName
+    description: Client machine name; a remote name means the subscription was registered over the network.
+  - name: PossibleCause
+    description: Additional context supplied by WMI about the registration.
+benign:
+  - Endpoint agents, monitoring tools and hardware utilities watching for process, device or power events.
+  - Administrative PowerShell scripts using `Register-WmiEvent` or `Register-CimIndicationEvent`.
+attacker:
+  - In-memory implants that wait for a trigger (process start, user logon) without writing a permanent subscription.
+  - Malware monitoring for analysis tools or security products starting, to react or exit.
+investigation:
+  - Resolve processid to an image with Security 4688 or Sysmon 1 and check whether it is a known agent.
+  - Read the Query for what is being watched; process creation and logon queries from unknown processes are worth a look.
+  - Check whether MachineName is remote and correlate with network logons (Security 4624) on the host.
+related:
+  - wmi-activity/5861
+  - wmi-activity/5858
+  - security/4688
+  - sysmon/1
+attack:
+  - T1047
+references:
+  - title: Microsoft Learn — Receiving events for the duration of your application
+    url: https://learn.microsoft.com/en-us/windows/win32/wmisdk/receiving-events-for-the-duration-of-your-application
+  - title: MITRE ATT&CK — Windows Management Instrumentation (T1047)
+    url: https://attack.mitre.org/techniques/T1047/

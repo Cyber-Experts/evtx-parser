@@ -1,0 +1,71 @@
+id: 3008
+channel: dns-client
+provider: Microsoft-Windows-DNS-Client
+title: DNS query is completed
+shortTitle: DNS query completed
+category: network
+summary: >-
+  DNS Client event 3008 records a completed DNS query: name, type, status code and resolved
+  addresses. Host-level DNS history; channel is off by default.
+description: |-
+  Event 3008 is written by the Windows DNS client when a name resolution finishes. It carries the queried name (`QueryName`), record type (`QueryType`), the result code (`QueryStatus`) and the answers (`QueryResults`), which makes it the most useful event of the DNS Client channel.
+
+  `QueryResults` lists the returned records separated by semicolons: IP addresses (IPv4 often in `::ffff:` mapped form) and CNAME targets. With it you can map a domain to the IPs a host actually contacted and pivot to network logs, firewall events (5156) or proxy data.
+
+  Failures matter too: a burst of `9003` (name does not exist) statuses for random-looking names is typical of DGA malware, and repeated lookups of one domain at a fixed interval can reveal beaconing.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Enable the Microsoft-Windows-DNS-Client/Operational channel (Event Viewer, or
+    `wevtutil sl Microsoft-Windows-DNS-Client/Operational /e:true`). It is disabled by default.
+  notes: >-
+    Very high volume on busy hosts; increase the channel size or forward events to a collector.
+    Sysmon event 22 offers similar data with the querying process image.
+fields:
+  - name: QueryName
+    description: Name that was resolved.
+  - name: QueryType
+    description: DNS record type (`1` A, `28` AAAA, `5` CNAME, `12` PTR, `16` TXT, `33` SRV).
+  - name: QueryOptions
+    description: Query option flags passed by the caller.
+  - name: QueryStatus
+    description: Result code of the query (Win32 / DNS error code).
+    values:
+      - value: "0"
+        meaning: Success.
+      - value: "1460"
+        meaning: ERROR_TIMEOUT — no response within the timeout.
+      - value: "9003"
+        meaning: DNS_ERROR_RCODE_NAME_ERROR — the name does not exist (NXDOMAIN).
+      - value: "9501"
+        meaning: DNS_INFO_NO_RECORDS — the name exists but has no record of the requested type.
+  - name: QueryResults
+    description: >-
+      Semicolon-separated answers: IP addresses and CNAME entries. Empty when the query failed.
+benign:
+  - Continuous resolution of Microsoft, CDN and SaaS domains by the OS and applications.
+  - NXDOMAIN results from DNS suffix search lists (the client appends suffixes before trying the bare name).
+  - Resolution of internal names and domain controller SRV records.
+attacker:
+  - Resolution of C2 domains; the returned IPs identify the infrastructure to block and hunt for.
+  - DGA activity — many NXDOMAIN (`9003`) results for random-looking names in a short time.
+  - DNS tunneling — large numbers of unique subdomains under one parent domain, often TXT queries.
+investigation:
+  - Search across hosts for an indicator domain or for any `QueryResults` containing an indicator IP.
+  - Pivot from the resolved IPs to connections (5156, Sysmon 3, firewall and proxy logs) to confirm contact.
+  - Build per-host timelines of first-seen domains around the time of an alert.
+  - Use the System `ProcessID` as a lead and confirm the requester with process telemetry (4688, Sysmon 1, Sysmon 22).
+related:
+  - dns-client/3006
+  - sysmon/22
+  - security/5156
+  - sysmon/3
+attack:
+  - T1071.004
+  - T1568.002
+  - T1572
+references:
+  - title: MITRE ATT&CK — T1071.004 Application Layer Protocol - DNS
+    url: https://attack.mitre.org/techniques/T1071/004/
+  - title: Microsoft Learn — DNS constants (record types)
+    url: https://learn.microsoft.com/en-us/windows/win32/dns/dns-constants

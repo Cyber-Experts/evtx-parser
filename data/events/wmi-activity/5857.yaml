@@ -1,0 +1,57 @@
+id: 5857
+channel: wmi-activity
+provider: Microsoft-Windows-WMI-Activity
+title: WMI provider started
+shortTitle: Provider started
+category: wmi
+summary: >-
+  WMI-Activity event 5857 logs a WMI provider being loaded: provider name, DLL path and host
+  process. Useful to spot rogue providers and WMI usage.
+description: |-
+  Event 5857 is written when WMI loads a provider to serve a request. It names the provider (`ProviderName`), the DLL that implements it (`ProviderPath`), the process hosting it (`HostProcess`, usually `WmiPrvSE.exe`), that process's ID (`ProcessID`) and the load result (`Code`, `0x0` on success).
+
+  On a normal system the list of providers and DLL paths is short and stable — mostly files under `%SystemRoot%\System32\wbem\` and a handful of vendor components. A provider DLL loading from an unusual location, or a provider name you have never seen, can reveal a malicious WMI provider installed for persistence or execution.
+
+  The event also works as indirect evidence of WMI use: a provider such as the Win32 process provider loading at the time of suspected remote execution helps confirm that WMI was involved, even though 5857 does not identify the client or the query.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Microsoft-Windows-WMI-Activity/Operational channel is enabled by default.
+  notes: >-
+    The event records provider loads, not individual WMI calls. It does not show the client, user or query; see 5858, 5860 and 5861 for those.
+fields:
+  - name: ProviderName
+    description: Name of the WMI provider that was loaded, e.g. `CIMWin32`, `WMIProv`, `MSI_PROV`.
+  - name: Code
+    description: Result code of the provider load; `0x0` means it started successfully.
+  - name: HostProcess
+    description: Process hosting the provider, normally `WmiPrvSE.exe`.
+  - name: ProcessID
+    description: Process ID of the host process. Correlate with 4688 / Sysmon 1 and with child processes it spawns.
+  - name: ProviderPath
+    description: >-
+      Path of the provider DLL, e.g. `%systemroot%\system32\wbem\cimwin32.dll`. Paths outside
+      `System32\wbem` or `Program Files` deserve a look.
+benign:
+  - Built-in providers loading on demand for monitoring, inventory and management tools.
+  - Vendor providers (storage, hardware, backup, security agents) registered by their installers.
+attacker:
+  - A malicious WMI provider DLL registered for persistence or code execution inside `WmiPrvSE.exe`.
+  - Remote WMI execution (for example `Win32_Process` Create) causing the process provider to load at the time of the attack.
+investigation:
+  - Stack ProviderName and ProviderPath across hosts; rare combinations and non-standard paths stand out.
+  - Check the signature and creation time of unusual provider DLLs.
+  - For suspected remote WMI execution, correlate with child processes of `WmiPrvSE.exe` (Security 4688, Sysmon 1) and network logons (4624 type 3).
+related:
+  - wmi-activity/5858
+  - wmi-activity/5860
+  - wmi-activity/5861
+  - security/4688
+  - security/4624
+  - sysmon/1
+  - sysmon/7
+attack:
+  - T1047
+references:
+  - title: MITRE ATT&CK — Windows Management Instrumentation (T1047)
+    url: https://attack.mitre.org/techniques/T1047/

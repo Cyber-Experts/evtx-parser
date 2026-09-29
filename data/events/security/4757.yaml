@@ -1,0 +1,63 @@
+id: 4757
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A member was removed from a security-enabled universal group
+shortTitle: Member removed from universal group
+category: group
+summary: >-
+  Security event 4757 is logged on a domain controller when a member is removed from a
+  security-enabled universal group, such as Enterprise Admins.
+description: |-
+  Event 4757 is the counterpart of 4756: it is written on the domain controller that processed the change when a member is removed from a security-enabled **universal** group. Global groups use 4729, local and domain local groups 4733.
+
+  `TargetUserName`/`TargetSid` identify the group, `MemberName` and `MemberSid` the removed member, `Subject*` who removed it. One event is logged per removed member, usually next to an empty 4755.
+
+  Removals from Schema Admins after a schema update are expected. A removal that closely follows an unexplained 4756 for the same member points to short-lived, possibly malicious, forest-level privilege.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Success is audited in the default Windows audit policy.
+  notes: Only generated on domain controllers.
+fields:
+  - name: MemberName
+    description: Distinguished name of the removed member.
+  - name: MemberSid
+    description: SID of the removed member.
+  - name: TargetUserName
+    description: Name of the universal group.
+  - name: TargetDomainName
+    description: Domain of the group.
+  - name: TargetSid
+    description: SID of the group; RID `519` is Enterprise Admins, `518` Schema Admins.
+  - name: SubjectUserName
+    description: Account that removed the member.
+  - name: SubjectDomainName
+    description: Domain of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject on the DC; correlate with 4624.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Removing temporary Schema Admins or Enterprise Admins membership after planned maintenance.
+  - Group cleanup and access reviews.
+attacker:
+  - Removing a temporarily added account from Enterprise Admins to hide forest-level access.
+  - Removing legitimate administrators from forest-level groups to hinder recovery.
+investigation:
+  - Pair with the preceding 4756 for the same member and review what happened in between.
+  - Confirm removals from Enterprise Admins or Schema Admins with the forest owners.
+related:
+  - security/4756
+  - security/4755
+  - security/4729
+  - security/4733
+  - security/4624
+attack:
+  - T1098.007
+  - T1531
+references:
+  - title: "Microsoft Learn — Audit Security Group Management (4757 description)"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-group-management
+  - title: "Microsoft Learn — 4733(S): A member was removed from a security-enabled local group"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4733

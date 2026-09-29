@@ -5,6 +5,7 @@ import { GitHubMark } from "./GitHubMark";
 import { LocaleSwitcher } from "./locale-switcher";
 import { ThemeToggle } from "./theme-toggle";
 import type { Locale } from "@/lib/i18n";
+import { getEventsDict } from "@/src/dict/events";
 
 type Dict = {
   nav: { home: string; blog: string; search: string };
@@ -32,6 +33,9 @@ export function SiteHeader({ locale, dict }: { locale: Locale; dict: Dict }) {
             </Link>
             <Link href={`/${locale}/blog`} className={NAV_LINK}>
               {dict.nav.blog}
+            </Link>
+            <Link href={`/${locale}/events`} className={NAV_LINK}>
+              {getEventsDict(locale).navShort}
             </Link>
             <Link href={`/${locale}/search`} className={NAV_LINK}>
               {dict.nav.search}

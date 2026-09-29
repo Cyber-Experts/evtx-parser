@@ -1,0 +1,27 @@
+title: "Services Bureau à distance : la session a été déconnectée"
+shortTitle: Session déconnectée
+summary: >-
+  L'événement RDP 24 est consigné quand une session Bureau à distance est déconnectée sans être
+  fermée, avec utilisateur, ID de session et adresse du client.
+description: |-
+  L'événement 24 consigne le détachement d'une session de son client — fenêtre RDP fermée, coupure réseau, ou reprise de la session par un autre client. La session continue de tourner sur le serveur avec ses processus et ses identifiants, et peut donc être reprise (événement 25).
+
+  Le champ `Address` donne le client connecté à ce moment-là. Des séries de couples 24/25 avec des adresses changeantes montrent une session utilisée depuis plusieurs endroits.
+logging:
+  requirement: >-
+    Aucune — le canal LocalSessionManager/Operational est activé par défaut.
+fields:
+  - name: User
+    description: Compte dont la session a été déconnectée.
+  - name: SessionID
+    description: Numéro de session.
+  - name: Address
+    description: Adresse IP du client qui était connecté, ou `LOCAL`.
+benign:
+  - Utilisateurs fermant la fenêtre RDP au lieu de se déconnecter, portables passant en veille, réseaux instables.
+attacker:
+  - Opérateurs laissant une session ouverte pour y revenir plus tard avec un 25.
+  - Détournement ou prise de contrôle de session — une déconnexion suivie d'une reconnexion de la même session depuis une autre adresse ou par une autre session (voir le 39).
+investigation:
+  - Suivez le SessionID jusqu'au 25 ou 23 suivant ; comparez les valeurs d'Address.
+  - Associez au 4779 Sécurité pour l'identifiant de session, et au 40 pour le code de motif de déconnexion.

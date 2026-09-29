@@ -1,0 +1,54 @@
+id: 142
+channel: task-scheduler
+provider: Microsoft-Windows-TaskScheduler
+title: Task disabled
+shortTitle: Task disabled
+category: scheduled-task
+summary: >-
+  Task Scheduler event 142 records that a user disabled a scheduled task — relevant when security,
+  update or backup tasks are switched off.
+description: |-
+  Event 142 is written when a registered task is disabled, for example with `schtasks /change /disable`, `Disable-ScheduledTask` or the console. The task stays in the library but will no longer run on its triggers. The record holds the task path (`TaskName`) and the account that disabled it (`UserName`).
+
+  Most disables are routine administration. What matters is **which** task: tasks that run antivirus scans or signature updates, Windows Update, backups or log collection are the ones an attacker wants silenced, and a disable is quieter than a deletion.
+
+  If object access auditing is enabled, Security event 4701 records the same action with the task XML, which helps confirm what the disabled task used to do.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    The Microsoft-Windows-TaskScheduler/Operational channel must be enabled — "Enable All Tasks
+    History" in the Task Scheduler console, or `wevtutil sl Microsoft-Windows-TaskScheduler/Operational /e:true`.
+  notes: >-
+    The default state of this channel is not consistent across Windows versions, editions and
+    builds: on some installs it is already recording, on others task history is off and the log
+    stays empty until someone enables it. Check whether the log holds any records before treating
+    a missing event as evidence. On busy hosts the log rolls over quickly.
+fields:
+  - name: TaskName
+    description: Full path of the disabled task in the task library.
+  - name: UserName
+    description: Account that disabled the task (`DOMAIN\user` or `NT AUTHORITY\SYSTEM`).
+benign:
+  - Administrators or optimization scripts disabling telemetry, consumer or vendor tasks.
+  - Software disabling its own updater task when a setting is changed.
+attacker:
+  - Disabling security product, Windows Update or backup tasks before deploying ransomware or other payloads.
+  - Disabling a legitimate task so a look-alike malicious task can take its place.
+investigation:
+  - Review TaskName against a list of tasks that must stay enabled (AV, update, backup, monitoring agents).
+  - Check whether UserName is an expected admin account and whether the change came during a known maintenance window.
+  - Look for other defense tampering around the same time (service stops, Defender configuration changes).
+related:
+  - task-scheduler/140
+  - task-scheduler/141
+  - task-scheduler/106
+  - security/4701
+  - defender/5001
+  - defender/5007
+attack:
+  - T1685
+references:
+  - title: Microsoft Learn — Task Scheduler
+    url: https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-start-page
+  - title: Microsoft Learn — schtasks change
+    url: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks

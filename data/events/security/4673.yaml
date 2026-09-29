@@ -1,0 +1,64 @@
+id: 4673
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A privileged service was called
+shortTitle: Privileged service called
+category: process
+summary: >-
+  Security event 4673 logs a call to a privileged system service, such as registering a logon
+  process with SeTcbPrivilege, and whether the call succeeded.
+description: |-
+  Event 4673 is written when a process calls a privileged system service that requires a specific privilege — for example `LsaRegisterLogonProcess()` with `SeTcbPrivilege`. Success records show the privilege was held and used; **Failure** records show the caller tried without holding it.
+
+  The `Service` and `PrivilegeList` fields are the heart of the event, together with `ProcessName`. Most records come from well-known system processes and are routine; the interesting ones are unusual processes, user-writable paths, or failures from processes that should not be asking.
+
+  The subcategory is noisy on busy systems, so it is often left disabled or filtered at collection. When enabled, baseline the `ProcessName` / `Service` combinations first and alert on new ones.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Privilege Use > Audit Sensitive Privilege Use (Success
+    and/or Failure). Audit Non Sensitive Privilege Use also generates it for non-sensitive privileges.
+  notes: >-
+    High volume on servers and workstations. Failure auditing alone is a cheaper way to catch
+    processes attempting privileged calls they are not entitled to.
+fields:
+  - name: SubjectUserName
+    description: Account whose token was used for the call.
+  - name: SubjectLogonId
+    description: Logon session; pivot to 4624 and 4688.
+  - name: ObjectServer
+    description: Subsystem that handled the call, e.g. `NT Local Security Authority / Authentication Service` or `Security`.
+  - name: Service
+    description: >-
+      Privileged service or function called, e.g. `LsaRegisterLogonProcess()`. May be `-` when
+      not supplied.
+  - name: PrivilegeList
+    description: Privilege(s) required for the call, e.g. `SeTcbPrivilege`, `SeSystemtimePrivilege`, `SeCreateGlobalPrivilege`.
+  - name: ProcessName
+    description: Process that made the call. Evaluate this against the privilege requested.
+  - name: ProcessId
+    description: Hexadecimal PID of that process.
+benign:
+  - System processes such as `lsass.exe`, `services.exe` and `svchost.exe` using privileges during normal operation.
+  - Security and backup agents registering with LSA or using privileged services.
+  - Time synchronization and system management tools using `SeSystemtimePrivilege` and similar rights.
+attacker:
+  - >-
+    Offensive tools running from a user or temp folder calling `LsaRegisterLogonProcess()` to
+    interact with authentication packages, for example to manipulate Kerberos tickets.
+  - Failure records showing a non-privileged process repeatedly trying to use `SeTcbPrivilege` or `SeDebugPrivilege`-protected services.
+investigation:
+  - Build a baseline of `ProcessName` + `Service` + `PrivilegeList`; triage new combinations.
+  - Check the process path and signature, then pivot `SubjectLogonId` to 4688 for the command line.
+  - Correlate with 4672 (special privileges at logon) and 4703 (privileges enabled in the token).
+related:
+  - security/4672
+  - security/4703
+  - security/4688
+  - security/4624
+attack: []
+references:
+  - title: "Microsoft Learn — 4673(S, F): A privileged service was called"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4673
+  - title: Microsoft Learn — Audit Sensitive Privilege Use
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-sensitive-privilege-use

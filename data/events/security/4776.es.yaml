@@ -1,0 +1,58 @@
+title: El equipo intentó validar las credenciales de una cuenta
+shortTitle: Validación de credenciales NTLM
+summary: >-
+  El evento 4776 registra una comprobación de credenciales NTLM: en el controlador de dominio para
+  cuentas de dominio y en la máquina local para cuentas locales.
+description: |-
+  El evento 4776 lo escribe el equipo que tiene **autoridad sobre la cuenta** cuando valida credenciales con NTLM: el controlador de dominio para las cuentas de dominio, o la máquina local para las cuentas locales (SAM). Se genera tanto en los éxitos como en los fallos, y el campo `Status` indica cuál.
+
+  Cubre el hueco que dejan los eventos Kerberos: los inicios de sesión NTLM no producen 4768/4769, así que en un DC el 4776 es el único registro de una autenticación NTLM. El campo `Workstation` es el nombre del equipo de origen proporcionado por el cliente; no hay dirección IP, así que hay que recuperarla a través del 4624 en el servidor de destino.
+
+  Los ataques pass-the-hash y de relay usan NTLM, por lo que las ráfagas de validaciones NTLM para cuentas privilegiadas, o desde estaciones de trabajo inesperadas, merecen atención.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Logon > Audit Credential Validation (Success,
+    Failure). El éxito se audita por defecto en los servidores; habilite Failure explícitamente.
+fields:
+  - name: PackageName
+    description: Paquete de autenticación, normalmente `MICROSOFT_AUTHENTICATION_PACKAGE_V1_0`.
+  - name: TargetUserName
+    description: Cuenta cuyas credenciales se validaron.
+  - name: Workstation
+    description: Nombre del equipo cliente tal como se proporciona en el intercambio NTLM (falsificable, puede estar vacío).
+  - name: Status
+    description: Resultado (NTSTATUS).
+    values:
+      - value: "0x0"
+        meaning: Éxito.
+      - value: "0xC0000064"
+        meaning: El nombre de usuario no existe.
+      - value: "0xC000006A"
+        meaning: Contraseña incorrecta.
+      - value: "0xC000006F"
+        meaning: Inicio de sesión fuera del horario permitido.
+      - value: "0xC0000070"
+        meaning: Restricción de estación de trabajo.
+      - value: "0xC0000071"
+        meaning: Contraseña caducada.
+      - value: "0xC0000072"
+        meaning: Cuenta deshabilitada.
+      - value: "0xC0000193"
+        meaning: Cuenta caducada.
+      - value: "0xC0000224"
+        meaning: El usuario debe cambiar la contraseña en el siguiente inicio de sesión.
+      - value: "0xC0000234"
+        meaning: Cuenta bloqueada.
+benign:
+  - Aplicaciones y dispositivos que solo hablan NTLM (NAS antiguos, impresoras, algunas aplicaciones web).
+  - Inicios de sesión por dirección IP en lugar de nombre de host, que recurren a NTLM.
+  - Inicios de sesión con cuentas locales en máquinas independientes.
+attacker:
+  - "Pass-the-hash: validaciones NTLM para cuentas de administrador desde estaciones de trabajo que normalmente usan Kerberos."
+  - "Password spraying NTLM: muchas cuentas que fallan con `0xC000006A` desde el mismo nombre de Workstation."
+  - "NTLM relay: validaciones para una cuenta que llegan desde una máquina en la que no está el usuario."
+investigation:
+  - En los DC, agrupe por TargetUserName y Workstation; busque cuentas privilegiadas que se autentican mediante NTLM.
+  - En los fallos, compare los recuentos de `0xC0000064` y `0xC000006A` para distinguir la enumeración de la adivinación.
+  - Encuentre el 4624 correspondiente (AuthenticationPackageName NTLM) en los servidores miembro para recuperar la IP de origen.
+  - Considere la auditoría NTLM (registro operativo NTLM 8001–8004) para ver qué servidores siguen recibiendo NTLM.

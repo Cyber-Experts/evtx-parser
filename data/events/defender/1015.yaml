@@ -1,0 +1,42 @@
+id: 1015
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: The antimalware platform detected suspicious behavior
+shortTitle: Suspicious behavior detected
+category: antimalware
+summary: >-
+  Defender event 1015 is logged when behavior monitoring detects suspicious activity rather than
+  a known file, with threat name and process details.
+description: |-
+  Event 1015 comes from Defender's behavior monitoring: a process did something suspicious (for example a sequence of actions typical of an attack tool), rather than a file matching a signature. The event includes the behavior-based threat name and the process involved.
+
+  Behavior detections often catch fileless or living-off-the-land activity that signature scans miss, so they deserve the same attention as 1116.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — logged by Microsoft Defender Antivirus when behavior monitoring (part of real-time
+    protection) is enabled.
+fields:
+  - name: Threat Name
+    description: Behavior detection name (often prefixed `Behavior:`).
+  - name: Path
+    description: Process or file associated with the behavior.
+  - name: Process Name
+    description: Process that exhibited the behavior.
+  - name: Detection User
+    description: User context.
+benign:
+  - Administrative tools or installers with aggressive behavior; security testing.
+attacker:
+  - Credential access attempts, process injection, suspicious script behavior caught at run time.
+investigation:
+  - Reconstruct the process tree with 4688 / Sysmon 1 and read any 4104 script blocks around the time.
+  - Check whether a 1116/1117 follows with an action.
+related:
+  - defender/1116
+  - defender/1117
+  - sysmon/1
+attack: []
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

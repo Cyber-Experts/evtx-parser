@@ -1,0 +1,59 @@
+id: 4660
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: An object was deleted
+shortTitle: Object deleted
+category: object-access
+summary: >-
+  Security event 4660 confirms that an audited file, registry key or kernel object was deleted.
+  It has no object name, so join it to 4663 by HandleId.
+description: |-
+  Event 4660 is written when an object whose SACL audits **Delete** is actually deleted. Unlike 4663 with the DELETE right, which also appears for renames and moves, 4660 is only produced by a real deletion.
+
+  The catch is that 4660 does not contain the object name. It carries the `HandleId` and `ProcessId`, and the name comes from the 4663 (or 4656) with the same handle logged just before it. Build the pair and you get a reliable record of who deleted which file and with which process.
+
+  On file servers this is the event behind "who deleted the folder" questions, and during incidents it helps spot mass deletion by ransomware or cleanup scripts.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit File System, Audit Registry or
+    Audit Kernel Object (Success), plus a SACL on the object that audits Delete.
+fields:
+  - name: SubjectUserName
+    description: Account that deleted the object.
+  - name: SubjectLogonId
+    description: Logon session of that account; pivot to 4624 for the source.
+  - name: ObjectServer
+    description: Subsystem, normally `Security`.
+  - name: HandleId
+    description: Handle used for the deletion; the matching 4663 with the same value names the object.
+  - name: ProcessName
+    description: Process that performed the deletion, e.g. `explorer.exe` or a script host.
+  - name: ProcessId
+    description: Hexadecimal PID of that process.
+  - name: TransactionId
+    description: Transaction GUID for transacted operations; all zeros otherwise.
+benign:
+  - Users deleting their own files through Explorer or applications.
+  - Temporary file cleanup by installers, Office and browsers in audited folders.
+attacker:
+  - Mass deletion of files on a share shortly before or after encryption by ransomware.
+  - Deleting tools, output files or logs after use to cover tracks.
+investigation:
+  - Join each 4660 to the preceding 4663 with the same `HandleId` and `ProcessId` to get `ObjectName`.
+  - Count deletions per account and per process per minute to separate user activity from scripted deletion.
+  - For deletions over SMB, correlate with 5145 on the file server to get the client IP.
+related:
+  - security/4663
+  - security/4656
+  - security/4658
+  - security/5145
+  - sysmon/23
+attack:
+  - T1070.004
+  - T1485
+references:
+  - title: "Microsoft Learn — 4660(S): An object was deleted"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4660
+  - title: "Microsoft Learn — 4663(S): An attempt was made to access an object"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4663

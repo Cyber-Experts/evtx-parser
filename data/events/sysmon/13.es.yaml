@@ -1,0 +1,39 @@
+title: Evento de registro (valor establecido)
+shortTitle: Valor de registro establecido
+summary: >-
+  El evento 13 de Sysmon registra la escritura de un valor del registro, con los datos de los
+  valores DWORD, QWORD y de cadena. El evento clave de persistencia.
+description: |-
+  El evento 13 de Sysmon registra la escritura de un valor del registro: la ruta del valor en `TargetObject`, los datos en `Details` y el proceso que escribe. Los valores numéricos aparecen como `DWORD (0x...)` o `QWORD (...)`; los valores de cadena muestran su texto; los datos binarios no se reproducen.
+
+  Es el evento que muestra la persistencia mediante claves Run, los nuevos valores `ImagePath` de servicios, las funciones de seguridad deshabilitadas (por ejemplo, configuración de Defender o de UAC) y los secuestros mediante el depurador de IFEO, en un solo registro junto con el proceso responsable.
+
+  El volumen depende por completo de la configuración; apunte a las rutas conocidas de persistencia y de configuración de seguridad.
+logging:
+  requirement: Sysmon instalado; filtre con reglas `<RegistryEvent>` en la configuración.
+fields:
+  - name: EventType
+    description: Siempre `SetValue` en este evento.
+  - name: ProcessGuid
+    description: Proceso que escribió el valor; pivote hacia su evento 1.
+  - name: Image
+    description: Ejecutable que escribió el valor.
+  - name: TargetObject
+    description: Ruta completa del valor, p. ej. `HKU\<SID>\Software\Microsoft\Windows\CurrentVersion\Run\<name>`.
+  - name: Details
+    description: >-
+      Datos escritos. En las claves Run y en el `ImagePath` de los servicios es el comando que se
+      ejecutará; en las configuraciones DWORD, p. ej. `DWORD (0x00000001)`.
+  - name: User
+    description: Cuenta del proceso (versiones recientes de Sysmon).
+benign:
+  - Aplicaciones que registran asistentes de inicio automático en claves Run durante la instalación.
+  - Windows y la directiva de grupo escribiendo configuraciones, el Explorador actualizando el estado por usuario (muy frecuente).
+attacker:
+  - Valores Run o RunOnce que apuntan a un binario o script en una carpeta en la que el usuario puede escribir.
+  - "`ImagePath` de un servicio cambiado a un nuevo binario, o un valor `Debugger` establecido bajo Image File Execution Options."
+  - Configuraciones de seguridad debilitadas, como valores de directiva de Defender o del firewall establecidos para desactivar la protección.
+investigation:
+  - Lea Details y compruebe si la ruta referenciada existe y se escribió recientemente (evento 11).
+  - "Pivote sobre ProcessGuid hacia el evento 1: `reg.exe`, PowerShell o un binario desconocido escribiendo claves Run llaman la atención."
+  - Busque la creación de la clave correspondiente (evento 12) y la ejecución del programa persistido tras el reinicio (evento 1).

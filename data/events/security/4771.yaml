@@ -1,0 +1,69 @@
+id: 4771
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: Kerberos pre-authentication failed
+shortTitle: Kerberos pre-authentication failed
+category: kerberos
+summary: >-
+  Event 4771 is logged on domain controllers when Kerberos pre-authentication fails, most often
+  because of a wrong password (Status 0x18).
+description: |-
+  Event 4771 is the domain controller's record of a failed Kerberos logon at the pre-authentication step. The most common cause is a wrong password (`0x18`); others are an expired password, a disabled or locked account, or clock skew.
+
+  Because Kerberos is the default protocol in a domain, failed password attempts against domain accounts appear here rather than in 4625 on the DC. A password spray over Kerberos shows up as one IP producing 4771 for many accounts — and never touches member servers, so this event may be the only trace.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Logon > Audit Kerberos Authentication Service
+    (Failure). Only meaningful on domain controllers.
+fields:
+  - name: TargetUserName
+    description: Account whose pre-authentication failed.
+  - name: TargetSid
+    description: SID of that account.
+  - name: ServiceName
+    description: Requested service, normally `krbtgt/<DOMAIN>`.
+  - name: TicketOptions
+    description: Ticket options (hex).
+  - name: Status
+    description: Kerberos failure code.
+    values:
+      - value: "0x18"
+        meaning: KDC_ERR_PREAUTH_FAILED — wrong password.
+      - value: "0x12"
+        meaning: KDC_ERR_CLIENT_REVOKED — account disabled, expired or locked out.
+      - value: "0x17"
+        meaning: KDC_ERR_KEY_EXPIRED — password expired.
+      - value: "0x25"
+        meaning: KRB_AP_ERR_SKEW — clock skew too large.
+      - value: "0x10"
+        meaning: KDC_ERR_PADATA_TYPE_NOSUPP — smart card logon problem (for example missing KDC certificate).
+  - name: PreAuthType
+    description: Pre-authentication type attempted (2 = password, 15/16 = smart card or certificate).
+  - name: IpAddress
+    description: Client IP address.
+  - name: IpPort
+    description: Client source port.
+benign:
+  - Users typing a wrong password; devices with a cached old password after a change.
+  - Services or scheduled tasks still configured with an old password — repeated failures on a fixed schedule.
+  - Clock problems on a client (`0x25`).
+attacker:
+  - "Password spraying over Kerberos — one source, many accounts, Status `0x18`, often a few attempts per account to stay under the lockout threshold (Kerbrute, Rubeus)."
+  - Password guessing against a single account, usually ending in 4740 lockout.
+investigation:
+  - Count distinct TargetUserName per IpAddress in short windows to separate spraying from user error.
+  - Check for a 4768 with Status `0x0` for the same accounts and IP after the failures.
+  - Map IpAddress to a host; failures from servers usually mean a misconfigured service account.
+  - Correlate with 4740 on the PDC emulator for accounts that were locked.
+related:
+  - security/4768
+  - security/4625
+  - security/4740
+  - security/4776
+attack:
+  - T1110
+  - T1110.003
+references:
+  - title: "Microsoft Learn — 4771(F): Kerberos pre-authentication failed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4771

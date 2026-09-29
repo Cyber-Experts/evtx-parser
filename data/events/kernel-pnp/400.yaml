@@ -1,0 +1,64 @@
+id: 400
+channel: kernel-pnp
+provider: Microsoft-Windows-Kernel-PnP
+title: Device was configured
+shortTitle: Device configured
+category: device
+summary: >-
+  Kernel-PnP event 400 is logged when a device is configured with a driver: instance ID, driver
+  INF and class. Dates USB storage and other device connections.
+description: |-
+  Event 400 in the `Microsoft-Windows-Kernel-PnP/Configuration` log is written when the Plug and Play manager configures a device — selecting and binding its driver. It records the `DeviceInstanceId`, the driver INF (`DriverName`), the device class and details about the chosen driver.
+
+  For USB forensics it complements System **20001**: a USB storage device produces a chain of 400/410 records for its USB node (`USB\VID_xxxx&PID_xxxx\<serial>`) and its storage node (`USBSTOR\DISK&VEN_...&PROD_...\<serial>&0`). The serial number in the instance ID ties those records to registry artifacts (USBSTOR keys, MountedDevices) and to Partition **1006**.
+
+  400 is typically written when a device is set up for the first time or its driver changes, so it is strongest as first-connection evidence; **410** (device started) is written on subsequent starts as well.
+logging:
+  enabledByDefault: true
+  requirement: Microsoft-Windows-Kernel-PnP/Configuration log, enabled by default.
+  notes: >-
+    The log is small by default and rolls over on systems with frequent device activity; collect it
+    early.
+fields:
+  - name: DeviceInstanceId
+    description: >-
+      Plug and Play instance ID. For USB storage it contains vendor and product IDs (or names)
+      and the device serial number.
+  - name: DriverName
+    description: Driver INF selected for the device, e.g. `usbstor.inf`, `disk.inf`, `wpdmtp.inf`.
+  - name: ClassGuid
+    description: Device setup class, e.g. `{4d36e967-e325-11ce-bfc1-08002be10318}` for disk drives.
+  - name: DriverProvider
+    description: Publisher of the selected driver.
+  - name: DriverInbox
+    description: Whether the driver ships with Windows (inbox) or is third-party.
+  - name: DeviceUpdated
+    description: Whether an existing device's driver was updated rather than set up for the first time.
+  - name: ParentDeviceInstanceId
+    description: Instance ID of the parent device (for example the USB node of a USBSTOR disk).
+  - name: Status
+    description: Result code; `0x0` is success.
+benign:
+  - Users connecting USB drives, phones, docks, printers and other peripherals.
+  - Driver updates pushed by Windows Update.
+attacker:
+  - An unapproved USB storage device configured on a sensitive system shortly before data exfiltration.
+  - Malicious hardware (keystroke injection, rogue network adapters) presenting as a new HID or network device.
+investigation:
+  - Filter on `DeviceInstanceId` starting with `USBSTOR\`, `SCSI\` or `SWD\WPDBUSENUM` to find storage and portable devices.
+  - Extract the serial number and match it with 410, 20001, Partition 1006 and registry USB artifacts.
+  - Check file activity during the connection window (LNK files, jump lists, 4663, Sysmon 11).
+related:
+  - kernel-pnp/410
+  - system/20001
+  - partition/1006
+  - security/6416
+attack:
+  - T1052.001
+  - T1200
+  - T1091
+references:
+  - title: Microsoft Learn — Device instance IDs
+    url: https://learn.microsoft.com/en-us/windows-hardware/drivers/install/device-instance-ids
+  - title: MITRE ATT&CK — Exfiltration over USB (T1052.001)
+    url: https://attack.mitre.org/techniques/T1052/001/

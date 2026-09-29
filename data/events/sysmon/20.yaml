@@ -1,0 +1,51 @@
+id: 20
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: WmiEvent (WmiEventConsumer activity detected)
+shortTitle: WMI event consumer registered
+category: wmi
+summary: >-
+  Sysmon event 20 logs a WMI event consumer being registered, including the command or script it
+  runs. The action half of WMI subscription persistence.
+description: |-
+  Sysmon event 20 records a permanent WMI event consumer: the action that runs when a filter fires. `Type` says what kind of consumer it is and `Destination` holds what it executes — a command line or script text.
+
+  Command-line and script consumers are the ones attackers use for persistence, launching PowerShell, `mshta.exe` or a dropped binary as `SYSTEM` whenever the trigger occurs. Read `Destination` in full; it is often an encoded PowerShell command.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon installed; filter with `<WmiEvent>` rules in the configuration.
+fields:
+  - name: EventType
+    description: "`WmiConsumerEvent` for this event."
+  - name: Operation
+    description: "`Created` for a new consumer; removal is also recorded."
+  - name: User
+    description: Account that registered the consumer.
+  - name: Name
+    description: Name of the consumer.
+  - name: Type
+    description: Consumer type, e.g. `Command Line` (CommandLineEventConsumer) or `Script` (ActiveScriptEventConsumer).
+  - name: Destination
+    description: Command line or script the consumer executes. The key field to review.
+benign:
+  - Legacy `BVTConsumer` or `SCM Event Log Consumer` on older Windows versions.
+  - Management and monitoring agents registering consumers during installation.
+attacker:
+  - A `Command Line` consumer launching `powershell.exe -enc ...` or a binary in `ProgramData`.
+  - A `Script` consumer running VBScript or JScript stored directly in WMI.
+investigation:
+  - Decode and read Destination; note any file paths and URLs it references.
+  - Find the matching filter (event 19) and binding (event 21) to learn the trigger.
+  - Look for processes spawned by `WmiPrvSE.exe` or `scrcons.exe` (event 1) when the trigger fires.
+related:
+  - sysmon/19
+  - sysmon/21
+  - sysmon/1
+  - wmi-activity/5861
+attack:
+  - T1546.003
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — WMI Event Subscription (T1546.003)
+    url: https://attack.mitre.org/techniques/T1546/003/

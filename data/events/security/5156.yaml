@@ -1,0 +1,100 @@
+id: 5156
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: The Windows Filtering Platform has permitted a connection
+shortTitle: WFP connection allowed
+category: network
+summary: >-
+  Security event 5156 logs each connection allowed by the Windows Filtering Platform: process, direction, addresses, ports and protocol.
+description: |-
+  Event 5156 is written when the Windows Filtering Platform (WFP), the engine behind Windows Firewall, allows a connection. It ties a network flow to a local process: `Application` and `ProcessID` identify the program, while `SourceAddress`, `SourcePort`, `DestAddress`, `DestPort` and `Protocol` describe the flow.
+
+  Read `Direction` first. In practice the Source fields hold the **local** endpoint and the Dest fields the **remote** endpoint for both directions — for an inbound connection the local listening port is in `SourcePort`. `Application` uses a device path (`\device\harddiskvolume3\windows\system32\svchost.exe`), not a drive letter.
+
+  Success auditing records every allowed connection, including loopback and DNS traffic, which quickly fills the Security log. When enabled selectively (servers, jump hosts) it gives process-level network history without Sysmon.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Filtering Platform Connection
+    (Success). Not audited in the default Windows audit policy.
+  notes: >-
+    Very high volume; Microsoft recommends Success auditing only where connection tracking is needed
+    (e.g. high-value hosts). The same subcategory produces 5157 (blocked, Failure) and 5158 (bind
+    permitted). The Security log size should be increased if it is enabled.
+fields:
+  - name: ProcessID
+    description: PID of the process that made or received the connection; correlate with 4688 NewProcessId or Sysmon 1.
+  - name: Application
+    description: Full path of the executable in device-path form (`\device\harddiskvolumeN\...`). `System` for kernel traffic such as SMB.
+  - name: Direction
+    description: Direction of the connection.
+    values:
+      - value: "%%14592"
+        meaning: Inbound.
+      - value: "%%14593"
+        meaning: Outbound.
+  - name: SourceAddress
+    description: Local IP address (in practice, regardless of direction).
+  - name: SourcePort
+    description: Local port. For inbound connections this is the listening port (e.g. 445, 3389).
+  - name: DestAddress
+    description: Remote IP address.
+  - name: DestPort
+    description: Remote port. For outbound connections this is the service port contacted.
+  - name: Protocol
+    description: IANA protocol number.
+    values:
+      - value: "1"
+        meaning: ICMP.
+      - value: "6"
+        meaning: TCP.
+      - value: "17"
+        meaning: UDP.
+      - value: "58"
+        meaning: ICMPv6.
+  - name: FilterRTID
+    description: Run-time ID of the WFP filter that allowed the connection; resolve it with `netsh wfp show filters` on the live host.
+  - name: LayerName
+    description: WFP layer where the decision was made.
+    values:
+      - value: "%%14610"
+        meaning: Receive/Accept (inbound connection accepted).
+      - value: "%%14611"
+        meaning: Connect (outbound connection).
+  - name: LayerRTID
+    description: Run-time ID of the WFP layer.
+  - name: RemoteUserID
+    description: SID of the remote user when IPsec authentication provides it; otherwise `S-1-0-0`.
+  - name: RemoteMachineID
+    description: SID of the remote computer when IPsec provides it; otherwise `S-1-0-0`.
+benign:
+  - Browsers, update agents, EDR and management software connecting outbound on 443.
+  - "`svchost.exe` DNS, NTP and Windows Update traffic; `System` for SMB (445) and other kernel-mode services."
+  - Loopback connections (`127.0.0.1`, `::1`) between local components.
+  - Inbound connections to published services on servers (IIS on 443, SQL Server on 1433, RDP on 3389).
+attacker:
+  - Outbound connections from unusual binaries (`rundll32.exe`, `regsvr32.exe`, `mshta.exe`, Office apps, files in `AppData` or `Temp`) to external IPs — command and control or payload download.
+  - Inbound RDP (3389), WinRM (5985/5986) or SMB (445) from workstations that should not administer this host.
+  - Beaconing patterns — the same process contacting the same remote IP and port at regular intervals.
+  - Connections on non-standard ports or to known tunneling and remote-access tool infrastructure.
+investigation:
+  - Exclude loopback and well-known system processes first, then group by `Application`, `DestAddress` and `DestPort`.
+  - Map the device path in `Application` to a drive letter and check the binary's hash and signature.
+  - Correlate `ProcessID` with process creation (4688, Sysmon 1) to get the parent and command line.
+  - For inbound flows, match the timestamp and source IP with 4624 LogonType 3 or 10 on the same host.
+related:
+  - security/5157
+  - security/4688
+  - security/4624
+  - sysmon/3
+  - dns-client/3008
+attack:
+  - T1071
+  - T1571
+  - T1021
+  - T1041
+references:
+  - title: "Microsoft Learn — 5156(S): The Windows Filtering Platform has permitted a connection"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-5156
+  - title: Microsoft Learn — Audit Filtering Platform Connection
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-filtering-platform-connection

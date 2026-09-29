@@ -1,0 +1,62 @@
+title: Eine geplante Aufgabe wurde erstellt
+shortTitle: Geplante Aufgabe erstellt
+summary: >-
+  Event-ID 4698 protokolliert eine neue geplante Aufgabe samt XML: Befehl, Argumente, Konto, Trigger. Wichtig für Persistenz und Remote-Ausführung.
+description: |-
+  Event 4698 wird geschrieben, wenn eine geplante Aufgabe registriert wird. Kern ist `TaskContent`, das vollständige Aufgaben-XML, wie es die Aufgabenplanung speichert — ein einzelner Eintrag sagt also, was ausgeführt wird (`<Exec><Command>` und `<Arguments>`), unter wem (`<Principals>`), wann (`<Triggers>`) und mit welchen Einstellungen, dazu das Konto, das sie erstellt hat.
+
+  Geplante Aufgaben dienen Angreifern auf zwei Arten: **Persistenz** (eine Aufgabe, die eine Payload bei der Anmeldung, beim Systemstart oder per Timer ausführt) und **Remote-Ausführung** (Aufgabe auf einem anderen Host anlegen, einmal ausführen, löschen — das Muster von `schtasks /create /s`, Impacket `atexec` und vielen Ransomware-Verteilungen). Das zweite Muster zeigt sich als 4698, dem innerhalb von Sekunden ein 4699 mit demselben TaskName folgt.
+
+  Integrierte Aufgaben unter `\Microsoft\Windows\` und Software-Updater (Browser, Office, Herstellertools) legen ständig Aufgaben an und neu an, besonders nach Updates. Für diese Namen eine Baseline bilden und sich auf das konzentrieren, was sie ausführen.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Other Object Access Events
+    (Success). In der Standard-Überwachungsrichtlinie nicht aktiviert.
+  notes: >-
+    Keine SACL erforderlich. Neuere Windows-Builds ergänzen `ClientProcessId`, `ParentProcessId`,
+    `ClientProcessStartKey`, `RpcCallClientLocality` und `FQDN`, um den anfragenden Prozess zu
+    identifizieren. Das Operational-Protokoll der Aufgabenplanung zeichnet ähnliche
+    Lebenszyklus-Events (106, 140, 141) ohne Überwachungsrichtlinie auf.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Konto, das die Änderung vorgenommen hat. Bei Remote-Aufgabenverwaltung (`schtasks /s`,
+      Impacket) ist dies das entfernte Konto.
+  - name: SubjectDomainName
+    description: Domäne oder Computername dieses Kontos.
+  - name: SubjectLogonId
+    description: Anmeldesitzung des Kontos; auf 4624 auf demselben Host pivotieren, um die Herkunft zu finden.
+  - name: TaskName
+    description: >-
+      Vollständiger Aufgabenpfad, z. B. `\Microsoft\Windows\...` für integrierte Aufgaben. Aufgaben
+      im Stamm (`\Name`) oder mit Namen, die Microsoft-Aufgaben imitieren, verdienen einen Blick.
+  - name: TaskContent
+    description: >-
+      Die vollständige XML-Definition der Aufgabe. `Actions/Exec/Command` und `Arguments` (was
+      ausgeführt wird), `Principals` (`UserId`, `RunLevel` — `HighestAvailable` bedeutet erhöht),
+      `Triggers` und `Settings/Hidden` lesen.
+  - name: ClientProcessId
+    description: PID des Prozesses, der die Änderung angefordert hat, auf Builds, die sie protokollieren. Mit 4688 abgleichen.
+benign:
+  - Windows-Wartung und Feature-Updates, die Aufgaben unter `\Microsoft\Windows\` registrieren.
+  - Browser- und Anwendungs-Updater (Google, Edge, Adobe, Office), die ihre Update-Aufgaben anlegen.
+  - Administratoren oder GPO-Einstellungen, die Wartungsaufgaben verteilen.
+attacker:
+  - >-
+    Persistenz-Aufgaben, die `powershell.exe`, `cmd.exe`, `rundll32.exe`, `mshta.exe` oder eine
+    Binärdatei in `AppData` / `ProgramData` / `C:\Users\Public` ausführen, oft bei der Anmeldung
+    oder alle paar Minuten.
+  - >-
+    Remote-Ausführung: eine Aufgabe, die von einem entfernten Konto (Netzwerkanmeldung) angelegt,
+    als SYSTEM ausgeführt und innerhalb von Sekunden wieder gelöscht wird (4699).
+  - Aufgaben mit `Hidden` auf true, Namen, die Microsoft-Aufgaben imitieren, oder im Stamm der Aufgabenbibliothek abgelegt.
+  - Ransomware-Akteure, die eine Aufgabe per GPO oder Remote-`schtasks` gleichzeitig auf viele Hosts verteilen.
+investigation:
+  - >-
+    TaskContent parsen und Command, Arguments, UserId und RunLevel extrahieren; alles prüfen, was
+    nicht in der Baseline bekannter Aufgabennamen und Befehle steht.
+  - Kurz danach nach 4699 mit demselben TaskName suchen — Anlegen/Ausführen/Löschen ist typisch für Remote-Ausführung.
+  - >-
+    Über SubjectLogonId auf das 4624 auf demselben Host pivotieren; eine Typ-3-Anmeldung bedeutet,
+    dass die Aufgabe remote angelegt wurde, und liefert die Quell-IP.
+  - Ausführung im Operational-Protokoll der Aufgabenplanung (106, 200, 201) und über 4688-Kindprozesse von `svchost.exe` / `taskeng.exe` bestätigen.

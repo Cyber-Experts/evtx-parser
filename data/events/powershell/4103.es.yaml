@@ -1,0 +1,36 @@
+title: Ejecutando canalización
+shortTitle: Registro de módulos
+summary: >-
+  El evento 4103 de PowerShell (registro de módulos) registra la ejecución de la canalización: cada
+  comando invocado, con sus parámetros y el contexto del host.
+description: |-
+  El evento 4103 procede del registro de módulos de PowerShell. En lugar del código fuente del script (eso es el 4104), registra **lo que se ejecutó** en la canalización: cada comando, los valores vinculados a sus parámetros y el contexto del proceso host y del usuario.
+
+  Eso lo hace complementario del 4104. Los scripts ofuscados, difíciles de leer como código fuente, a menudo se vuelven claros aquí, porque se registran las llamadas reales a cmdlets y sus argumentos resueltos. También es más ruidoso: se registra cada comando de cada canalización para los módulos configurados.
+logging:
+  requirement: >-
+    Computer Configuration > Administrative Templates > Windows Components > Windows PowerShell >
+    Turn on Module Logging, con los nombres de módulos que se deben registrar (use `*` para todos
+    los módulos).
+fields:
+  - name: ContextInfo
+    description: >-
+      Contexto de ejecución: nombre y versión del host, aplicación host (la línea de comandos del
+      proceso de PowerShell), versión del motor, ID del runspace, usuario y el comando que se está
+      ejecutando.
+  - name: Payload
+    description: >-
+      Los detalles de la invocación, p. ej. `CommandInvocation(Invoke-WebRequest): "Invoke-WebRequest"`
+      seguido de líneas `ParameterBinding(...)` con el valor de cada parámetro.
+  - name: UserData
+    description: Datos de usuario adicionales, normalmente vacíos.
+benign:
+  - Scripts administrativos y herramientas de administración que ejecutan cmdlets.
+  - Volumen muy alto procedente de agentes de monitorización o de configuración cuando el registro de módulos cubre todos los módulos.
+attacker:
+  - "Valores de parámetros que revelan la intención del atacante: URL de descarga, rutas de archivos, credenciales pasadas como argumentos."
+  - Cmdlets como `Invoke-WebRequest`, `Start-BitsTransfer`, `Add-MpPreference -ExclusionPath` con sus argumentos reales.
+investigation:
+  - Lea la línea HostApplication de ContextInfo para encontrar la línea de comandos de PowerShell que inició la sesión.
+  - Busque en Payload valores de ParameterBinding que contengan URL, IP o rutas sospechosas.
+  - Combínelo con el 4104 del mismo intervalo de tiempo para ver el código fuente que produjo estas invocaciones.

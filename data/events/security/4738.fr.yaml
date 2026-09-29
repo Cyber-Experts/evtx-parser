@@ -1,0 +1,93 @@
+title: Un compte d'utilisateur a été modifié
+shortTitle: Compte utilisateur modifié
+summary: >-
+  L'événement 4738 est consigné à la modification d'un compte utilisateur. Les attributs modifiés
+  portent leur nouvelle valeur, y compris délégation ou pré-auth.
+description: |-
+  L'événement 4738 est écrit à chaque modification d'un objet utilisateur — sur les contrôleurs de domaine pour les comptes de domaine, et sur les serveurs membres et postes de travail pour les comptes locaux. Un événement est consigné par modification. `Subject*` identifie l'auteur de la modification et `Target*` le compte modifié.
+
+  L'événement liste un ensemble fixe d'attributs : nom d'ouverture de session, UPN, répertoire de base, script d'ouverture de session, chemin du profil, `PasswordLastSet`, `AccountExpires`, `PrimaryGroupId`, `AllowedToDelegateTo`, `SidHistory`, heures d'ouverture de session et indicateurs de compte. Pour les comptes de domaine, un attribut inchangé est affiché `-`. Pour les comptes locaux, les attributs inchangés portent leur valeur actuelle, ce qui complique l'identification de ce qui a réellement changé. Une modification d'un attribut hors de cette liste (par exemple l'ACL du compte ou ses SPN) produit tout de même un 4738 où tout vaut `-`.
+
+  La partie la plus précieuse est la modification des indicateurs de compte : `OldUacValue` et `NewUacValue` contiennent les indicateurs de compte SAM avant et après, et `UserAccountControl` liste chaque indicateur activé ou désactivé. Les indicateurs qui affaiblissent un compte — mot de passe non requis, mot de passe qui n'expire jamais, pré-authentification Kerberos non requise, délégation non contrainte, chiffrement réversible — sont fréquemment positionnés par les attaquants pour préparer un vol d'identifiants ou une persistance.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Activé en succès dans la stratégie d'audit par défaut de Windows.
+  notes: >-
+    Les changements et réinitialisations de mot de passe (4723, 4724), les activations (4722) et
+    désactivations (4725) s'accompagnent chacun d'un 4738. Certaines modifications ne produisent
+    aucun 4738 ; sur les contrôleurs de domaine, Audit Directory Service Changes (5136) donne
+    l'attribut exact et les anciennes/nouvelles valeurs. Si un indicateur propre aux utilisateurs
+    est positionné sur un compte ordinateur, celui-ci devient un compte de type utilisateur et ses
+    modifications sont alors signalées par le 4738 au lieu du 4742.
+fields:
+  - name: SubjectUserName
+    description: Compte ayant effectué la modification.
+  - name: SubjectLogonId
+    description: Session du sujet ; corrélez avec le 4624.
+  - name: TargetUserName
+    description: Compte modifié.
+  - name: TargetDomainName
+    description: Domaine du compte modifié, ou nom de l'ordinateur pour un compte local.
+  - name: TargetSid
+    description: SID du compte modifié.
+  - name: PasswordLastSet
+    description: Nouvel horodatage du mot de passe lorsque celui-ci a été changé ou réinitialisé.
+  - name: ScriptPath
+    description: Chemin du script d'ouverture de session lorsqu'il a été modifié. Un nouveau script d'ouverture de session sur un compte est une méthode de persistance.
+  - name: PrimaryGroupId
+    description: Nouveau RID du groupe principal s'il a changé. Des valeurs autres que `513` (Domain Users) sont inhabituelles pour des comptes utilisateurs.
+  - name: AllowedToDelegateTo
+    description: >-
+      Nouvelle liste de SPN pour la délégation contrainte, ou `<value not set>` si la liste a été
+      vidée. Toute modification ici sur un compte utilisateur mérite un examen.
+  - name: SidHistory
+    description: Nouvelle valeur de l'historique des SID. En dehors d'une migration de domaine, elle devrait rester `-`.
+  - name: OldUacValue
+    description: Indicateurs de compte SAM avant la modification (hexadécimal, définition SAM, pas les bits `userAccountControl` d'AD).
+  - name: NewUacValue
+    description: Indicateurs de compte SAM après la modification. Comparez bit à bit avec OldUacValue.
+    values:
+      - value: "0x1"
+        meaning: Compte désactivé.
+      - value: "0x4"
+        meaning: Mot de passe non requis.
+      - value: "0x10"
+        meaning: Compte utilisateur normal.
+      - value: "0x200"
+        meaning: Le mot de passe n'expire jamais.
+      - value: "0x800"
+        meaning: Mot de passe chiffré de façon réversible autorisé.
+      - value: "0x1000"
+        meaning: Carte à puce requise.
+      - value: "0x2000"
+        meaning: Approuvé pour la délégation (délégation Kerberos non contrainte).
+      - value: "0x4000"
+        meaning: Non délégué (le compte est sensible et ne peut pas être délégué).
+      - value: "0x8000"
+        meaning: Utiliser uniquement une clé DES.
+      - value: "0x10000"
+        meaning: Pré-authentification Kerberos non requise (vulnérable à l'AS-REP roasting).
+      - value: "0x40000"
+        meaning: Approuvé pour l'authentification en vue de la délégation (transition de protocole).
+  - name: UserAccountControl
+    description: >-
+      Un code de message par indicateur activé ou désactivé, que l'Observateur d'événements affiche
+      sous forme de texte, par ex. "'Don't Require Preauth' - Enabled". Les codes présents dans les
+      exemples de Microsoft incluent `%%2080` (Account Disabled), `%%2082` (Password Not Required),
+      `%%2084` (Normal Account), `%%2087` (Workstation Trust Account) et `%%2093` (Trusted For
+      Delegation), chacun marquant l'indicateur comme activé.
+benign:
+  - Changements et réinitialisations de mot de passe, produisant chacun un 4738 avec un nouveau PasswordLastSet.
+  - Helpdesk et systèmes RH mettant à jour les noms d'affichage, UPN, répertoires de base ou dates d'expiration.
+  - Activation ou désactivation de comptes, visible comme une modification de l'indicateur Account Disabled.
+attacker:
+  - Désactivation de la pré-authentification Kerberos sur un utilisateur (indicateur `0x10000`) pour le soumettre à un AS-REP roasting hors ligne.
+  - Positionnement de Password Never Expires ou Password Not Required sur un compte de porte dérobée.
+  - Activation de la délégation non contrainte ou contrainte (Trusted For Delegation, AllowedToDelegateTo) sur un compte contrôlé par l'attaquant.
+  - Ajout de l'historique de SID d'un compte privilégié, ou d'un script d'ouverture de session qui exécute du code de l'attaquant.
+investigation:
+  - Décodez OldUacValue et NewUacValue et alertez sur l'activation d'indicateurs affaiblissants (0x4, 0x200, 0x800, 0x2000, 0x10000, 0x40000).
+  - Vérifiez le sujet — les modifications de comptes privilégiés par des comptes non administrateurs ou inhabituels sont prioritaires.
+  - Sur les contrôleurs de domaine, récupérez les 5136 pour le même objet et le même moment afin de voir les attributs exacts et les anciennes valeurs.
+  - Pour les modifications de pré-authentification ou de délégation, recherchez l'activité Kerberos qui suit pour le compte (4768, 4769).

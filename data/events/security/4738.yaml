@@ -1,0 +1,119 @@
+id: 4738
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A user account was changed
+shortTitle: User account changed
+category: account
+summary: >-
+  Security event 4738 is logged when a user account is modified. Changed attributes carry new
+  values, including account flags such as delegation or pre-auth.
+description: |-
+  Event 4738 is written each time a user object is changed — on domain controllers for domain accounts and on member servers and workstations for local accounts. One event is logged per change. `Subject*` identifies who made the change and `Target*` the account that was changed.
+
+  The event lists a fixed set of attributes: logon name, UPN, home directory, logon script, profile path, `PasswordLastSet`, `AccountExpires`, `PrimaryGroupId`, `AllowedToDelegateTo`, `SidHistory`, logon hours and the account flags. For domain accounts, an attribute that did not change is shown as `-`. For local accounts, unchanged attributes carry their current value, which makes it harder to tell what actually changed. A change to an attribute outside this list (for example the account's ACL or its SPNs) still produces a 4738 in which everything is `-`.
+
+  The most valuable part is the account flag change: `OldUacValue` and `NewUacValue` hold the SAM account flags before and after, and `UserAccountControl` lists each flag that was switched on or off. Flags that weaken an account — password not required, password never expires, Kerberos pre-authentication not required, unconstrained delegation, reversible encryption — are frequently set by attackers to prepare credential theft or persistence.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Enabled for Success in the default Windows audit policy.
+  notes: >-
+    Password changes and resets (4723, 4724), enabling (4722) and disabling (4725) are
+    each accompanied by a 4738. Some changes do not produce 4738 at all; on domain controllers,
+    Audit Directory Service Changes (5136) gives the exact attribute and old/new values.
+    If a user-only flag is set on a computer account it becomes a user-type account and its
+    changes are then reported by 4738 instead of 4742.
+fields:
+  - name: SubjectUserName
+    description: Account that made the change.
+  - name: SubjectLogonId
+    description: Logon session of the subject; correlate with 4624.
+  - name: TargetUserName
+    description: Account that was changed.
+  - name: TargetDomainName
+    description: Domain of the changed account, or the computer name for a local account.
+  - name: TargetSid
+    description: SID of the changed account.
+  - name: PasswordLastSet
+    description: New password timestamp when the password was changed or reset.
+  - name: ScriptPath
+    description: Logon script path when it was changed. A new logon script on an account is a persistence method.
+  - name: PrimaryGroupId
+    description: New primary group RID if changed. Values other than `513` (Domain Users) are unusual for user accounts.
+  - name: AllowedToDelegateTo
+    description: >-
+      New list of SPNs for constrained delegation, or `<value not set>` if the list was cleared.
+      Any change here on a user account deserves review.
+  - name: SidHistory
+    description: New SID history value. Outside a domain migration this should stay `-`.
+  - name: OldUacValue
+    description: SAM account flags before the change (hexadecimal, SAM definition, not the AD `userAccountControl` bits).
+  - name: NewUacValue
+    description: SAM account flags after the change. Compare bit by bit with OldUacValue.
+    values:
+      - value: "0x1"
+        meaning: Account disabled.
+      - value: "0x4"
+        meaning: Password not required.
+      - value: "0x10"
+        meaning: Normal user account.
+      - value: "0x200"
+        meaning: Password never expires.
+      - value: "0x800"
+        meaning: Encrypted text (reversible) password allowed.
+      - value: "0x1000"
+        meaning: Smart card required.
+      - value: "0x2000"
+        meaning: Trusted for delegation (unconstrained Kerberos delegation).
+      - value: "0x4000"
+        meaning: Not delegated (account is sensitive and cannot be delegated).
+      - value: "0x8000"
+        meaning: Use DES key only.
+      - value: "0x10000"
+        meaning: Kerberos pre-authentication not required (AS-REP roastable).
+      - value: "0x40000"
+        meaning: Trusted to authenticate for delegation (protocol transition).
+  - name: UserAccountControl
+    description: >-
+      One message code per flag that was switched on or off, rendered by Event Viewer as text such as
+      "'Don't Require Preauth' - Enabled". Codes seen in Microsoft's examples include `%%2080`
+      (Account Disabled), `%%2082` (Password Not Required), `%%2084` (Normal Account),
+      `%%2087` (Workstation Trust Account) and `%%2093` (Trusted For Delegation), each marking the flag as enabled.
+benign:
+  - Password changes and resets, each producing a 4738 with a new PasswordLastSet.
+  - Helpdesk and HR systems updating display names, UPNs, home directories or expiration dates.
+  - Accounts being enabled or disabled, which shows up as an Account Disabled flag change.
+attacker:
+  - Disabling Kerberos pre-authentication on a user (flag `0x10000`) to AS-REP roast it offline.
+  - Setting Password Never Expires or Password Not Required on a backdoor account.
+  - Enabling unconstrained or constrained delegation (Trusted For Delegation, AllowedToDelegateTo) on an account the attacker controls.
+  - Adding SID history of a privileged account, or a logon script that runs attacker code at logon.
+investigation:
+  - Decode OldUacValue and NewUacValue and alert on weakening flags (0x4, 0x200, 0x800, 0x2000, 0x10000, 0x40000) being turned on.
+  - Check the subject — changes to privileged accounts by non-admin or unusual accounts are high priority.
+  - On domain controllers, pull 5136 for the same object and time to see the exact attributes and old values.
+  - For pre-authentication or delegation changes, look for follow-up Kerberos activity for the account (4768, 4769).
+related:
+  - security/4720
+  - security/4722
+  - security/4723
+  - security/4724
+  - security/4725
+  - security/4742
+  - security/4765
+  - security/4781
+  - security/4768
+  - security/4769
+  - security/5136
+attack:
+  - T1098
+  - T1558.004
+  - T1134.005
+references:
+  - title: "Microsoft Learn — 4738(S): A user account was changed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4738
+  - title: "Microsoft Learn — [MS-SAMR] USER_ACCOUNT Codes"
+    url: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/b10cfda1-f24f-441b-8f43-80cb93e786ec
+  - title: Microsoft Learn — Audit User Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-user-account-management

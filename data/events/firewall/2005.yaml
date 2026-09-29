@@ -1,0 +1,88 @@
+id: 2005
+channel: firewall
+provider: Microsoft-Windows-Windows Firewall With Advanced Security
+title: A rule has been modified in the Windows Defender Firewall exception list
+shortTitle: Rule modified
+category: policy
+summary: >-
+  Firewall event 2005 records a change to an existing Windows Firewall rule, with the rule's new
+  settings and the user and process that changed it. On by default.
+description: |-
+  Event 2005 is written to the Windows Firewall operational log when an existing rule is changed — enabled, disabled, or edited. It carries the complete **new** definition of the rule (program, ports, addresses, `Direction`, `Action`, `Active`) plus `ModifyingUser` (SID) and `ModifyingApplication` (process path).
+
+  The event does not include the previous values. To see what changed, compare with an earlier 2004 or 2005 for the same `RuleId`, or with the rule's state on a known-good host.
+
+  Enabling a predefined rule (Remote Desktop, WinRM, File and Printer Sharing, Remote Event Log Management) is a quiet way to open a host for remote access, and it appears here with `Active` set to `1` rather than as a new rule.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Microsoft-Windows-Windows Firewall With Advanced Security/Firewall channel, enabled by default.
+    No audit policy needed.
+  notes: >-
+    Newer Windows 10 and Windows 11 builds log rule modifications under a different event ID in the
+    same channel; if 2005 is absent on a recent build, look for other rule-change events there.
+fields:
+  - name: RuleId
+    description: Unique ID of the modified rule; use it to find the rule's earlier events.
+  - name: RuleName
+    description: Display name of the rule.
+  - name: ApplicationPath
+    description: Program the rule applies to, if any.
+  - name: ServiceName
+    description: Service the rule applies to, if any.
+  - name: Direction
+    description: Traffic direction.
+    values:
+      - value: "1"
+        meaning: Inbound.
+      - value: "2"
+        meaning: Outbound.
+  - name: Protocol
+    description: IANA protocol number (`6` TCP, `17` UDP).
+  - name: LocalPorts
+    description: Local ports covered by the rule after the change.
+  - name: RemoteAddresses
+    description: Remote address scope after the change; watch for scopes widened to any.
+  - name: Action
+    description: Rule action after the change.
+    values:
+      - value: "2"
+        meaning: Block.
+      - value: "3"
+        meaning: Allow.
+  - name: Active
+    description: Whether the rule is enabled after the change.
+    values:
+      - value: "0"
+        meaning: Disabled.
+      - value: "1"
+        meaning: Enabled.
+  - name: ModifyingUser
+    description: SID of the account that modified the rule.
+  - name: ModifyingApplication
+    description: Full path of the process that modified the rule.
+benign:
+  - Windows servicing and application updates refreshing their rules.
+  - Administrators enabling built-in rule groups for a new role or feature.
+  - Network and management agents adjusting rules they own.
+attacker:
+  - Enabling the built-in Remote Desktop or WinRM rules with `netsh advfirewall firewall set rule group=... new enable=yes` or `Enable-NetFirewallRule`.
+  - Switching a block rule to allow, or broadening its remote address scope, to let a tool communicate.
+investigation:
+  - Compare the new state with the previous 2004/2005 for the same `RuleId` to identify the actual change.
+  - Resolve `ModifyingUser` and correlate `ModifyingApplication` with process creation (4688, Sysmon 1) at the same time.
+  - When an inbound remote-access rule was enabled, look for logons that followed (4624 LogonType 3 or 10, RDP 1149).
+related:
+  - firewall/2004
+  - firewall/2006
+  - security/4947
+  - security/4688
+  - security/4624
+  - rdp-remote-connection-manager/1149
+attack:
+  - T1686.003
+references:
+  - title: Microsoft Learn — Windows Firewall rules
+    url: https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-firewall/rules
+  - title: MITRE ATT&CK — T1686.003 Disable or Modify System Firewall - Windows Host Firewall
+    url: https://attack.mitre.org/techniques/T1686/003/

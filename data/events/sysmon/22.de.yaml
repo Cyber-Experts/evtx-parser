@@ -1,0 +1,51 @@
+title: DNS-Abfrage (DNSEvent – DNS query)
+shortTitle: DNS-Abfrage
+summary: >-
+  Sysmon-Event-ID 22 protokolliert DNS-Abfragen eines Prozesses mit Name, Status und Antworten. Verknüpft Domänen mit Prozessen für C2- und Tunneling-Hunts.
+description: |-
+  Sysmon-Event 22 protokolliert eine über den Windows-DNS-Client durchgeführte DNS-Auflösung zusammen mit dem anfragenden Prozess. Es wird protokolliert, egal ob die Abfrage erfolgreich ist oder fehlschlägt und ob die Antwort aus dem Cache kam.
+
+  Der Wert liegt in der Zuordnung: Netzwerk-DNS-Logs zeigen, dass ein Host eine Domäne aufgelöst hat, Event 22 zeigt, welches Programm es war. `QueryResults` listet die zurückgegebenen Adressen (und CNAME-Einträge), die sich dann mit Event-3-Verbindungen desselben Prozesses abgleichen lassen.
+
+  Das Volumen ist auf Arbeitsstationen hoch; Konfigurationen schließen meist bekannte Microsoft-, CDN- und Geschäftsdomänen aus. Die Telemetrie setzt Windows 8.1 oder neuer voraus.
+logging:
+  requirement: >-
+    Sysmon 10.0 oder neuer mit einer Regel `<DnsQuery>` in der Konfiguration. Unter Windows 7 und
+    älter nicht verfügbar.
+  notes: >-
+    Nur Auflösungen über den Windows-DNS-Client werden erfasst; ein Programm, das rohe DNS-Pakete
+    sendet oder DNS over HTTPS innerhalb der Anwendung nutzt, umgeht ihn.
+fields:
+  - name: ProcessGuid
+    description: Prozess, der die Abfrage gestellt hat; auf sein Event 1 pivotieren.
+  - name: Image
+    description: Programm, das die Abfrage gestellt hat.
+  - name: QueryName
+    description: Aufgelöster Name.
+  - name: QueryStatus
+    description: Ergebniscode der Abfrage.
+    values:
+      - value: "0"
+        meaning: Erfolg.
+      - value: "9003"
+        meaning: DNS_ERROR_RCODE_NAME_ERROR — der Name existiert nicht (NXDOMAIN).
+      - value: "9501"
+        meaning: DNS_INFO_NO_RECORDS — der Name existiert, hat aber keinen Eintrag des angeforderten Typs.
+  - name: QueryResults
+    description: >-
+      Zurückgegebene Antworten, durch Semikolons getrennt. CNAME-Einträge werden mit ihrem
+      Eintragstyp angezeigt; IPv4-Antworten können in IPv4-gemappter IPv6-Form erscheinen
+      (`::ffff:a.b.c.d`).
+  - name: User
+    description: Konto des Prozesses (neuere Sysmon-Versionen).
+benign:
+  - Browser, Teams, Office und Windows-Dienste, die Cloud- und CDN-Namen auflösen.
+  - Endpoint- und Update-Agenten, die die Domänen ihres Herstellers abfragen.
+attacker:
+  - Skript-Hosts oder LOLBins, die seltene oder neu registrierte Domänen, Paste-Sites oder Tunneling-Dienste auflösen.
+  - Viele NXDOMAIN-Antworten (`9003`) für einen Prozess — Verhalten eines Domain Generation Algorithm (DGA).
+  - Massenhaft lange, zufällig wirkende Subdomains — DNS-Tunneling oder Exfiltration.
+investigation:
+  - Über ProcessGuid auf Event 1 und auf Event-3-Verbindungen zu den IPs in QueryResults pivotieren.
+  - QueryName über die gesamte Umgebung zählen; Domänen, die nur auf einem Host auftauchen, sind Kandidaten für eine Prüfung.
+  - Alter und Reputation jeder von einem Skript-Host aufgelösten Domäne prüfen.

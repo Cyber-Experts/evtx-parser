@@ -1,0 +1,74 @@
+id: 31001
+channel: smb-client
+provider: Microsoft-Windows-SMBClient
+title: SMB client authentication failure
+shortTitle: Logon failure
+category: network-share
+summary: >-
+  SMB client event 31001 records a failed authentication from this computer to an SMB server, with
+  server name, user name, SPN and error codes. Source-side view.
+description: |-
+  Event 31001 is logged in the `Microsoft-Windows-SMBClient/Security` channel on the computer that **initiated** the SMB connection, when authentication to the remote server fails. The message text is the `Reason` string, followed by the NT status, the security (SSPI) status, the user, the logon session, the server and the service principal name used.
+
+  It is the client-side counterpart of server-side failures (4625 and SMB server 551 on the target). Because it is written on the source host, it shows where a failing connection came from even when the target's logs are unavailable, and `LogonId` ties the attempt to a local logon session.
+
+  Most 31001 events are operational: expired passwords in mapped drives, Kerberos SPN problems (`cifs/server`), unreachable domain controllers. A burst of failures against many servers from one host, or with many different user names, points to password guessing or a tool testing stolen credentials.
+logging:
+  enabledByDefault: true
+  requirement: Microsoft-Windows-SMBClient/Security channel, enabled by default on current Windows versions.
+fields:
+  - name: Reason
+    description: Human-readable failure reason; it is also the first line of the rendered message.
+  - name: Status
+    description: NT status code of the failure.
+    values:
+      - value: "0xC000006D"
+        meaning: STATUS_LOGON_FAILURE — bad user name or authentication information.
+      - value: "0xC0000234"
+        meaning: STATUS_ACCOUNT_LOCKED_OUT — the account is locked out.
+      - value: "0xC0000072"
+        meaning: STATUS_ACCOUNT_DISABLED — the account is disabled.
+  - name: SecurityStatus
+    description: SSPI status returned by the security package.
+    values:
+      - value: "0x8009030C"
+        meaning: SEC_E_LOGON_DENIED — the logon attempt failed.
+      - value: "0x80090311"
+        meaning: SEC_E_NO_AUTHENTICATING_AUTHORITY — no authority (domain controller) could be contacted.
+      - value: "0x80090322"
+        meaning: SEC_E_WRONG_PRINCIPAL — the target principal name is incorrect (often an SPN or DNS alias problem).
+  - name: UserName
+    description: Account used for the connection attempt.
+  - name: LogonId
+    description: Local logon session that made the attempt; match it with 4624 `TargetLogonId` on this host.
+  - name: ServerName
+    description: Target server, e.g. `\fileserver01` or `\10.0.0.5`. An IP address forces NTLM instead of Kerberos.
+  - name: PrincipalName
+    description: SPN used for Kerberos, e.g. `cifs/fileserver01.contoso.local`.
+benign:
+  - Mapped drives or scheduled tasks still using an old password after a password change.
+  - Laptops off the corporate network failing to reach a domain controller.
+  - SPN or DNS alias misconfiguration causing Kerberos errors against a file server.
+attacker:
+  - Credential testing over SMB (for example with CrackMapExec/NetExec style tools run from a compromised host) producing many failures against many servers.
+  - Lateral movement attempts with wrong or expired stolen credentials.
+  - Connections to external or unusual SMB servers, which can indicate forced authentication or data exfiltration attempts.
+investigation:
+  - Group by `ServerName` and `UserName` to separate a single broken mapping from a spray across servers or accounts.
+  - Match `LogonId` with 4624 on the source host to identify the user session, then with process creation (4688, Sysmon 1) around the timestamp.
+  - On the target, look for the matching SMB server 551 and Security 4625 events.
+  - Check for successful connections after the failures (5140 on the target, 4624 LogonType 3) to see whether an attempt eventually worked.
+related:
+  - smb-server/551
+  - security/4625
+  - security/4624
+  - security/4776
+  - security/5140
+attack:
+  - T1110
+  - T1021.002
+references:
+  - title: Microsoft Learn — SMB security enhancements
+    url: https://learn.microsoft.com/en-us/windows-server/storage/file-server/smb-security
+  - title: MITRE ATT&CK — T1021.002 SMB/Windows Admin Shares
+    url: https://attack.mitre.org/techniques/T1021/002/

@@ -1,0 +1,96 @@
+title: Un ticket d'authentification Kerberos (TGT) a été demandé
+shortTitle: Demande de TGT Kerberos
+summary: >-
+  L'événement 4768 consigne sur le contrôleur de domaine chaque demande de TGT Kerberos : compte,
+  IP client, chiffrement, type de pré-authentification, résultat.
+description: |-
+  L'événement 4768 est consigné par le centre de distribution de clés (KDC) sur un **contrôleur de domaine** chaque fois qu'un compte demande un Ticket Granting Ticket — la première étape de toute ouverture de session Kerberos dans un domaine. Les ouvertures de session utilisateur, les démarrages d'ordinateurs et les services s'exécutant sous des comptes de domaine le génèrent tous.
+
+  En forensic, c'est la preuve côté DC qu'un compte s'est authentifié, et depuis quelle IP (`IpAddress`). Les champs `TicketEncryptionType` et `PreAuthType` révèlent une authentification faible ou inhabituelle : du RC4 là où le domaine utilise AES, ou le type de pré-authentification `0`, qui signifie que le compte n'exige pas la pré-authentification Kerberos et est exposé à l'AS-REP roasting.
+
+  Les demandes de TGT en échec sont consignées en 4768 avec un `Status` non nul (pour les comptes inconnus ou révoqués) ; un mauvais mot de passe produit plutôt un 4771.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Logon > Audit Kerberos Authentication Service
+    (Success, et Failure pour les demandes en échec). Pertinent uniquement sur les contrôleurs de
+    domaine.
+  notes: >-
+    Volume élevé sur les DC. Activez explicitement l'audit des échecs si vous voulez les demandes
+    en échec ; vérifiez la stratégie effective avec
+    `auditpol /get /subcategory:"Kerberos Authentication Service"`.
+fields:
+  - name: TargetUserName
+    description: Compte ayant demandé le TGT (utilisateur ou compte ordinateur se terminant par `$`).
+  - name: TargetDomainName
+    description: Royaume (realm) Kerberos (domaine) fourni par le client.
+  - name: TargetSid
+    description: SID du compte, lorsqu'il existe.
+  - name: ServiceName
+    description: Toujours `krbtgt` pour une demande de TGT.
+  - name: TicketOptions
+    description: Indicateurs d'options de ticket Kerberos demandés (hex), par ex. `0x40810010` pour un client Windows typique.
+  - name: Status
+    description: Code de résultat Kerberos.
+    values:
+      - value: "0x0"
+        meaning: Succès — un TGT a été délivré.
+      - value: "0x6"
+        meaning: KDC_ERR_C_PRINCIPAL_UNKNOWN — le nom d'utilisateur n'existe pas.
+      - value: "0x12"
+        meaning: KDC_ERR_CLIENT_REVOKED — compte désactivé, expiré ou verrouillé.
+      - value: "0x17"
+        meaning: KDC_ERR_KEY_EXPIRED — le mot de passe a expiré.
+      - value: "0x25"
+        meaning: KRB_AP_ERR_SKEW — décalage d'horloge trop important entre le client et le DC.
+  - name: TicketEncryptionType
+    description: Type de chiffrement du ticket délivré.
+    values:
+      - value: "0x11"
+        meaning: AES128-CTS-HMAC-SHA1-96
+      - value: "0x12"
+        meaning: AES256-CTS-HMAC-SHA1-96 — normal dans les domaines modernes.
+      - value: "0x17"
+        meaning: RC4-HMAC — hérité ; suspect lorsque le compte et le domaine prennent en charge AES.
+      - value: "0x18"
+        meaning: RC4-HMAC-EXP
+      - value: "0x1"
+        meaning: DES-CBC-CRC (désactivé par défaut depuis Windows 7 / Server 2008 R2).
+      - value: "0x3"
+        meaning: DES-CBC-MD5 (désactivé par défaut depuis Windows 7 / Server 2008 R2).
+      - value: "0xffffffff"
+        meaning: Aucun ticket délivré (échec).
+  - name: PreAuthType
+    description: Méthode de pré-authentification utilisée.
+    values:
+      - value: "0"
+        meaning: Pas de pré-authentification — le compte a l'option « Do not require Kerberos preauthentication » activée.
+      - value: "2"
+        meaning: PA-ENC-TIMESTAMP — ouverture de session standard par mot de passe.
+      - value: "15"
+        meaning: PA-PK-AS-REP_OLD — ouverture de session par carte à puce.
+      - value: "16"
+        meaning: PA-PK-AS-REQ — ouverture de session par carte à puce / certificat.
+      - value: "138"
+        meaning: PA-ENCRYPTED-CHALLENGE — blindage Kerberos (FAST).
+  - name: IpAddress
+    description: Adresse IP du client (les adresses IPv4 peuvent apparaître sous la forme `::ffff:10.0.0.5`).
+  - name: IpPort
+    description: Port source du client.
+  - name: CertIssuerName
+    description: Pour les ouvertures de session par certificat, l'autorité de certification émettrice — utile pour enquêter sur un abus de certificats.
+  - name: CertThumbprint
+    description: Empreinte du certificat utilisé pour les ouvertures de session PKINIT.
+benign:
+  - Toute ouverture de session d'utilisateur ou d'ordinateur du domaine ; les ordinateurs renouvellent régulièrement leur TGT.
+  - Comptes de service s'authentifiant au démarrage des services ou des tâches planifiées.
+  - Ouvertures de session par certificat (carte à puce, Windows Hello for Business) avec PreAuthType 16.
+attacker:
+  - "AS-REP roasting — demandes de TGT avec PreAuthType `0` pour des comptes n'exigeant pas la pré-authentification, souvent en RC4 (`0x17`), depuis un hôte qui n'est pas celui de l'utilisateur."
+  - Un mot de passe ou hash volé utilisé depuis une nouvelle adresse IP — la demande de TGT est la première trace côté DC.
+  - "Énumération d'utilisateurs via Kerberos — rafales de Status `0x6` pour de nombreux noms depuis une seule IP."
+  - L'abus de certificats (par exemple des certificats obtenus via des mauvaises configurations AD CS) apparaît sous forme d'ouvertures de session PKINIT avec un CertIssuerName ou un CertThumbprint inattendu.
+investigation:
+  - Établissez une référence des IP clientes par compte ; un TGT pour un compte privilégié depuis un poste de travail jamais utilisé auparavant est une piste.
+  - Chassez les PreAuthType 0 et listez les comptes dont la pré-authentification est désactivée.
+  - Signalez les tickets RC4 (`0x17`) dans les domaines où AES est la norme, puis vérifiez qui les a demandés.
+  - Suivez le même compte et la même IP jusqu'aux 4769 (tickets de service) pour voir à quels services il a accédé après s'être authentifié.

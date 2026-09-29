@@ -1,0 +1,35 @@
+title: Une session a été reconnectée à une station Windows
+shortTitle: Session reconnectée
+summary: >-
+  L'événement 4778 est consigné lors d'une reconnexion à une session interactive existante,
+  typiquement une reconnexion RDP ou un changement rapide d'utilisateur.
+description: |-
+  L'événement 4778 consigne une reconnexion à une session existante : un client RDP qui se rattache à une session déconnectée, ou un utilisateur qui revient à sa session via le changement rapide d'utilisateur. Aucun nouveau 4624 n'est écrit dans ce cas pour la session elle-même : c'est donc le 4778 qui montre que quelqu'un est revenu.
+
+  Les champs `ClientName` et `ClientAddress` identifient l'appareil qui s'est reconnecté. Les comparer à l'ouverture de session d'origine montre quand une session a été reprise depuis une autre machine.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Other Logon/Logoff Events
+    (Success).
+fields:
+  - name: AccountName
+    description: Utilisateur qui s'est reconnecté.
+  - name: AccountDomain
+    description: Domaine de cet utilisateur.
+  - name: LogonID
+    description: Identifiant de la session reprise (correspond à son 4624 d'origine).
+  - name: SessionName
+    description: Nom de la station Windows / session, par ex. `RDP-Tcp#3` ou `Console`.
+  - name: ClientName
+    description: Nom de l'ordinateur client qui se connecte (pour RDP).
+  - name: ClientAddress
+    description: Adresse IP du client qui se connecte (pour RDP).
+benign:
+  - Utilisateurs se reconnectant à leur session RDP après une coupure réseau ou depuis un autre appareil.
+  - Changement rapide d'utilisateur sur des postes partagés.
+attacker:
+  - Un intrus qui se rattache à une session administrateur déconnectée, éventuellement depuis une nouvelle IP.
+  - Le détournement de session (par exemple avec `tscon`) déplace une session vers un autre client ; la reconnexion est consignée ici.
+investigation:
+  - Comparez ClientAddress avec l'IP du 4624 de type 10 d'origine pour le même LogonID.
+  - Associez à l'événement LocalSessionManager 25 (reconnexion) et au 4779 (déconnexion) pour reconstituer la chronologie de la session RDP.

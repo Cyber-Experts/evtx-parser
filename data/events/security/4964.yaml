@@ -1,0 +1,66 @@
+id: 4964
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: Special groups have been assigned to a new logon
+shortTitle: Special group logon
+category: logon
+summary: >-
+  Security event 4964 flags a logon by a member of a group listed in the SpecialGroups registry
+  value, e.g. Domain Admins. Only works once configured.
+description: |-
+  Event 4964 is written when an account that belongs to one of the administrator-defined **Special Groups** logs on. The list of groups is a semicolon-separated string of SIDs stored in the `SpecialGroups` value under `HKLM\System\CurrentControlSet\Control\Lsa\Audit`. When a new logon's token contains any of them, Windows writes 4964 alongside the usual 4624, with the matching SIDs in `SidList`.
+
+  It is a cheap, built-in way to alert on privileged logons where they should not happen — Domain Admins signing in to ordinary workstations, service account groups logging on interactively. Because the list is local to each machine, it is normally deployed by Group Policy registry preferences to the hosts where such logons are forbidden.
+
+  With no `SpecialGroups` value configured, the event never fires, even though its audit subcategory is on by default.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Special Logon (Success), plus the
+    `SpecialGroups` string value (semicolon-separated group SIDs) under
+    `HKLM\System\CurrentControlSet\Control\Lsa\Audit`.
+  notes: >-
+    Audit Special Logon is enabled for Success by default, but nothing is logged until the registry
+    value is set.
+fields:
+  - name: SubjectUserName
+    description: Account that requested the logon on the local machine, often the computer account.
+  - name: TargetUserName
+    description: Account that logged on and matched a special group.
+  - name: TargetDomainName
+    description: Domain of that account.
+  - name: TargetUserSid
+    description: SID of that account.
+  - name: TargetLogonId
+    description: >-
+      New logon session. Pivot to the 4624 with the same TargetLogonId for LogonType and source
+      address.
+  - name: TargetLogonGuid
+    description: Logon GUID; can be matched to 4769 on a domain controller and to 4624/4648 on this host.
+  - name: SidList
+    description: The special group SIDs found in the new logon's token, e.g. the Domain Admins SID (RID 512).
+benign:
+  - Administrators logging on to servers or admin workstations where privileged access is expected.
+  - Service accounts in a monitored group starting their services (logon type 5).
+attacker:
+  - >-
+    Stolen Domain Admin credentials used on a regular workstation or server outside the tier they
+    belong to — a classic lateral movement indicator.
+  - Privileged accounts logging on at unusual times or from unusual source addresses.
+investigation:
+  - Join each 4964 to its 4624 via TargetLogonId to get LogonType, IpAddress and WorkstationName.
+  - Check whether this host is one where members of the listed groups should ever log on.
+  - Follow the session with 4672 and 4688 (same logon ID) to see what the privileged account did.
+related:
+  - security/4624
+  - security/4672
+  - security/4648
+  - security/4769
+  - security/4688
+attack:
+  - T1078.002
+references:
+  - title: "Microsoft Learn — 4964(S): Special groups have been assigned to a new logon"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4964
+  - title: Microsoft Learn — Audit Special Logon
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-special-logon

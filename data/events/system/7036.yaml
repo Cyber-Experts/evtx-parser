@@ -1,0 +1,62 @@
+id: 7036
+channel: system
+provider: Service Control Manager
+title: The service entered the running or stopped state
+shortTitle: Service state changed
+category: service
+summary: >-
+  System event 7036 logs each time a service enters the running or stopped state. Shows when
+  services ran and when security tools or logging were stopped.
+description: |-
+  Event 7036 is written by the Service Control Manager whenever a service changes state. `param1` is the service display name and `param2` the new state, most often `running` or `stopped`. It is by far the most frequent Service Control Manager event, since many services start and stop on demand.
+
+  Its value comes from correlation. After a **7045**, a `running` / `stopped` pair seconds apart is the typical footprint of one-shot remote execution (PsExec-style). Before an encryption or wiping phase, a series of `stopped` records for backup, database and security services is a classic ransomware preparation step. A security agent or the Windows Event Log reaching `stopped` outside a shutdown is a red flag.
+
+  The event does not say who stopped the service. Find that in process creation (4688, Sysmon 1: `sc stop`, `net stop`, `Stop-Service`, `taskkill`) at the same time.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log.
+  notes: >-
+    Very noisy. The state text in `param2` can be localized on non-English systems, and the
+    record's binary data holds the service key name.
+fields:
+  - name: param1
+    description: Display name of the service, e.g. `Windows Defender Antivirus Service`, `Volume Shadow Copy`.
+  - name: param2
+    description: New state of the service.
+    values:
+      - value: running
+        meaning: The service started.
+      - value: stopped
+        meaning: The service stopped, cleanly or on request.
+benign:
+  - Demand-start services starting and stopping all day (Windows Update, BITS, Windows Modules Installer).
+  - Services stopped and restarted during patching and software updates.
+attacker:
+  - >-
+    Remote execution services (PSEXESVC or random names) entering `running` then `stopped` right
+    after their 7045 installation.
+  - Ransomware stopping backup, SQL, Exchange, VSS and antivirus services before encryption.
+  - Defense evasion by stopping EDR, Defender or Sysmon services.
+investigation:
+  - Filter out the noisy demand-start services, then look for security, backup and logging services entering `stopped`.
+  - Pair `running`/`stopped` records with 7045 to measure how long an installed service ran.
+  - Find the command that stopped the service in 4688 or Sysmon 1 at the same second.
+related:
+  - system/7045
+  - system/7040
+  - system/7034
+  - system/7031
+  - security/4688
+  - sysmon/1
+attack:
+  - T1489
+  - T1569.002
+  - T1685
+references:
+  - title: MITRE ATT&CK — Service Stop (T1489)
+    url: https://attack.mitre.org/techniques/T1489/
+  - title: MITRE ATT&CK — Disable or Modify Tools (T1685)
+    url: https://attack.mitre.org/techniques/T1685/
+  - title: Microsoft Learn — Service Control Manager
+    url: https://learn.microsoft.com/en-us/windows/win32/services/service-control-manager

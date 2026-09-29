@@ -1,0 +1,39 @@
+id: 1013
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: The antimalware platform deleted history of malware and other potentially unwanted software
+shortTitle: Detection history deleted
+category: antimalware
+summary: >-
+  Defender event 1013 is logged when Defender's malware detection history is deleted — routine
+  purging, or an attempt to hide past detections.
+description: |-
+  Event 1013 records that Microsoft Defender Antivirus removed items from its detection history. Defender purges old history automatically after a retention period, so the event is normally routine.
+
+  It becomes interesting when it appears right after detections during an incident, or when triggered by a user rather than the system: clearing history hides what was detected from the Defender UI (the Operational log entries remain unless the log is cleared too).
+logging:
+  enabledByDefault: true
+  requirement: None — logged by Microsoft Defender Antivirus when it is the active antivirus.
+fields:
+  - name: Timestamp
+    description: Time up to which history was deleted.
+  - name: Domain
+    description: Domain of the account that triggered the deletion.
+  - name: User
+    description: Account that triggered the deletion (often SYSTEM for automatic purges).
+benign:
+  - Automatic history cleanup by Defender after the retention period.
+attacker:
+  - An intruder clearing Defender history to hide detections of their tools.
+investigation:
+  - Check the User field; a named account instead of SYSTEM deserves a question.
+  - Look for 1116/1117 shortly before, and for other anti-forensics (1102, 104).
+related:
+  - defender/1116
+  - security/1102
+  - system/104
+attack:
+  - T1070
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

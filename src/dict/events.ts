@@ -1,0 +1,838 @@
+// UI strings for the Event ID encyclopedia (/[lang]/events) and the viewer's
+// "What is event N?" link. Kept apart from the main Dict so the viewer can
+// import it without the rest of the site copy. Event content itself lives in
+// data/events (English + fr/es/de translations).
+
+import type { EventCategory } from "@/lib/events/types";
+import type { SigmaLevel } from "@/lib/sigma/types";
+import type { Locale } from "./locales";
+
+export type EventsDict = {
+  navTitle: string;
+  /** Header link label. */
+  navShort: string;
+  /** ≤ 46 chars so " | EVTX parser" still fits in 60. */
+  indexMetaTitle: string;
+  /** 50–160 chars. */
+  indexDescription: string;
+  indexH1: string;
+  /** {count} = number of events. */
+  indexIntro: string;
+  searchLabel: string;
+  searchPlaceholder: string;
+  channelFilter: string;
+  categoryFilter: string;
+  tacticFilter: string;
+  all: string;
+  /** {count} */
+  resultCount: string;
+  noResults: string;
+  reset: string;
+  englishBadge: string;
+  englishTitle: string;
+  /** {prefix}{id}{title} — "Sysmon Event ID 1: Process creation". */
+  heading: string;
+  factsEventId: string;
+  factsChannel: string;
+  factsProvider: string;
+  factsLogFile: string;
+  factsCategory: string;
+  factsLogging: string;
+  loggedByDefault: string;
+  notLoggedByDefault: string;
+  /** {id} */
+  sectionMeaning: string;
+  sectionLogging: string;
+  requirementLabel: string;
+  sectionFields: string;
+  fieldColumn: string;
+  descriptionColumn: string;
+  valueColumn: string;
+  meaningColumn: string;
+  sectionBenign: string;
+  sectionAttacker: string;
+  sectionInvestigation: string;
+  sectionAttack: string;
+  techniqueColumn: string;
+  tacticColumn: string;
+  /** {version} */
+  attackNote: string;
+  sectionSigma: string;
+  /** {count} {release} */
+  sigmaIntro: string;
+  sigmaNone: string;
+  /** {shown} */
+  sigmaShowing: string;
+  sigmaLicense: string;
+  ctaTitle: string;
+  /** {total} = all bundled rules */
+  ctaText: string;
+  ctaButton: string;
+  /** {id} */
+  ctaFilter: string;
+  sectionRelated: string;
+  sectionReferences: string;
+  inDepth: string;
+  levels: Record<SigmaLevel, string>;
+  categories: Record<EventCategory, string>;
+};
+
+const en: EventsDict = {
+  navTitle: "Event ID encyclopedia",
+  navShort: "Event IDs",
+  indexMetaTitle: "Windows Event ID encyclopedia for DFIR",
+  indexDescription:
+    "What each Windows event ID means, when it is logged, key fields, attacker use and matching Sigma rules: Security, Sysmon, PowerShell, RDP and more.",
+  indexH1: "Windows Event ID encyclopedia",
+  indexIntro:
+    "{count} Windows events explained for incident responders and SOC analysts: what each one means, which audit policy produces it, the fields that matter, how attackers trigger it and which SigmaHQ rules detect it.",
+  searchLabel: "Search events",
+  searchPlaceholder: "4624, logon, Kerberos, service install…",
+  channelFilter: "Channel",
+  categoryFilter: "Category",
+  tacticFilter: "ATT&CK tactic",
+  all: "All",
+  resultCount: "{count} events",
+  noResults: "No event matches these filters.",
+  reset: "Reset filters",
+  englishBadge: "English",
+  englishTitle: "Not translated yet: opens the English entry",
+  heading: "{prefix}Event ID {id}: {title}",
+  factsEventId: "Event ID",
+  factsChannel: "Channel",
+  factsProvider: "Provider",
+  factsLogFile: "Log file",
+  factsCategory: "Category",
+  factsLogging: "Default logging",
+  loggedByDefault: "Logged by default",
+  notLoggedByDefault: "Needs configuration",
+  sectionMeaning: "What event {id} means",
+  sectionLogging: "When it is logged",
+  requirementLabel: "Audit policy / configuration",
+  sectionFields: "Key fields",
+  fieldColumn: "Field",
+  descriptionColumn: "What it tells you",
+  valueColumn: "Value",
+  meaningColumn: "Meaning",
+  sectionBenign: "Common benign sources",
+  sectionAttacker: "What attackers do that produces it",
+  sectionInvestigation: "Investigation tips",
+  sectionAttack: "MITRE ATT&CK techniques",
+  techniqueColumn: "Technique",
+  tacticColumn: "Tactics",
+  attackNote: "MITRE ATT&CK v{version}. Technique and tactic names are MITRE's.",
+  sectionSigma: "Sigma rules for this event",
+  sigmaIntro: "{count} SigmaHQ detection rules (release {release}) target this event.",
+  sigmaNone:
+    "No bundled SigmaHQ rule targets this event ID specifically. Rules on related events may still cover the activity.",
+  sigmaShowing: "Showing the {shown} highest-severity rules.",
+  sigmaLicense:
+    "Rules by their named authors, published by SigmaHQ under the Detection Rule License (DRL) 1.1.",
+  ctaTitle: "Run these rules on your logs",
+  ctaText:
+    "Drop a .evtx file into the viewer: all {total} bundled SigmaHQ rules run locally in your browser. Nothing is uploaded.",
+  ctaButton: "Open the viewer",
+  ctaFilter: "Filter a log on event {id}",
+  sectionRelated: "Related events",
+  sectionReferences: "Sources and further reading",
+  inDepth: "In-depth guide",
+  levels: {
+    critical: "Critical",
+    high: "High",
+    medium: "Medium",
+    low: "Low",
+    informational: "Info",
+  },
+  categories: {
+    logon: "Logon",
+    account: "User accounts",
+    group: "Groups",
+    kerberos: "Kerberos",
+    ntlm: "NTLM",
+    process: "Processes",
+    service: "Services",
+    "scheduled-task": "Scheduled tasks",
+    "object-access": "Object access",
+    "network-share": "Network shares",
+    policy: "Policy changes",
+    "log-integrity": "Log integrity",
+    system: "System",
+    powershell: "PowerShell",
+    "remote-access": "Remote access",
+    wmi: "WMI",
+    network: "Network",
+    registry: "Registry",
+    file: "Files",
+    device: "Devices and drivers",
+    antimalware: "Antimalware",
+    "application-control": "Application control",
+    directory: "Active Directory",
+    software: "Software",
+  },
+};
+
+const fr: EventsDict = {
+  navTitle: "Encyclopédie des Event ID",
+  navShort: "Event ID",
+  indexMetaTitle: "Encyclopédie des Event ID Windows (DFIR)",
+  indexDescription:
+    "Ce que signifie chaque Event ID Windows, quand il est journalisé, ses champs clés, l’usage par les attaquants et les règles Sigma associées.",
+  indexH1: "Encyclopédie des Event ID Windows",
+  indexIntro:
+    "{count} événements Windows expliqués pour les analystes DFIR et SOC : leur signification, la stratégie d’audit qui les produit, les champs utiles, comment les attaquants les déclenchent et quelles règles SigmaHQ les détectent.",
+  searchLabel: "Rechercher un événement",
+  searchPlaceholder: "4624, ouverture de session, Kerberos, service…",
+  channelFilter: "Journal",
+  categoryFilter: "Catégorie",
+  tacticFilter: "Tactique ATT&CK",
+  all: "Tous",
+  resultCount: "{count} événements",
+  noResults: "Aucun événement ne correspond à ces filtres.",
+  reset: "Réinitialiser",
+  englishBadge: "Anglais",
+  englishTitle: "Pas encore traduit : ouvre la fiche en anglais",
+  heading: "{prefix}Event ID {id} : {title}",
+  factsEventId: "Event ID",
+  factsChannel: "Journal",
+  factsProvider: "Fournisseur",
+  factsLogFile: "Fichier",
+  factsCategory: "Catégorie",
+  factsLogging: "Journalisation par défaut",
+  loggedByDefault: "Activée par défaut",
+  notLoggedByDefault: "À configurer",
+  sectionMeaning: "Que signifie l’événement {id}",
+  sectionLogging: "Quand il est journalisé",
+  requirementLabel: "Stratégie d’audit / configuration",
+  sectionFields: "Champs clés",
+  fieldColumn: "Champ",
+  descriptionColumn: "Ce qu’il indique",
+  valueColumn: "Valeur",
+  meaningColumn: "Signification",
+  sectionBenign: "Sources légitimes courantes",
+  sectionAttacker: "Ce que font les attaquants qui le produit",
+  sectionInvestigation: "Pistes d’investigation",
+  sectionAttack: "Techniques MITRE ATT&CK",
+  techniqueColumn: "Technique",
+  tacticColumn: "Tactiques",
+  attackNote: "MITRE ATT&CK v{version}. Noms des techniques et tactiques tels que publiés par MITRE (en anglais).",
+  sectionSigma: "Règles Sigma pour cet événement",
+  sigmaIntro: "{count} règles de détection SigmaHQ (version {release}) ciblent cet événement.",
+  sigmaNone:
+    "Aucune règle SigmaHQ embarquée ne cible spécifiquement cet Event ID. Des règles sur les événements liés peuvent couvrir l’activité.",
+  sigmaShowing: "Affichage des {shown} règles les plus sévères.",
+  sigmaLicense:
+    "Règles de leurs auteurs cités, publiées par SigmaHQ sous licence Detection Rule License (DRL) 1.1.",
+  ctaTitle: "Exécutez ces règles sur vos journaux",
+  ctaText:
+    "Déposez un fichier .evtx dans la visionneuse : les {total} règles SigmaHQ embarquées s’exécutent dans votre navigateur. Rien n’est envoyé.",
+  ctaButton: "Ouvrir la visionneuse",
+  ctaFilter: "Filtrer un journal sur l’événement {id}",
+  sectionRelated: "Événements liés",
+  sectionReferences: "Sources et pour aller plus loin",
+  inDepth: "Guide détaillé",
+  levels: {
+    critical: "Critique",
+    high: "Élevé",
+    medium: "Moyen",
+    low: "Faible",
+    informational: "Info",
+  },
+  categories: {
+    logon: "Ouverture de session",
+    account: "Comptes utilisateurs",
+    group: "Groupes",
+    kerberos: "Kerberos",
+    ntlm: "NTLM",
+    process: "Processus",
+    service: "Services",
+    "scheduled-task": "Tâches planifiées",
+    "object-access": "Accès aux objets",
+    "network-share": "Partages réseau",
+    policy: "Changements de stratégie",
+    "log-integrity": "Intégrité des journaux",
+    system: "Système",
+    powershell: "PowerShell",
+    "remote-access": "Accès distant",
+    wmi: "WMI",
+    network: "Réseau",
+    registry: "Registre",
+    file: "Fichiers",
+    device: "Périphériques et pilotes",
+    antimalware: "Antimalware",
+    "application-control": "Contrôle des applications",
+    directory: "Active Directory",
+    software: "Logiciels",
+  },
+};
+
+const es: EventsDict = {
+  navTitle: "Enciclopedia de Event ID",
+  navShort: "Event ID",
+  indexMetaTitle: "Enciclopedia de Event ID de Windows (DFIR)",
+  indexDescription:
+    "Qué significa cada Event ID de Windows, cuándo se registra, sus campos clave, cómo lo usan los atacantes y las reglas Sigma que lo detectan.",
+  indexH1: "Enciclopedia de Event ID de Windows",
+  indexIntro:
+    "{count} eventos de Windows explicados para analistas DFIR y SOC: qué significa cada uno, qué directiva de auditoría lo genera, los campos importantes, cómo lo provocan los atacantes y qué reglas SigmaHQ lo detectan.",
+  searchLabel: "Buscar eventos",
+  searchPlaceholder: "4624, inicio de sesión, Kerberos, servicio…",
+  channelFilter: "Registro",
+  categoryFilter: "Categoría",
+  tacticFilter: "Táctica ATT&CK",
+  all: "Todos",
+  resultCount: "{count} eventos",
+  noResults: "Ningún evento coincide con estos filtros.",
+  reset: "Restablecer filtros",
+  englishBadge: "Inglés",
+  englishTitle: "Aún sin traducir: abre la ficha en inglés",
+  heading: "{prefix}Event ID {id}: {title}",
+  factsEventId: "Event ID",
+  factsChannel: "Registro",
+  factsProvider: "Proveedor",
+  factsLogFile: "Archivo",
+  factsCategory: "Categoría",
+  factsLogging: "Registro predeterminado",
+  loggedByDefault: "Activado por defecto",
+  notLoggedByDefault: "Requiere configuración",
+  sectionMeaning: "Qué significa el evento {id}",
+  sectionLogging: "Cuándo se registra",
+  requirementLabel: "Directiva de auditoría / configuración",
+  sectionFields: "Campos clave",
+  fieldColumn: "Campo",
+  descriptionColumn: "Qué indica",
+  valueColumn: "Valor",
+  meaningColumn: "Significado",
+  sectionBenign: "Orígenes legítimos habituales",
+  sectionAttacker: "Qué hacen los atacantes para generarlo",
+  sectionInvestigation: "Consejos de investigación",
+  sectionAttack: "Técnicas MITRE ATT&CK",
+  techniqueColumn: "Técnica",
+  tacticColumn: "Tácticas",
+  attackNote: "MITRE ATT&CK v{version}. Nombres de técnicas y tácticas según MITRE (en inglés).",
+  sectionSigma: "Reglas Sigma para este evento",
+  sigmaIntro: "{count} reglas de detección de SigmaHQ (versión {release}) apuntan a este evento.",
+  sigmaNone:
+    "Ninguna regla SigmaHQ incluida apunta específicamente a este Event ID. Las reglas de eventos relacionados pueden cubrir la actividad.",
+  sigmaShowing: "Se muestran las {shown} reglas de mayor severidad.",
+  sigmaLicense:
+    "Reglas de sus autores indicados, publicadas por SigmaHQ bajo la Detection Rule License (DRL) 1.1.",
+  ctaTitle: "Ejecute estas reglas en sus registros",
+  ctaText:
+    "Suelte un archivo .evtx en el visor: las {total} reglas SigmaHQ incluidas se ejecutan en su navegador. No se sube nada.",
+  ctaButton: "Abrir el visor",
+  ctaFilter: "Filtrar un registro por el evento {id}",
+  sectionRelated: "Eventos relacionados",
+  sectionReferences: "Fuentes y lecturas adicionales",
+  inDepth: "Guía detallada",
+  levels: {
+    critical: "Crítica",
+    high: "Alta",
+    medium: "Media",
+    low: "Baja",
+    informational: "Info",
+  },
+  categories: {
+    logon: "Inicio de sesión",
+    account: "Cuentas de usuario",
+    group: "Grupos",
+    kerberos: "Kerberos",
+    ntlm: "NTLM",
+    process: "Procesos",
+    service: "Servicios",
+    "scheduled-task": "Tareas programadas",
+    "object-access": "Acceso a objetos",
+    "network-share": "Recursos compartidos",
+    policy: "Cambios de directiva",
+    "log-integrity": "Integridad de registros",
+    system: "Sistema",
+    powershell: "PowerShell",
+    "remote-access": "Acceso remoto",
+    wmi: "WMI",
+    network: "Red",
+    registry: "Registro de Windows",
+    file: "Archivos",
+    device: "Dispositivos y controladores",
+    antimalware: "Antimalware",
+    "application-control": "Control de aplicaciones",
+    directory: "Active Directory",
+    software: "Software",
+  },
+};
+
+const de: EventsDict = {
+  navTitle: "Event-ID-Enzyklopädie",
+  navShort: "Event-IDs",
+  indexMetaTitle: "Windows-Event-ID-Enzyklopädie (DFIR)",
+  indexDescription:
+    "Was jede Windows-Event-ID bedeutet, wann sie protokolliert wird, wichtige Felder, Angreifernutzung und passende Sigma-Regeln – Security, Sysmon, RDP.",
+  indexH1: "Windows-Event-ID-Enzyklopädie",
+  indexIntro:
+    "{count} Windows-Ereignisse für DFIR- und SOC-Analysten erklärt: was sie bedeuten, welche Überwachungsrichtlinie sie erzeugt, welche Felder zählen, wie Angreifer sie auslösen und welche SigmaHQ-Regeln sie erkennen.",
+  searchLabel: "Ereignisse suchen",
+  searchPlaceholder: "4624, Anmeldung, Kerberos, Dienst…",
+  channelFilter: "Protokoll",
+  categoryFilter: "Kategorie",
+  tacticFilter: "ATT&CK-Taktik",
+  all: "Alle",
+  resultCount: "{count} Ereignisse",
+  noResults: "Kein Ereignis entspricht diesen Filtern.",
+  reset: "Filter zurücksetzen",
+  englishBadge: "Englisch",
+  englishTitle: "Noch nicht übersetzt: öffnet den englischen Eintrag",
+  heading: "{prefix}Event-ID {id}: {title}",
+  factsEventId: "Event-ID",
+  factsChannel: "Protokoll",
+  factsProvider: "Anbieter",
+  factsLogFile: "Datei",
+  factsCategory: "Kategorie",
+  factsLogging: "Standardprotokollierung",
+  loggedByDefault: "Standardmäßig aktiv",
+  notLoggedByDefault: "Muss konfiguriert werden",
+  sectionMeaning: "Was Ereignis {id} bedeutet",
+  sectionLogging: "Wann es protokolliert wird",
+  requirementLabel: "Überwachungsrichtlinie / Konfiguration",
+  sectionFields: "Wichtige Felder",
+  fieldColumn: "Feld",
+  descriptionColumn: "Aussage",
+  valueColumn: "Wert",
+  meaningColumn: "Bedeutung",
+  sectionBenign: "Häufige legitime Ursachen",
+  sectionAttacker: "Welche Angreiferaktivität es erzeugt",
+  sectionInvestigation: "Tipps für die Untersuchung",
+  sectionAttack: "MITRE-ATT&CK-Techniken",
+  techniqueColumn: "Technik",
+  tacticColumn: "Taktiken",
+  attackNote: "MITRE ATT&CK v{version}. Technik- und Taktiknamen wie von MITRE veröffentlicht (Englisch).",
+  sectionSigma: "Sigma-Regeln für dieses Ereignis",
+  sigmaIntro: "{count} SigmaHQ-Erkennungsregeln (Release {release}) zielen auf dieses Ereignis.",
+  sigmaNone:
+    "Keine mitgelieferte SigmaHQ-Regel zielt speziell auf diese Event-ID. Regeln zu verwandten Ereignissen können die Aktivität dennoch abdecken.",
+  sigmaShowing: "Angezeigt werden die {shown} Regeln mit dem höchsten Schweregrad.",
+  sigmaLicense:
+    "Regeln der genannten Autoren, von SigmaHQ unter der Detection Rule License (DRL) 1.1 veröffentlicht.",
+  ctaTitle: "Diese Regeln auf Ihre Logs anwenden",
+  ctaText:
+    "Ziehen Sie eine .evtx-Datei in den Viewer: Alle {total} mitgelieferten SigmaHQ-Regeln laufen lokal im Browser. Nichts wird hochgeladen.",
+  ctaButton: "Viewer öffnen",
+  ctaFilter: "Ein Log nach Ereignis {id} filtern",
+  sectionRelated: "Verwandte Ereignisse",
+  sectionReferences: "Quellen und weiterführende Links",
+  inDepth: "Ausführlicher Leitfaden",
+  levels: {
+    critical: "Kritisch",
+    high: "Hoch",
+    medium: "Mittel",
+    low: "Niedrig",
+    informational: "Info",
+  },
+  categories: {
+    logon: "Anmeldung",
+    account: "Benutzerkonten",
+    group: "Gruppen",
+    kerberos: "Kerberos",
+    ntlm: "NTLM",
+    process: "Prozesse",
+    service: "Dienste",
+    "scheduled-task": "Geplante Aufgaben",
+    "object-access": "Objektzugriff",
+    "network-share": "Netzwerkfreigaben",
+    policy: "Richtlinienänderungen",
+    "log-integrity": "Protokollintegrität",
+    system: "System",
+    powershell: "PowerShell",
+    "remote-access": "Fernzugriff",
+    wmi: "WMI",
+    network: "Netzwerk",
+    registry: "Registrierung",
+    file: "Dateien",
+    device: "Geräte und Treiber",
+    antimalware: "Antimalware",
+    "application-control": "Anwendungssteuerung",
+    directory: "Active Directory",
+    software: "Software",
+  },
+};
+
+const it: EventsDict = {
+  navTitle: "Enciclopedia degli Event ID",
+  navShort: "Event ID",
+  indexMetaTitle: "Enciclopedia degli Event ID di Windows",
+  indexDescription:
+    "Cosa significa ogni Event ID di Windows, quando viene registrato, i campi chiave, l’uso da parte degli attaccanti e le regole Sigma collegate.",
+  indexH1: "Enciclopedia degli Event ID di Windows",
+  indexIntro:
+    "{count} eventi Windows spiegati per analisti DFIR e SOC: significato, criterio di controllo che li genera, campi utili, come li attivano gli attaccanti e quali regole SigmaHQ li rilevano. Le schede sono in inglese.",
+  searchLabel: "Cerca eventi",
+  searchPlaceholder: "4624, accesso, Kerberos, servizio…",
+  channelFilter: "Registro",
+  categoryFilter: "Categoria",
+  tacticFilter: "Tattica ATT&CK",
+  all: "Tutti",
+  resultCount: "{count} eventi",
+  noResults: "Nessun evento corrisponde a questi filtri.",
+  reset: "Azzera filtri",
+  englishBadge: "Inglese",
+  englishTitle: "Non ancora tradotto: apre la scheda in inglese",
+  heading: "{prefix}Event ID {id}: {title}",
+  factsEventId: "Event ID",
+  factsChannel: "Registro",
+  factsProvider: "Provider",
+  factsLogFile: "File",
+  factsCategory: "Categoria",
+  factsLogging: "Registrazione predefinita",
+  loggedByDefault: "Attiva per impostazione predefinita",
+  notLoggedByDefault: "Da configurare",
+  sectionMeaning: "Cosa significa l’evento {id}",
+  sectionLogging: "Quando viene registrato",
+  requirementLabel: "Criterio di controllo / configurazione",
+  sectionFields: "Campi chiave",
+  fieldColumn: "Campo",
+  descriptionColumn: "Cosa indica",
+  valueColumn: "Valore",
+  meaningColumn: "Significato",
+  sectionBenign: "Origini legittime comuni",
+  sectionAttacker: "Cosa fanno gli attaccanti per generarlo",
+  sectionInvestigation: "Suggerimenti per l’indagine",
+  sectionAttack: "Tecniche MITRE ATT&CK",
+  techniqueColumn: "Tecnica",
+  tacticColumn: "Tattiche",
+  attackNote: "MITRE ATT&CK v{version}. Nomi di tecniche e tattiche come pubblicati da MITRE (in inglese).",
+  sectionSigma: "Regole Sigma per questo evento",
+  sigmaIntro: "{count} regole di rilevamento SigmaHQ (release {release}) riguardano questo evento.",
+  sigmaNone:
+    "Nessuna regola SigmaHQ inclusa riguarda specificamente questo Event ID. Le regole sugli eventi correlati possono comunque coprire l’attività.",
+  sigmaShowing: "Sono mostrate le {shown} regole più gravi.",
+  sigmaLicense:
+    "Regole dei rispettivi autori, pubblicate da SigmaHQ con licenza Detection Rule License (DRL) 1.1.",
+  ctaTitle: "Esegui queste regole sui tuoi log",
+  ctaText:
+    "Trascina un file .evtx nel visualizzatore: tutte le {total} regole SigmaHQ incluse vengono eseguite nel browser. Nessun caricamento.",
+  ctaButton: "Apri il visualizzatore",
+  ctaFilter: "Filtra un log sull’evento {id}",
+  sectionRelated: "Eventi correlati",
+  sectionReferences: "Fonti e approfondimenti",
+  inDepth: "Guida approfondita",
+  levels: {
+    critical: "Critica",
+    high: "Alta",
+    medium: "Media",
+    low: "Bassa",
+    informational: "Info",
+  },
+  categories: {
+    logon: "Accesso",
+    account: "Account utente",
+    group: "Gruppi",
+    kerberos: "Kerberos",
+    ntlm: "NTLM",
+    process: "Processi",
+    service: "Servizi",
+    "scheduled-task": "Attività pianificate",
+    "object-access": "Accesso agli oggetti",
+    "network-share": "Condivisioni di rete",
+    policy: "Modifiche ai criteri",
+    "log-integrity": "Integrità dei log",
+    system: "Sistema",
+    powershell: "PowerShell",
+    "remote-access": "Accesso remoto",
+    wmi: "WMI",
+    network: "Rete",
+    registry: "Registro di sistema",
+    file: "File",
+    device: "Dispositivi e driver",
+    antimalware: "Antimalware",
+    "application-control": "Controllo applicazioni",
+    directory: "Active Directory",
+    software: "Software",
+  },
+};
+
+const pt: EventsDict = {
+  navTitle: "Enciclopédia de Event ID",
+  navShort: "Event ID",
+  indexMetaTitle: "Enciclopédia de Event ID do Windows",
+  indexDescription:
+    "O que significa cada Event ID do Windows, quando é registado, campos principais, uso por atacantes e as regras Sigma associadas.",
+  indexH1: "Enciclopédia de Event ID do Windows",
+  indexIntro:
+    "{count} eventos do Windows explicados para analistas DFIR e SOC: significado, política de auditoria que os gera, campos importantes, como os atacantes os provocam e que regras SigmaHQ os detetam. As fichas estão em inglês.",
+  searchLabel: "Pesquisar eventos",
+  searchPlaceholder: "4624, início de sessão, Kerberos, serviço…",
+  channelFilter: "Registo",
+  categoryFilter: "Categoria",
+  tacticFilter: "Tática ATT&CK",
+  all: "Todos",
+  resultCount: "{count} eventos",
+  noResults: "Nenhum evento corresponde a estes filtros.",
+  reset: "Repor filtros",
+  englishBadge: "Inglês",
+  englishTitle: "Ainda não traduzido: abre a ficha em inglês",
+  heading: "{prefix}Event ID {id}: {title}",
+  factsEventId: "Event ID",
+  factsChannel: "Registo",
+  factsProvider: "Fornecedor",
+  factsLogFile: "Ficheiro",
+  factsCategory: "Categoria",
+  factsLogging: "Registo predefinido",
+  loggedByDefault: "Ativo por predefinição",
+  notLoggedByDefault: "Requer configuração",
+  sectionMeaning: "O que significa o evento {id}",
+  sectionLogging: "Quando é registado",
+  requirementLabel: "Política de auditoria / configuração",
+  sectionFields: "Campos principais",
+  fieldColumn: "Campo",
+  descriptionColumn: "O que indica",
+  valueColumn: "Valor",
+  meaningColumn: "Significado",
+  sectionBenign: "Origens legítimas comuns",
+  sectionAttacker: "O que os atacantes fazem para o gerar",
+  sectionInvestigation: "Dicas de investigação",
+  sectionAttack: "Técnicas MITRE ATT&CK",
+  techniqueColumn: "Técnica",
+  tacticColumn: "Táticas",
+  attackNote: "MITRE ATT&CK v{version}. Nomes de técnicas e táticas conforme publicados pela MITRE (em inglês).",
+  sectionSigma: "Regras Sigma para este evento",
+  sigmaIntro: "{count} regras de deteção SigmaHQ (versão {release}) visam este evento.",
+  sigmaNone:
+    "Nenhuma regra SigmaHQ incluída visa especificamente este Event ID. Regras de eventos relacionados podem cobrir a atividade.",
+  sigmaShowing: "A mostrar as {shown} regras de maior gravidade.",
+  sigmaLicense:
+    "Regras dos respetivos autores, publicadas pela SigmaHQ sob a Detection Rule License (DRL) 1.1.",
+  ctaTitle: "Execute estas regras nos seus registos",
+  ctaText:
+    "Arraste um ficheiro .evtx para o visualizador: as {total} regras SigmaHQ incluídas correm no seu navegador. Nada é enviado.",
+  ctaButton: "Abrir o visualizador",
+  ctaFilter: "Filtrar um registo pelo evento {id}",
+  sectionRelated: "Eventos relacionados",
+  sectionReferences: "Fontes e leitura adicional",
+  inDepth: "Guia detalhado",
+  levels: {
+    critical: "Crítica",
+    high: "Alta",
+    medium: "Média",
+    low: "Baixa",
+    informational: "Info",
+  },
+  categories: {
+    logon: "Início de sessão",
+    account: "Contas de utilizador",
+    group: "Grupos",
+    kerberos: "Kerberos",
+    ntlm: "NTLM",
+    process: "Processos",
+    service: "Serviços",
+    "scheduled-task": "Tarefas agendadas",
+    "object-access": "Acesso a objetos",
+    "network-share": "Partilhas de rede",
+    policy: "Alterações de política",
+    "log-integrity": "Integridade dos registos",
+    system: "Sistema",
+    powershell: "PowerShell",
+    "remote-access": "Acesso remoto",
+    wmi: "WMI",
+    network: "Rede",
+    registry: "Registo do Windows",
+    file: "Ficheiros",
+    device: "Dispositivos e controladores",
+    antimalware: "Antimalware",
+    "application-control": "Controlo de aplicações",
+    directory: "Active Directory",
+    software: "Software",
+  },
+};
+
+const ja: EventsDict = {
+  navTitle: "イベント ID 事典",
+  navShort: "イベント ID",
+  indexMetaTitle: "Windows イベント ID 事典（DFIR 向け）",
+  indexDescription:
+    "Windows の各イベント ID の意味、記録される条件、重要なフィールド、攻撃者による悪用、対応する Sigma ルールを解説します。Security、Sysmon、RDP など。",
+  indexH1: "Windows イベント ID 事典",
+  indexIntro:
+    "インシデント対応担当者と SOC アナリストのために {count} 件の Windows イベントを解説：意味、生成する監査ポリシー、重要なフィールド、攻撃者が発生させる手口、検知する SigmaHQ ルール。各項目は英語です。",
+  searchLabel: "イベントを検索",
+  searchPlaceholder: "4624、ログオン、Kerberos、サービス…",
+  channelFilter: "チャネル",
+  categoryFilter: "カテゴリ",
+  tacticFilter: "ATT&CK 戦術",
+  all: "すべて",
+  resultCount: "{count} 件のイベント",
+  noResults: "条件に一致するイベントはありません。",
+  reset: "フィルターをリセット",
+  englishBadge: "英語",
+  englishTitle: "未翻訳：英語の項目を開きます",
+  heading: "{prefix}イベント ID {id}: {title}",
+  factsEventId: "イベント ID",
+  factsChannel: "チャネル",
+  factsProvider: "プロバイダー",
+  factsLogFile: "ログファイル",
+  factsCategory: "カテゴリ",
+  factsLogging: "既定の記録",
+  loggedByDefault: "既定で記録",
+  notLoggedByDefault: "設定が必要",
+  sectionMeaning: "イベント {id} の意味",
+  sectionLogging: "記録される条件",
+  requirementLabel: "監査ポリシー / 設定",
+  sectionFields: "重要なフィールド",
+  fieldColumn: "フィールド",
+  descriptionColumn: "わかること",
+  valueColumn: "値",
+  meaningColumn: "意味",
+  sectionBenign: "よくある正当な発生源",
+  sectionAttacker: "このイベントを発生させる攻撃者の行動",
+  sectionInvestigation: "調査のヒント",
+  sectionAttack: "MITRE ATT&CK テクニック",
+  techniqueColumn: "テクニック",
+  tacticColumn: "戦術",
+  attackNote: "MITRE ATT&CK v{version}。テクニック名と戦術名は MITRE の表記（英語）です。",
+  sectionSigma: "このイベントの Sigma ルール",
+  sigmaIntro: "{count} 件の SigmaHQ 検知ルール（リリース {release}）がこのイベントを対象としています。",
+  sigmaNone:
+    "このイベント ID を特に対象とする同梱の SigmaHQ ルールはありません。関連イベントのルールで活動を検知できる場合があります。",
+  sigmaShowing: "重大度の高い {shown} 件を表示しています。",
+  sigmaLicense:
+    "各ルールは記載の作成者によるもので、SigmaHQ が Detection Rule License (DRL) 1.1 で公開しています。",
+  ctaTitle: "これらのルールをログに適用",
+  ctaText:
+    ".evtx ファイルをビューアーにドロップすると、同梱の SigmaHQ ルール {total} 件がブラウザー内で実行されます。アップロードは行われません。",
+  ctaButton: "ビューアーを開く",
+  ctaFilter: "ログをイベント {id} で絞り込む",
+  sectionRelated: "関連イベント",
+  sectionReferences: "出典と参考資料",
+  inDepth: "詳細ガイド",
+  levels: {
+    critical: "緊急",
+    high: "高",
+    medium: "中",
+    low: "低",
+    informational: "情報",
+  },
+  categories: {
+    logon: "ログオン",
+    account: "ユーザーアカウント",
+    group: "グループ",
+    kerberos: "Kerberos",
+    ntlm: "NTLM",
+    process: "プロセス",
+    service: "サービス",
+    "scheduled-task": "スケジュールされたタスク",
+    "object-access": "オブジェクトアクセス",
+    "network-share": "ネットワーク共有",
+    policy: "ポリシー変更",
+    "log-integrity": "ログの完全性",
+    system: "システム",
+    powershell: "PowerShell",
+    "remote-access": "リモートアクセス",
+    wmi: "WMI",
+    network: "ネットワーク",
+    registry: "レジストリ",
+    file: "ファイル",
+    device: "デバイスとドライバー",
+    antimalware: "マルウェア対策",
+    "application-control": "アプリケーション制御",
+    directory: "Active Directory",
+    software: "ソフトウェア",
+  },
+};
+
+const zh: EventsDict = {
+  navTitle: "事件 ID 百科",
+  navShort: "事件 ID",
+  indexMetaTitle: "Windows 事件 ID 百科（DFIR）",
+  indexDescription:
+    "逐一解释 Windows 事件 ID 的含义、记录条件、关键字段、攻击者如何触发，以及对应的 Sigma 检测规则。涵盖 Security、Sysmon、PowerShell、RDP 等。",
+  indexH1: "Windows 事件 ID 百科",
+  indexIntro:
+    "为应急响应和 SOC 分析人员解释 {count} 个 Windows 事件：含义、产生它的审核策略、关键字段、攻击者如何触发，以及哪些 SigmaHQ 规则可以检测。条目内容为英文。",
+  searchLabel: "搜索事件",
+  searchPlaceholder: "4624、登录、Kerberos、服务…",
+  channelFilter: "日志通道",
+  categoryFilter: "类别",
+  tacticFilter: "ATT&CK 战术",
+  all: "全部",
+  resultCount: "{count} 个事件",
+  noResults: "没有符合筛选条件的事件。",
+  reset: "重置筛选",
+  englishBadge: "英文",
+  englishTitle: "尚未翻译：打开英文条目",
+  heading: "{prefix}事件 ID {id}：{title}",
+  factsEventId: "事件 ID",
+  factsChannel: "日志通道",
+  factsProvider: "提供程序",
+  factsLogFile: "日志文件",
+  factsCategory: "类别",
+  factsLogging: "默认记录",
+  loggedByDefault: "默认记录",
+  notLoggedByDefault: "需要配置",
+  sectionMeaning: "事件 {id} 的含义",
+  sectionLogging: "何时记录",
+  requirementLabel: "审核策略 / 配置",
+  sectionFields: "关键字段",
+  fieldColumn: "字段",
+  descriptionColumn: "说明",
+  valueColumn: "值",
+  meaningColumn: "含义",
+  sectionBenign: "常见的正常来源",
+  sectionAttacker: "攻击者如何产生此事件",
+  sectionInvestigation: "调查提示",
+  sectionAttack: "MITRE ATT&CK 技术",
+  techniqueColumn: "技术",
+  tacticColumn: "战术",
+  attackNote: "MITRE ATT&CK v{version}。技术和战术名称采用 MITRE 官方英文名称。",
+  sectionSigma: "此事件的 Sigma 规则",
+  sigmaIntro: "{count} 条 SigmaHQ 检测规则（版本 {release}）针对此事件。",
+  sigmaNone: "没有内置的 SigmaHQ 规则专门针对此事件 ID。相关事件的规则仍可能覆盖该活动。",
+  sigmaShowing: "显示严重级别最高的 {shown} 条规则。",
+  sigmaLicense: "规则归各署名作者所有，由 SigmaHQ 以 Detection Rule License (DRL) 1.1 发布。",
+  ctaTitle: "在您的日志上运行这些规则",
+  ctaText: "将 .evtx 文件拖入查看器：全部 {total} 条内置 SigmaHQ 规则在浏览器本地运行，不会上传任何内容。",
+  ctaButton: "打开查看器",
+  ctaFilter: "按事件 {id} 筛选日志",
+  sectionRelated: "相关事件",
+  sectionReferences: "来源与延伸阅读",
+  inDepth: "深入指南",
+  levels: {
+    critical: "严重",
+    high: "高",
+    medium: "中",
+    low: "低",
+    informational: "信息",
+  },
+  categories: {
+    logon: "登录",
+    account: "用户帐户",
+    group: "组",
+    kerberos: "Kerberos",
+    ntlm: "NTLM",
+    process: "进程",
+    service: "服务",
+    "scheduled-task": "计划任务",
+    "object-access": "对象访问",
+    "network-share": "网络共享",
+    policy: "策略更改",
+    "log-integrity": "日志完整性",
+    system: "系统",
+    powershell: "PowerShell",
+    "remote-access": "远程访问",
+    wmi: "WMI",
+    network: "网络",
+    registry: "注册表",
+    file: "文件",
+    device: "设备与驱动程序",
+    antimalware: "反恶意软件",
+    "application-control": "应用程序控制",
+    directory: "Active Directory",
+    software: "软件",
+  },
+};
+
+export const EVENTS_DICT: Record<Locale, EventsDict> = { en, fr, es, de, it, pt, ja, zh };
+
+export function getEventsDict(locale: Locale): EventsDict {
+  return EVENTS_DICT[locale];
+}
+
+/** Replace {name} placeholders. */
+export function fill(template: string, values: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (m, k: string) => (k in values ? String(values[k]) : m));
+}

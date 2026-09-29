@@ -1,0 +1,42 @@
+id: 6013
+channel: system
+provider: EventLog
+title: The system uptime is N seconds
+shortTitle: Uptime report
+category: system
+summary: >-
+  System event 6013 reports the system uptime in seconds and the time zone, at boot and once a day. Helps spot reboots and log gaps.
+description: |-
+  Event 6013 is a heartbeat from the Event Log service: it records how many seconds the system has been running. It is written shortly after each boot and then once a day, so a steady series of increasing values shows continuous uptime, and a small value marks a recent boot.
+
+  The last insertion string also carries the host **time zone** (the bias in minutes and the zone name, e.g. `480 Pacific Standard Time`). That is useful when other artifacts record local time, as 6008 does.
+
+  6013 is not a security event, but it helps validate a timeline: uptime that resets without a matching 12/6005 pair, or that is inconsistent with the record time, can point to gaps or tampering with the log or clock.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log.
+  notes: >-
+    The data is a set of unnamed insertion strings; this viewer shows them joined in `Data1`.
+fields:
+  - name: Data1
+    description: >-
+      Insertion strings; the fifth is the uptime in seconds and the last one the time zone bias in
+      minutes followed by the zone name (e.g. `,,,,22,60,480 Pacific Standard Time`).
+benign:
+  - Daily heartbeat on every running system.
+attacker:
+  - >-
+    Not an attacker action, but uptime values that do not match boot events (12, 6005) or the
+    record timestamps can reveal log gaps or clock changes during an intrusion.
+investigation:
+  - Subtract the uptime from the record time to estimate the boot time and compare with 12.
+  - Read the time zone to convert local timestamps (6008, application logs) to UTC.
+related:
+  - system/12
+  - system/6005
+  - system/6008
+  - security/4616
+attack: []
+references:
+  - title: Microsoft Learn — Event logging
+    url: https://learn.microsoft.com/en-us/windows/win32/eventlog/event-logging

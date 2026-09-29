@@ -1,0 +1,72 @@
+id: 8001
+channel: ntlm
+provider: Microsoft-Windows-NTLM
+title: "NTLM client blocked audit: Audit outgoing NTLM authentication traffic that would be blocked"
+shortTitle: Outgoing authentication audit
+category: ntlm
+summary: >-
+  NTLM event 8001 logs outgoing NTLM authentication from this computer: target server, supplied
+  user and client process. Shows which apps still use NTLM.
+description: |-
+  Event 8001 is written on the **client** when it sends NTLM authentication to a remote server and outgoing NTLM auditing is enabled. It is an audit record: it describes traffic that would be blocked if outgoing NTLM were restricted, but nothing is actually blocked.
+
+  The event answers what the server-side logs cannot: which **process** used NTLM (`ProcessName`, `CallerPID`), under which local identity (`ClientUserName`, `ClientDomainName`, `ClientLUID`), which credentials were supplied (`UserName`, `DomainName`) and which target was contacted (`TargetName`, usually an SPN-like string such as `cifs/10.0.0.5` or `HTTP/server`).
+
+  A target given as an IP address, or PID 4 with an empty process name (SMB traffic from the kernel redirector), are the most common patterns. For threat hunting, NTLM sent to unexpected or external targets can reveal coerced or forced authentication.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Security Options > Network security: Restrict NTLM: Outgoing NTLM traffic to remote servers =
+    Audit all. Events go to Applications and Services Logs > Microsoft > Windows > NTLM > Operational.
+  notes: >-
+    Available since Windows 7 / Server 2008 R2. For SMB, the caller is the kernel redirector, so
+    `CallerPID` is `4` and `ProcessName` is empty; use other telemetry to find the real
+    application.
+fields:
+  - name: TargetName
+    description: >-
+      Target the credentials were sent to, e.g. `cifs/fileserver`, `cifs/10.0.0.5`, `HTTP/10.0.0.8`.
+      An IP address here explains why Kerberos was not used.
+  - name: UserName
+    description: User name explicitly supplied for the authentication, or `(NULL)` when the current logon credentials were used.
+  - name: DomainName
+    description: Domain explicitly supplied, or `(NULL)`.
+  - name: CallerPID
+    description: PID of the process that requested the authentication; `4` for kernel-mode SMB.
+  - name: ProcessName
+    description: Path of the calling process, e.g. a browser, `svchost.exe` or a custom tool.
+  - name: ClientLUID
+    description: Logon session (LUID) of the calling process; match it with 4624 `TargetLogonId`.
+  - name: ClientUserName
+    description: Account the calling process runs as.
+  - name: ClientDomainName
+    description: Domain of the account the calling process runs as.
+  - name: MechanismOID
+    description: Negotiation mechanism OID, often `(NULL)`.
+benign:
+  - Drives mapped or resources accessed by IP address instead of host name.
+  - Legacy applications and appliances that only support NTLM.
+  - Services connecting to servers without a correct SPN, falling back from Kerberos to NTLM.
+attacker:
+  - Forced or coerced authentication (malicious UNC paths in documents or shortcuts, WebDAV) making the host send NTLM to an attacker-controlled or external address.
+  - Tools using alternate credentials over NTLM for lateral movement, visible as a supplied `UserName` different from `ClientUserName`.
+investigation:
+  - Group by `TargetName` and `ProcessName` to build an inventory of NTLM consumers; review targets outside the internal address space first.
+  - Compare `UserName` with `ClientUserName` — explicitly supplied credentials from an unusual process deserve attention.
+  - Match with 8003 on the target server and 8004 on the domain controller for the full chain.
+  - For PID 4 (SMB), look at process and network telemetry (Sysmon 3, 5156) at the same time to find the originating program.
+related:
+  - ntlm/8002
+  - ntlm/8003
+  - ntlm/8004
+  - security/4624
+  - security/4648
+  - security/4776
+attack:
+  - T1187
+  - T1550.002
+references:
+  - title: "Microsoft Learn — Network security: Restrict NTLM: Outgoing NTLM traffic to remote servers"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/security-policy-settings/network-security-restrict-ntlm-outgoing-ntlm-traffic-to-remote-servers
+  - title: Microsoft Learn (archive) — NTLM Blocking and You, auditing methodologies
+    url: https://learn.microsoft.com/en-us/archive/blogs/askds/ntlm-blocking-and-you-application-analysis-and-auditing-methodologies-in-windows-7

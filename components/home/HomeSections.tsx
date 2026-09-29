@@ -9,6 +9,7 @@ import { GitHubMark } from "@/components/GitHubMark";
 import { OpenFileButton } from "@/components/OpenFileButton";
 import { HUNTS } from "@/lib/hunts";
 import { LOCALES } from "@/lib/i18n";
+import sigmaMeta from "@/lib/sigma/sigmahq-meta.json";
 import type { Dict } from "@/src/dict/types";
 
 export const REPO_URL = "https://github.com/Cyber-Experts/evtx-parser";
@@ -244,7 +245,9 @@ export function FeatureGrid({
                   {feat.title}
                 </h3>
                 <p className="text-sm leading-relaxed text-ink-600 dark:text-ink-400">
-                  {feat.body.replace("{n}", String(HUNTS.length))}
+                  {feat.body
+                    .replace("{n}", String(HUNTS.length))
+                    .replace("{sigma}", String(sigmaMeta.counts.bundled))}
                 </p>
               </div>
               {wide && <HuntsVisual />}

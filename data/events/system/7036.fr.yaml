@@ -1,0 +1,39 @@
+title: Le service est entré dans l'état En cours d'exécution ou Arrêté
+shortTitle: Changement d'état de service
+summary: >-
+  L'événement System 7036 consigne chaque démarrage ou arrêt de service : quand un service a
+  tourné, quand sécurité ou journalisation ont été coupées.
+description: |-
+  L'événement 7036 est écrit par le Gestionnaire de contrôle des services chaque fois qu'un service change d'état. `param1` est le nom d'affichage du service et `param2` le nouvel état, le plus souvent `running` ou `stopped`. C'est de loin l'événement le plus fréquent du Gestionnaire de contrôle des services, car de nombreux services démarrent et s'arrêtent à la demande.
+
+  Sa valeur vient de la corrélation. Après un **7045**, un couple `running` / `stopped` à quelques secondes d'intervalle est l'empreinte typique d'une exécution à distance ponctuelle (de type PsExec). Avant une phase de chiffrement ou d'effacement, une série de `stopped` pour les services de sauvegarde, de bases de données et de sécurité est une étape classique de préparation d'un rançongiciel. Un agent de sécurité ou le Journal d'événements Windows passant à `stopped` en dehors d'un arrêt est un signal d'alerte.
+
+  L'événement n'indique pas qui a arrêté le service. Trouvez-le dans les créations de processus (4688, Sysmon 1 : `sc stop`, `net stop`, `Stop-Service`, `taskkill`) au même moment.
+logging:
+  requirement: Toujours consigné dans le journal System.
+  notes: >-
+    Très bruyant. Le texte de l'état dans `param2` peut être localisé sur les systèmes non
+    anglophones, et les données binaires de l'enregistrement contiennent le nom de clé du service.
+fields:
+  - name: param1
+    description: Nom d'affichage du service, par ex. `Windows Defender Antivirus Service`, `Volume Shadow Copy`.
+  - name: param2
+    description: Nouvel état du service.
+    values:
+      - value: "running"
+        meaning: Le service a démarré.
+      - value: "stopped"
+        meaning: Le service s'est arrêté, proprement ou sur demande.
+benign:
+  - Services à démarrage à la demande qui démarrent et s'arrêtent toute la journée (Windows Update, BITS, Windows Modules Installer).
+  - Services arrêtés et redémarrés lors des correctifs et des mises à jour logicielles.
+attacker:
+  - >-
+    Services d'exécution à distance (PSEXESVC ou noms aléatoires) passant à `running` puis
+    `stopped` juste après leur installation (7045).
+  - Rançongiciels arrêtant les services de sauvegarde, SQL, Exchange, VSS et antivirus avant le chiffrement.
+  - Évasion des défenses par l'arrêt des services EDR, Defender ou Sysmon.
+investigation:
+  - Éliminez les services bruyants à démarrage à la demande, puis recherchez les services de sécurité, de sauvegarde et de journalisation passant à `stopped`.
+  - Associez les enregistrements `running`/`stopped` au 7045 pour mesurer combien de temps un service installé a tourné.
+  - Trouvez la commande qui a arrêté le service dans les 4688 ou Sysmon 1 de la même seconde.

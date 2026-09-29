@@ -1,0 +1,50 @@
+id: 4103
+channel: powershell
+provider: Microsoft-Windows-PowerShell
+title: Executing Pipeline
+shortTitle: Module logging
+category: powershell
+summary: >-
+  PowerShell event 4103 (module logging) records pipeline execution: each command invoked, with
+  its parameter bindings and the host context.
+description: |-
+  Event 4103 comes from PowerShell module logging. Instead of the script source (that is 4104), it records **what was executed** in the pipeline: each command, the values bound to its parameters, and context about the host process and user.
+
+  That makes it complementary to 4104. Obfuscated scripts that are hard to read as source often become clear here, because the actual cmdlet calls and their resolved arguments are logged. It is also noisier: every command in every pipeline is recorded for the configured modules.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Computer Configuration > Administrative Templates > Windows Components > Windows PowerShell >
+    Turn on Module Logging, with the module names to log (use `*` for all modules).
+fields:
+  - name: ContextInfo
+    description: >-
+      Execution context: host name and version, host application (the command line of the
+      PowerShell process), engine version, runspace ID, user, and the command being run.
+  - name: Payload
+    description: >-
+      The invocation details, e.g. `CommandInvocation(Invoke-WebRequest): "Invoke-WebRequest"`
+      followed by `ParameterBinding(...)` lines with each parameter value.
+  - name: UserData
+    description: Additional user data, usually empty.
+benign:
+  - Administrative scripts and management tools running cmdlets.
+  - Very high volume from monitoring or configuration agents once module logging covers all modules.
+attacker:
+  - Parameter values that expose attacker intent — download URLs, file paths, credentials passed as arguments.
+  - Cmdlets such as `Invoke-WebRequest`, `Start-BitsTransfer`, `Add-MpPreference -ExclusionPath` with their real arguments.
+investigation:
+  - Read the HostApplication line in ContextInfo to find the PowerShell command line that started the session.
+  - Search Payload for ParameterBinding values containing URLs, IPs or suspicious paths.
+  - Pair with 4104 for the same time range to see the source that produced these invocations.
+related:
+  - powershell/4104
+  - windows-powershell/800
+  - windows-powershell/400
+attack:
+  - T1059.001
+references:
+  - title: Microsoft Learn — about_Logging_Windows
+    url: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_logging_windows
+  - title: Microsoft Learn — about_Group_Policy_Settings
+    url: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_group_policy_settings

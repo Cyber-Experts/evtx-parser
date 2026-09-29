@@ -1,0 +1,115 @@
+id: 4768
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A Kerberos authentication ticket (TGT) was requested
+shortTitle: Kerberos TGT requested
+category: kerberos
+summary: >-
+  Domain controller event 4768 records every Kerberos TGT request: the account, client IP,
+  encryption type, pre-authentication type and result.
+description: |-
+  Event 4768 is logged by the Key Distribution Center on a **domain controller** each time an account asks for a Ticket Granting Ticket — the first step of every Kerberos domain logon. User logons, computer startups and services running as domain accounts all generate it.
+
+  For forensics it is the DC-side proof that an account authenticated, and from which IP (`IpAddress`). The `TicketEncryptionType` and `PreAuthType` fields expose weak or unusual authentication: RC4 where the domain uses AES, or pre-authentication type `0`, meaning the account does not require Kerberos pre-authentication and is exposed to AS-REP roasting.
+
+  Failed TGT requests are logged as 4768 with a non-zero `Status` (for unknown or revoked accounts); a wrong password produces 4771 instead.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Logon > Audit Kerberos Authentication Service
+    (Success, and Failure for failed requests). Only meaningful on domain controllers.
+  notes: >-
+    High volume on DCs. Enable Failure auditing explicitly if you want failed requests; check
+    the effective policy with `auditpol /get /subcategory:"Kerberos Authentication Service"`.
+fields:
+  - name: TargetUserName
+    description: Account that requested the TGT (user or computer account ending in `$`).
+  - name: TargetDomainName
+    description: Kerberos realm (domain) supplied by the client.
+  - name: TargetSid
+    description: SID of the account, when it exists.
+  - name: ServiceName
+    description: Always `krbtgt` for a TGT request.
+  - name: TicketOptions
+    description: Kerberos ticket option flags requested (hex), e.g. `0x40810010` for a typical Windows client.
+  - name: Status
+    description: Kerberos result code.
+    values:
+      - value: "0x0"
+        meaning: Success — a TGT was issued.
+      - value: "0x6"
+        meaning: KDC_ERR_C_PRINCIPAL_UNKNOWN — the user name does not exist.
+      - value: "0x12"
+        meaning: KDC_ERR_CLIENT_REVOKED — account disabled, expired or locked out.
+      - value: "0x17"
+        meaning: KDC_ERR_KEY_EXPIRED — the password has expired.
+      - value: "0x25"
+        meaning: KRB_AP_ERR_SKEW — clock skew too large between client and DC.
+  - name: TicketEncryptionType
+    description: Encryption type of the issued ticket.
+    values:
+      - value: "0x11"
+        meaning: AES128-CTS-HMAC-SHA1-96
+      - value: "0x12"
+        meaning: AES256-CTS-HMAC-SHA1-96 — normal in modern domains.
+      - value: "0x17"
+        meaning: RC4-HMAC — legacy; suspicious when the account and domain support AES.
+      - value: "0x18"
+        meaning: RC4-HMAC-EXP
+      - value: "0x1"
+        meaning: DES-CBC-CRC (disabled by default since Windows 7 / Server 2008 R2).
+      - value: "0x3"
+        meaning: DES-CBC-MD5 (disabled by default since Windows 7 / Server 2008 R2).
+      - value: "0xffffffff"
+        meaning: No ticket issued (failure).
+  - name: PreAuthType
+    description: Pre-authentication method used.
+    values:
+      - value: "0"
+        meaning: No pre-authentication — the account has "Do not require Kerberos preauthentication" set.
+      - value: "2"
+        meaning: PA-ENC-TIMESTAMP — standard password-based logon.
+      - value: "15"
+        meaning: PA-PK-AS-REP_OLD — smart card logon.
+      - value: "16"
+        meaning: PA-PK-AS-REQ — smart card / certificate logon.
+      - value: "138"
+        meaning: PA-ENCRYPTED-CHALLENGE — Kerberos armoring (FAST).
+  - name: IpAddress
+    description: Client IP address (IPv4 addresses may appear as `::ffff:10.0.0.5`).
+  - name: IpPort
+    description: Client source port.
+  - name: CertIssuerName
+    description: For certificate logons, the issuing CA — useful when investigating certificate abuse.
+  - name: CertThumbprint
+    description: Thumbprint of the certificate used for PKINIT logons.
+benign:
+  - Every domain user and computer logon; computers renew their TGT regularly.
+  - Service accounts authenticating when services or scheduled tasks start.
+  - Certificate-based (smart card, Windows Hello for Business) logons with PreAuthType 16.
+attacker:
+  - "AS-REP roasting — TGT requests with PreAuthType `0` for accounts that do not require pre-authentication, often RC4 (`0x17`), from a host that is not the user's."
+  - A stolen password or hash used from a new IP address — the TGT request is the first DC-side trace.
+  - "User enumeration against Kerberos — bursts of Status `0x6` for many names from one IP."
+  - Certificate abuse (for example certificates obtained through AD CS misconfigurations) shows as PKINIT logons with unexpected CertIssuerName or CertThumbprint.
+investigation:
+  - Build a per-account baseline of client IPs; a TGT for a privileged account from a workstation never used before is a lead.
+  - Hunt for PreAuthType 0 and list which accounts have pre-authentication disabled.
+  - Flag RC4 (`0x17`) tickets in domains where AES is standard, then check who requested them.
+  - Follow the same account and IP to 4769 (service tickets) to see which services it accessed after authenticating.
+related:
+  - security/4769
+  - security/4770
+  - security/4771
+  - security/4776
+  - security/4624
+  - security/4625
+attack:
+  - T1558.004
+  - T1078.002
+  - T1110
+references:
+  - title: "Microsoft Learn — 4768(S, F): A Kerberos authentication ticket (TGT) was requested"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4768
+  - title: Microsoft Learn — Audit Kerberos Authentication Service
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-kerberos-authentication-service

@@ -1,0 +1,60 @@
+id: 4723
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: An attempt was made to change an account's password
+shortTitle: Password change attempt
+category: account
+summary: >-
+  Security event 4723 is logged when an account attempts to change its own password (knowing
+  the old one). Failure means the new password was rejected.
+description: |-
+  Event 4723 records a password **change**: the caller supplies the old password and a new one. This is the user-driven operation (Ctrl+Alt+Del > Change a password, or a forced change at logon), so `Subject*` and `Target*` normally identify the same account. Compare it with 4724, a **reset** performed by someone else without knowing the old password.
+
+  The event has Success and Failure variants. For domain accounts, a failure is logged when the new password does not meet the password policy; a wrong old password shows up on the domain controller as an authentication failure instead (4771 or 4776). For local accounts, a failure is logged both for policy violations and for a wrong old password.
+
+  A successful change also updates `PasswordLastSet`, which is visible in the 4738 that accompanies it.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success, Failure). Success is audited by default; Failure must be enabled to see rejected attempts.
+fields:
+  - name: SubjectUserName
+    description: Account that made the change request. Normally the same as TargetUserName.
+  - name: SubjectDomainName
+    description: Domain or computer name of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject; correlate with 4624.
+  - name: TargetUserName
+    description: Account whose password was changed.
+  - name: TargetDomainName
+    description: Domain of the target account, or the computer name for a local account.
+  - name: TargetSid
+    description: SID of the target account.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Users changing their password when it expires or at first logon.
+  - Failures when a user picks a password that does not meet complexity or history requirements.
+attacker:
+  - An attacker who knows a user's current password changes it to lock the legitimate owner out or to keep access after a password spray.
+  - Password changes for a privileged or service account from an unusual host or at an unusual time.
+investigation:
+  - Check that Subject and Target match; if they differ, treat it like a reset (4724) and verify who performed it.
+  - Correlate with the subject's logon (4624) to find the source host and logon type.
+  - For service accounts, confirm the change was planned — an unexpected change also breaks services that use the old password.
+related:
+  - security/4724
+  - security/4738
+  - security/4771
+  - security/4776
+  - security/4624
+  - security/4625
+attack:
+  - T1098
+  - T1531
+references:
+  - title: "Microsoft Learn — 4723(S, F): An attempt was made to change an account's password"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4723
+  - title: Microsoft Learn — Audit User Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-user-account-management

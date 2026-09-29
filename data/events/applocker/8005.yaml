@@ -1,0 +1,87 @@
+id: 8005
+channel: applocker
+channelName: Microsoft-Windows-AppLocker/MSI and Script
+provider: Microsoft-Windows-AppLocker
+title: File was allowed to run
+shortTitle: MSI or script allowed
+category: application-control
+summary: >-
+  AppLocker event 8005 records that a script or Windows Installer file was allowed to run by an
+  AppLocker rule, with the file path, rule and user SID.
+description: |-
+  Event 8005 is written to the AppLocker **MSI and Script** log when a Windows Installer package (`.msi`, `.msp`, `.mst`) or a script (`.ps1`, `.bat`, `.cmd`, `.vbs`, `.js`) is evaluated and allowed by a rule. The data under `UserData/RuleAndFileData` has the same layout as the EXE events: `PolicyName` (`MSI` or `SCRIPT`), the rule, the user, and the file path, hash and signer.
+
+  Script checks are performed by the script hosts when they load a file, so 8005 gives a record of which script files ran and as whom — useful alongside PowerShell 4104, which shows content but not always the file on disk.
+
+  Allowed scripts from broad path rules (for example anything under `C:\Windows`) are where bypasses hide. Scripts from user-writable subfolders of allowed paths deserve attention.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    An AppLocker policy with Windows Installer and/or Script rules — Computer Configuration > Windows
+    Settings > Security Settings > Application Control Policies > AppLocker — and the Application
+    Identity service (AppIDSvc) running. Logged for allowed files in both Audit only and Enforce rules modes.
+  notes: >-
+    Script rules are checked by the script hosts themselves (PowerShell, Windows Script Host, the
+    command processor). When script rules are enforced, PowerShell sessions run in Constrained
+    Language Mode and only allowed scripts run in Full Language mode. AppLocker enforcement depends on the Windows edition; unsupported
+    editions log 8009 instead.
+fields:
+  - name: PolicyName
+    description: Rule collection that evaluated the file.
+    values:
+      - value: MSI
+        meaning: Windows Installer rules (.msi, .msp, .mst).
+      - value: SCRIPT
+        meaning: Script rules (.ps1, .bat, .cmd, .vbs, .js).
+  - name: RuleId
+    description: >-
+      GUID of the AppLocker rule that matched. An all-zero GUID means no rule matched and the
+      file fell under the implicit deny.
+  - name: RuleName
+    description: Name of the matching rule (for example `(Default Rule) All files located in the Windows folder`), or `-` when none matched.
+  - name: RuleSddl
+    description: Security descriptor of the rule, showing which user or group SID the rule applies to.
+  - name: TargetUser
+    description: SID of the user who tried to run the file.
+  - name: TargetProcessId
+    description: ID of the process involved in the execution attempt; correlate with Security 4688 or Sysmon 1.
+  - name: TargetLogonId
+    description: Logon session of the user; pivot to Security 4624 and 4688 with the same logon ID.
+  - name: FilePath
+    description: >-
+      Path of the file written with AppLocker path variables, e.g. `%OSDRIVE%\USERS\...`,
+      `%SYSTEM32%\...`, `%PROGRAMFILES%\...`.
+  - name: FullFilePath
+    description: The same path in plain form (`C:\Users\...`). Present on current Windows versions.
+  - name: FileHash
+    description: AppLocker hash of the file, used by file hash rules.
+  - name: Fqbn
+    description: >-
+      Fully qualified binary name from the file's signature — publisher, product, file name and
+      version. `-` for unsigned files.
+benign:
+  - Logon scripts, admin scripts and management agents running scripts from approved locations.
+  - Software installation from approved `.msi` packages.
+attacker:
+  - Scripts placed in writable folders that a broad allow rule covers, executed to bypass the policy.
+  - Malicious `.msi` packages allowed by overly broad rules (for example all signed packages).
+investigation:
+  - Stack FullFilePath; review scripts outside `SYSVOL`, `Program Files` and known admin shares.
+  - Correlate with PowerShell 4104 (script content) and process creation (4688 / Sysmon 1) for the host process.
+  - Compare with 8006/8007 to see which scripts the policy did not allow.
+related:
+  - applocker/8006
+  - applocker/8007
+  - applocker/8002
+  - powershell/4104
+  - security/4688
+  - sysmon/1
+attack:
+  - T1059.001
+  - T1059.005
+  - T1218.007
+references:
+  - title: Microsoft Learn — Using Event Viewer with AppLocker
+    url: https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/applocker/using-event-viewer-with-applocker
+  - title: Microsoft Learn — AppLocker overview
+    url: https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/applocker/applocker-overview

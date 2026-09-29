@@ -1,0 +1,50 @@
+id: 5377
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: Credential Manager credentials were restored from a backup
+shortTitle: Credential Manager restore
+category: account
+summary: >-
+  Security event 5377 records Credential Manager credentials restored from a backup file into a user's vault. Rare; confirm each one.
+description: |-
+  Event 5377 is written when a user restores Credential Manager credentials from a backup file, usually through Control Panel > Credential Manager > **Restore Credentials**. The saved credentials from the file become available to that user's session.
+
+  Like the backup event 5376, it is rarely seen in normal use and deserves a check each time. A restore on an unexpected host means stored credentials for shares, RDP targets or applications were brought onto that machine.
+
+  The record names only the account and logon session, not the backup file or the program used.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Enabled in the default audit policy.
+  notes: >-
+    Generated on workstations, member servers and domain controllers. The event does not include
+    the backup file path or the process that performed the operation.
+fields:
+  - name: SubjectUserName
+    description: Account that restored its Credential Manager credentials.
+  - name: SubjectDomainName
+    description: Domain or computer name of that account.
+  - name: SubjectUserSid
+    description: SID of that account.
+  - name: SubjectLogonId
+    description: >-
+      Logon session that performed the operation. Pivot to 4624 (LogonType) and 4688 (processes run
+      in the same session).
+benign:
+  - A user moving saved credentials to a replacement computer after a 5376 on the old one.
+  - Profile restoration during a device rebuild.
+attacker:
+  - Importing another user's exported credentials into an account the attacker controls.
+investigation:
+  - Find the matching 5376 (same account, earlier, possibly on another host) to understand where the credentials came from.
+  - Pivot on SubjectLogonId to the 4624 and 4688 of the session to see how the user logged on and what ran.
+related:
+  - security/5376
+  - security/4624
+  - security/4688
+attack:
+  - T1555.004
+references:
+  - title: "Microsoft Learn — 5377(S): Credential Manager credentials were restored from a backup"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-5377

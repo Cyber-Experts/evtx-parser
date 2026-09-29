@@ -1,0 +1,143 @@
+id: 4663
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: An attempt was made to access an object
+shortTitle: Object access
+category: object-access
+summary: >-
+  Security event 4663 records an access right actually used on an audited file, folder,
+  registry key or kernel object: who, which process, and what access.
+description: |-
+  Event 4663 is written when a process uses an access right on an object whose SACL audits that right. Where 4656 shows the handle request, 4663 shows the operation: reading data, writing, deleting, changing permissions. There is no Failure version; refused access only appears as a Failure 4656.
+
+  Read `AccessList` or `AccessMask` to know what happened. For files, `0x1` is ReadData, `0x2` WriteData, `0x10000` DELETE and `0x40000` WRITE_DAC. For registry keys the same bits carry different names (`0x1` is Query key value, `0x2` Set key value, `0x8` Enumerate sub-keys). DELETE is also logged for renames and moves, so use 4660 to confirm a real deletion.
+
+  4663 is only as good as the SACLs deployed. It is the standard way to audit sensitive shares and folders, but auditing reads on busy data produces huge volume; audit writes and deletes broadly and reads only where they matter.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit File System, Audit Registry,
+    Audit Kernel Object or Audit Removable Storage (Success), plus a SACL on the object that
+    audits the right being used.
+  notes: >-
+    Enabling the subcategory alone logs nothing for ordinary files; SACLs must be set by GPO
+    (File System / Registry security or Global Object Access Auditing) or on each object.
+fields:
+  - name: SubjectUserName
+    description: Account that used the access.
+  - name: SubjectLogonId
+    description: Logon session; pivot to 4624 for logon type and source, and to 4688 for the process tree.
+  - name: ObjectServer
+    description: Subsystem, normally `Security`.
+  - name: ObjectType
+    description: "`File` for files and folders, `Key` for registry keys, other types for kernel objects."
+  - name: ObjectName
+    description: Full path of the object (file path or `\REGISTRY\...` key path).
+  - name: HandleId
+    description: Handle used; links to 4656 (request), 4660 (delete) and 4658 (close) from the same process.
+  - name: AccessList
+    description: Rights used, as message codes (see values).
+    values:
+      - value: "%%4416"
+        meaning: ReadData / ListDirectory (registry — Query key value).
+      - value: "%%4417"
+        meaning: WriteData / AddFile (registry — Set key value).
+      - value: "%%4418"
+        meaning: AppendData / AddSubdirectory / CreatePipeInstance.
+      - value: "%%4419"
+        meaning: ReadEA (registry — Enumerate sub-keys).
+      - value: "%%4420"
+        meaning: WriteEA.
+      - value: "%%4421"
+        meaning: Execute / Traverse.
+      - value: "%%4422"
+        meaning: DeleteChild.
+      - value: "%%4423"
+        meaning: ReadAttributes.
+      - value: "%%4424"
+        meaning: WriteAttributes.
+      - value: "%%1537"
+        meaning: DELETE — also logged for renames and moves.
+      - value: "%%1538"
+        meaning: READ_CONTROL — read the security descriptor (not the SACL).
+      - value: "%%1539"
+        meaning: WRITE_DAC — change permissions.
+      - value: "%%1540"
+        meaning: WRITE_OWNER — take ownership.
+      - value: "%%1541"
+        meaning: SYNCHRONIZE.
+      - value: "%%1542"
+        meaning: ACCESS_SYS_SEC — read or change the SACL.
+  - name: AccessMask
+    description: Hexadecimal mask of the rights used; a combination of the bits below.
+    values:
+      - value: "0x1"
+        meaning: ReadData / ListDirectory.
+      - value: "0x2"
+        meaning: WriteData / AddFile.
+      - value: "0x4"
+        meaning: AppendData / AddSubdirectory.
+      - value: "0x8"
+        meaning: ReadEA.
+      - value: "0x10"
+        meaning: WriteEA.
+      - value: "0x20"
+        meaning: Execute / Traverse.
+      - value: "0x40"
+        meaning: DeleteChild.
+      - value: "0x80"
+        meaning: ReadAttributes.
+      - value: "0x100"
+        meaning: WriteAttributes.
+      - value: "0x10000"
+        meaning: DELETE.
+      - value: "0x20000"
+        meaning: READ_CONTROL.
+      - value: "0x40000"
+        meaning: WRITE_DAC.
+      - value: "0x80000"
+        meaning: WRITE_OWNER.
+      - value: "0x100000"
+        meaning: SYNCHRONIZE.
+      - value: "0x1000000"
+        meaning: ACCESS_SYS_SEC.
+  - name: ProcessName
+    description: Process that used the access. For remote SMB access on a file server this is `System`.
+  - name: ProcessId
+    description: Hexadecimal PID of that process.
+  - name: ResourceAttributes
+    description: Central access policy resource attributes of the object, when Dynamic Access Control is used.
+benign:
+  - Users opening and saving documents in audited folders.
+  - Backup, antivirus and search indexer processes reading large numbers of audited files.
+  - Applications updating their own configuration files or registry keys.
+attacker:
+  - Bulk reads of sensitive shares or folders by one account before exfiltration.
+  - Mass WriteData and DELETE activity from a single process, typical of ransomware encrypting and renaming files.
+  - >-
+    Access to credential stores covered by a SACL, such as copies of `NTDS.dit` or registry
+    hive backups, by unexpected processes.
+  - WRITE_DAC or WRITE_OWNER on sensitive files to grant the attacker access.
+investigation:
+  - Decode `AccessMask` first; reads, writes, deletes and permission changes are very different stories.
+  - Aggregate by `SubjectUserName`, `ProcessName` and folder to spot bulk access in a short window.
+  - For file servers, pair with 5145 to get the client IP and share name of SMB access.
+  - Confirm deletions with 4660 (same `HandleId` and `ProcessId`) and permission changes with 4670.
+related:
+  - security/4656
+  - security/4658
+  - security/4660
+  - security/4670
+  - security/5145
+  - security/4624
+  - security/4688
+attack:
+  - T1005
+  - T1039
+  - T1070.004
+  - T1485
+references:
+  - title: "Microsoft Learn — 4663(S): An attempt was made to access an object"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4663
+  - title: Microsoft Learn — Audit File System
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-file-system

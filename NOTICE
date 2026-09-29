@@ -11,3 +11,10 @@ This product includes the `evtx` Rust crate by Omer Ben-Amram
 compiled to WebAssembly in lib/evtx-wasm/. Other third-party dependencies
 are listed in package.json and crates/evtx-wasm/Cargo.toml and are
 distributed under their own licenses.
+
+This product bundles detection rules from the SigmaHQ project
+(https://github.com/SigmaHQ/sigma) in lib/sigma/sigmahq-rules.json, licensed
+under the Detection Rule License (DRL) 1.1 — see LICENSE-SIGMA. Each rule
+keeps its author(s), id, references and a link to the original rule; the
+viewer and its exports attribute every match as
+"Rule by <author>, SigmaHQ, DRL 1.1".

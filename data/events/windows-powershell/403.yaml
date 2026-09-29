@@ -1,0 +1,43 @@
+id: 403
+channel: windows-powershell
+provider: PowerShell
+title: Engine state is changed from Available to Stopped
+shortTitle: Engine stopped
+category: powershell
+summary: >-
+  Windows PowerShell event 403 logs when a PowerShell engine stops; paired with 400 it bounds a
+  PowerShell session in time.
+description: |-
+  Event 403 is the counterpart of 400: the PowerShell engine in a process moved from Available to Stopped. It repeats the host details, including `HostApplication` and `EngineVersion`, so it is useful even when the matching 400 has rolled out of the log.
+
+  The time between 400 and 403 for the same runspace is how long that PowerShell session lived — seconds for a one-shot command, hours for an interactive or implant session.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Windows PowerShell classic event log is enabled by default.
+fields:
+  - name: NewEngineState
+    description: "`Stopped`."
+  - name: PreviousEngineState
+    description: "`Available`."
+  - name: HostApplication
+    description: Command line of the hosting process.
+  - name: EngineVersion
+    description: Engine version that ran.
+  - name: RunspaceId
+    description: Runspace GUID, matching the 400.
+benign:
+  - Every PowerShell session ending.
+attacker:
+  - Very long-lived PowerShell sessions started with hidden windows can indicate an implant or C2 loop.
+investigation:
+  - Pair with 400 by RunspaceId to compute session duration.
+  - Use HostApplication here when the 400 is gone.
+related:
+  - windows-powershell/400
+  - windows-powershell/800
+attack:
+  - T1059.001
+references:
+  - title: Microsoft Learn — about_Logging_Windows
+    url: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_logging_windows

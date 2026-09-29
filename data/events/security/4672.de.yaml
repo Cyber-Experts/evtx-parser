@@ -1,0 +1,42 @@
+title: Einer neuen Anmeldung wurden besondere Rechte zugewiesen
+shortTitle: Besondere Rechte zugewiesen
+summary: >-
+  Event-ID 4672 folgt auf ein 4624, wenn die neue Sitzung sensible Privilegien wie SeDebug oder
+  SeTcb besitzt — ein Marker für Administratoranmeldungen.
+description: |-
+  Event 4672 wird direkt nach einem 4624 geschrieben, wenn das Token der neuen Anmeldung ein oder mehrere „sensible“ Privilegien enthält: Programme debuggen, als Teil des Betriebssystems handeln, Sichern und Wiederherstellen, Besitz übernehmen, Treiber laden und Ähnliches. In der Praxis betrifft das Administratoren, `SYSTEM` und einige Dienstkonten.
+
+  Es teilt seine Anmelde-ID (`SubjectLogonId`) mit dem zugehörigen 4624. Die 4624-Events auf diejenigen mit passendem 4672 zu filtern, ist daher der schnellste Weg, privilegierte Anmeldungen auf einem Host aufzulisten. Auf Domänencontrollern ist jedes 4672 für ein menschliches Konto wissenswert.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Special Logon (Success). In der
+    Standard-Überwachungsrichtlinie für „Erfolg“ aktiviert.
+  notes: >-
+    Wird für SYSTEM und Computerkonten in hoher Frequenz protokolliert; interessant sind die
+    Einträge für benannte Benutzerkonten.
+fields:
+  - name: SubjectUserSid
+    description: SID des Kontos, das die Privilegien erhalten hat.
+  - name: SubjectUserName
+    description: Konto, das die Privilegien erhalten hat (trotz des Namens „Subject“ ist dies das angemeldete Konto).
+  - name: SubjectDomainName
+    description: Domäne dieses Kontos.
+  - name: SubjectLogonId
+    description: ID der Anmeldesitzung, identisch mit TargetLogonId im zugehörigen 4624.
+  - name: PrivilegeList
+    description: >-
+      Im Token vorhandene sensible Privilegien, eines pro Zeile, z. B. `SeDebugPrivilege`,
+      `SeTcbPrivilege`, `SeBackupPrivilege`, `SeRestorePrivilege`, `SeTakeOwnershipPrivilege`,
+      `SeLoadDriverPrivilege`, `SeImpersonatePrivilege`, `SeSecurityPrivilege`.
+benign:
+  - Administratoren, die sich an von ihnen verwalteten Servern anmelden.
+  - SYSTEM, LOCAL SERVICE, NETWORK SERVICE und Computerkonten beim Systemstart und für Dienste.
+  - Dienstkonten von Backup-Software (SeBackupPrivilege, SeRestorePrivilege).
+attacker:
+  - Nutzung eines gestohlenen Admin-Kontos — ein 4624-+-4672-Paar für dieses Konto von einem Host oder einer IP, die es normalerweise nicht nutzt.
+  - Neu angelegte oder neu hochgestufte Konten (4720, 4732, 4728), die plötzlich besondere Privilegien erhalten.
+  - Lateral Movement mit Admin-Anmeldeinformationen erzeugt auf jedem Ziel ein 4624 vom Typ 3 plus 4672.
+investigation:
+  - 4672 über die Anmelde-ID mit 4624 verknüpfen, um LogonType und Quell-IP jeder privilegierten Anmeldung zu erhalten.
+  - Eine Baseline erstellen, welche menschlichen Konten auf welchem Server 4672 erhalten; bei neuen Konten alarmieren.
+  - Erhält ein Konto, das ein Standardbenutzer sein sollte, `SeDebugPrivilege`, haben sich seine Gruppenmitgliedschaften geändert — 4732/4728/4756 prüfen.
