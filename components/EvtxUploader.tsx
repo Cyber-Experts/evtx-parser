@@ -571,6 +571,7 @@ export function EvtxUploader({
       hashRangeRef.current = null;
       setScrollTop(0);
       if (scrollRef.current) scrollRef.current.scrollTop = 0;
+      let parsedAny = false;
       try {
         if (!clientRef.current) clientRef.current = new EvtxClient();
         const client = clientRef.current;
@@ -594,14 +595,15 @@ export function EvtxUploader({
             ...prev,
             { id, name: file.name, size: file.size, rows, pairs, topEventIds, file },
           ]);
-          // High-intent event: the visitor actually parsed a log, once per file.
-          // No file name, no bytes, no record content ever leaves the browser.
-          track("parse_file", { artifact: "evtx", source: "upload" });
+          parsedAny = true;
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
         setLoading(null);
+        // High-intent event: the visitor actually parsed logs. Once per user
+        // action (a multi-file drop is one event), never the file name/bytes.
+        if (parsedAny) track("parse_file", { artifact: "evtx", source: "upload" });
       }
     },
     [t.home.statusReading, t.home.statusParsing],
