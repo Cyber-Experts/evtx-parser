@@ -1,0 +1,43 @@
+id: 16
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: ServiceConfigurationChange
+shortTitle: Configuration changed
+category: log-integrity
+summary: >-
+  Sysmon event 16 records a change to the Sysmon configuration, with the config file and its
+  hash. An unexpected change may be an attempt to blind monitoring.
+description: |-
+  Sysmon event 16 is logged when the Sysmon configuration is updated, for example with `sysmon -c <file>`. It gives the path of the configuration file and its hash.
+
+  Planned configuration pushes produce this event across the fleet at once. A change on a single host, or a hash that does not match your approved configuration, can mean an attacker loaded a permissive config to stop specific events from being logged while leaving the service running.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon installed. This event cannot be filtered by the configuration.
+fields:
+  - name: UtcTime
+    description: Time of the change.
+  - name: Configuration
+    description: Path of the configuration file that was applied.
+  - name: ConfigurationFileHash
+    description: Hash of the configuration file. Compare it with the hash of your approved config.
+benign:
+  - Fleet-wide configuration updates pushed by the security team or a management tool.
+  - Configuration applied during Sysmon installation or upgrade.
+attacker:
+  - Loading a minimal or empty configuration to stop logging of process, network or registry events.
+  - Running `sysmon -c` from an unusual path or by an unexpected user.
+investigation:
+  - Compare ConfigurationFileHash with your known-good configurations.
+  - Look at Security 4688 or Sysmon 1 for the `sysmon -c` command that applied it.
+  - Check for a drop in Sysmon event volume after the change.
+related:
+  - sysmon/4
+  - sysmon/255
+  - sysmon/1
+  - security/4688
+attack:
+  - T1685
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon

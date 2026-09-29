@@ -1,0 +1,58 @@
+id: 4
+channel: bits-client
+provider: Microsoft-Windows-Bits-Client
+title: The transfer job is complete
+shortTitle: Job completed
+category: network
+summary: >-
+  BITS event 4 records that a BITS transfer job completed: job title, ID, owner, file count and
+  bytes transferred. Confirms a download or upload finished.
+description: |-
+  Event 4 is written when a BITS job finishes transferring all its files. It records the user (`User`), the job title and GUID (`jobTitle`, `jobId`), the owner (`jobOwner`), the number of files (`fileCount`) and, in newer versions, the byte counts (`bytesTransferred`, `bytesTransferredFromPeer`).
+
+  Where event 3 shows intent, event 4 shows success: the data really arrived (or left, for upload jobs). The byte count helps judge what was moved — a few hundred kilobytes for a tool, much more for staged data or large payloads.
+
+  The event does not name the URL or the local file. Use `jobId` to find the matching 59/60 events for the URL, and file creation telemetry for where the file landed.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Microsoft-Windows-Bits-Client/Operational channel is enabled by default.
+fields:
+  - name: User
+    description: User context of the job.
+  - name: jobTitle
+    description: Display name of the job.
+  - name: jobId
+    description: GUID of the job; matches event 3 and the job ID in 59/60.
+  - name: jobOwner
+    description: Account that owns the job.
+  - name: fileCount
+    description: Number of files in the job.
+  - name: bytesTransferred
+    description: Total bytes transferred by the job (newer event versions).
+  - name: bytesTransferredFromPeer
+    description: Bytes obtained from peers rather than the origin server (newer event versions).
+benign:
+  - Completion of Windows and application update downloads.
+  - Enterprise software distribution that uses BITS.
+attacker:
+  - Completion of a tool or payload download started with `bitsadmin` or `Start-BitsTransfer`.
+  - Completion of an upload job used to exfiltrate data.
+investigation:
+  - Match jobId with event 3 (creator) and 59/60 (URL) to build the full job story.
+  - Use bytesTransferred to size the transfer and prioritize.
+  - Find the local file (Sysmon 11, file system timeline) and check whether it was executed afterward.
+related:
+  - bits-client/3
+  - bits-client/59
+  - bits-client/60
+  - sysmon/11
+  - sysmon/1
+attack:
+  - T1197
+  - T1105
+references:
+  - title: Microsoft Learn — Background Intelligent Transfer Service
+    url: https://learn.microsoft.com/en-us/windows/win32/bits/background-intelligent-transfer-service-portal
+  - title: MITRE ATT&CK — BITS Jobs (T1197)
+    url: https://attack.mitre.org/techniques/T1197/

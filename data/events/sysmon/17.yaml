@@ -1,0 +1,48 @@
+id: 17
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: PipeEvent (Pipe Created)
+shortTitle: Named pipe created
+category: process
+summary: >-
+  Sysmon event 17 logs a named pipe being created and the process behind it. Known pipe names
+  reveal PsExec, C2 frameworks and other lateral movement tools.
+description: |-
+  Sysmon event 17 records the server side of a named pipe: the process that created it and the `PipeName`. Named pipes are a standard Windows IPC mechanism and are also reachable over SMB, which makes them popular with remote-administration and C2 tools.
+
+  Many tools use recognizable default names: PsExec creates `\PSEXESVC`, and several post-exploitation frameworks use default patterns such as `\MSSE-<number>-server` or `\postex_<id>` in Cobalt Strike. Operators can change these, so pipe names are strong when they match and weak when they do not.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon installed; filter with `<PipeEvent>` rules in the configuration.
+fields:
+  - name: EventType
+    description: "`CreatePipe` for this event."
+  - name: ProcessGuid
+    description: Process that created the pipe.
+  - name: Image
+    description: Executable that created the pipe.
+  - name: PipeName
+    description: Name of the pipe, e.g. `\PSEXESVC`.
+  - name: User
+    description: Account of the process (newer Sysmon versions).
+benign:
+  - System services, browsers (Chrome/Edge `\mojo.*` pipes) and SQL Server creating pipes constantly.
+  - Legitimate PsExec use by administrators.
+attacker:
+  - Default C2 pipe names such as `\MSSE-*-server` or `\postex_*` created by an unexpected process.
+  - "`PSEXESVC` or a random service pipe created right after a remote service install (System 7045)."
+investigation:
+  - Match PipeName against known tool defaults and rare names across the fleet.
+  - Pivot on ProcessGuid to event 1; pipes created by `rundll32.exe` or processes from temp folders are suspicious.
+  - Look for event 18 showing which process connected to the pipe.
+related:
+  - sysmon/18
+  - sysmon/1
+  - system/7045
+  - security/5145
+attack:
+  - T1021.002
+  - T1569.002
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon

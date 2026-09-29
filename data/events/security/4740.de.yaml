@@ -1,0 +1,45 @@
+title: Ein Benutzerkonto wurde gesperrt
+shortTitle: Konto gesperrt
+summary: >-
+  Event-ID 4740 wird protokolliert, wenn ein Konto nach zu vielen falschen Kennwörtern gesperrt
+  wird. Es nennt das Konto und den aufrufenden Computer.
+description: |-
+  Event 4740 wird geschrieben, wenn der Schwellenwert für die Kontosperrung erreicht und ein Konto gesperrt wird. Sperrungen von Domänenkonten werden auf Domänencontrollern protokolliert — üblicherweise findet man sie auf dem PDC-Emulator, da Fehlversuche mit falschem Kennwort an ihn weitergeleitet werden —, Sperrungen lokaler Konten auf dem Rechner, dem das Konto gehört.
+
+  Das nützlichste Detail ist der **Name des aufrufenden Computers** (Caller Computer Name), der trotz seines Namens im Feld `TargetDomainName` steht: Es ist der Computer, von dem die fehlgeschlagenen Anmeldungen kamen. Es handelt sich um einen NetBIOS-Namen, keine IP-Adresse, und er kann leer sein. Die `Subject*`-Felder beschreiben die Systemkomponente, die die Sperrung durchgeführt hat (typischerweise das Computerkonto des Domänencontrollers oder `SYSTEM`), keine Person.
+
+  Sperrungen sind meist die Folge eines veralteten Kennworts, das auf einem Smartphone, einem verbundenen Laufwerk, in einem Dienst oder einer geplanten Aufgabe gespeichert ist. Sie sind aber auch die sichtbare Nebenwirkung von Kennwortraten: Eine einzelne Sperrung ist meist Rauschen, viele Sperrungen über mehrere Konten vom selben aufrufenden Computer sind ein Angriff.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). In der Standard-Überwachungsrichtlinie von Windows für „Erfolg“ aktiviert.
+  notes: >-
+    Wird nur erzeugt, wenn in der Kennwortrichtlinie ein Schwellenwert für die Kontosperrung
+    konfiguriert ist. Fehlgeschlagene Anmeldungen an einem bereits gesperrten Konto erscheinen als
+    4625 mit Status `0xC0000234`.
+fields:
+  - name: TargetUserName
+    description: Gesperrtes Konto.
+  - name: TargetSid
+    description: SID des gesperrten Kontos.
+  - name: TargetDomainName
+    description: >-
+      Name des aufrufenden Computers — der NetBIOS-Name des Computers, der die fehlgeschlagenen
+      Authentifizierungsversuche gesendet hat. Hier mit der Untersuchung beginnen.
+  - name: SubjectUserName
+    description: Konto, das die Sperrung durchgeführt hat, normalerweise das Computerkonto des Domänencontrollers (`DC01$`) oder das lokale System.
+  - name: SubjectUserSid
+    description: SID des Subjects, typischerweise `S-1-5-18` (SYSTEM).
+benign:
+  - Benutzer, die ihr Kennwort geändert haben, aber das alte noch auf Smartphone, Laptop, verbundenem Laufwerk oder VPN-Client gespeichert haben.
+  - Dienste, geplante Aufgaben oder Anwendungen mit veraltetem Kennwort, die das Konto wiederholt sperren.
+  - Benutzer, die sich mehrmals beim Kennwort vertippen.
+attacker:
+  - Kennwortraten gegen ein einzelnes Konto von einem Host.
+  - Password Spraying, das den Sperrschwellenwert überschreitet und Sperrungen vieler Konten vom selben aufrufenden Computer verursacht.
+  - Gezieltes Sperren von Administratoren oder Dienstkonten als Denial of Service.
+investigation:
+  - Zum aufrufenden Computer gehen und dessen 4625- und 4648-Events, Dienste und geplante Aufgaben für das gesperrte Konto prüfen.
+  - Auf Domänencontrollern mit 4771- (Kerberos) oder 4776-Fehlschlägen (NTLM) für das Konto korrelieren, um Quelle und Fehlercodes zu sehen.
+  - Sperrungen pro aufrufendem Computer und Zeitfenster zählen, um ein falsch konfiguriertes Gerät von Spraying zu unterscheiden.
+  - Anschließend nach 4767 (Entsperrung) und 4724 (Zurücksetzung) sowie nach einer erfolgreichen Anmeldung desselben Kontos suchen.

@@ -1,0 +1,61 @@
+id: 4743
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A computer account was deleted
+shortTitle: Computer account deleted
+category: account
+summary: >-
+  Security event 4743 is logged on a domain controller when a computer account is deleted
+  from Active Directory, with who deleted it and the account's SID.
+description: |-
+  Event 4743 is written on the domain controller that processed the request when a computer object is deleted. `Subject*` identifies who deleted it and `Target*` the deleted computer account (name ending in `$`).
+
+  Deletion of computer accounts is part of normal lifecycle management — stale-object cleanup and hardware decommissioning. It becomes important when the deleted object is a domain controller, a critical server or an administrative workstation: the machine loses its trust with the domain and can no longer authenticate users.
+
+  After attacks that rely on a machine account created through the machine account quota, intruders sometimes delete that account to remove evidence; a 4743 shortly after the matching 4741 is a pattern worth hunting for.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Computer Account Management
+    (Success).
+  notes: >-
+    Only generated on domain controllers. This subcategory is not part of the Windows default
+    audit policy table published by Microsoft, although many domain controller baselines (Microsoft
+    security baselines, CIS) enable it; confirm with `auditpol /get /subcategory:"Computer Account Management"`.
+fields:
+  - name: SubjectUserName
+    description: Account that deleted the computer object.
+  - name: SubjectDomainName
+    description: Domain of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject on the DC; correlate with 4624.
+  - name: TargetUserName
+    description: Name of the deleted computer account, ending in `$`.
+  - name: TargetDomainName
+    description: Domain of the deleted account.
+  - name: TargetSid
+    description: SID of the deleted computer account; search older events for it.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Cleanup scripts removing stale computer objects.
+  - Decommissioning or reimaging of workstations and servers.
+attacker:
+  - Deleting a computer account created for an attack (RBCD, noPac) to cover tracks.
+  - Deleting domain controller or server accounts to disrupt authentication.
+investigation:
+  - Look for the account's creation (4741) and changes (4742, 4781) using TargetSid and check how long it existed.
+  - Treat deletion of DC, tier-0 server or admin workstation accounts as high priority.
+related:
+  - security/4741
+  - security/4742
+  - security/4781
+  - security/4726
+attack:
+  - T1070.009
+  - T1531
+references:
+  - title: "Microsoft Learn — 4743(S): A computer account was deleted"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4743
+  - title: Microsoft Learn — Audit Computer Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-computer-account-management

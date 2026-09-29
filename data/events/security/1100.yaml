@@ -1,0 +1,59 @@
+id: 1100
+channel: security
+provider: Microsoft-Windows-Eventlog
+title: The event logging service has shut down
+shortTitle: Event logging service shut down
+category: log-integrity
+summary: >-
+  Security event 1100 marks the Windows Event Log service stopping, normally at shutdown. Outside
+  a reboot it can mean logging was stopped on purpose.
+description: |-
+  Event 1100 is written into the Security log by the Windows Event Log service itself (provider `Microsoft-Windows-Eventlog`, not the auditing subsystem) when the service shuts down. In practice almost every instance is an orderly system shutdown or restart, and the record is the last thing the Security log says before the machine goes down.
+
+  That makes it a useful timeline marker: a 1100 followed by 4608 (Windows is starting up) brackets a clean reboot. A startup **without** a preceding 1100 points to a crash, power loss or hard reset — confirm with System events 6008 and 41. The event has no payload beyond the `UserData/ServiceShutdown` element, so the who and why must come from surrounding events.
+
+  The interesting case is a 1100 that is **not** followed by a reboot: someone stopped the Event Log service, and the Security log goes silent until it restarts. Note the opposite trap too — tools that suspend the service's threads or patch it in memory stop logging without ever producing a 1100.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Always logged by the Windows Event Log service; no audit policy is involved and it cannot be
+    turned off through Advanced Audit Policy.
+  notes: >-
+    Not written on an emergency reset, crash or power loss. Microsoft files it under the "Other
+    Events" group of the Security log.
+fields:
+  - name: ServiceShutdown
+    description: >-
+      Empty `UserData` element that identifies the record. The event carries no account or process
+      information — use the surrounding records for context.
+benign:
+  - Planned restarts and shutdowns, including reboots triggered by Windows Update or software installers.
+  - Host shutdowns of virtual machines by the hypervisor or orchestration tooling.
+attacker:
+  - >-
+    Stopping the Event Log service (for example `net stop eventlog` or `sc stop eventlog` from an
+    elevated shell) to blind the Security log before further actions.
+  - A 1100 shortly before a 1102 or a long gap in the log, as part of an anti-forensics sequence.
+investigation:
+  - >-
+    Check what follows: a 4608 and System 6005/12 within a minute or two mean a normal reboot; a
+    1100 with the machine still running (later records, no boot) means the service was stopped.
+  - Look at System events 1074 and 13 around the same time to identify who or what initiated a shutdown.
+  - >-
+    Measure the gap until the next Security record. Missing hours on a server that normally logs
+    every minute deserve an explanation.
+  - Search 4688 or Sysmon 1 just before the 1100 for `net`, `sc`, `taskkill` or PowerShell commands touching the service.
+related:
+  - security/1102
+  - security/1104
+  - security/4608
+  - system/1074
+  - system/6005
+  - system/6006
+  - system/6008
+  - system/41
+attack:
+  - T1685.001
+references:
+  - title: "Microsoft Learn — 1100(S): The event logging service has shut down"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-1100

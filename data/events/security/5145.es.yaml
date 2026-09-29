@@ -1,0 +1,76 @@
+title: Se comprobó un objeto de recurso compartido de red para ver si se puede conceder al cliente el acceso deseado
+shortTitle: Comprobación de acceso a recurso
+summary: >-
+  El evento 5145 registra cada archivo, carpeta o canalización con nombre abiertos vía recurso compartido, con cuenta, IP y derechos. Detallado y ruidoso.
+description: |-
+  El evento 5145 se escribe en el equipo que aloja el recurso compartido cada vez que un cliente abre a través de él un archivo, una carpeta o una canalización con nombre. Donde el 5140 dice "esta cuenta abrió el recurso compartido", el 5145 añade `RelativeTargetName`: el objeto exacto dentro del recurso compartido, más el `AccessMask` solicitado.
+
+  Este nivel de detalle lo convierte en una de las mejores fuentes para el movimiento lateral basado en SMB. La creación remota de servicios aparece como acceso a la canalización `svcctl` en `IPC$`; el registro remoto, como `winreg`; la enumeración, como `samr`, `lsarpc` o `srvsvc`; y las copias de payloads, como acceso de escritura a archivos bajo `ADMIN$` o `C$`.
+
+  Los eventos de error solo se producen cuando el acceso lo deniegan los permisos del **recurso compartido**, no los permisos NTFS. La auditoría de éxito genera un evento por cada acceso a un objeto, así que en servidores de archivos y controladores de dominio (SYSVOL) el volumen puede ser abrumador; muchas organizaciones solo recopilan los errores, o los éxitos en servidores seleccionados.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Detailed File Share (Success,
+    Failure). No se audita en la directiva de auditoría predeterminada de Windows.
+  notes: >-
+    Volumen muy alto en servidores de archivos y controladores de dominio. Microsoft recomienda
+    auditar los errores en los controladores de dominio y valorar la auditoría de éxito solo en
+    servidores de alto valor.
+fields:
+  - name: SubjectUserSid
+    description: SID de la cuenta que solicitó el acceso.
+  - name: SubjectUserName
+    description: Cuenta que solicitó el acceso al objeto.
+  - name: SubjectDomainName
+    description: Dominio o nombre de equipo de la cuenta.
+  - name: SubjectLogonId
+    description: Sesión del usuario remoto; coincide con el inicio de sesión de red 4624 en este host.
+  - name: ObjectType
+    description: Siempre `File` en este evento (archivos, carpetas y canalizaciones con nombre).
+  - name: IpAddress
+    description: Dirección IP del cliente.
+  - name: IpPort
+    description: Puerto de origen de la conexión del cliente; `0` para un acceso local.
+  - name: ShareName
+    description: Recurso compartido utilizado, p. ej. `\\*\IPC$`, `\\*\ADMIN$`, `\\*\C$`.
+  - name: ShareLocalPath
+    description: Ruta local del recurso compartido. Vacía para `IPC$`.
+  - name: RelativeTargetName
+    description: >-
+      Objeto al que se accedió, relativo al recurso compartido: una ruta de archivo como
+      `Temp\payload.exe`, una canalización con nombre como `svcctl` o `samr`, o `\` para la raíz del
+      recurso compartido.
+  - name: AccessMask
+    description: Derechos de acceso solicitados como máscara hexadecimal.
+    values:
+      - value: "0x1"
+        meaning: ReadData (archivo) o ListDirectory (carpeta).
+      - value: "0x2"
+        meaning: WriteData (archivo) o AddFile (carpeta).
+      - value: "0x4"
+        meaning: AppendData (archivo) o AddSubdirectory (carpeta).
+      - value: "0x10000"
+        meaning: DELETE.
+      - value: "0x100000"
+        meaning: SYNCHRONIZE.
+  - name: AccessList
+    description: Derechos solicitados en forma simbólica (`%%4416` ReadData, `%%4417` WriteData, etc.).
+  - name: AccessReason
+    description: Para cada derecho solicitado, el motivo por el que se concedió o denegó (la ACE o el privilegio implicado).
+benign:
+  - "Miembros del dominio que leen archivos de directiva de grupo bajo `SYSVOL` en los controladores de dominio: la mayor fuente de ruido."
+  - Usuarios que abren y guardan documentos en servidores de archivos.
+  - Herramientas de administración y monitorización que usan canalizaciones con nombre de `IPC$` (`srvsvc`, `winreg`, `spoolss`) como parte de su funcionamiento normal.
+attacker:
+  - >-
+    Ejecución al estilo de PsExec: escritura en un archivo bajo `ADMIN$` seguida de acceso a la
+    canalización `svcctl` en `IPC$` desde la misma IP de origen y, después, un nuevo servicio
+    (7045, 4697).
+  - Acceso al registro remoto y relacionado con credenciales a través de la canalización `winreg`.
+  - Enumeración del dominio y de hosts a través de las canalizaciones `samr`, `lsarpc` y `srvsvc` (BloodHound/SharpHound, comandos `net`, herramientas de Impacket).
+  - Acceso masivo de lectura a muchos archivos de un recurso compartido por una cuenta en un periodo corto (recopilación antes de la exfiltración).
+investigation:
+  - Filtre por `ShareName` `\\*\IPC$` y liste los valores de `RelativeTargetName` por IP de origen para ver qué servicios RPC se usaron.
+  - Para `ADMIN$` y `C$`, busque accesos de escritura (`0x2`) a ejecutables o scripts y relacione los nombres de archivo con la creación de servicios o tareas.
+  - Pivote sobre `SubjectLogonId` hacia el inicio de sesión de red 4624 y después hacia el 4672 para ver si la sesión era privilegiada.
+  - Agrupe por cuenta y cuente los valores distintos de `RelativeTargetName` para detectar accesos masivos a archivos.

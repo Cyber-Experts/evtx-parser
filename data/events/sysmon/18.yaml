@@ -1,0 +1,46 @@
+id: 18
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: PipeEvent (Pipe Connected)
+shortTitle: Named pipe connected
+category: process
+summary: >-
+  Sysmon event 18 logs a client connecting to a named pipe. Paired with event 17 it shows who
+  talks over a pipe — useful for PsExec and C2 pivots.
+description: |-
+  Sysmon event 18 records a process connecting to an existing named pipe. Together with event 17 (creation) it shows both ends of a pipe conversation.
+
+  When a pipe is reached over the network, the local connecting process is often `System`, because the SMB server handles the remote connection; in that case correlate with Security 5145 (share `IPC$`) to get the remote client. Local pipe connections show the real client process, which is how injected or spawned post-exploitation jobs talking back to their implant can surface.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon installed; filter with `<PipeEvent>` rules in the configuration.
+fields:
+  - name: EventType
+    description: "`ConnectPipe` for this event."
+  - name: ProcessGuid
+    description: Process that connected to the pipe.
+  - name: Image
+    description: Executable that connected. `System` usually means a connection that came in over SMB.
+  - name: PipeName
+    description: Name of the pipe.
+  - name: User
+    description: Account of the process (newer Sysmon versions).
+benign:
+  - Services and applications connecting to system pipes such as `\lsass`, `\ntsvcs` or `\srvsvc`.
+  - Administrative tools connecting to PsExec or management pipes.
+attacker:
+  - Connections to known C2 pipe names from an unexpected process.
+  - Remote tools connecting to service-control or PsExec pipes during lateral movement.
+investigation:
+  - Match with event 17 on PipeName to identify the server process.
+  - For `System` clients, look up Security 5145 on `IPC$` with the same pipe to get the remote IP and account.
+related:
+  - sysmon/17
+  - sysmon/1
+  - security/5145
+  - security/5140
+attack:
+  - T1021.002
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon

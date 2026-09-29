@@ -1,0 +1,49 @@
+id: 1033
+channel: application
+provider: MsiInstaller
+title: Windows Installer installed the product
+shortTitle: MSI product installed
+category: software
+summary: >-
+  Application event 1033 (MsiInstaller) records an MSI package installation: product name,
+  version, manufacturer and result, with the installing user's SID.
+description: |-
+  Event 1033 is written by Windows Installer at the end of a product installation performed from an MSI package. It lists the product name, version, language, the installation status (`0` for success) and the manufacturer. The **user SID** of the account that ran the installation is in the record's System section, not in the data.
+
+  It appears alongside **11707** (installation completed successfully) or 11708 (failed), and uninstalls produce **1034** and **11724**. Together they give a reliable software installation history for MSI-based products — which includes many remote management and remote access tools.
+
+  Attackers frequently install legitimate remote access software (AnyDesk, ScreenConnect, Atera, and similar) or deliver payloads as MSI packages. A 1033 for such a product, by an unexpected user or on a server, is a good lead.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the Application log for MSI installations.
+  notes: >-
+    The data is a set of unnamed insertion strings; this viewer shows them joined in `Data1`.
+    Installers that do not use Windows Installer (plain EXE setups) do not produce this event.
+fields:
+  - name: Data1
+    description: >-
+      Insertion strings — product name, product version, product language, installation status
+      (`0` = success) and manufacturer, e.g. `LibreOffice 6.4.2.2,6.4.2.2,1033,0,The Document Foundation`.
+benign:
+  - Software deployment by IT tools (SCCM/Intune, GPO) and users installing approved software.
+  - Automatic updates of MSI-based products.
+attacker:
+  - Installation of remote monitoring and management or remote access tools for persistence and hands-on access.
+  - Malicious MSI packages executed with `msiexec` from a download or network share.
+investigation:
+  - List products by install time and compare with the expected software baseline.
+  - Resolve the user SID in the System section to identify who installed the product.
+  - Look for the `msiexec.exe` command line in 4688 or Sysmon 1 and for the MSI file source.
+  - Check 11707 for the matching completion record and 1034/11724 for later removal.
+related:
+  - application/11707
+  - security/4688
+  - sysmon/1
+attack:
+  - T1218.007
+  - T1219
+references:
+  - title: Microsoft Learn — Windows Installer event logging
+    url: https://learn.microsoft.com/en-us/windows/win32/msi/event-logging
+  - title: MITRE ATT&CK — Msiexec (T1218.007)
+    url: https://attack.mitre.org/techniques/T1218/007/

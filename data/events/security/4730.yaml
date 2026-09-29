@@ -1,0 +1,58 @@
+id: 4730
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A security-enabled global group was deleted
+shortTitle: Global group deleted
+category: group
+summary: >-
+  Security event 4730 is logged on a domain controller when a security-enabled global group
+  is deleted from Active Directory.
+description: |-
+  Event 4730 is written on the domain controller that processed the request when a security-enabled **global** group is deleted. It only exists for domain groups. Local and domain local group deletions are reported by 4734, universal group deletions by 4758.
+
+  The event identifies the deleted group (`TargetUserName`, `TargetSid`) and the account that deleted it (`Subject*`). All members lose the access granted through the group immediately, and permissions that referenced it are left with an unresolved SID.
+
+  Unexpected deletions of groups that control access to applications or data can be sabotage; deletion of a recently created group can be cleanup after misuse.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Success is audited in the default Windows audit policy.
+  notes: Only generated on domain controllers.
+fields:
+  - name: TargetUserName
+    description: Name of the deleted group.
+  - name: TargetDomainName
+    description: Domain of the group.
+  - name: TargetSid
+    description: SID of the deleted group.
+  - name: SubjectUserName
+    description: Account that deleted the group.
+  - name: SubjectDomainName
+    description: Domain of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject on the DC; correlate with 4624.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Directory cleanup of obsolete role or project groups.
+  - Decommissioning of applications that used their own groups.
+attacker:
+  - Deleting a group used for a backdoor after the operation.
+  - Deleting groups that grant access to critical systems to disrupt the business.
+investigation:
+  - Reconstruct the group's lifetime from 4727, 4728 and 4729 using TargetSid.
+  - Confirm the deletion with the group owner or change process.
+related:
+  - security/4727
+  - security/4728
+  - security/4729
+  - security/4737
+  - security/4734
+attack:
+  - T1531
+references:
+  - title: "Microsoft Learn — Audit Security Group Management (4730 description)"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-group-management
+  - title: "Microsoft Learn — 4734(S): A security-enabled local group was deleted"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4734

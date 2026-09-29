@@ -1,0 +1,42 @@
+id: 1119
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: The antimalware platform encountered a critical error when trying to take action on malware
+shortTitle: Critical failure acting on malware
+category: antimalware
+summary: >-
+  Defender event 1119 records a critical error while acting on a detected threat — remediation
+  failed and the threat may still be active.
+description: |-
+  Event 1119 is the severe version of 1118: Microsoft Defender Antivirus detected a threat, tried to remediate it and hit a critical error. The threat details and the error are included.
+
+  It should be handled as an unremediated infection. Frequent 1119 events on one host can also point to something interfering with Defender itself.
+logging:
+  enabledByDefault: true
+  requirement: None — logged by Microsoft Defender Antivirus when it is the active antivirus.
+fields:
+  - name: Threat Name
+    description: Name of the detection.
+  - name: Path
+    description: Item that could not be remediated.
+  - name: Action Name
+    description: Action that was attempted.
+  - name: Error Code
+    description: Error returned.
+  - name: Error Description
+    description: Text of that error.
+benign:
+  - Rare; occasionally corrupt files or storage errors.
+attacker:
+  - Malware or tampering preventing remediation.
+investigation:
+  - Isolate the host if the threat is not a known PUA; verify manually whether the item is present and running.
+  - Check for Defender configuration changes (5001, 5007, 5010, 5012) around the same time.
+related:
+  - defender/1116
+  - defender/1118
+  - defender/5001
+attack: []
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

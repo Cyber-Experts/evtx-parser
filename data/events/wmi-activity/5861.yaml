@@ -1,0 +1,68 @@
+id: 5861
+channel: wmi-activity
+provider: Microsoft-Windows-WMI-Activity
+title: Permanent WMI event consumer registered
+shortTitle: Permanent event consumer
+category: wmi
+summary: >-
+  WMI-Activity event 5861 logs a permanent WMI event subscription (filter-to-consumer binding),
+  the classic fileless persistence technique.
+description: |-
+  Event 5861 is written by the WMI service when a permanent event subscription becomes active: an `__EventFilter` (a WQL event query) bound to an event consumer through `__FilterToConsumerBinding`. Permanent subscriptions live in the WMI repository and survive reboots, which is why attackers use them for persistence: the consumer runs code whenever the filter fires, for example a few minutes after startup or when a user logs on.
+
+  The record gives the `Namespace` (usually `root\subscription`), the filter in `ESS` and the consumer in `CONSUMER`. The `PossibleCause` field holds the details of the binding, including the consumer's properties — for a `CommandLineEventConsumer` the command line, for an `ActiveScriptEventConsumer` the script — so 5861 often shows the payload directly.
+
+  New permanent subscriptions are rare on most endpoints, which makes this a high-signal event. Windows ships a default one (`SCM Event Log Consumer`), and some management and OEM software add their own; baseline those and review everything else.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Microsoft-Windows-WMI-Activity/Operational channel is enabled by default.
+  notes: >-
+    Event 5861 is defined from Windows 10 1607 / Windows Server 2016 onward; earlier releases do not
+    have it. Sysmon events 19, 20 and 21 cover the same activity (filter, consumer, binding) when
+    Sysmon is deployed with WMI monitoring in its configuration.
+fields:
+  - name: Namespace
+    description: WMI namespace holding the subscription, typically `root\subscription`.
+  - name: ESS
+    description: The event filter (name and WQL query) that triggers the consumer.
+  - name: CONSUMER
+    description: >-
+      The consumer bound to the filter, e.g. `CommandLineEventConsumer="Updater"` or
+      `ActiveScriptEventConsumer="..."`. Command line and script consumers are the dangerous types.
+  - name: PossibleCause
+    description: >-
+      Details of the binding, including the consumer's properties (such as `CommandLineTemplate`,
+      `ExecutablePath` or `ScriptText`). Read this field first.
+benign:
+  - The built-in `SCM Event Log Consumer` subscription present on Windows installs.
+  - Management, monitoring and OEM software (for example configuration management or hardware vendor agents) registering their own subscriptions.
+attacker:
+  - >-
+    Fileless persistence: a `CommandLineEventConsumer` or `ActiveScriptEventConsumer` that runs
+    PowerShell, `cmd.exe` or a script shortly after boot or on a timer.
+  - Remote persistence installed over WMI or WinRM from another host with admin credentials.
+  - Offensive frameworks and malware families that ship WMI persistence modules.
+investigation:
+  - Review every 5861 whose CONSUMER is a command line or active script consumer; read PossibleCause for the payload.
+  - >-
+    Enumerate the live subscriptions (`__EventFilter`, `__EventConsumer`, `__FilterToConsumerBinding`
+    in `root\subscription`) or parse `OBJECTS.DATA` from the WMI repository offline.
+  - Look for child processes of `WmiPrvSE.exe` or `scrcons.exe` (active script consumers) in Security 4688 or Sysmon 1.
+  - Check Sysmon 19, 20 and 21 for the same subscription and for who created it.
+related:
+  - wmi-activity/5860
+  - wmi-activity/5857
+  - wmi-activity/5858
+  - sysmon/19
+  - sysmon/20
+  - sysmon/21
+  - security/4688
+attack:
+  - T1546.003
+  - T1047
+references:
+  - title: Microsoft Learn — Receiving events at all times (permanent consumers)
+    url: https://learn.microsoft.com/en-us/windows/win32/wmisdk/receiving-events-at-all-times
+  - title: MITRE ATT&CK — WMI Event Subscription (T1546.003)
+    url: https://attack.mitre.org/techniques/T1546/003/

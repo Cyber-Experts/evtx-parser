@@ -1,0 +1,27 @@
+title: "Servicios de Escritorio remoto: reconexión de sesión correcta"
+shortTitle: Sesión reconectada
+summary: >-
+  El evento RDP 25 se registra cuando un usuario se reconecta a una sesión desconectada existente,
+  con la nueva dirección del cliente.
+description: |-
+  El evento 25 registra que un cliente volvió a engancharse a una sesión que estaba desconectada (24). No se crea una sesión nueva, así que no hay evento 21: este evento y el 4778 de Seguridad son los registros de la reconexión.
+
+  Su campo `Address` es la IP del cliente que se reconectó, que puede diferir de la que inició sesión originalmente. Eso hace que el 25 sea esencial para seguir el acceso RDP: un atacante que se reconecta a la sesión desconectada de un administrador nunca produce un 21 nuevo.
+logging:
+  requirement: >-
+    Ninguno: el canal LocalSessionManager/Operational está habilitado por defecto.
+fields:
+  - name: User
+    description: Cuenta propietaria de la sesión.
+  - name: SessionID
+    description: Número de la sesión que se reanudó.
+  - name: Address
+    description: Dirección IP del cliente que se reconecta, o `LOCAL`.
+benign:
+  - Usuarios que retoman su sesión RDP tras una desconexión o desde otro dispositivo.
+attacker:
+  - Reconexión a una sesión privilegiada desconectada con las mismas credenciales desde otro host.
+  - Toma de control de una sesión RDP, en la que una sesión se asocia a un cliente distinto.
+investigation:
+  - Compare Address con la del 21 original para ese SessionID.
+  - Combínelo con el 1149 anterior (la nueva conexión) y con el 4778 / 4624 LogonType 7 o 10 de Seguridad.

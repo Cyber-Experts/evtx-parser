@@ -1,0 +1,62 @@
+id: 4727
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A security-enabled global group was created
+shortTitle: Global group created
+category: group
+summary: >-
+  Security event 4727 is logged on a domain controller when a new security-enabled global
+  group is created in Active Directory.
+description: |-
+  Event 4727 is written on the domain controller that processed the request when a new security-enabled **global** group is created. It only exists for domain groups, so it never appears on workstations or member servers. Local and domain local groups are reported by 4731, universal groups by 4754.
+
+  The event carries the new group's name and SID (`TargetUserName`, `TargetDomainName`, `TargetSid`), its `SamAccountName` and `SidHistory`, and the creator in `Subject*`. Its content is identical to 4731 — only the group scope differs.
+
+  A new group grants nothing by itself; follow its SID into membership changes (4728) and into the permissions it receives.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Success is audited in the default Windows audit policy.
+  notes: Only generated on domain controllers.
+fields:
+  - name: TargetUserName
+    description: Name of the new group.
+  - name: TargetDomainName
+    description: Domain of the new group.
+  - name: TargetSid
+    description: SID of the new group.
+  - name: SamAccountName
+    description: Pre-Windows 2000 name of the group.
+  - name: SidHistory
+    description: Previous SIDs; `-` for a newly created group. Any value on a new group deserves a look.
+  - name: SubjectUserName
+    description: Account that created the group.
+  - name: SubjectDomainName
+    description: Domain of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject on the DC; correlate with 4624.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Administrators or provisioning tools creating role and application groups.
+  - Product installations that extend Active Directory with their own groups (Exchange, SCCM and similar).
+attacker:
+  - Creating a group with a harmless-looking name, adding backdoor accounts to it and granting it rights on AD objects or servers.
+investigation:
+  - Verify the creator and whether the group matches a change request.
+  - Follow TargetSid into later 4728 events and directory changes (5136) to see what the group was used for.
+related:
+  - security/4728
+  - security/4730
+  - security/4737
+  - security/4731
+  - security/4754
+  - security/5136
+attack:
+  - T1098
+references:
+  - title: "Microsoft Learn — Audit Security Group Management (4727 description)"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-group-management
+  - title: "Microsoft Learn — 4731(S): A security-enabled local group was created"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4731

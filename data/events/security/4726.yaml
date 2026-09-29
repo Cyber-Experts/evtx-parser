@@ -1,0 +1,63 @@
+id: 4726
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A user account was deleted
+shortTitle: User account deleted
+category: account
+summary: >-
+  Security event 4726 is logged when a local or domain user account is deleted, with the
+  subject who deleted it and the removed account's name and SID.
+description: |-
+  Event 4726 is written when a user object is deleted — on domain controllers for domain accounts and on member servers and workstations for local accounts. `Subject*` identifies who performed the deletion, `Target*` the deleted account.
+
+  Deletion is harder to undo than disabling (4725), so many organizations disable first and delete later. A deletion of an account that was created shortly before (4720) is a classic cleanup pattern: an intruder creates a temporary account, uses it, then removes it. Because the account is gone, `TargetSid` is the only reliable key to tie the deletion to earlier events for the same account.
+
+  Mass deletion of accounts by one subject is also a destructive technique used to deny access to legitimate users and administrators.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Enabled for Success in the default Windows audit policy.
+  notes: >-
+    Computer account deletions are reported by 4743 (Computer Account Management), not 4726.
+fields:
+  - name: SubjectUserName
+    description: Account that deleted the user.
+  - name: SubjectDomainName
+    description: Domain or computer name of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject; correlate with 4624.
+  - name: TargetUserName
+    description: Name of the deleted account.
+  - name: TargetDomainName
+    description: Domain of the deleted account, or the computer name for a local account.
+  - name: TargetSid
+    description: SID of the deleted account. Search older events (4720, 4624, 4728, 4732) for it.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Scheduled cleanup of accounts that were disabled during offboarding.
+  - Removal of local accounts by software uninstallers or configuration management.
+  - Lab and test environments where accounts are created and deleted routinely.
+attacker:
+  - Removing a temporary backdoor account after use to cover tracks.
+  - Deleting many accounts, including administrators, as part of a destructive or ransomware operation.
+investigation:
+  - Search for the TargetSid in earlier 4720, 4624 and group membership events to reconstruct the account's life.
+  - Flag deletions of accounts created less than a few days earlier, especially by the same SubjectUserName.
+  - Check whether the deleted account was privileged or a service account whose removal could break applications.
+related:
+  - security/4720
+  - security/4725
+  - security/4743
+  - security/4729
+  - security/4733
+  - security/4624
+attack:
+  - T1531
+  - T1070.009
+references:
+  - title: "Microsoft Learn — 4726(S): A user account was deleted"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4726
+  - title: Microsoft Learn — Audit User Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-user-account-management

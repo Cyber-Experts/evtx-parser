@@ -1,0 +1,58 @@
+id: 201
+channel: task-scheduler
+provider: Microsoft-Windows-TaskScheduler
+title: Action completed
+shortTitle: Action completed
+category: scheduled-task
+summary: >-
+  Task Scheduler event 201 records that a task action completed, with the action and its
+  return code — tells you whether the launched program succeeded.
+description: |-
+  Event 201 is written when an action launched by a task (event 200) completes. It records the task path (`TaskName`), the `TaskInstanceId` of the run, the action (`ActionName`) and, in current versions of the event, the `ResultCode` returned by the action.
+
+  For executable actions the result code is the process exit code: `0` usually means success, anything else is program-specific. That makes 201 the place to confirm whether a suspicious task actually did its job, and the gap between 200 and 201 shows how long the action ran.
+
+  Older versions of the event omit `ResultCode`, so its absence does not mean success.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    The Microsoft-Windows-TaskScheduler/Operational channel must be enabled — "Enable All Tasks
+    History" in the Task Scheduler console, or `wevtutil sl Microsoft-Windows-TaskScheduler/Operational /e:true`.
+  notes: >-
+    The default state of this channel is not consistent across Windows versions, editions and
+    builds: on some installs it is already recording, on others task history is off and the log
+    stays empty until someone enables it. Check whether the log holds any records before treating
+    a missing event as evidence. On busy hosts the log rolls over quickly.
+fields:
+  - name: TaskName
+    description: Full path of the task in the library.
+  - name: TaskInstanceId
+    description: GUID of the task run; links to 100, 200 and 102.
+  - name: ActionName
+    description: The action that completed — for executable actions, the program path.
+  - name: ResultCode
+    description: >-
+      Return code of the action (the process exit code for executable actions). `0` is the usual
+      success value; other values are defined by the program.
+benign:
+  - Built-in and vendor tasks completing with `0` or with known, harmless error codes.
+  - Tasks failing repeatedly because a program was uninstalled or a path changed.
+attacker:
+  - Completion of a persistence or remote execution task, confirming the payload ran.
+  - Non-zero codes on a new task can reveal failed attempts (blocked by AV or AppLocker, wrong path).
+investigation:
+  - Pair 200 and 201 by TaskInstanceId to get the action's run time and outcome.
+  - For failed actions of suspicious tasks, check Defender and AppLocker logs at the same time for a block.
+  - Correlate with process creation and termination logs (Security 4688/4689, Sysmon 1) for the same program.
+related:
+  - task-scheduler/200
+  - task-scheduler/100
+  - task-scheduler/102
+  - task-scheduler/129
+  - security/4689
+  - applocker/8004
+attack:
+  - T1053.005
+references:
+  - title: Microsoft Learn — Task Scheduler
+    url: https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-start-page

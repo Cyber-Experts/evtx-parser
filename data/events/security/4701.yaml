@@ -1,0 +1,64 @@
+id: 4701
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A scheduled task was disabled
+shortTitle: Scheduled task disabled
+category: scheduled-task
+summary: >-
+  Security event 4701 records a scheduled task being disabled, with its XML. Disabling security,
+  backup or update tasks can be part of defense evasion.
+description: |-
+  Event 4701 is written when a scheduled task is disabled. The `TaskContent` XML shows the task definition with `<Enabled>false</Enabled>`.
+
+  Legitimate disabling happens during troubleshooting or software changes. From an attacker's perspective, disabling tasks is a way to stop things that would interfere: antivirus scans and signature updates, backup jobs, or Windows maintenance tasks. It can also be the first half of a disable-modify-enable sequence on an existing task.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Other Object Access Events
+    (Success). Not enabled in the default audit policy.
+  notes: >-
+    No SACL is needed. Recent Windows builds add `ClientProcessId`, `ParentProcessId`,
+    `ClientProcessStartKey`, `RpcCallClientLocality` and `FQDN` to identify the process that made
+    the request. The Task Scheduler Operational log records similar lifecycle events (106, 140, 141)
+    without audit policy.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Account that made the change. For remote task management (`schtasks /s`, Impacket) this is
+      the remote account.
+  - name: SubjectDomainName
+    description: Domain or computer name of that account.
+  - name: SubjectLogonId
+    description: Logon session of the account; pivot to 4624 on the same host to find where it came from.
+  - name: TaskName
+    description: >-
+      Full task path, e.g. `\Microsoft\Windows\...` for built-in tasks. Tasks at the root (`\Name`)
+      or with names mimicking Microsoft ones deserve a look.
+  - name: TaskContent
+    description: >-
+      The task's full XML definition. Read `Actions/Exec/Command` and `Arguments` (what runs),
+      `Principals` (`UserId`, `RunLevel` — `HighestAvailable` means elevated), `Triggers` and
+      `Settings/Hidden`.
+  - name: ClientProcessId
+    description: PID of the process that requested the change, on builds that log it. Match it to 4688.
+benign:
+  - Administrators disabling noisy or broken tasks.
+  - Software uninstallers or policies turning off vendor update tasks.
+attacker:
+  - Disabling security-tool, backup or Windows Defender scheduled tasks before deploying ransomware.
+  - Temporarily disabling a legitimate task to modify its action (4702) and re-enable it (4700).
+investigation:
+  - Review which tasks were disabled and by whom; security, backup and update tasks deserve immediate attention.
+  - Look for 4702 and 4700 on the same TaskName right after, which indicates tampering rather than simple maintenance.
+related:
+  - task-scheduler/142
+  - security/4700
+  - security/4702
+  - security/4698
+  - task-scheduler/140
+  - security/4624
+attack:
+  - T1053.005
+references:
+  - title: "Microsoft Learn — 4701(S): A scheduled task was disabled"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4701

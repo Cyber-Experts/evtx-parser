@@ -1,0 +1,14 @@
+{
+  "release": "r2026-07-01",
+  "commit": "552f3fee420ef232a8e5790c4fae591847e32347",
+  "source": "https://github.com/SigmaHQ/sigma",
+  "license": "Detection Rule License (DRL) 1.1 — https://github.com/SigmaHQ/Detection-Rule-License",
+  "generated": "2026-09-29",
+  "counts": {
+    "files": 2403,
+    "bundled": 2395,
+    "deprecated": 152,
+    "sigmaUnsupported": 55,
+    "unsupported": 8
+  }
+}

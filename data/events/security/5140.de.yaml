@@ -1,0 +1,61 @@
+title: Auf ein Netzwerkfreigabeobjekt wurde zugegriffen
+shortTitle: Zugriff auf Netzwerkfreigabe
+summary: >-
+  Event-ID 5140 protokolliert den ersten Zugriff auf eine Netzwerkfreigabe in einer SMB-Sitzung:
+  Konto, Quell-IP und Freigabe. Zentral für C$, ADMIN$ und IPC$.
+description: |-
+  Event 5140 wird auf dem Computer geschrieben, der die Freigabe **bereitstellt**, wenn ein Client sich mit ihr verbindet. Es wird einmal pro Sitzung beim ersten Zugriffsversuch erzeugt; es zeigt also, welche Freigaben ein entferntes Konto geöffnet hat, nicht jede Datei, die es berührt hat (das ist 5145).
+
+  Die wichtigsten Felder sind `SubjectUserName` / `SubjectDomainName` (wer), `IpAddress` / `IpPort` (von wo), `ShareName` und `ShareLocalPath` (welche Freigabe). `SubjectLogonId` verknüpft den Zugriff mit der Netzwerkanmeldung (4624 LogonType 3), die die Sitzung erzeugt hat.
+
+  Administrative Freigaben sind der Hauptgrund, es zu sammeln: `ADMIN$` und `C$` werden von PsExec-artigen Tools und von Angreifern zum Kopieren von Payloads genutzt, `IPC$` für Named Pipes (Dienststeuerung, Remote-Registry, SAMR-/LSARPC-Enumeration). Auf Domänencontrollern erzeugen Zugriffe jedes Computers auf `SYSVOL` und `NETLOGON` viel Rauschen.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit File Share (Success, Failure). In
+    der Standard-Überwachungsrichtlinie von Windows nicht überwacht.
+  notes: >-
+    Das Volumen ist auf Dateiservern und Domänencontrollern hoch (SYSVOL-Zugriffe durch die
+    Gruppenrichtlinie) und auf Arbeitsstationen gering. Dieselbe Unterkategorie erzeugt 5142, 5143,
+    5144 und 5168. Ein 5140 mit Fehler wird protokolliert, wenn der Zugriff auf Freigabeebene
+    verweigert wird.
+fields:
+  - name: SubjectUserSid
+    description: SID des Kontos, das auf die Freigabe zugegriffen hat.
+  - name: SubjectUserName
+    description: Konto, das auf die Freigabe zugegriffen hat. Computerkonten (`HOST$`) sind häufig und meist harmlos.
+  - name: SubjectDomainName
+    description: Domäne oder Computername des Kontos.
+  - name: SubjectLogonId
+    description: Anmeldesitzung des entfernten Benutzers; entspricht der `TargetLogonId` der 4624-Netzwerkanmeldung auf diesem Host.
+  - name: ObjectType
+    description: Bei diesem Event immer `File`.
+  - name: IpAddress
+    description: IP-Adresse des Clients. `::1` oder `127.0.0.1` bei lokalem Zugriff über einen UNC-Pfad.
+  - name: IpPort
+    description: Quellport der Client-Verbindung.
+  - name: ShareName
+    description: >-
+      Freigabename in der Form `\\*\SHARE`, z. B. `\\*\C$`, `\\*\ADMIN$`, `\\*\IPC$`,
+      `\\*\SYSVOL`.
+  - name: ShareLocalPath
+    description: Lokaler Pfad der Freigabe, z. B. `\??\C:\Windows` für `ADMIN$`. Leer bei `IPC$`.
+  - name: AccessMask
+    description: Angeforderte Zugriffsrechte. Bei 5140 normalerweise `0x1` (ReadData / ListDirectory).
+  - name: AccessList
+    description: Zugriffsrechte in symbolischer Form, z. B. `%%4416` (ReadData oder ListDirectory).
+benign:
+  - Arbeitsstationen und Server, die auf Domänencontrollern `SYSVOL` und `NETLOGON` für Gruppenrichtlinien und Anmeldeskripte lesen.
+  - Benutzer, die Abteilungsfreigaben und Basislaufwerke verbinden.
+  - Management- und Backup-Tools, Softwareverteilungs- und Inventarisierungsagenten, die sich mit `ADMIN$`, `C$` oder `IPC$` verbinden.
+attacker:
+  - >-
+    Lateral Movement mit PsExec, Impacket `smbexec`/`psexec` oder ähnlichen Tools: ein Zugriff auf
+    `ADMIN$` oder `IPC$` von einer Arbeitsstation, gefolgt von einer Dienstinstallation (7045, 4697).
+  - Ablegen oder Abholen von Dateien über `C$` auf einem entfernten Host mit gestohlenen Anmeldeinformationen.
+  - Freigabe- und Benutzer-Enumeration über `IPC$` (Named Pipes SAMR, LSARPC, SRVSVC) von einem Host, der diesen Server normalerweise nicht abfragt.
+  - Sammeln von Daten auf Dateiservern durch ein Konto, das sie selten nutzt.
+investigation:
+  - Computerkonten und `SYSVOL`/`NETLOGON` herausfiltern, dann `ADMIN$`, `C$` und andere Admin-Freigaben nach Quell-IP und Konto prüfen.
+  - Über `SubjectLogonId` auf das 4624 mit LogonType 3 auf demselben Host pivotieren, um das Authentifizierungspaket (NTLM oder Kerberos) zu bestätigen.
+  - Ist Detailed File Share aktiviert, in 5145 die in derselben Sitzung genutzten Dateien und Named Pipes prüfen (`svcctl`, `samr`, `lsarpc`, `srvsvc`).
+  - Auf dem Quellhost nach der passenden ausgehenden Verbindung (Sysmon 3, 5156) und dem auslösenden Tool suchen.

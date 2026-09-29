@@ -1,0 +1,57 @@
+id: 4734
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A security-enabled local group was deleted
+shortTitle: Local group deleted
+category: group
+summary: >-
+  Security event 4734 is logged when a security-enabled local group is deleted — a local SAM
+  group on a host, or a domain local group on a domain controller.
+description: |-
+  Event 4734 is written when a security-enabled **local** group is deleted: a group in the local SAM on a workstation or member server, or a **domain local** security group on a domain controller. Global and universal group deletions are reported by 4730 and 4758.
+
+  The event names the deleted group (`TargetUserName`, `TargetSid`) and the account that deleted it (`Subject*`). Once the group is gone, any permission that referenced it shows as an unresolved SID, so `TargetSid` is the key to understanding the impact.
+
+  Deleting a group removes the access of all its members at once. Unexpected deletions of groups that grant access to business applications or file shares can be sabotage, and deletion of a recently created group can be cleanup after misuse.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Success is audited in the default Windows audit policy.
+fields:
+  - name: TargetUserName
+    description: Name of the deleted group.
+  - name: TargetDomainName
+    description: Domain of the group, or the computer name for a local SAM group.
+  - name: TargetSid
+    description: SID of the deleted group; search ACLs and older events for it.
+  - name: SubjectUserName
+    description: Account that deleted the group.
+  - name: SubjectDomainName
+    description: Domain or computer name of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject; correlate with 4624.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Software uninstallation removing its local groups.
+  - Directory cleanup of unused domain local groups.
+attacker:
+  - Removing a group created for a backdoor after use.
+  - Deleting groups that grant access to critical resources to disrupt operations.
+investigation:
+  - Look for the group's creation (4731) and membership changes (4732, 4733) to reconstruct its lifetime.
+  - Confirm with the resource owners whether the deletion was planned.
+related:
+  - security/4731
+  - security/4732
+  - security/4733
+  - security/4735
+  - security/4730
+attack:
+  - T1531
+references:
+  - title: "Microsoft Learn — 4734(S): A security-enabled local group was deleted"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4734
+  - title: Microsoft Learn — Audit Security Group Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-group-management

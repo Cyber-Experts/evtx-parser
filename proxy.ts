@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { match as matchLocale } from "@formatjs/intl-localematcher";
 import Negotiator from "negotiator";
 import { LOCALES, DEFAULT_LOCALE } from "./lib/i18n";
+import eventManifest from "./lib/events/manifest.json";
 
 const PUBLIC_FILE = /\.(.*)$/;
 
@@ -65,7 +66,20 @@ export function proxy(request: NextRequest) {
   const hasLocale =
     segments.length > 0 &&
     (LOCALES as readonly string[]).includes(segments[0]);
-  if (hasLocale) return;
+  if (hasLocale) {
+    // Event ID encyclopedia entries exist only in English plus their real
+    // translations; send other locales (locale switcher, old links) to the
+    // English page instead of a 404.
+    if (segments[1] === "events" && segments.length === 4 && segments[0] !== DEFAULT_LOCALE) {
+      const locales = (eventManifest as Record<string, string[]>)[`${segments[2]}/${segments[3]}`];
+      if (locales && !locales.includes(segments[0])) {
+        const url = request.nextUrl.clone();
+        url.pathname = `/${DEFAULT_LOCALE}/events/${segments[2]}/${segments[3]}`;
+        return NextResponse.redirect(url, 307);
+      }
+    }
+    return;
+  }
 
   const locale = detectLocale(request);
   const url = request.nextUrl.clone();

@@ -1,0 +1,45 @@
+id: 1104
+channel: security
+provider: Microsoft-Windows-Eventlog
+title: The security log is now full
+shortTitle: Security log full
+category: log-integrity
+summary: >-
+  Security event 1104 means the Security log reached its maximum size and is set not to overwrite,
+  so new audit events can no longer be written.
+description: |-
+  Event 1104 is written by the Windows Event Log service when the Security log hits its configured maximum size while the retention method is **Do not overwrite events (Clear logs manually)**. From that point new audit records cannot be stored until someone archives or clears the log.
+
+  It is an operational alarm first: a host in this state is effectively not auditing. For an investigator it also marks a hard boundary — whatever happened after the 1104 and before the next clear (1102) is not in the local Security log at all.
+
+  With the default retention method (overwrite as needed) the event does not occur; the oldest records are silently rolled over instead. Check the log's maximum size and retention settings before drawing conclusions from its absence.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Always logged by the Windows Event Log service when the condition occurs. It only occurs when
+    the Security log retention is set to not overwrite events.
+  notes: >-
+    The record carries only an empty `UserData/FileIsFull` element and is logged at Error level.
+fields:
+  - name: FileIsFull
+    description: Empty `UserData` element identifying the record; the event has no other data.
+benign:
+  - Hosts hardened to never overwrite audit records, where the log fills up before an operator archives it.
+  - Undersized log settings on busy servers, typically domain controllers with verbose auditing.
+attacker:
+  - >-
+    Generating a flood of auditable activity to fill a non-overwriting log, so that later actions
+    are not recorded locally.
+investigation:
+  - >-
+    Treat the time after the 1104 as unaudited on this host until the following 1102; rely on
+    forwarded events, EDR telemetry and logs on other machines for that window.
+  - Look at the event volume just before the 1104 — a sudden spike of one event ID suggests deliberate flooding rather than normal growth.
+  - Review the log's size and retention settings and whether a 1102 followed, and by whom.
+related:
+  - security/1100
+  - security/1102
+attack: []
+references:
+  - title: "Microsoft Learn — 1104(S): The security log is now full"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-1104

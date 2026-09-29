@@ -42,6 +42,17 @@ import {
 import { SearchBox } from "@/components/viewer/SearchBox";
 import { HuntsMenu } from "@/components/viewer/HuntsMenu";
 import { SessionsView } from "@/components/viewer/SessionsView";
+import {
+  SIGMA_LEVEL_DOT,
+  SigmaView,
+  type SigmaStatus,
+} from "@/components/viewer/SigmaView";
+import {
+  SigmaCustomRules,
+  type CustomRuleEntry,
+} from "@/components/viewer/SigmaCustomRules";
+import { buildSigmaCsv, buildSigmaJson } from "@/lib/sigma/export";
+import type { SigmaMatch, SigmaRunResult } from "@/lib/sigma/types";
 import { SavedSessionsList } from "@/components/viewer/SavedSessionsList";
 import { TimeRangeBar, aroundLabel } from "@/components/viewer/TimeRangeBar";
 import { SessionNameDialog } from "@/components/viewer/SessionNameDialog";
@@ -113,6 +124,7 @@ import {
   type TimeRange,
 } from "@/lib/time-range";
 import type { Dict } from "@/src/dict/types";
+import { encyclopediaLink } from "@/lib/events/link";
 
 // Virtualization: render only the rows the user can actually see plus a
 // small overscan, so scrolling a 100k-event Security.evtx stays smooth.
@@ -241,6 +253,20 @@ function makeValueIndex(rows: IndexedRow[], allPairs: [string, string][][]) {
     cache.set(field, out);
     return out;
   };
+}
+
+// Analyst-supplied Sigma rules are kept in this browser only (never sent
+// anywhere), so they survive a reload.
+const SIGMA_CUSTOM_KEY = "evtx-sigma-custom";
+function loadCustomRules(): CustomRuleEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(SIGMA_CUSTOM_KEY);
+    const parsed = raw ? (JSON.parse(raw) as CustomRuleEntry[]) : [];
+    return Array.isArray(parsed) ? parsed.filter((e) => e && typeof e.text === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 function readHash(): {
@@ -492,7 +518,21 @@ export function EvtxUploader({
   // Power-user workflow state.
   const [regexMode, setRegexMode] = useState(() => readHash().re);
   const [showFacets, setShowFacets] = useState(true);
-  const [view, setView] = useState<"events" | "sessions">("events");
+  const [view, setView] = useState<"events" | "sessions" | "sigma">("events");
+  // Sigma: SigmaHQ + custom rules run in the worker after each load.
+  const [sigmaRun, setSigmaRun] = useState<{
+    key: string;
+    status: SigmaStatus;
+    result: SigmaRunResult | null;
+  }>({ key: "", status: { phase: "idle" }, result: null });
+  const [sigmaCustom, setSigmaCustom] = useState<CustomRuleEntry[]>(loadCustomRules);
+  const [sigmaDialogOpen, setSigmaDialogOpen] = useState(false);
+  const sigmaDialogOpenRef = useRef(false);
+  const [sigmaSelected, setSigmaSelected] = useState<string | null>(null);
+  // Table restricted to one Sigma rule's matches (like a finding).
+  const [sigmaFilter, setSigmaFilter] = useState<{ id: string } | null>(null);
+  // Event to scroll into view once the events table re-renders.
+  const pendingScrollRef = useRef<number | null>(null);
   // Local (IndexedDB) session save/restore.
   const [savedId, setSavedId] = useState<string | null>(null);
   const [savedName, setSavedName] = useState<string | null>(null);
@@ -603,6 +643,40 @@ export function EvtxUploader({
     setError(null);
   }, []);
 
+  // Validate pasted / dropped Sigma YAML in the worker, then keep it.
+  const addCustomTexts = useCallback(
+    async (items: { name: string; text: string }[]) => {
+      if (!clientRef.current) clientRef.current = new EvtxClient();
+      const client = clientRef.current;
+      const checked = await Promise.all(
+        items.map(async (it, i) => {
+          const { rules, errors } = await client.sigmaValidate(it.text);
+          return {
+            key: `${Date.now().toString(36)}-${i}-${Math.random().toString(36).slice(2, 8)}`,
+            name: it.name,
+            text: it.text,
+            rules: rules.map((r) => ({ id: r.id, title: r.title, level: r.level })),
+            errors,
+          } satisfies CustomRuleEntry;
+        }),
+      );
+      setSigmaCustom((prev) => [...prev, ...checked]);
+    },
+    [],
+  );
+  const importSigmaFiles = useCallback(
+    (list: File[], openDialog: boolean) => {
+      void Promise.all(list.map(async (f) => ({ name: f.name, text: await f.text() })))
+        .then(addCustomTexts)
+        .then(() => {
+          if (!openDialog) return;
+          sigmaDialogOpenRef.current = true;
+          setSigmaDialogOpen(true);
+        });
+    },
+    [addCustomTexts],
+  );
+
   // Drop a .evtx anywhere on the page — not just on the box. We track enter/leave
   // depth so the overlay doesn't flicker as the cursor crosses child elements.
   useEffect(() => {
@@ -610,7 +684,8 @@ export function EvtxUploader({
       Array.from(e.dataTransfer?.types ?? []).includes("Files");
     let depth = 0;
     const onEnter = (e: DragEvent) => {
-      if (!carriesFiles(e)) return;
+      // The Sigma rules dialog has its own drop zone.
+      if (!carriesFiles(e) || sigmaDialogOpenRef.current) return;
       depth++;
       setWindowDrag(true);
     };
@@ -626,7 +701,12 @@ export function EvtxUploader({
       e.preventDefault();
       depth = 0;
       setWindowDrag(false);
+      if (sigmaDialogOpenRef.current) return;
       const dropped = Array.from(e.dataTransfer?.files ?? []);
+      // Sigma rules dropped anywhere go to "Your rules".
+      const yml = dropped.filter((f) => /\.ya?ml$/i.test(f.name));
+      if (yml.length)
+        importSigmaFiles(yml, !dropped.some((f) => /\.evtx$/i.test(f.name)));
       if (dropped.length) handleFiles(dropped);
     };
     window.addEventListener("dragenter", onEnter);
@@ -639,7 +719,7 @@ export function EvtxUploader({
       window.removeEventListener("dragover", onOver);
       window.removeEventListener("drop", onDropWin);
     };
-  }, [handleFiles]);
+  }, [handleFiles, importSigmaFiles]);
 
   // Reset every view filter (text, level/ID/provider/channel chips, time range,
   // structured query) in one action — but keep the loaded files in the session.
@@ -649,6 +729,7 @@ export function EvtxUploader({
     setQuery(emptyRoot());
     setTimeRange(null);
     setFindingFilter(null);
+    setSigmaFilter(null);
     setBookmarkOnly(false);
     setOpenRow(null);
     setFocusedIdx(null);
@@ -666,6 +747,7 @@ export function EvtxUploader({
     setQuery(emptyRoot());
     // The time range stays: findings are already scoped to it.
     setBookmarkOnly(false);
+    setSigmaFilter(null);
     setOpenRow(null);
     setFocusedIdx(null);
     setFindingFilter((prev) =>
@@ -988,6 +1070,93 @@ export function EvtxUploader({
     [allFindings],
   );
 
+  // --- Sigma ------------------------------------------------------------------
+  // Re-run whenever the file set or the custom rules change (once parsing is
+  // finished). The worker streams records from its handles, so nothing is
+  // copied back and forth; a newer run supersedes an older one.
+  const sigmaCustomTexts = useMemo(
+    () => sigmaCustom.filter((e) => e.rules.length > 0).map((e) => e.text),
+    [sigmaCustom],
+  );
+  const sigmaKey = useMemo(
+    () =>
+      loading != null || files.length === 0
+        ? ""
+        : `${files.map((f) => f.id).join(",")}|${sigmaCustomTexts.length}:${sigmaCustomTexts.join("\u0000").length}`,
+    [files, loading, sigmaCustomTexts],
+  );
+  useEffect(() => {
+    const client = clientRef.current;
+    if (!sigmaKey || !client) return;
+    let cancelled = false;
+    let offset = 0;
+    const list = files.map((f) => {
+      const o = offset;
+      offset += f.rows.length;
+      return { fileId: f.id, offset: o };
+    });
+    client
+      .sigmaRun(list, sigmaCustomTexts, (done, total) => {
+        if (!cancelled)
+          setSigmaRun((prev) => ({ key: sigmaKey, status: { phase: "running", done, total }, result: prev.key === sigmaKey ? prev.result : null }));
+      })
+      .then(({ result }) => {
+        if (cancelled || !result) return;
+        setSigmaRun({ key: sigmaKey, status: { phase: "done" }, result });
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setSigmaRun({
+            key: sigmaKey,
+            status: { phase: "error", message: err instanceof Error ? err.message : String(err) },
+            result: null,
+          });
+      });
+    return () => {
+      cancelled = true;
+    };
+    // `files`/texts are captured through sigmaKey.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sigmaKey]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIGMA_CUSTOM_KEY, JSON.stringify(sigmaCustom));
+    } catch {
+      // storage unavailable/full: rules stay for this visit only
+    }
+  }, [sigmaCustom]);
+  const sigmaCurrent = sigmaRun.key === sigmaKey && sigmaKey !== "";
+  const sigmaStatus: SigmaStatus = !sigmaKey
+    ? { phase: "idle" }
+    : sigmaCurrent
+      ? sigmaRun.status
+      : { phase: "loading" };
+  const sigmaResult = sigmaCurrent ? sigmaRun.result : null;
+  // Scoped to the time range, like findings.
+  const sigmaMatches = useMemo<SigmaMatch[]>(() => {
+    if (!sigmaResult) return [];
+    if (!timeRange) return sigmaResult.matches;
+    const match = rangeMatcher(timeIndex, rangeField, timeRange);
+    const out: SigmaMatch[] = [];
+    for (const m of sigmaResult.matches) {
+      const gids = m.gids.filter(match);
+      if (gids.length > 0) out.push({ ...m, gids });
+    }
+    return out;
+  }, [sigmaResult, timeRange, timeIndex, rangeField]);
+  const sigmaTotals = useMemo(
+    () => new Map((sigmaResult?.matches ?? []).map((m) => [m.rule.id, m.gids.length])),
+    [sigmaResult],
+  );
+  const sigmaGids = useMemo(() => {
+    if (!sigmaFilter) return null;
+    return new Set(sigmaMatches.find((m) => m.rule.id === sigmaFilter.id)?.gids ?? []);
+  }, [sigmaFilter, sigmaMatches]);
+  const sigmaFilterTitle = sigmaFilter
+    ? (sigmaResult?.matches.find((m) => m.rule.id === sigmaFilter.id)?.rule.title ?? sigmaFilter.id)
+    : null;
+  const sigmaTopLevel = sigmaMatches[0]?.rule.level;
+
   // Is the current regex term syntactically invalid? Drives the red input
   // border and the "matches nothing" behaviour below.
   let regexInvalid = false;
@@ -1049,6 +1218,7 @@ export function EvtxUploader({
     (timeRange ? 1 : 0) +
     (queryActive ? 1 : 0) +
     (findingFilter ? 1 : 0) +
+    (sigmaFilter ? 1 : 0) +
     (bookmarkOnly ? 1 : 0);
   const anyFilter = activeFilterCount > 0;
 
@@ -1058,6 +1228,7 @@ export function EvtxUploader({
       activeLevels.size === 0 &&
       !queryActive &&
       !findingFilter &&
+      !sigmaFilter &&
       !bookmarkOnly
     )
       return rangeRows;
@@ -1080,6 +1251,7 @@ export function EvtxUploader({
     }
     return rangeRows.filter((r) => {
       if (findingGids && !findingGids.has(r._g)) return false;
+      if (sigmaGids && !sigmaGids.has(r._g)) return false;
       if (bookmarkOnly && !bookmarks.has(r._g)) return false;
       if (activeLevels.size > 0 && (r.level == null || !activeLevels.has(r.level)))
         return false;
@@ -1097,6 +1269,8 @@ export function EvtxUploader({
     queryActive,
     findingFilter,
     findingGids,
+    sigmaFilter,
+    sigmaGids,
     bookmarkOnly,
     bookmarks,
     compiledSearch,
@@ -1145,6 +1319,7 @@ export function EvtxUploader({
       setActiveLevels(new Set());
       setQuery(emptyRoot());
       setFindingFilter(null);
+      setSigmaFilter(null);
       setBookmarkOnly(false);
       setRegexMode(false);
       if (opts.range) {
@@ -1179,6 +1354,75 @@ export function EvtxUploader({
       handleSelectTimeRange(aroundRange(t, aroundMs));
     },
     [aroundMs, handleSelectTimeRange],
+  );
+
+  // --- Sigma pivots ------------------------------------------------------------
+  // Open one matched event in the events table: the table is restricted to
+  // the rule's matches, the row expanded and scrolled into view.
+  const openEventRow = useCallback(
+    (g: number) => {
+      const row = allRows[g];
+      if (!row) return;
+      setView("events");
+      setFocusedIdx(null);
+      setOpenRow({
+        g,
+        fileId: row._fileId,
+        localIdx: row._idx,
+        pairs: allPairs[g] ?? [],
+        xml: null,
+        showXml: false,
+      });
+      pendingScrollRef.current = g;
+    },
+    [allRows, allPairs],
+  );
+  const showSigmaRule = useCallback((ruleId: string) => {
+    setFilter("");
+    setActiveLevels(new Set());
+    setQuery(emptyRoot());
+    setFindingFilter(null);
+    setBookmarkOnly(false);
+    setOpenRow(null);
+    setFocusedIdx(null);
+    setSigmaFilter({ id: ruleId });
+    setView("events");
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, []);
+  const openSigmaEvent = useCallback(
+    (g: number, ruleId: string) => {
+      showSigmaRule(ruleId);
+      openEventRow(g);
+    },
+    [showSigmaRule, openEventRow],
+  );
+  // "Around this event": every record within ± the around window.
+  const sigmaAround = useCallback(
+    (g: number) => {
+      const row = allRows[g];
+      const ms = row ? parseEventTime(row.timestamp) : NaN;
+      if (Number.isNaN(ms)) return;
+      pivotTo({ range: aroundRange(ms, aroundMs) });
+      openEventRow(g);
+    },
+    [allRows, aroundMs, pivotTo, openEventRow],
+  );
+  const sigmaRowAt = useCallback((g: number) => allRows[g], [allRows]);
+  const sigmaPairsAt = useCallback((g: number) => allPairs[g] ?? [], [allPairs]);
+  const exportSigma = useCallback(
+    (kind: "csv" | "json") => {
+      if (!sigmaResult) return;
+      const rowAt = (g: number) => allRows[g];
+      const pairsAt = (g: number) => allPairs[g] ?? [];
+      const release = sigmaResult.stats.release;
+      const base = `sigma-matches${rangeFileSuffix(timeRange)}`;
+      track("export_sigma", { format: kind, rules: sigmaMatches.length });
+      if (kind === "csv")
+        download(`${base}.csv`, "text/csv;charset=utf-8", buildSigmaCsv(sigmaMatches, rowAt, pairsAt, release));
+      else
+        download(`${base}.json`, "application/json", buildSigmaJson(sigmaMatches, rowAt, pairsAt, release));
+    },
+    [sigmaResult, sigmaMatches, allRows, allPairs, timeRange],
   );
 
   // Mirror the range into the URL hash (#from=…&to=…&field=…) so a reload
@@ -1235,6 +1479,22 @@ export function EvtxUploader({
     () => sortedRows.slice(visibleWindow.start, visibleWindow.end),
     [sortedRows, visibleWindow],
   );
+
+  // A pivot (Sigma → event) asked for a row: scroll the table to it once
+  // it's rendered in the filtered, sorted view.
+  useEffect(() => {
+    const g = pendingScrollRef.current;
+    const el = scrollRef.current;
+    if (g == null || view !== "events" || !el) return;
+    const idx = sortedRows.findIndex((r) => r._g === g);
+    if (idx < 0) return;
+    pendingScrollRef.current = null;
+    // Estimate first (the row may be outside the rendered window), then
+    // align on the real element once it's in the DOM.
+    el.scrollTop = Math.max(0, (idx - 2) * ROW_HEIGHT);
+    const tr = el.querySelector<HTMLElement>(`tr[data-g="${g}"]`);
+    if (tr) el.scrollTop += tr.getBoundingClientRect().top - el.getBoundingClientRect().top - 2 * ROW_HEIGHT;
+  }, [view, sortedRows, openRow]);
 
   // --- Keyboard navigation ---------------------------------------------------
   // A ref mirrors the focused index so the document-level handler reads the
@@ -1692,6 +1952,7 @@ export function EvtxUploader({
                   return (
                     <Fragment key={r._g}>
                       <tr
+                        data-g={r._g}
                         className={`border-t border-ink-100 dark:border-ink-800 ${
                           isFocused
                             ? "bg-uv-50 ring-1 ring-inset ring-uv-400 dark:bg-uv-400/10"
@@ -1808,6 +2069,7 @@ export function EvtxUploader({
                                 onNote={(text) => setNote(r._g, text)}
                                 pairs={openRow.pairs}
                                 dict={t}
+                                locale={locale}
                                 onInclude={includeValue}
                                 onExclude={excludeValue}
                                 onPivot={pivotTo}
@@ -2137,6 +2399,7 @@ export function EvtxUploader({
             )}
           </div>
 
+          <div className="flex flex-wrap items-center gap-2">
           <div
             role="tablist"
             className="flex w-fit gap-1 rounded-md border border-ink-200 p-0.5 text-xs dark:border-ink-800"
@@ -2145,6 +2408,7 @@ export function EvtxUploader({
               [
                 ["events", t.viewer.eventsTab],
                 ["sessions", t.viewer.sessionsTab],
+                ["sigma", t.sigma.tab],
               ] as const
             ).map(([id, label]) => (
               <button
@@ -2153,18 +2417,83 @@ export function EvtxUploader({
                 role="tab"
                 aria-selected={view === id}
                 onClick={() => setView(id)}
-                className={`rounded px-2.5 py-1 transition-colors ${
+                className={`flex items-center gap-1.5 rounded px-2.5 py-1 transition-colors ${
                   view === id
                     ? "bg-ink-900 text-ink-50 dark:bg-ink-100 dark:text-ink-900"
                     : "text-ink-600 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-ink-900"
                 }`}
               >
                 {label}
+                {id === "sigma" &&
+                  (sigmaStatus.phase === "loading" || sigmaStatus.phase === "running" ? (
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-uv-500" aria-hidden="true" />
+                  ) : sigmaMatches.length > 0 ? (
+                    <span className="flex items-center gap-1 font-mono text-[10px] tabular-nums">
+                      {sigmaTopLevel && (
+                        <span className={`h-1.5 w-1.5 rounded-full ${SIGMA_LEVEL_DOT[sigmaTopLevel]}`} aria-hidden="true" />
+                      )}
+                      {numberFmt.format(sigmaMatches.length)}
+                    </span>
+                  ) : null)}
               </button>
             ))}
           </div>
+          {sigmaFilter && view === "events" && (
+            <span className="flex max-w-full items-center gap-1 rounded-md border border-uv-500 bg-uv-500/10 py-0.5 pl-2 pr-1 text-xs text-uv-800 dark:border-uv-400/60 dark:text-uv-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setSigmaSelected(sigmaFilter.id);
+                  setView("sigma");
+                }}
+                className="min-w-0 truncate hover:underline"
+                title={sigmaFilterTitle ?? undefined}
+              >
+                {t.sigma.tab}: {sigmaFilterTitle}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSigmaFilter(null)}
+                aria-label={t.home.clearFilter}
+                title={t.home.clearFilter}
+                className="rounded px-1 leading-none hover:bg-uv-500/20"
+              >
+                ×
+              </button>
+            </span>
+          )}
+          </div>
 
-          {view === "sessions" ? (
+          {view === "sigma" ? (
+            <div
+              className={`flex flex-col ${fullscreen ? "min-h-0 flex-1" : ""}`}
+              style={fullscreen ? undefined : { maxHeight: SCROLL_HEIGHT_PX * 1.5 }}
+            >
+              <SigmaView
+                dict={t}
+                numberFmt={numberFmt}
+                timeMode={timeMode}
+                status={sigmaStatus}
+                matches={sigmaMatches}
+                totals={sigmaTotals}
+                rangeActive={timeRange != null}
+                stats={sigmaResult?.stats ?? null}
+                selectedId={sigmaSelected}
+                onSelect={setSigmaSelected}
+                rowAt={sigmaRowAt}
+                pairsAt={sigmaPairsAt}
+                onOpenEvent={openSigmaEvent}
+                onAround={sigmaAround}
+                onShowInTable={showSigmaRule}
+                onExport={exportSigma}
+                customCount={sigmaCustom.reduce((n, e) => n + e.rules.length, 0)}
+                onOpenCustom={() => {
+                  sigmaDialogOpenRef.current = true;
+                  setSigmaDialogOpen(true);
+                }}
+              />
+            </div>
+          ) : view === "sessions" ? (
             <div
               className={`flex flex-col ${fullscreen ? "min-h-0 flex-1" : ""}`}
               style={fullscreen ? undefined : { maxHeight: SCROLL_HEIGHT_PX }}
@@ -2505,6 +2834,18 @@ export function EvtxUploader({
               >
                 <span aria-hidden="true">?</span> {t.collect.openGuide}
               </button>
+              <SigmaCustomRules
+                open={sigmaDialogOpen}
+                onOpenChange={(o) => {
+                  sigmaDialogOpenRef.current = o;
+                  setSigmaDialogOpen(o);
+                }}
+                dict={t}
+                entries={sigmaCustom}
+                onAddTexts={addCustomTexts}
+                onRemove={(key) => setSigmaCustom((prev) => prev.filter((e) => e.key !== key))}
+                onClear={() => setSigmaCustom([])}
+              />
               <Dialog open={collectOpen} onOpenChange={setCollectOpen}>
                 <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
                   <DialogHeader>
@@ -2779,6 +3120,7 @@ function DetailsPanel({
   onNote,
   pairs,
   dict,
+  locale,
   onInclude,
   onExclude,
   onPivot,
@@ -2788,6 +3130,7 @@ function DetailsPanel({
   onNote: (text: string) => void;
   pairs: [string, string][];
   dict: Dict;
+  locale: string;
   onInclude: ValueAction;
   onExclude: ValueAction;
   onPivot: (opts: { search?: string; range?: TimeRange }) => void;
@@ -2810,6 +3153,8 @@ function DetailsPanel({
   const pivotBtn =
     "rounded-md border border-ink-200 px-2 py-1 text-xs text-ink-700 hover:border-uv-400 hover:bg-uv-500/10 dark:border-ink-800 dark:text-ink-300";
   const desc = describeEvent(row.event_id, row.provider, pairs);
+  // In-app help: the Event ID encyclopedia entry for this record, if any.
+  const help = encyclopediaLink(row.channel, row.provider, row.event_id, locale);
   const asJson = () =>
     JSON.stringify(
       {
@@ -2884,6 +3229,19 @@ function DetailsPanel({
             <span className="font-mono text-ink-400">{truncate(g, 14)}</span>
           </button>
         ))}
+        {help && (
+          <a
+            href={help.href}
+            target="_blank"
+            rel="noopener"
+            hrefLang={help.fallback ? "en" : undefined}
+            title={v.whatIsEventTitle}
+            className={`${pivotBtn} inline-flex items-center gap-1 text-uv-700 dark:text-uv-300`}
+          >
+            {v.whatIsEvent.replace("{id}", String(row.event_id))}
+            <span aria-hidden="true">↗</span>
+          </a>
+        )}
         <span className="rounded-md border border-ink-200 dark:border-ink-800">
           <CopyPathButton
             value={asJson}

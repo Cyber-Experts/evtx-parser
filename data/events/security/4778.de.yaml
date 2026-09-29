@@ -1,0 +1,34 @@
+title: Eine Sitzung wurde erneut mit einer Fensterstation verbunden
+shortTitle: Sitzung wiederverbunden
+summary: >-
+  Event-ID 4778: Ein Benutzer verbindet sich erneut mit einer bestehenden interaktiven Sitzung, meist RDP-Reconnect oder schneller Benutzerwechsel.
+description: |-
+  Event 4778 protokolliert die Wiederverbindung mit einer bestehenden Anmeldesitzung: ein RDP-Client, der sich wieder an eine getrennte Sitzung anhängt, oder ein Benutzer, der per schnellem Benutzerwechsel zu einer Sitzung zurückkehrt. Für die Sitzung selbst wird in diesem Fall kein neues 4624 geschrieben, daher sieht man über 4778, dass jemand zurückgekommen ist.
+
+  Die Felder `ClientName` und `ClientAddress` identifizieren das Gerät, das sich wieder verbunden hat. Der Vergleich mit der ursprünglichen Anmeldung zeigt, wann eine Sitzung von einem anderen Rechner übernommen wurde.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Other Logon/Logoff Events
+    (Success).
+fields:
+  - name: AccountName
+    description: Benutzer, der sich wieder verbunden hat.
+  - name: AccountDomain
+    description: Domäne dieses Benutzers.
+  - name: LogonID
+    description: ID der wiederaufgenommenen Anmeldesitzung (entspricht ihrem ursprünglichen 4624).
+  - name: SessionName
+    description: Name der Fensterstation/Sitzung, z. B. `RDP-Tcp#3` oder `Console`.
+  - name: ClientName
+    description: Computername des verbindenden Clients (bei RDP).
+  - name: ClientAddress
+    description: IP-Adresse des verbindenden Clients (bei RDP).
+benign:
+  - Benutzer, die sich nach einem Netzwerkabbruch oder von einem anderen Gerät wieder mit ihrer RDP-Sitzung verbinden.
+  - Schneller Benutzerwechsel an gemeinsam genutzten Arbeitsstationen.
+attacker:
+  - Ein Eindringling, der sich wieder an eine getrennte Admin-Sitzung anhängt, möglicherweise von einer neuen IP.
+  - Session Hijacking (etwa mit `tscon`) verschiebt eine Sitzung zu einem anderen Client; die Wiederverbindung wird hier protokolliert.
+investigation:
+  - ClientAddress mit der IP im ursprünglichen 4624 vom Typ 10 für dieselbe LogonID vergleichen.
+  - Mit LocalSessionManager-Event 25 (Wiederverbindung) und 4779 (Trennung) kombinieren, um die Timeline der RDP-Sitzung aufzubauen.

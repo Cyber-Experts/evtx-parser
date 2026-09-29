@@ -1,0 +1,40 @@
+id: 1007
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: The antimalware platform performed an action to protect your system from malware
+shortTitle: Action taken (engine)
+category: antimalware
+summary: >-
+  Defender event 1007 records that the antimalware platform took action on detected malware,
+  the engine-level counterpart of event 1117.
+description: |-
+  Event 1007 is logged when Defender successfully applied an action (quarantine, remove, clean) to an item it detected. It mirrors 1117 and usually follows a 1006.
+
+  Use it to confirm remediation of scan detections and to find what was removed from a host during an incident.
+logging:
+  enabledByDefault: true
+  requirement: None — logged by Microsoft Defender Antivirus when it is the active antivirus.
+fields:
+  - name: Threat Name
+    description: Name of the detection.
+  - name: Path
+    description: Item acted upon.
+  - name: Action Name
+    description: Action applied.
+  - name: Detection User
+    description: User context.
+benign:
+  - Quarantine of PUA and test files during scans.
+attacker:
+  - Removal of attacker tooling, which can explain gaps in an intruder's activity.
+investigation:
+  - Pair with 1006 to get the detection details and time.
+  - Quarantined items can be recovered for analysis from the Defender quarantine store.
+related:
+  - defender/1006
+  - defender/1008
+  - defender/1117
+attack: []
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

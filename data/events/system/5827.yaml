@@ -1,0 +1,47 @@
+id: 5827
+channel: system
+provider: NETLOGON
+title: The Netlogon service denied a vulnerable Netlogon secure channel connection from a machine account
+shortTitle: Vulnerable Netlogon channel denied
+category: directory
+summary: >-
+  System event 5827: a DC denied a machine account's Netlogon secure channel without secure RPC. Key Zerologon (CVE-2020-1472) signal.
+description: |-
+  Event 5827 is logged by the **NETLOGON** service on domain controllers that have the CVE-2020-1472 (Zerologon) updates. It means a client authenticating as a **machine account** attempted a Netlogon secure channel connection that does not use secure RPC, and the DC refused it.
+
+  After the enforcement phase (February 2021 updates) DCs deny these connections by default, so 5827 is what remains of both legacy devices that were never fixed and Zerologon exploitation attempts. The event names the machine account, its domain, account type and the operating system it reported. Related events: **5828** (same, for a trust account), **5829** (vulnerable connection allowed, pre-enforcement), and **5830/5831** (allowed by the "Allow vulnerable Netlogon secure channel connections" policy).
+
+  Zerologon tooling typically targets the DC's own computer account, so a 5827 naming a domain controller account, or coming from a system that claims an odd or empty operating system, deserves immediate attention.
+logging:
+  enabledByDefault: true
+  requirement: Logged to the System log of domain controllers with the CVE-2020-1472 updates installed (August 2020 and later).
+  notes: >-
+    The event data is a set of unnamed insertion strings; this viewer shows them joined in
+    `Data1`. The Netlogon debug log (`%windir%\debug\netlogon.log`) can add the client IP address.
+fields:
+  - name: Data1
+    description: >-
+      Insertion strings in message order — machine SamAccountName, domain, account type, machine
+      operating system, OS build and service pack.
+benign:
+  - Old or third-party devices (NAS appliances, legacy Samba, embedded systems) that do not support secure RPC.
+attacker:
+  - >-
+    Zerologon exploitation attempts (Mimikatz `lsadump::zerologon`, public PoC scripts) against a
+    patched DC, usually targeting a domain controller's machine account.
+investigation:
+  - Identify the machine account and check whether it belongs to a real, known device.
+  - Treat a DC machine account in 5827 as an attack until proven otherwise; hunt for DCSync (4662) and DC account password changes (4742) on all DCs.
+  - Find the source IP in the Netlogon debug log or in network telemetry for the same second.
+  - On unpatched DCs there is no 5827; look for 4742 on a DC account followed by replication-based credential theft instead.
+related:
+  - security/4742
+  - security/4662
+  - security/4624
+attack:
+  - T1210
+references:
+  - title: Microsoft Support — Manage Netlogon secure channel changes for CVE-2020-1472
+    url: https://support.microsoft.com/en-us/topic/how-to-manage-the-changes-in-netlogon-secure-channel-connections-associated-with-cve-2020-1472-f7e8cc17-0309-1d6a-304e-5ba73cd1a11e
+  - title: MITRE ATT&CK — Exploitation of Remote Services (T1210)
+    url: https://attack.mitre.org/techniques/T1210/

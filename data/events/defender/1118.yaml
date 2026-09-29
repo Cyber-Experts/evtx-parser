@@ -1,0 +1,42 @@
+id: 1118
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: The antimalware platform attempted to perform an action but the action failed
+shortTitle: Action on malware failed
+category: antimalware
+summary: >-
+  Defender event 1118 means Microsoft Defender Antivirus detected a threat but could not
+  remediate it (non-critical failure) — the item may still be present.
+description: |-
+  Event 1118 is logged when Defender tried to act on a detection and hit a non-critical error, for example because the file was locked or in use. The threat details are included, plus the error code describing why the action failed.
+
+  Unlike 1117, it leaves the threat unresolved. Treat it as an open detection until a later successful action (1117) or manual cleanup is confirmed.
+logging:
+  enabledByDefault: true
+  requirement: None — logged by Microsoft Defender Antivirus when it is the active antivirus.
+fields:
+  - name: Threat Name
+    description: Name of the detection.
+  - name: Path
+    description: Item Defender failed to remediate.
+  - name: Action Name
+    description: Action that was attempted.
+  - name: Error Code
+    description: Error returned by the attempted action.
+  - name: Error Description
+    description: Text of that error.
+benign:
+  - Files held open by legitimate applications, backups or network shares Defender cannot write to.
+attacker:
+  - Running malware that protects its files, or payloads on shares the host cannot modify.
+investigation:
+  - Check whether the file still exists and whether its process is running.
+  - Look for a later 1117 for the same path; if none, remediate manually and scope the intrusion.
+related:
+  - defender/1116
+  - defender/1117
+  - defender/1119
+attack: []
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

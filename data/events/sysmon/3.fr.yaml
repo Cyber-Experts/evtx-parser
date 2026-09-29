@@ -1,0 +1,72 @@
+title: Connexion réseau
+shortTitle: Connexion réseau
+summary: >-
+  L'événement Sysmon 3 relie chaque connexion TCP/UDP au processus qui l'a établie : source,
+  destination, ports et ProcessGuid. Clé pour le C2 et le latéral.
+description: |-
+  L'événement Sysmon 3 consigne une connexion TCP ou UDP avec le processus qui en est responsable. C'est précisément ce qui manque aux journaux de pare-feu et de proxy : pas seulement le fait que l'hôte a communiqué avec une adresse, mais quel exécutable l'a fait et sous quel compte.
+
+  `Initiated` indique le sens : `true` signifie que le processus local a ouvert la connexion (sortante), `false` qu'il en a accepté une. Les noms d'hôte sont renseignés par résolution DNS inverse lorsque `DnsLookup` est activé : ils peuvent donc ne pas correspondre à ce que le processus a réellement résolu — utilisez l'événement 22 pour cela.
+
+  L'événement est désactivé par défaut en raison de son volume. Les bonnes configurations incluent les connexions des hôtes de scripts, des LOLBins et des chemins accessibles en écriture à l'utilisateur, et excluent les navigateurs et les agents connus.
+logging:
+  requirement: >-
+    Sysmon installé avec la surveillance réseau activée (option `-n` ou règle `<NetworkConnect>`
+    dans la configuration).
+  notes: >-
+    Les noms d'hôte dépendent du DNS inverse (entrée de configuration `DnsLookup`). Comparez avec
+    l'événement 5156 de la plateforme de filtrage Windows (WFP) lorsque cette sous-catégorie
+    d'audit est activée.
+fields:
+  - name: ProcessGuid
+    description: Processus ayant établi ou accepté la connexion ; pivotez vers son événement 1.
+  - name: Image
+    description: Exécutable à l'origine de la connexion.
+  - name: User
+    description: Compte du processus.
+  - name: Protocol
+    description: Protocole de transport.
+    values:
+      - value: "tcp"
+        meaning: Connexion TCP.
+      - value: "udp"
+        meaning: Trafic UDP.
+  - name: Initiated
+    description: Sens de la connexion.
+    values:
+      - value: "true"
+        meaning: Le processus local a initié la connexion (sortante).
+      - value: "false"
+        meaning: Le processus local a accepté une connexion entrante.
+  - name: SourceIp
+    description: Adresse source.
+  - name: SourcePort
+    description: Port source.
+  - name: DestinationIp
+    description: Adresse de destination.
+  - name: DestinationHostname
+    description: Nom de la destination issu du DNS inverse, lorsqu'il est disponible. Pas nécessairement le nom interrogé par le processus.
+  - name: DestinationPort
+    description: Port de destination.
+  - name: DestinationPortName
+    description: Nom du service pour les ports bien connus, par ex. `https` ou `microsoft-ds`.
+  - name: SourceIsIpv6
+    description: "`true` lorsque la connexion utilise IPv6."
+benign:
+  - Navigateurs, Office, Teams et agents de mise à jour communiquant avec des services cloud sur le 443.
+  - Membres du domaine se connectant aux contrôleurs de domaine sur les ports 88, 389, 445 et 135.
+  - Agents d'administration et de sauvegarde interrogeant leurs serveurs.
+attacker:
+  - >-
+    Hôtes de scripts ou LOLBins (`powershell.exe`, `rundll32.exe`, `regsvr32.exe`, `mshta.exe`,
+    `certutil.exe`) établissant des connexions sortantes vers Internet.
+  - Beaconing — connexions régulières du même processus vers une IP externe rare.
+  - >-
+    Mouvement latéral depuis un poste de travail vers d'autres hôtes sur le 445 (SMB), le 135
+    (RPC/WMI), le 5985/5986 (WinRM) ou le 3389 (RDP).
+  - Processus lancés depuis `%TEMP%`, `Downloads` ou `ProgramData` se connectant vers l'extérieur sur des ports non standard.
+investigation:
+  - Pivotez sur ProcessGuid vers l'événement 1 pour voir la ligne de commande et le parent du processus qui se connecte.
+  - Corrélez avec l'événement 22 du même ProcessGuid pour savoir quel nom de domaine a été résolu.
+  - Regroupez par Image et DestinationIp pour trouver les couples rares à l'échelle du parc.
+  - Pour un mouvement latéral entrant, rapprochez le 4624 Sécurité de l'hôte de destination (LogonType 3 ou 10) au même moment.

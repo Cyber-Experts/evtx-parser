@@ -1,0 +1,45 @@
+title: Se bloqueó una cuenta de usuario
+shortTitle: Cuenta bloqueada
+summary: >-
+  El evento 4740 se registra cuando una cuenta se bloquea tras demasiadas contraseñas erróneas.
+  Indica la cuenta y el equipo llamador que lo provocó.
+description: |-
+  El evento 4740 se escribe cuando se alcanza el umbral de bloqueo de cuentas y una cuenta queda bloqueada. Los bloqueos de cuentas de dominio se registran en los controladores de dominio (el emulador de PDC es el lugar habitual para encontrarlos, ya que los intentos con contraseña errónea se le reenvían), mientras que los bloqueos de cuentas locales se registran en la máquina propietaria de la cuenta.
+
+  El dato más útil es el **Caller Computer Name** (nombre del equipo llamador), almacenado en el campo `TargetDomainName` pese a su nombre: es el equipo desde el que llegaron los inicios de sesión fallidos. Es un nombre NetBIOS, no una dirección IP, y puede estar vacío. Los campos `Subject*` describen el componente del sistema que realizó el bloqueo (normalmente la cuenta de equipo del controlador de dominio o `SYSTEM`), no a una persona.
+
+  Los bloqueos suelen deberse a una contraseña obsoleta guardada en un teléfono, una unidad asignada, un servicio o una tarea programada. También son el efecto secundario visible de la adivinación de contraseñas: un bloqueo aislado es casi siempre ruido; muchos bloqueos de distintas cuentas desde un mismo llamador son un ataque.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Habilitado para Correcto en la directiva de auditoría predeterminada de Windows.
+  notes: >-
+    Solo se genera cuando hay un umbral de bloqueo de cuentas configurado en la directiva de
+    contraseñas. Los inicios de sesión fallidos contra una cuenta ya bloqueada aparecen como 4625 con
+    Status `0xC0000234`.
+fields:
+  - name: TargetUserName
+    description: Cuenta que quedó bloqueada.
+  - name: TargetSid
+    description: SID de la cuenta bloqueada.
+  - name: TargetDomainName
+    description: >-
+      Caller Computer Name: el nombre NetBIOS del equipo que envió los intentos de autenticación
+      fallidos. Empiece la investigación por ahí.
+  - name: SubjectUserName
+    description: Cuenta que realizó el bloqueo, normalmente la cuenta de equipo del controlador de dominio (`DC01$`) o el sistema local.
+  - name: SubjectUserSid
+    description: SID del sujeto, normalmente `S-1-5-18` (SYSTEM).
+benign:
+  - Usuarios que cambiaron su contraseña pero siguen teniendo la antigua guardada en un teléfono, un portátil, una unidad asignada o un cliente VPN.
+  - Servicios, tareas programadas o aplicaciones configurados con una contraseña obsoleta, que bloquean la cuenta repetidamente.
+  - Usuarios que escriben mal su contraseña varias veces.
+attacker:
+  - Adivinación de contraseñas contra una sola cuenta desde un mismo host.
+  - Password spraying que supera el umbral de bloqueo y provoca bloqueos de muchas cuentas desde el mismo equipo llamador.
+  - Bloqueo deliberado de administradores o cuentas de servicio como denegación de servicio.
+investigation:
+  - Vaya al equipo llamador y revise sus eventos 4625 y 4648, servicios y tareas programadas relacionados con la cuenta bloqueada.
+  - En los controladores de dominio, correlacione con los fallos 4771 (Kerberos) o 4776 (NTLM) de la cuenta para ver el origen y los códigos de error.
+  - Cuente los bloqueos por equipo llamador y por ventana de tiempo para distinguir un dispositivo mal configurado de un spraying.
+  - Busque después un 4767 (desbloqueo) y un 4724 (restablecimiento) y un inicio de sesión correcto de la misma cuenta.

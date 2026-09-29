@@ -1,0 +1,90 @@
+title: Ein Benutzerkonto wurde erstellt
+shortTitle: Benutzerkonto erstellt
+summary: >-
+  Event-ID 4720 protokolliert das Anlegen eines lokalen oder Domänen-Benutzerkontos: wer es anlegte, Name und SID des Kontos, Anfangsattribute.
+description: |-
+  Event 4720 wird jedes Mal geschrieben, wenn ein neues Benutzerobjekt angelegt wird. Bei einem lokalen Konto wird es auf der Arbeitsstation oder dem Server protokolliert, dem die SAM-Datenbank gehört; bei einem Domänenkonto auf dem Domänencontroller, der die Anfrage verarbeitet hat. Die `Subject*`-Felder identifizieren, wer das Konto angelegt hat, die `Target*`-Felder das neue Konto.
+
+  Der Rest des Eintrags ist eine Momentaufnahme der Anfangsattribute: `SamAccountName`, `UserPrincipalName`, `PrimaryGroupId`, `SidHistory`, `AllowedToDelegateTo` und die SAM-Kontoflags in `NewUacValue` und `UserAccountControl`. Ein über „Active Directory-Benutzer und -Computer“ angelegtes Konto startet typischerweise deaktiviert und ohne Kennwort (`NewUacValue` `0x15`), daher folgen auf die Erstellung meist innerhalb von Sekunden 4724 (Kennwort gesetzt), 4722 (aktiviert) und ein oder mehrere 4738.
+
+  Kontoerstellungen sind so selten, dass die meisten Organisationen jedes 4720 prüfen. Besonders achten auf lokale Konten, die auf Servern und Arbeitsstationen angelegt werden, Konten, die außerhalb des normalen Provisioning-Prozesses entstehen, und neue Konten, die schnell privilegierten Gruppen hinzugefügt werden (4728, 4732, 4756).
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). In der Standard-Überwachungsrichtlinie von Windows für „Erfolg“ aktiviert.
+  notes: >-
+    Wird für Domänenkonten auf Domänencontrollern und für lokale Konten auf Mitgliedsservern und
+    Arbeitsstationen protokolliert; das Anlegen lokaler Konten ist also nur im eigenen
+    Sicherheitsprotokoll des Endpunkts sichtbar. Mehrere Attribute können als `-` erscheinen, wenn
+    sie nicht erfasst wurden, und lokale Konten zeigen bei vielen davon `<value not set>`.
+fields:
+  - name: SubjectUserName
+    description: Konto, das den neuen Benutzer angelegt hat. Mit der Liste der Identitätsadministratoren und Provisioning-Dienstkonten abgleichen.
+  - name: SubjectDomainName
+    description: Domäne (bei lokalen Konten der Computername) des Erstellers.
+  - name: SubjectLogonId
+    description: >-
+      Anmeldesitzung des Erstellers. Auf 4624 mit derselben TargetLogonId pivotieren, um zu
+      erfahren, wo und wie sich der Ersteller angemeldet hat.
+  - name: TargetUserName
+    description: Name des neuen Kontos.
+  - name: TargetDomainName
+    description: Domäne des neuen Kontos oder der Computername, wenn ein lokales Konto angelegt wurde.
+  - name: TargetSid
+    description: SID des neuen Kontos. Damit das Konto durch spätere Events verfolgen, auch wenn es umbenannt wird (4781).
+  - name: SamAccountName
+    description: Anmeldename (Prä-Windows 2000). Ein leerer Wert oder `-` ist ungewöhnlich.
+  - name: UserPrincipalName
+    description: UPN eines Domänenkontos (`user@domain`). Bei lokalen Konten immer `-`.
+  - name: PrimaryGroupId
+    description: >-
+      RID der primären Gruppe. `513` (Domänen-Benutzer bzw. Benutzer bei lokalen Konten) ist
+      normal; alles andere verdient einen Blick.
+  - name: NewUacValue
+    description: >-
+      SAM-Kontoflags des neuen Kontos in Hexadezimal (SAM-Definition, die sich von den Bitwerten
+      des Active-Directory-Attributs `userAccountControl` unterscheidet). `OldUacValue` ist bei
+      neuen Konten immer `0x0`.
+    values:
+      - value: "0x1"
+        meaning: Konto deaktiviert.
+      - value: "0x4"
+        meaning: Kennwort nicht erforderlich.
+      - value: "0x10"
+        meaning: Normales Benutzerkonto.
+      - value: "0x200"
+        meaning: Kennwort läuft nie ab.
+      - value: "0x2000"
+        meaning: Für Delegierung vertraut (uneingeschränkte Kerberos-Delegierung).
+      - value: "0x10000"
+        meaning: Keine Kerberos-Vorauthentifizierung erforderlich.
+      - value: "0x15"
+        meaning: Typischer Wert für ein in „Active Directory-Benutzer und -Computer“ angelegtes Konto — deaktiviert, Kennwort nicht erforderlich, normales Konto.
+  - name: UserAccountControl
+    description: >-
+      Dieselben Flags als Meldungscodes, z. B. `%%2080 %%2082 %%2084` für `0x15` (Konto
+      deaktiviert, Kennwort nicht erforderlich, normales Konto).
+  - name: SidHistory
+    description: Frühere SIDs eines migrierten Kontos. Sollte bei einem frisch angelegten Konto `-` sein.
+  - name: AllowedToDelegateTo
+    description: SPNs, an die das Konto delegieren darf (eingeschränkte Delegierung). Bei der Erstellung normalerweise `-`.
+  - name: PrivilegeList
+    description: Für den Vorgang genutzte Privilegien, oft `-`.
+benign:
+  - Helpdesk oder Identity-Management-Systeme, die neue Mitarbeitende anlegen, meist über eine kleine Gruppe von Admin- oder Dienstkonten.
+  - Software-Installer und Management-Agenten, die lokale Dienstkonten anlegen.
+  - Heraufstufung von Domänencontrollern, Migrationen und Laboraufbauten, die viele Konten auf einmal anlegen.
+attacker:
+  - >-
+    Persistenz durch Anlegen eines lokalen Kontos auf einem kompromittierten Host, oft mit
+    `net user <name> <password> /add` und anschließendem Hinzufügen zur lokalen Gruppe
+    Administratoren (4732).
+  - Anlegen eines Domänenkontos und Hinzufügen zu Domain Admins oder einer anderen privilegierten Gruppe (4728, 4756).
+  - Kontonamen, die unauffällig wirken sollen, etwa Doppelgänger von Dienst- oder Admin-Konten oder Namen mit `$` am Ende, um Computerkonten zu ähneln.
+investigation:
+  - Prüfen, ob SubjectUserName ein erwartetes Provisioning-Konto ist und ob die Erstellung zu einem Ticket oder HR-Onboarding passt.
+  - Nach Gruppenmitgliedschaftsänderungen für dieselbe TargetSid direkt nach der Erstellung (4728, 4732, 4756) und nach ihrer ersten Anmeldung (4624) suchen.
+  - >-
+    Über SubjectLogonId die Anmeldung des Erstellers (4624) finden und, falls Prozessüberwachung
+    aktiv ist, den ausführenden Prozess (4688, z. B. `net.exe`, `net1.exe` oder PowerShell).
+  - Die Anfangsattribute auf ungewöhnliche Werte prüfen — PrimaryGroupId ungleich 513, SidHistory, Delegierungseinstellungen oder deaktivierte Vorauthentifizierung.

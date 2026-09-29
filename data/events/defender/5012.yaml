@@ -1,0 +1,35 @@
+id: 5012
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: Scanning for viruses is disabled
+shortTitle: Virus scanning disabled
+category: antimalware
+summary: >-
+  Defender event 5012 is logged when Defender virus scanning is disabled — like 5010, a strong
+  tampering signal unless another antivirus took over.
+description: |-
+  Event 5012 records that Microsoft Defender Antivirus scanning for viruses was disabled. Together with 5010 and 5001 it covers the main ways Defender's protection gets turned off.
+
+  Legitimate causes are few (a replacement antivirus, a deliberate policy). During an investigation, a 5012 near the start of suspicious activity usually marks the attacker preparing the host.
+logging:
+  enabledByDefault: true
+  requirement: None — logged by Microsoft Defender Antivirus.
+fields:
+  - name: Product Version
+    description: Defender platform version.
+benign:
+  - Replacement by a third-party antivirus product.
+attacker:
+  - Disabling antivirus scanning through policy or registry settings before running payloads.
+investigation:
+  - Correlate with 5007 and 5010 and identify the process and account responsible.
+  - Scope other hosts for the same change at the same time.
+related:
+  - defender/5010
+  - defender/5001
+  - defender/5007
+attack:
+  - T1685
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

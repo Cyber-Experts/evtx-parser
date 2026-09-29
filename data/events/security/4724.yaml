@@ -1,0 +1,62 @@
+id: 4724
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: An attempt was made to reset an account's password
+shortTitle: Password reset attempt
+category: account
+summary: >-
+  Security event 4724 is logged when one account resets another account's password without
+  knowing the old one — an administrative action worth reviewing.
+description: |-
+  Event 4724 records a password **reset**: the subject sets a new password for the target account without supplying the old one. This requires the Reset Password right on the account (or local administrator rights for a local account), so it is normally performed by helpdesk staff, administrators or provisioning tools. `Subject*` is who reset the password, `Target*` whose password was reset.
+
+  Resets are part of account creation (a new account gets its first password this way, usually next to 4720 and 4722) and of routine helpdesk work. They are also the fastest way for an attacker with delegated rights to take over another account: reset the password, then log on as the target. Tools that abuse Active Directory permissions, such as a delegated "reset password" right on a privileged user, end up in this event.
+
+  A failure event is logged when the new password does not meet the password policy; an "access denied" during the reset does **not** generate a failure 4724. The event is also logged when a computer account password is reset.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success, Failure). Success is audited by default; Failure must be enabled to see rejected attempts.
+fields:
+  - name: SubjectUserName
+    description: Account that performed the reset. Check it against the expected helpdesk and admin accounts.
+  - name: SubjectDomainName
+    description: Domain or computer name of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject; correlate with 4624.
+  - name: TargetUserName
+    description: Account whose password was reset.
+  - name: TargetDomainName
+    description: Domain of the target account, or the computer name for a local account.
+  - name: TargetSid
+    description: SID of the target account.
+benign:
+  - Helpdesk password resets after a user forgets a password or is locked out (often preceded by 4740 and followed by 4767).
+  - Initial password set during account creation, next to 4720 and 4722.
+  - Password management tools rotating the local Administrator password or service account passwords.
+attacker:
+  - Account takeover by abusing a delegated reset-password permission on another user, including privileged users.
+  - Resetting the password of a dormant or service account to gain a working credential for lateral movement.
+  - Mass password resets to lock administrators out during a destructive attack.
+investigation:
+  - Verify that SubjectUserName is allowed to reset the target's password and that a ticket or request exists.
+  - Look for a logon of the TargetUserName shortly after the reset (4624, 4768) from a host the subject controls.
+  - Resets of privileged accounts (Domain Admins, service accounts) by non-tier-0 accounts need immediate review.
+related:
+  - security/4723
+  - security/4720
+  - security/4722
+  - security/4738
+  - security/4740
+  - security/4767
+  - security/4624
+  - security/4768
+attack:
+  - T1098
+  - T1531
+references:
+  - title: "Microsoft Learn — 4724(S, F): An attempt was made to reset an account's password"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4724
+  - title: Microsoft Learn — Audit User Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-user-account-management

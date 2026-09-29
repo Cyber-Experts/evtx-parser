@@ -1,0 +1,64 @@
+id: 4729
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A member was removed from a security-enabled global group
+shortTitle: Member removed from global group
+category: group
+summary: >-
+  Security event 4729 is logged on a domain controller when a member is removed from a
+  security-enabled global group, such as Domain Admins.
+description: |-
+  Event 4729 is the counterpart of 4728: it is written on the domain controller that processed the change when an account or group is removed from a security-enabled **global** group. It is only generated on domain controllers; local and domain local groups use 4733, universal groups 4757.
+
+  `TargetUserName`/`TargetSid` identify the group, `MemberName` and `MemberSid` the removed member, `Subject*` who removed it. One event is logged per removed member, usually alongside an empty 4737.
+
+  Pair it with 4728: an add followed by a removal of the same member shortly afterward means someone used temporary privileges, which is normal with just-in-time admin tooling and suspicious without it.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Success is audited in the default Windows audit policy.
+  notes: Only generated on domain controllers.
+fields:
+  - name: MemberName
+    description: Distinguished name of the removed member.
+  - name: MemberSid
+    description: SID of the removed member.
+  - name: TargetUserName
+    description: Name of the global group.
+  - name: TargetDomainName
+    description: Domain of the group.
+  - name: TargetSid
+    description: SID of the group; RID `512` is Domain Admins.
+  - name: SubjectUserName
+    description: Account that removed the member.
+  - name: SubjectDomainName
+    description: Domain of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject on the DC; correlate with 4624.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Role changes and offboarding removing users from groups.
+  - Privileged access management tools removing time-bound memberships.
+attacker:
+  - Removing a temporary privileged membership after use to hide it from later group reviews.
+  - Removing legitimate administrators from Domain Admins to slow down incident response.
+investigation:
+  - Match each 4729 with the preceding 4728 for the same member and group and review activity in between.
+  - Verify removals from privileged groups against change records, especially when the subject is not a known admin.
+related:
+  - security/4728
+  - security/4737
+  - security/4730
+  - security/4733
+  - security/4757
+  - security/4624
+attack:
+  - T1098.007
+  - T1531
+references:
+  - title: "Microsoft Learn — Audit Security Group Management (4729 description)"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-group-management
+  - title: "Microsoft Learn — 4733(S): A member was removed from a security-enabled local group"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4733

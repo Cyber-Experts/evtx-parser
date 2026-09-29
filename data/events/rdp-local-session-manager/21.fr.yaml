@@ -1,0 +1,31 @@
+title: "Services Bureau à distance : ouverture de session réussie"
+shortTitle: Ouverture de session réussie
+summary: >-
+  L'événement RDP 21 confirme une ouverture de session sur la cible : utilisateur, ID de session et
+  adresse réseau source (« LOCAL » pour la console).
+description: |-
+  L'événement 21 est écrit par le Gestionnaire de sessions locales lorsqu'une session utilisateur est créée et que l'ouverture de session aboutit — aussi bien pour le Bureau à distance que pour les ouvertures de session locales à la console. Le champ `Address` les distingue : une adresse IP pour RDP, `LOCAL` pour la console.
+
+  Là où le 1149 montre seulement qu'une connexion RDP est passée, le 21 montre qu'une session de bureau a réellement été créée pour l'utilisateur. Il est généralement suivi du 22 (démarrage du shell) puis, à la fin de la session, du 23 (fermeture de session) ou du 24 (déconnexion). Une reconnexion à une session existante est consignée en 25 à la place.
+logging:
+  requirement: >-
+    Aucune — le canal Microsoft-Windows-TerminalServices-LocalSessionManager/Operational est
+    activé par défaut.
+  notes: Les champs se trouvent sous UserData/EventXML (`User`, `SessionID`, `Address`).
+fields:
+  - name: User
+    description: Compte ayant ouvert la session, au format `DOMAIN\user`.
+  - name: SessionID
+    description: Numéro de session Terminal Services ; relie les 21, 22, 23, 24 et 25 d'une même session.
+  - name: Address
+    description: Adresse IP source du client RDP, ou `LOCAL` pour les ouvertures de session à la console.
+benign:
+  - Ouvertures de session interactives à la console et ouvertures de session RDP courantes par les administrateurs et utilisateurs.
+  - Environnements de serveurs de rebond et VDI avec de nombreuses sessions RDP par jour.
+attacker:
+  - Accès hands-on-keyboard en RDP avec des identifiants volés, depuis des IP externes ou des hôtes internes qui n'utilisent normalement pas RDP.
+  - RDP tunnelisé, où Address affiche `127.0.0.1` ou `::1`.
+investigation:
+  - Associez au 4624 Sécurité LogonType 10 de la même seconde pour obtenir l'identifiant de session et les détails d'authentification.
+  - Regroupez les sessions par SessionID pour mesurer leur durée (21 → 23/24).
+  - Comparez Address aux entrées 1149 qui précèdent immédiatement ; elles doivent correspondre.

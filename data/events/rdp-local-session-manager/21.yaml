@@ -1,0 +1,51 @@
+id: 21
+channel: rdp-local-session-manager
+provider: Microsoft-Windows-TerminalServices-LocalSessionManager
+title: "Remote Desktop Services: Session logon succeeded"
+shortTitle: Session logon succeeded
+category: remote-access
+summary: >-
+  RDP event 21 confirms a session logon on the target: user, session ID and source network
+  address ("LOCAL" for console logons).
+description: |-
+  Event 21 is written by the Local Session Manager when a user session is created and the logon completes — for Remote Desktop and for local console logons alike. The `Address` field separates them: an IP address for RDP, `LOCAL` for the console.
+
+  Where 1149 only shows that an RDP connection got through, 21 shows that a desktop session was actually created for the user. It is typically followed by 22 (shell start) and, when the session ends, by 23 (logoff) or 24 (disconnect). A reconnection to an existing session is logged as 25 instead.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Microsoft-Windows-TerminalServices-LocalSessionManager/Operational channel is
+    enabled by default.
+  notes: Fields sit under UserData/EventXML (`User`, `SessionID`, `Address`).
+fields:
+  - name: User
+    description: Account that logged on, in `DOMAIN\user` form.
+  - name: SessionID
+    description: Terminal Services session number; ties together 21, 22, 23, 24 and 25 for the same session.
+  - name: Address
+    description: Source IP address of the RDP client, or `LOCAL` for console logons.
+benign:
+  - Interactive console logons and routine RDP logons by administrators and users.
+  - Jump-host and VDI environments with many RDP sessions per day.
+attacker:
+  - Hands-on-keyboard access over RDP with stolen credentials, from external IPs or internal hosts that do not normally RDP.
+  - Tunneled RDP, where Address shows `127.0.0.1` or `::1`.
+investigation:
+  - Pair with Security 4624 LogonType 10 at the same second to get the logon ID and authentication details.
+  - Group sessions by SessionID to measure duration (21 → 23/24).
+  - Compare Address with the 1149 entries just before; they should match.
+related:
+  - rdp-local-session-manager/22
+  - rdp-local-session-manager/23
+  - rdp-local-session-manager/24
+  - rdp-local-session-manager/25
+  - rdp-remote-connection-manager/1149
+  - security/4624
+attack:
+  - T1021.001
+  - T1078
+references:
+  - title: Microsoft Learn — Remote Desktop Services overview
+    url: https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/remote-desktop-services-overview
+  - title: JPCERT/CC — Detecting Lateral Movement through Tracking Event Logs
+    url: https://www.jpcert.or.jp/english/pub/sr/ir_research.html

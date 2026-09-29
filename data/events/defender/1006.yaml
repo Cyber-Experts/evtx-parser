@@ -1,0 +1,40 @@
+id: 1006
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: The antimalware engine found malware or other potentially unwanted software
+shortTitle: Malware found by scan
+category: antimalware
+summary: >-
+  Defender event 1006 is logged when the antimalware engine finds malware or unwanted software,
+  with threat name, path and detection source.
+description: |-
+  Event 1006 is an engine-level detection record: the antimalware engine found malware or potentially unwanted software, typically during a scan. It carries the threat name, the path, and where and how it was detected.
+
+  In current Defender versions the detection state events 1116/1117 are the main records; 1006/1007 appear alongside them, especially for scan results. Treat either as a detection and look for the remediation outcome.
+logging:
+  enabledByDefault: true
+  requirement: None — logged by Microsoft Defender Antivirus when it is the active antivirus.
+fields:
+  - name: Threat Name
+    description: Name of the detection.
+  - name: Severity Name
+    description: Severity of the threat.
+  - name: Path
+    description: Where the item was found.
+  - name: Detection User
+    description: User context.
+benign:
+  - Scans finding PUA, adware or test files.
+attacker:
+  - Malware or tools found by a scheduled or on-demand scan after the fact.
+investigation:
+  - Correlate with 1116/1117 at the same time for remediation status.
+  - Use the path's timestamps (file system, Sysmon 11) to date when the item arrived.
+related:
+  - defender/1116
+  - defender/1007
+  - defender/1008
+attack: []
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

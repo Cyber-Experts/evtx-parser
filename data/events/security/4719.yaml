@@ -1,0 +1,62 @@
+id: 4719
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: System audit policy was changed
+shortTitle: Audit policy changed
+category: log-integrity
+summary: >-
+  Security event 4719 logs a change to the system audit policy, such as Success or Failure
+  auditing being removed for a subcategory with auditpol.
+description: |-
+  Event 4719 is written when the local audit policy changes for a subcategory: Success or Failure auditing added or removed. The fields identify the category, the subcategory (by name and GUID) and what changed.
+
+  Disabling auditing is a classic defense-evasion step: an attacker who turns off Logon, Process Creation or Object Access auditing before acting removes the very events an investigation would rely on. `auditpol /clear`, `auditpol /set ... /success:disable` and scripted policy changes all show up here.
+
+  Group Policy also re-applies audit policy regularly, so many records have the computer account or SYSTEM as subject. Focus on changes that **remove** auditing and on changes made by user accounts.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Policy Change > Audit Audit Policy Change (Success).
+    Enabled for Success in the default Windows audit policy.
+  notes: >-
+    Changes applied through Group Policy can produce a batch of 4719 records at policy refresh.
+    If the Audit Policy Change subcategory itself is disabled, later changes are not logged.
+fields:
+  - name: SubjectUserName
+    description: Account that changed the policy; the computer account for Group Policy.
+  - name: SubjectLogonId
+    description: Logon session; `0x3e7` for SYSTEM, otherwise pivot to 4624 and 4688.
+  - name: CategoryId
+    description: Audit category of the changed subcategory (e.g. Logon/Logoff, Detailed Tracking), as a message code.
+  - name: SubcategoryId
+    description: Subcategory that changed, as a message code rendered to its name (e.g. Logon, Process Creation).
+  - name: SubcategoryGuid
+    description: GUID of the subcategory; stable across languages.
+  - name: AuditPolicyChanges
+    description: >-
+      What changed, rendered as "Success removed", "Failure removed", "Success added" or
+      "Failure added", or a comma-separated combination.
+benign:
+  - Group Policy refresh applying a new or updated advanced audit policy.
+  - Administrators or deployment scripts configuring auditing with `auditpol` during build or hardening.
+  - Security agents that set the audit policy they depend on.
+attacker:
+  - "`auditpol /clear` or `auditpol /set /category:* /success:disable /failure:disable` to blind the Security log."
+  - Removing auditing for specific subcategories (Process Creation, Logon, Object Access) before lateral movement or data access.
+investigation:
+  - Filter for "removed" changes and for subjects that are user accounts rather than the computer account.
+  - Pivot `SubjectLogonId` to 4688 to find `auditpol.exe` or the script that made the change.
+  - Check for 1102 (log cleared) or gaps in the log around the change, and confirm the current policy with `auditpol /get /category:*`.
+related:
+  - security/1102
+  - security/4688
+  - security/4907
+  - security/4624
+  - security/1100
+attack:
+  - T1685.001
+references:
+  - title: "Microsoft Learn — 4719(S): System audit policy was changed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4719
+  - title: Microsoft Learn — Audit Audit Policy Change
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-audit-policy-change

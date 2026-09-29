@@ -1,0 +1,45 @@
+title: Se cambió la directiva de auditoría del sistema
+shortTitle: Directiva de auditoría cambiada
+summary: >-
+  El evento 4719 registra un cambio en la directiva de auditoría del sistema, como quitar con
+  auditpol la auditoría de éxito o error de una subcategoría.
+description: |-
+  El evento 4719 se escribe cuando cambia la directiva de auditoría local de una subcategoría: se añade o se elimina la auditoría de éxito o de error. Los campos identifican la categoría, la subcategoría (por nombre y GUID) y qué cambió.
+
+  Desactivar la auditoría es un paso clásico de evasión de defensas: un atacante que desactiva la auditoría de Logon, Process Creation u Object Access antes de actuar elimina precisamente los eventos en los que se apoyaría una investigación. `auditpol /clear`, `auditpol /set ... /success:disable` y los cambios de directiva mediante scripts aparecen aquí.
+
+  La directiva de grupo también vuelve a aplicar la directiva de auditoría con regularidad, por lo que muchos registros tienen como sujeto la cuenta de equipo o SYSTEM. Céntrese en los cambios que **eliminan** auditoría y en los realizados por cuentas de usuario.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Policy Change > Audit Audit Policy Change (Success).
+    Habilitado para Correcto en la directiva de auditoría predeterminada de Windows.
+  notes: >-
+    Los cambios aplicados mediante directiva de grupo pueden producir una tanda de registros 4719 al
+    actualizarse la directiva. Si la propia subcategoría Audit Policy Change está deshabilitada, los
+    cambios posteriores no se registran.
+fields:
+  - name: SubjectUserName
+    description: Cuenta que cambió la directiva; la cuenta de equipo en el caso de la directiva de grupo.
+  - name: SubjectLogonId
+    description: Sesión de inicio de sesión; `0x3e7` para SYSTEM; en otro caso, pivote hacia 4624 y 4688.
+  - name: CategoryId
+    description: Categoría de auditoría de la subcategoría modificada (p. ej. Logon/Logoff, Detailed Tracking), como código de mensaje.
+  - name: SubcategoryId
+    description: Subcategoría que cambió, como código de mensaje traducido a su nombre (p. ej. Logon, Process Creation).
+  - name: SubcategoryGuid
+    description: GUID de la subcategoría; no varía entre idiomas.
+  - name: AuditPolicyChanges
+    description: >-
+      Qué cambió, mostrado como "Success removed", "Failure removed", "Success added" o
+      "Failure added", o una combinación separada por comas.
+benign:
+  - Actualización de la directiva de grupo que aplica una directiva de auditoría avanzada nueva o modificada.
+  - Administradores o scripts de despliegue que configuran la auditoría con `auditpol` durante la construcción o el bastionado.
+  - Agentes de seguridad que establecen la directiva de auditoría de la que dependen.
+attacker:
+  - "`auditpol /clear` o `auditpol /set /category:* /success:disable /failure:disable` para dejar ciego el registro de Seguridad."
+  - Eliminación de la auditoría de subcategorías concretas (Process Creation, Logon, Object Access) antes de un movimiento lateral o de un acceso a datos.
+investigation:
+  - Filtre los cambios de tipo "removed" y los sujetos que sean cuentas de usuario en lugar de la cuenta de equipo.
+  - Pivote `SubjectLogonId` hacia el 4688 para encontrar `auditpol.exe` o el script que hizo el cambio.
+  - Busque un 1102 (registro borrado) o huecos en el registro en torno al cambio, y confirme la directiva actual con `auditpol /get /category:*`.

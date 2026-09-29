@@ -1,0 +1,37 @@
+title: Ein Konto wurde abgemeldet
+shortTitle: Abmeldung
+summary: >-
+  Event-ID 4634 markiert das Ende einer Anmeldesitzung. Über die TargetLogonId mit einem 4624
+  verknüpfen, um die Sitzungsdauer zu messen.
+description: |-
+  Event 4634 wird geschrieben, wenn eine Anmeldesitzung beendet wird. Es trägt dieselbe `TargetLogonId` wie das 4624, das die Sitzung eröffnet hat, sodass das Paar Start- und Endzeit jeder Anmeldung liefert — interaktiv, Netzwerk oder Dienst.
+
+  Es ist kein zuverlässiger Nachweis für „Benutzer hat auf Abmelden geklickt“. Bei Netzwerkanmeldungen (Typ 3) baut Windows die Sitzung ab, wenn die letzte Verbindung geschlossen wird, was Sekunden oder Stunden später sein kann, und bei einem abrupten Herunterfahren wird manchmal gar kein 4634 geschrieben. Meldet sich ein Benutzer bewusst von einer interaktiven oder RDP-Sitzung ab, wird zuerst Event 4647 geschrieben, danach folgt 4634.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logoff (Success). In der
+    Standard-Überwachungsrichtlinie für „Erfolg“ aktiviert.
+  notes: >-
+    Kurzlebige Netzwerksitzungen erzeugen 4624/4634-Paare innerhalb derselben Sekunde; auf
+    Dateiservern und DCs machen diese Paare den Großteil des Protokolls aus.
+fields:
+  - name: TargetUserSid
+    description: SID des Kontos, dessen Sitzung beendet wurde.
+  - name: TargetUserName
+    description: Konto, dessen Sitzung beendet wurde.
+  - name: TargetDomainName
+    description: Domäne oder Computer dieses Kontos.
+  - name: TargetLogonId
+    description: ID der Anmeldesitzung — derselbe Wert wie TargetLogonId im zugehörigen 4624.
+  - name: LogonType
+    description: Anmeldetyp der beendeten Sitzung (2, 3, 4, 5, 7, 10, 11 …); siehe Event 4624.
+benign:
+  - Jedes normale Sitzungsende, einschließlich Computerkonten und Diensten.
+  - Typ-3-Abmeldungen wenige Sekunden nach der zugehörigen Anmeldung auf Dateiservern und Domänencontrollern.
+attacker:
+  - "Für sich allein kein Angriffssignal; es begrenzt das Aktivitätsfenster einer verdächtigen, per 4624 eröffneten Sitzung."
+  - Sehr kurze Sitzungen vom Typ 10 oder 3 von einer ungewöhnlichen Quelle können auf automatisierte Tools hindeuten, die Anmeldeinformationen prüfen.
+investigation:
+  - Über TargetLogonId mit 4624 verknüpfen, um die Sitzungsdauer zu berechnen; ein fehlendes 4634 kann bedeuten, dass die Sitzung bei der Sicherung noch offen war oder der Host abgestürzt ist.
+  - Für RDP stattdessen 4779/4778 und die LocalSessionManager-Events 23/24 nutzen, um Trennungen und Wiederverbindungen zu sehen.
+  - Alles, was zwischen 4624 und 4634 mit derselben SubjectLogonId protokolliert wurde (4688, 4663, 5145 …), gehört zu dieser Sitzung.

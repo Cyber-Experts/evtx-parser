@@ -1,0 +1,48 @@
+title: Le processus a lancé le redémarrage ou l'arrêt de l'ordinateur pour le compte de l'utilisateur
+shortTitle: Arrêt ou redémarrage demandé
+summary: >-
+  L'événement System 1074 (User32) consigne l'auteur d'un arrêt ou redémarrage : processus,
+  utilisateur, motif, commentaire. Qui a redémarré cette machine ?
+description: |-
+  L'événement 1074 est écrit lorsqu'un processus demande à Windows de s'arrêter ou de redémarrer via l'API standard — menu Démarrer, `shutdown.exe`, `Restart-Computer`, Windows Update, installateurs ou demande d'arrêt à distance. C'est la meilleure trace de l'**intention** : quel processus a fait la demande, pour le compte de quel utilisateur, et avec quel motif.
+
+  Les champs sont positionnels : `param1` est le processus demandeur suivi d'un nom d'ordinateur entre parenthèses, `param2` l'ordinateur arrêté, `param3` le texte du motif, `param4` le code de motif, `param5` l'action (`restart`, `power off`), `param6` le commentaire libre et `param7` l'utilisateur. Les codes de motif suivent le format documenté des motifs d'arrêt (motif principal et secondaire plus l'indicateur « planifié »).
+
+  Un redémarrage propre se lit typiquement 1074, puis 6006 et 13, puis 12 et 6005 au redémarrage. Un plantage ne présente aucun des trois premiers.
+logging:
+  requirement: Toujours consigné dans le journal System lorsqu'un arrêt ou un redémarrage est demandé via l'API.
+  notes: >-
+    Les mises hors tension forcées, réinitialisations par l'hyperviseur et plantages ne produisent
+    pas de 1074. `param3` et `param5` sont localisés sur les systèmes non anglophones.
+fields:
+  - name: param1
+    description: >-
+      Processus demandeur, par ex. `C:\Windows\system32\shutdown.exe`, `winlogon.exe`,
+      `TrustedInstaller.exe`, suivi d'un nom d'ordinateur entre parenthèses.
+  - name: param2
+    description: Nom de l'ordinateur arrêté ou redémarré.
+  - name: param3
+    description: >-
+      Texte du motif, par ex. `Operating System: Upgrade (Planned)` ou `Other (Unplanned)`.
+  - name: param4
+    description: Code de motif d'arrêt en hexadécimal, par ex. `0x80020003`. `0x0` signifie qu'aucun motif n'a été fourni.
+  - name: param5
+    description: Action demandée, par ex. `restart` ou `power off`.
+  - name: param6
+    description: Commentaire fourni par le demandeur (par exemple `shutdown /c "..."`). Souvent vide.
+  - name: param7
+    description: Compte pour le compte duquel l'arrêt a été demandé, par ex. `NT AUTHORITY\SYSTEM` ou `CONTOSO\admin`.
+benign:
+  - Utilisateurs redémarrant depuis le menu Démarrer (`winlogon.exe`, `explorer.exe`, `RuntimeBroker.exe`).
+  - Redémarrages de Windows Update et de maintenance par `TrustedInstaller.exe`, `MoUsoCoreWorker.exe` ou `winlogon.exe` en tant que `SYSTEM`.
+  - Installateurs de logiciels et agents d'administration redémarrant après un déploiement.
+attacker:
+  - >-
+    `shutdown.exe /r` ou `Restart-Computer` exécuté par un attaquant pour activer une persistance
+    ou perturber l'activité, parfois avec un commentaire laissé en guise de message.
+  - Redémarrages massifs de serveurs par des opérateurs de rançongiciels, souvent avec `shutdown.exe` lancé depuis une session distante.
+investigation:
+  - Examinez `param7` et `param1` ensemble ; des comptes utilisateurs interactifs lançant `shutdown.exe` sur des serveurs méritent confirmation.
+  - Rapprochez l'horodatage des créations de processus (4688, Sysmon 1) pour voir la ligne de commande exacte et le processus parent.
+  - Pour les arrêts à distance, recherchez une ouverture de session réseau (4624 type 3) sur l'hôte juste avant.
+  - Vérifiez la séquence 1074, 6006, 13, 12, 6005 pour valider un redémarrage propre.

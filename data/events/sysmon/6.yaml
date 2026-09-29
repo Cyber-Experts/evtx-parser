@@ -1,0 +1,59 @@
+id: 6
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: Driver loaded
+shortTitle: Driver loaded
+category: system
+summary: >-
+  Sysmon event 6 logs a kernel driver being loaded, with hashes and signature details. Rare and
+  high-impact: watch for vulnerable or unsigned drivers.
+description: |-
+  Sysmon event 6 records a driver loading into the kernel, with its path (`ImageLoaded`), hashes and signature information (`Signed`, `Signature`, `SignatureStatus`). The signature check runs asynchronously, so the event can also tell you if the file was already gone after loading.
+
+  Driver loads are rare after boot, which makes them good hunting ground. The main threat today is "bring your own vulnerable driver": attackers load a legitimately signed but exploitable driver to kill EDR processes or gain kernel access. Rootkits and some ransomware families also install drivers.
+
+  Most configurations exclude drivers signed by Microsoft and log everything else.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Sysmon installed; filter with `<DriverLoad>` rules (commonly excluding signatures containing
+    Microsoft or Windows).
+fields:
+  - name: UtcTime
+    description: Load time.
+  - name: ImageLoaded
+    description: Path of the driver file. Drivers outside `C:\Windows\System32\drivers` deserve a look.
+  - name: Hashes
+    description: Driver hashes. Compare against lists of known vulnerable drivers (e.g. the LOLDrivers project).
+  - name: Signed
+    description: "`true` or `false`: whether the driver is signed."
+  - name: Signature
+    description: Signer name. Look for unexpected vendors or revoked gaming or hardware-utility certificates.
+  - name: SignatureStatus
+    description: Result of signature validation, e.g. `Valid`, or a status showing an expired or revoked certificate.
+benign:
+  - Hardware and peripheral drivers after device installation or Windows Update.
+  - Security, backup, virtualization and VPN products loading their filter drivers.
+attacker:
+  - >-
+    Loading a known vulnerable signed driver (BYOVD) from a temp or user folder, followed by
+    security products stopping.
+  - Unsigned or oddly signed drivers loaded shortly after a new service is created (System 7045).
+investigation:
+  - Check hashes against known vulnerable driver lists and threat intelligence.
+  - Look for the service that loaded the driver in System 7045 or Security 4697.
+  - Check whether EDR or antivirus processes stopped right after the load (Sysmon 5, System 7036).
+related:
+  - system/7045
+  - security/4697
+  - sysmon/7
+  - code-integrity/3033
+attack:
+  - T1014
+  - T1068
+  - T1543.003
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Rootkit (T1014)
+    url: https://attack.mitre.org/techniques/T1014/

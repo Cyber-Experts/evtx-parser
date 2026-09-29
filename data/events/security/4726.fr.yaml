@@ -1,0 +1,44 @@
+title: Un compte d'utilisateur a été supprimé
+shortTitle: Compte utilisateur supprimé
+summary: >-
+  L'événement 4726 est consigné à la suppression d'un compte utilisateur local ou de domaine, avec
+  l'auteur de la suppression et le nom et SID du compte.
+description: |-
+  L'événement 4726 est écrit lorsqu'un objet utilisateur est supprimé — sur les contrôleurs de domaine pour les comptes de domaine, et sur les serveurs membres et postes de travail pour les comptes locaux. `Subject*` identifie l'auteur de la suppression, `Target*` le compte supprimé.
+
+  Une suppression est plus difficile à annuler qu'une désactivation (4725) : beaucoup d'organisations désactivent d'abord et suppriment ensuite. La suppression d'un compte créé peu de temps auparavant (4720) est un schéma de nettoyage classique : un intrus crée un compte temporaire, l'utilise, puis le supprime. Le compte n'existant plus, `TargetSid` est la seule clé fiable pour relier la suppression aux événements antérieurs du même compte.
+
+  La suppression massive de comptes par un même sujet est aussi une technique destructrice utilisée pour priver d'accès les utilisateurs et administrateurs légitimes.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Activé en succès dans la stratégie d'audit par défaut de Windows.
+  notes: >-
+    Les suppressions de comptes ordinateur sont signalées par le 4743 (Computer Account
+    Management), et non par le 4726.
+fields:
+  - name: SubjectUserName
+    description: Compte ayant supprimé l'utilisateur.
+  - name: SubjectDomainName
+    description: Domaine ou nom d'ordinateur du sujet.
+  - name: SubjectLogonId
+    description: Session du sujet ; corrélez avec le 4624.
+  - name: TargetUserName
+    description: Nom du compte supprimé.
+  - name: TargetDomainName
+    description: Domaine du compte supprimé, ou nom de l'ordinateur pour un compte local.
+  - name: TargetSid
+    description: SID du compte supprimé. Recherchez-le dans les événements antérieurs (4720, 4624, 4728, 4732).
+  - name: PrivilegeList
+    description: Privilèges utilisés pour l'opération, souvent `-`.
+benign:
+  - Nettoyage planifié des comptes désactivés lors des départs.
+  - Suppression de comptes locaux par des programmes de désinstallation ou la gestion de configuration.
+  - Environnements de laboratoire et de test où les comptes sont créés et supprimés en routine.
+attacker:
+  - Suppression d'un compte de porte dérobée temporaire après usage pour effacer les traces.
+  - Suppression de nombreux comptes, y compris d'administrateurs, dans le cadre d'une opération destructrice ou d'un rançongiciel.
+investigation:
+  - Recherchez le TargetSid dans les 4720, 4624 et événements d'appartenance aux groupes antérieurs pour reconstituer la vie du compte.
+  - Signalez les suppressions de comptes créés quelques jours plus tôt au plus, surtout par le même SubjectUserName.
+  - Vérifiez si le compte supprimé était privilégié ou un compte de service dont la suppression pourrait casser des applications.

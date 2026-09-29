@@ -1,0 +1,61 @@
+id: 4689
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A process has exited
+shortTitle: Process exited
+category: process
+summary: >-
+  Security event 4689 logs a process exit with its PID, path, account and exit code. Pair it with
+  4688 to get how long a process ran. Off by default.
+description: |-
+  Event 4689 is the counterpart of 4688: it is written when a process terminates, with the process path (`ProcessName`), its PID (`ProcessId`), the account and logon session, and the exit code (`Status`).
+
+  On its own it adds little, but joined with the matching 4688 it gives the lifetime of a process. Attacker tools are often short-lived — a credential dumper or a discovery command that runs for a second — and a creation/exit pair a few hundred milliseconds apart is typical of scripted activity.
+
+  It is also the way to notice that a process which should always run has stopped, such as a security agent killed shortly before an intrusion continues.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Detailed Tracking > Audit Process Termination (Success).
+    Not enabled in the default audit policy.
+  notes: Roughly doubles the volume of process auditing; many environments enable 4688 but not 4689.
+fields:
+  - name: SubjectUserName
+    description: Account the process ran as.
+  - name: SubjectLogonId
+    description: Logon session of the process; matches SubjectLogonId (or TargetLogonId) of the 4688.
+  - name: ProcessId
+    description: >-
+      Hexadecimal PID of the exited process — matches NewProcessId in 4688. Use the timestamp too,
+      as PIDs are reused.
+  - name: ProcessName
+    description: Full path of the exited executable.
+  - name: Status
+    description: >-
+      Exit code in hexadecimal. `0x0` usually means success; other values are application-specific,
+      so only compare them within the same program.
+benign:
+  - Every normal process exit — the event is as frequent as 4688.
+  - Short-lived helpers (`conhost.exe`, updaters, installers) that start and stop within seconds.
+attacker:
+  - >-
+    Security or monitoring agents (EDR, antivirus, Sysmon) exiting unexpectedly, especially right
+    after an administrator session starts.
+  - Short bursts of tools that run and exit in under a second, typical of scripted discovery or credential dumping.
+investigation:
+  - >-
+    Join 4688 and 4689 on PID and host within a time window to compute process duration and spot
+    very short or very long-running unusual processes.
+  - For an agent that stopped, check which session was active at that moment (SubjectLogonId, 4624) and whether a 4688 of `taskkill`, `sc` or similar preceded it.
+related:
+  - security/4688
+  - security/4624
+  - sysmon/1
+  - sysmon/5
+attack:
+  - T1685
+references:
+  - title: "Microsoft Learn — 4689(S): A process has exited"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4689
+  - title: Microsoft Learn — Audit Process Termination
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-process-termination

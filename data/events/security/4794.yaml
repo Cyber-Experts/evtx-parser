@@ -1,0 +1,61 @@
+id: 4794
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: An attempt was made to set the Directory Services Restore Mode administrator password
+shortTitle: DSRM password set attempt
+category: account
+summary: >-
+  Security event 4794 is logged on a domain controller when someone sets the DSRM administrator
+  password. Rare, and abused for DC persistence.
+description: |-
+  Event 4794 is written on a domain controller when an attempt is made to set the Directory Services Restore Mode (DSRM) administrator password — the local administrator account each DC keeps for offline recovery. `Status` is `0x0` for success; any other value is a failed attempt.
+
+  Changing this password is a rare administrative task, usually done with `ntdsutil` ("set dsrm password", optionally syncing from a domain account). That rarity is what makes it valuable: a known attacker persistence technique sets the DSRM password to a known value and then changes the `DsrmAdminLogonBehavior` registry value so the DSRM account can log on over the network while the DC runs normally, giving a backdoor local administrator on the DC.
+
+  Every 4794 should be traced to a change ticket. Correlate with registry auditing or EDR telemetry for `HKLM\System\CurrentControlSet\Control\Lsa\DsrmAdminLogonBehavior`.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success, Failure). Success is enabled in the default audit policy.
+  notes: Only generated on domain controllers.
+fields:
+  - name: SubjectUserName
+    description: Account that attempted to set the DSRM password.
+  - name: SubjectDomainName
+    description: Domain of that account.
+  - name: SubjectLogonId
+    description: Logon session of the account; pivot to 4624 on the DC to see how it logged on.
+  - name: Workstation
+    description: >-
+      Computer the request came from. Equals the DC's own name when the change was made locally,
+      e.g. with `ntdsutil` on the console.
+  - name: Status
+    description: Result code; `0x0` means the password was set, anything else is a failure.
+benign:
+  - Planned DSRM password rotation by domain administrators, typically with `ntdsutil`.
+  - DC promotion and recovery procedures that set the DSRM password.
+attacker:
+  - >-
+    DSRM backdoor: setting a known DSRM password (sometimes synced from a controlled domain
+    account), then enabling network logon for it via `DsrmAdminLogonBehavior`.
+  - A domain admin session from an unusual workstation changing the DSRM password on several DCs.
+investigation:
+  - Confirm the change was planned; the event should be extremely rare.
+  - >-
+    Check the DC's registry (or registry audit / EDR data) for `DsrmAdminLogonBehavior` set to 2,
+    which allows network logons with the DSRM account.
+  - Pivot on SubjectLogonId to the logon (4624) and look at what else that session did on the DC (4688).
+  - Watch for later network logons to the DC with a local account named like the DC's built-in administrator.
+related:
+  - security/4624
+  - security/4688
+  - security/4724
+  - security/4657
+  - security/4672
+attack:
+  - T1098
+  - T1078.003
+references:
+  - title: "Microsoft Learn — 4794(S, F): An attempt was made to set the Directory Services Restore Mode administrator password"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4794

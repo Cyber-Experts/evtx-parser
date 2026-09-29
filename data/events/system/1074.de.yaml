@@ -1,0 +1,50 @@
+title: Der Prozess hat den Neustart oder das Ausschalten des Computers im Auftrag des Benutzers eingeleitet
+shortTitle: Herunterfahren oder Neustart
+summary: >-
+  Event-ID 1074 (User32) zeigt, wer Herunterfahren oder Neustart angefordert hat: Prozess,
+  Benutzer, Grundcode und Kommentar. Beantwortet „Wer hat neu gestartet?“
+description: |-
+  Event 1074 wird geschrieben, wenn ein Prozess Windows über die Standard-API auffordert, herunterzufahren oder neu zu starten — Startmenü, `shutdown.exe`, `Restart-Computer`, Windows Update, Installationsprogramme oder eine Remote-Shutdown-Anforderung. Es ist der beste Nachweis der **Absicht**: welcher Prozess die Anforderung stellte, im Auftrag welchen Kontos und aus welchem Grund.
+
+  Die Felder sind positionsbasiert: `param1` ist der anfordernde Prozess, gefolgt von einem Computernamen in Klammern, `param2` der heruntergefahrene Computer, `param3` der Grundtext, `param4` der Grundcode, `param5` die Aktion (`restart`, `power off`), `param6` der Freitextkommentar und `param7` der Benutzer. Die Grundcodes folgen dem dokumentierten Format für Herunterfahrgründe (Haupt- und Untergrund plus Flag „geplant“).
+
+  Ein sauberer Neustart liest sich typischerweise als 1074, dann 6006 und 13, dann beim Hochfahren 12 und 6005. Ein Absturz hat keines der ersten drei.
+logging:
+  requirement: Wird immer im System-Protokoll erfasst, wenn Herunterfahren oder Neustart über die API angefordert wird.
+  notes: >-
+    Erzwungenes Ausschalten, Resets durch den Hypervisor und Abstürze erzeugen kein 1074. `param3`
+    und `param5` sind auf nicht englischsprachigen Systemen lokalisiert.
+fields:
+  - name: param1
+    description: >-
+      Anfordernder Prozess, z. B. `C:\Windows\system32\shutdown.exe`, `winlogon.exe`,
+      `TrustedInstaller.exe`, gefolgt von einem Computernamen in Klammern.
+  - name: param2
+    description: Name des Computers, der heruntergefahren oder neu gestartet wird.
+  - name: param3
+    description: >-
+      Grundtext, z. B. `Operating System: Upgrade (Planned)` oder `Other (Unplanned)` (auf deutschen
+      Systemen lokalisiert).
+  - name: param4
+    description: Grundcode für das Herunterfahren in Hexadezimal, z. B. `0x80020003`. `0x0` bedeutet, dass kein Grund angegeben wurde.
+  - name: param5
+    description: Angeforderte Aktion, z. B. `restart` oder `power off`.
+  - name: param6
+    description: Vom Anfordernden angegebener Kommentar (etwa `shutdown /c "..."`). Oft leer.
+  - name: param7
+    description: Konto, in dessen Auftrag das Herunterfahren angefordert wurde, z. B. `NT AUTHORITY\SYSTEM` oder `CONTOSO\admin`.
+benign:
+  - Benutzer, die über das Startmenü neu starten (`winlogon.exe`, `explorer.exe`, `RuntimeBroker.exe`).
+  - Neustarts durch Windows Update und Wartung über `TrustedInstaller.exe`, `MoUsoCoreWorker.exe` oder `winlogon.exe` als `SYSTEM`.
+  - Software-Installer und Management-Agenten, die nach einer Verteilung neu starten.
+attacker:
+  - >-
+    `shutdown.exe /r` oder `Restart-Computer`, von einem Angreifer ausgeführt, um Persistenz zu
+    aktivieren oder den Betrieb zu stören, manchmal mit einem als Nachricht hinterlassenen
+    Kommentar.
+  - Massenhafte Neustarts von Servern durch Ransomware-Akteure, oft mit `shutdown.exe` aus einer Remote-Sitzung.
+investigation:
+  - "`param7` und `param1` zusammen prüfen; interaktive Benutzerkonten, die `shutdown.exe` auf Servern ausführen, sollten bestätigt werden."
+  - Den Zeitpunkt mit Prozesserstellungen (4688, Sysmon 1) abgleichen, um die genaue Befehlszeile und den Elternprozess zu sehen.
+  - Bei Remote-Shutdowns kurz davor nach einer Netzwerkanmeldung (4624 Typ 3) am Host suchen.
+  - Die Abfolge 1074, 6006, 13, 12, 6005 bestätigen, um einen sauberen Neustart zu belegen.

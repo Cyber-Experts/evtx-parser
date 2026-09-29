@@ -1,0 +1,38 @@
+id: 4105
+channel: powershell
+provider: Microsoft-Windows-PowerShell
+title: Started invocation of ScriptBlock
+shortTitle: Script block invocation started
+category: powershell
+summary: >-
+  PowerShell event 4105 marks the start of a script block's execution; with 4106 it gives
+  run times for blocks logged by 4104.
+description: |-
+  Event 4105 is written when a script block starts executing, and 4106 when it finishes. They carry the `ScriptBlockId` of the block logged in 4104, so they tell you when — and how often — a given piece of code actually ran, not just that it was compiled.
+
+  These events are only produced when invocation logging is turned on in the Script Block Logging policy, and they are very noisy. Most environments leave them off; when present, they help order activity precisely.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Turn on PowerShell Script Block Logging with the option "Log script block invocation start /
+    stop events" enabled.
+fields:
+  - name: ScriptBlockId
+    description: GUID of the script block; matches the 4104 that logged its text.
+  - name: RunspaceId
+    description: Runspace (PowerShell session) in which the block ran.
+benign:
+  - Any PowerShell activity when invocation logging is enabled — mostly noise.
+attacker:
+  - Confirms repeated execution of a malicious block (for example a loop or scheduled re-run).
+investigation:
+  - Join to 4104 on ScriptBlockId to get the code, then use 4105/4106 times for duration.
+  - Group by RunspaceId to separate concurrent sessions.
+related:
+  - powershell/4106
+  - powershell/4104
+attack:
+  - T1059.001
+references:
+  - title: Microsoft Learn — about_Logging_Windows
+    url: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_logging_windows

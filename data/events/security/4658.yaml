@@ -1,0 +1,54 @@
+id: 4658
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: The handle to an object was closed
+shortTitle: Object handle closed
+category: object-access
+summary: >-
+  Security event 4658 marks the closing of a handle to an audited object. Pair it with 4656 by
+  HandleId to measure how long the object was open.
+description: |-
+  Event 4658 is written when a process closes a handle it previously obtained to an audited file, registry key or kernel object. It carries no object name and no access rights — only the `HandleId`, the process and the account.
+
+  Its value is as a bookend: the matching 4656 (handle requested) and 4663 (access used) share the same `HandleId` and `ProcessId`, so the three together tell you what was opened, what was done and for how long. On its own it has little security meaning.
+
+  Because every audited handle produces one, 4658 roughly doubles object-access volume. Many teams leave Audit Handle Manipulation off unless they need handle lifetimes.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Handle Manipulation (Success), in
+    addition to the object subcategory (File System, Registry, Kernel Object or Removable Storage)
+    and a SACL on the object.
+fields:
+  - name: SubjectUserName
+    description: Account that owned the handle.
+  - name: SubjectLogonId
+    description: Logon session of that account.
+  - name: ObjectServer
+    description: Subsystem that managed the handle, normally `Security`.
+  - name: HandleId
+    description: Handle that was closed; match it with 4656 and 4663 from the same process.
+  - name: ProcessName
+    description: Process that closed the handle.
+  - name: ProcessId
+    description: Hexadecimal PID; handle values are only unique within one process.
+benign:
+  - Every normal open/close cycle on an audited object generates one 4658.
+  - Backup, indexing and antivirus software produce long runs of 4656/4658 pairs.
+attacker:
+  - >-
+    Not an attack indicator by itself. It helps time bulk collection: many handles to sensitive
+    files opened and closed in quick succession by one process.
+investigation:
+  - Use it only as a join partner; filter on the `HandleId` and `ProcessId` from an interesting 4656 or 4663.
+  - Handle IDs are reused, so correlate in time order and within the same process.
+related:
+  - security/4656
+  - security/4663
+  - security/4660
+attack: []
+references:
+  - title: "Microsoft Learn — 4658(S): The handle to an object was closed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4658
+  - title: Microsoft Learn — Audit Handle Manipulation
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-handle-manipulation

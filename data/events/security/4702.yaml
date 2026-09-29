@@ -1,0 +1,69 @@
+id: 4702
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A scheduled task was updated
+shortTitle: Scheduled task updated
+category: scheduled-task
+summary: >-
+  Security event 4702 records a modified scheduled task with its new XML definition. Look for
+  changed actions or run-as accounts on existing tasks.
+description: |-
+  Event 4702 is written when an existing scheduled task is modified. The new definition is in `TaskContentNew`; the previous version is not included, so you need an earlier 4698 or 4702 (or a baseline) to see what changed.
+
+  Modifying an existing task is stealthier than creating one: the task name stays familiar, and only the action, arguments, account or trigger change. Watch for built-in or vendor tasks whose `Command` suddenly points to a script host or a user-writable path, or whose `RunLevel` becomes `HighestAvailable`.
+
+  Expect a lot of benign volume: Windows and application updaters rewrite their tasks regularly, frequently as `SYSTEM` or the machine account.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Other Object Access Events
+    (Success). Not enabled in the default audit policy.
+  notes: >-
+    No SACL is needed. Recent Windows builds add `ClientProcessId`, `ParentProcessId`,
+    `ClientProcessStartKey`, `RpcCallClientLocality` and `FQDN` to identify the process that made
+    the request. The Task Scheduler Operational log records similar lifecycle events (106, 140, 141)
+    without audit policy.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Account that made the change. For remote task management (`schtasks /s`, Impacket) this is
+      the remote account.
+  - name: SubjectDomainName
+    description: Domain or computer name of that account.
+  - name: SubjectLogonId
+    description: Logon session of the account; pivot to 4624 on the same host to find where it came from.
+  - name: TaskName
+    description: >-
+      Full task path, e.g. `\Microsoft\Windows\...` for built-in tasks. Tasks at the root (`\Name`)
+      or with names mimicking Microsoft ones deserve a look.
+  - name: TaskContentNew
+    description: >-
+      The task's new XML definition. Compare `Actions/Exec/Command`, `Arguments`, `Principals` and
+      `Triggers` with the previous version.
+  - name: ClientProcessId
+    description: PID of the process that requested the change, on builds that log it. Match it to 4688.
+benign:
+  - Windows servicing and application updaters rewriting their tasks, often after each update.
+  - Group Policy preferences refreshing managed tasks.
+attacker:
+  - Hijacking an existing task by changing its action to run a payload, keeping the trusted task name.
+  - Changing a task's principal to SYSTEM or its RunLevel to `HighestAvailable` to gain elevated execution.
+investigation:
+  - >-
+    Compare TaskContentNew with the last known definition (earlier 4698/4702, exported task XML
+    from `C:\Windows\System32\Tasks`) and focus on changes to Command and Arguments.
+  - Filter out known updater tasks, then review updates made by interactive or remote user sessions.
+  - Confirm when the modified task next ran via Task Scheduler Operational 200/201 and 4688.
+related:
+  - security/4698
+  - security/4699
+  - security/4700
+  - security/4701
+  - task-scheduler/140
+  - task-scheduler/200
+  - security/4688
+attack:
+  - T1053.005
+references:
+  - title: "Microsoft Learn — 4702(S): A scheduled task was updated"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4702

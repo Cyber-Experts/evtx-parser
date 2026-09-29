@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import { legacyEventRedirects } from "./lib/events/legacy";
+
 /**
  * Content-Security-Policy.
  * - `wasm-unsafe-eval` is required to load the in-browser EVTX parser
@@ -99,7 +101,7 @@ const nextConfig: NextConfig = {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
   async redirects() {
-    return loadRedirects();
+    return [...(await loadRedirects()), ...legacyEventRedirects()];
   },
 };
 

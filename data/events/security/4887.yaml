@@ -1,0 +1,64 @@
+id: 4887
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: Certificate Services approved a certificate request and issued a certificate
+shortTitle: Certificate issued
+category: directory
+summary: >-
+  Security event 4887 is logged on an AD CS certification authority when a certificate is
+  issued: request ID, requester, subject and subject key identifier.
+description: |-
+  Event 4887 is written by an AD CS certification authority when it issues a certificate, either automatically under the template and CA policy or after a certificate manager approves a pending request. It repeats the `RequestId`, `Requester` and `Attributes` of the 4886 request and adds the `Disposition`, the `SubjectKeyIdentifier` and the certificate `Subject`.
+
+  This is the record that a credential was actually minted. The key question is whether the identity in the certificate matches the account that asked for it: a regular user obtaining a certificate whose subject is an administrator or a domain controller points to template or CA misconfiguration abuse.
+
+  Certificates stay valid until they expire or are revoked, even after the account's password changes, so an issued certificate for a privileged identity is also a persistence mechanism.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Certification Services
+    (Success), plus "Issue and manage certificate requests" enabled on the Auditing tab of the
+    CA properties (the CA audit filter).
+  notes: >-
+    Logged only on the CA server. Older builds do not include the subject alternative name
+    requested in the CSR, so a certificate issued with a privileged SAN may show an unremarkable
+    `Subject`; check the certificate in the CA database.
+fields:
+  - name: RequestId
+    description: CA request number; joins with 4886 and with the CA database record.
+  - name: Requester
+    description: Account that submitted the request.
+  - name: Attributes
+    description: Request attributes supplied with the request (e.g. `ccm:` client machine name, or `san:` where accepted).
+  - name: Disposition
+    description: Request disposition code from the CA; for an issued certificate this is the issued status (3).
+  - name: SubjectKeyIdentifier
+    description: Subject key identifier of the issued certificate — useful to find the same certificate elsewhere.
+  - name: Subject
+    description: Distinguished name of the certificate subject, e.g. `CN=Administrator, CN=Users, DC=contoso, DC=local`.
+benign:
+  - Autoenrollment issuing user, computer and domain controller certificates.
+  - Renewals of web server and service certificates by their owners.
+  - Certificate managers approving pending requests after review.
+attacker:
+  - >-
+    Issuance of a certificate for a privileged account to a low-privileged requester through a
+    vulnerable template, followed by PKINIT authentication as that account.
+  - Certificates issued for machine or DC identities to accounts that are not those machines.
+  - Burst of issuances from rarely used templates by a single requester.
+investigation:
+  - Compare `Requester` with `Subject` and with the SAN recorded in the CA database; flag privileged identities.
+  - Identify the template used and review its enrollment rights and subject settings.
+  - Hunt 4768 on domain controllers for certificate-based (PKINIT) TGT requests for the same identity.
+  - If abuse is confirmed, revoke the certificate by serial number; a password reset alone does not invalidate it.
+related:
+  - security/4886
+  - security/4768
+  - security/4624
+attack:
+  - T1649
+references:
+  - title: Microsoft Learn — Audit Certification Services
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-certification-services
+  - title: "MITRE ATT&CK — T1649 Steal or Forge Authentication Certificates"
+    url: https://attack.mitre.org/techniques/T1649/

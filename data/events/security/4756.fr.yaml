@@ -1,0 +1,53 @@
+title: Un membre a été ajouté à un groupe universel de sécurité
+shortTitle: Ajout à un groupe universel
+summary: >-
+  L'événement 4756 est consigné sur un contrôleur de domaine lors de l'ajout d'un membre à un
+  groupe universel de sécurité (Enterprise Admins, Schema Admins).
+description: |-
+  L'événement 4756 est écrit sur le contrôleur de domaine qui a traité la modification lorsqu'un compte ou un groupe est ajouté à un groupe de sécurité **universel**. Les groupes universels peuvent contenir des membres de n'importe quel domaine de la forêt et servent aux rôles à l'échelle de la forêt — surtout **Enterprise Admins** et **Schema Admins** dans le domaine racine de la forêt. Les groupes globaux utilisent le 4728, les groupes locaux et locaux de domaine le 4732.
+
+  Les champs sont les mêmes que pour les 4728 et 4732 : `TargetUserName`/`TargetSid` identifient le groupe, `MemberName` (nom unique, DN) et `MemberSid` le nouveau membre, `Subject*` l'auteur de la modification. Un événement est consigné par membre ajouté, généralement à côté d'un 4755 vide.
+
+  Un ajout à Enterprise Admins donne le contrôle administratif de tous les domaines de la forêt. Alertez dessus par SID et traitez chaque occurrence hors d'une modification planifiée comme un incident.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Les succès sont audités dans la stratégie d'audit par défaut de Windows.
+  notes: >-
+    Généré uniquement sur les contrôleurs de domaine. Enterprise Admins et Schema Admins résident
+    dans le domaine racine de la forêt : ces ajouts sont donc consignés sur les DC du domaine
+    racine.
+fields:
+  - name: MemberName
+    description: Nom unique (DN) du membre ajouté.
+  - name: MemberSid
+    description: SID du membre ajouté. La partie domaine indique de quel domaine de la forêt il provient.
+  - name: TargetUserName
+    description: Nom du groupe universel.
+  - name: TargetDomainName
+    description: Domaine du groupe.
+  - name: TargetSid
+    description: SID du groupe ; identifiez les groupes bien connus par leur RID.
+    values:
+      - value: "*-518"
+        meaning: Schema Admins (domaine racine de la forêt).
+      - value: "*-519"
+        meaning: Enterprise Admins (domaine racine de la forêt).
+  - name: SubjectUserName
+    description: Compte ayant ajouté le membre.
+  - name: SubjectDomainName
+    description: Domaine du sujet.
+  - name: SubjectLogonId
+    description: Session du sujet sur le DC ; corrélez avec le 4624.
+  - name: PrivilegeList
+    description: Privilèges utilisés pour l'opération, souvent `-`.
+benign:
+  - Administrateurs gérant des groupes universels utilisés pour Exchange, la messagerie ou l'accès à des ressources inter-domaines.
+  - Appartenance temporaire à Schema Admins pour une extension de schéma approuvée, retirée ensuite (4757).
+attacker:
+  - Ajout d'un compte contrôlé à Enterprise Admins après la compromission d'un domaine pour prendre le contrôle de toute la forêt.
+  - Ajout de comptes à des groupes universels disposant de droits délégués sur plusieurs domaines.
+investigation:
+  - Alertez sur toute modification d'Enterprise Admins et de Schema Admins et faites-la confirmer par les responsables de la forêt.
+  - Vérifiez l'origine du membre (partie domaine du MemberSid), sa date de création (4720) et ses ouvertures de session ultérieures (4624, 4672).
+  - Pivotez sur SubjectLogonId pour trouver l'hôte source de la modification.

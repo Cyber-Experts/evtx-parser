@@ -1,0 +1,49 @@
+id: 4770
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A Kerberos service ticket was renewed
+shortTitle: Kerberos service ticket renewed
+category: kerberos
+summary: >-
+  Event 4770 is logged on domain controllers when a client renews an existing Kerberos service
+  ticket instead of requesting a new one.
+description: |-
+  Event 4770 is written by the KDC on a domain controller when a client presents a renewable service ticket and asks for its lifetime to be extended. It is far less frequent than 4769 and mostly reflects long-running sessions and services.
+
+  On its own it rarely matters for an investigation, but it extends the timeline of an account's Kerberos activity: a renewal shows the account and client IP were still active at that time, even when no new 4769 was logged.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Logon > Audit Kerberos Service Ticket
+    Operations (Success). Only meaningful on domain controllers.
+fields:
+  - name: TargetUserName
+    description: Account that renewed the ticket.
+  - name: TargetDomainName
+    description: Domain of that account.
+  - name: ServiceName
+    description: Service account the ticket is for.
+  - name: ServiceSid
+    description: SID of the service account.
+  - name: TicketOptions
+    description: Ticket options (hex).
+  - name: TicketEncryptionType
+    description: Encryption type of the ticket (`0x12` AES256, `0x17` RC4…); see 4769.
+  - name: IpAddress
+    description: Client IP address.
+  - name: IpPort
+    description: Client source port.
+benign:
+  - Long-running sessions and services renewing tickets before they expire.
+attacker:
+  - Little direct attacker signal; it shows continued use of a session that was established earlier, including one started with stolen credentials.
+investigation:
+  - Use it to extend the activity window of an account and IP identified from 4768/4769.
+  - Tickets renewed far beyond the domain's maximum renewal lifetime are abnormal and worth checking against forged-ticket scenarios.
+related:
+  - security/4768
+  - security/4769
+attack: []
+references:
+  - title: "Microsoft Learn — 4770(S): A Kerberos service ticket was renewed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4770

@@ -1,0 +1,83 @@
+id: 5140
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A network share object was accessed
+shortTitle: Network share accessed
+category: network-share
+summary: >-
+  Security event 5140 logs the first access to a network share in an SMB session: account, source
+  IP and share name. Key for tracking C$, ADMIN$ and IPC$ use.
+description: |-
+  Event 5140 is written on the computer that **hosts** the share when a client connects to it. It is generated once per session, on the first access attempt, so it shows which shares a remote account opened rather than every file it touched (that is 5145).
+
+  The key fields are `SubjectUserName` / `SubjectDomainName` (who), `IpAddress` / `IpPort` (from where), `ShareName` and `ShareLocalPath` (which share). `SubjectLogonId` links the access to the network logon (4624 LogonType 3) that created the session.
+
+  Administrative shares are the main reason to collect it: `ADMIN$` and `C$` are used by PsExec-style tools and by attackers copying payloads, and `IPC$` is used for named pipes (service control, remote registry, SAMR/LSARPC enumeration). On domain controllers, `SYSVOL` and `NETLOGON` accesses by every computer create a lot of noise.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit File Share (Success, Failure). Not
+    audited in the default Windows audit policy.
+  notes: >-
+    Volume is high on file servers and domain controllers (SYSVOL access by Group Policy) and low on
+    workstations. The same subcategory produces 5142, 5143, 5144 and 5168. A failure 5140 is logged
+    when access is denied at the share level.
+fields:
+  - name: SubjectUserSid
+    description: SID of the account that accessed the share.
+  - name: SubjectUserName
+    description: Account that accessed the share. Machine accounts (`HOST$`) are common and usually benign.
+  - name: SubjectDomainName
+    description: Domain or computer name of the account.
+  - name: SubjectLogonId
+    description: Logon session of the remote user; matches `TargetLogonId` of the 4624 network logon on this host.
+  - name: ObjectType
+    description: Always `File` for this event.
+  - name: IpAddress
+    description: IP address of the client. `::1` or `127.0.0.1` for local access through a UNC path.
+  - name: IpPort
+    description: Source port of the client connection.
+  - name: ShareName
+    description: >-
+      Share name in the form `\\*\SHARE`, e.g. `\\*\C$`, `\\*\ADMIN$`, `\\*\IPC$`, `\\*\SYSVOL`.
+  - name: ShareLocalPath
+    description: Local path of the share, e.g. `\??\C:\Windows` for `ADMIN$`. Empty for `IPC$`.
+  - name: AccessMask
+    description: Requested access rights. For 5140 this is normally `0x1` (ReadData / ListDirectory).
+  - name: AccessList
+    description: Access rights in symbolic form, e.g. `%%4416` (ReadData or ListDirectory).
+benign:
+  - Workstations and servers reading `SYSVOL` and `NETLOGON` on domain controllers for Group Policy and logon scripts.
+  - Users mapping departmental shares and home drives.
+  - Management and backup tools, software deployment and inventory agents connecting to `ADMIN$`, `C$` or `IPC$`.
+attacker:
+  - >-
+    Lateral movement with PsExec, Impacket `smbexec`/`psexec` or similar tools: an `ADMIN$` or `IPC$`
+    access from a workstation, followed by a service installation (7045, 4697).
+  - Staging or retrieving files through `C$` on a remote host with stolen credentials.
+  - Share and user enumeration over `IPC$` (SAMR, LSARPC, SRVSVC named pipes) from a host that does not normally query this server.
+  - Collection of data from file servers by an account that rarely touches them.
+investigation:
+  - Filter out machine accounts and `SYSVOL`/`NETLOGON`, then review `ADMIN$`, `C$` and other admin shares by source IP and account.
+  - Pivot on `SubjectLogonId` to the 4624 LogonType 3 on the same host to confirm the authentication package (NTLM vs Kerberos).
+  - If Detailed File Share is enabled, check 5145 for the files and named pipes used in the same session (`svcctl`, `samr`, `lsarpc`, `srvsvc`).
+  - On the source host, look for the matching outbound connection (Sysmon 3, 5156) and the tool that initiated it.
+related:
+  - security/5145
+  - security/5142
+  - security/5144
+  - security/4624
+  - security/4672
+  - security/4697
+  - system/7045
+  - smb-server/551
+attack:
+  - T1021.002
+  - T1135
+  - T1039
+  - T1570
+references:
+  - title: "Microsoft Learn — 5140(S, F): A network share object was accessed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-5140
+  - title: Microsoft Learn — Audit File Share
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-file-share

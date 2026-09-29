@@ -1,0 +1,62 @@
+id: 60
+channel: bits-client
+provider: Microsoft-Windows-Bits-Client
+title: BITS stopped transferring the transfer job
+shortTitle: Transfer stopped
+category: network
+summary: >-
+  BITS event 60 records that BITS stopped transferring a job, with the job name, remote URL and
+  status code — success, failure or interruption.
+description: |-
+  Event 60 is written when BITS stops transferring a file for a job, whether because the transfer finished, failed or was suspended. It carries the same identification as event 59 — `name`, `Id`, `transferId` and `url` — plus the status code `hr` and transfer details such as `bytesTransferred` and `proxy`.
+
+  The `hr` field tells you how it ended: `0x0` is success; other values are HRESULTs from BITS or the network stack, including HTTP errors. Paired with 59, it shows whether a suspicious download actually succeeded and how much data moved.
+
+  Like 59, event 60 names the remote URL, so it is equally useful for hunting unusual download sources. Warning-level failures are logged separately as event 61.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Microsoft-Windows-Bits-Client/Operational channel is enabled by default.
+fields:
+  - name: transferId
+    description: GUID of this file transfer.
+  - name: name
+    description: Name (title) of the job.
+  - name: Id
+    description: GUID of the job; matches `jobId` in events 3 and 4.
+  - name: url
+    description: Remote URL of the file.
+  - name: hr
+    description: >-
+      Status code of the transfer. `0x0` means success; other values are BITS or HTTP-related
+      HRESULTs (see the BITS return values reference).
+  - name: bytesTransferred
+    description: Bytes transferred when the transfer stopped.
+  - name: fileLength
+    description: Size of the remote file, when known.
+  - name: proxy
+    description: Proxy used for the transfer, if any.
+benign:
+  - Successful Windows and application update downloads (hr `0x0`).
+  - Transfers suspended and resumed as the network changes or the machine sleeps.
+attacker:
+  - Successful completion of a payload download from attacker infrastructure.
+  - Repeated failed attempts against a blocked or taken-down host, showing a persistent job or beacon-like retries.
+investigation:
+  - Pair with 59 by transferId and Id; check hr to confirm whether the download succeeded.
+  - Stack url values and review uncommon hosts, raw IPs and non-standard ports.
+  - For successful suspicious transfers, look for the resulting file (Sysmon 11) and its execution.
+related:
+  - bits-client/59
+  - bits-client/3
+  - bits-client/4
+  - sysmon/11
+  - sysmon/22
+attack:
+  - T1197
+  - T1105
+references:
+  - title: Microsoft Learn — BITS return values
+    url: https://learn.microsoft.com/en-us/windows/win32/bits/bits-return-values
+  - title: MITRE ATT&CK — BITS Jobs (T1197)
+    url: https://attack.mitre.org/techniques/T1197/

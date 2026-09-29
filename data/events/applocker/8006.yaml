@@ -1,0 +1,88 @@
+id: 8006
+channel: applocker
+channelName: Microsoft-Windows-AppLocker/MSI and Script
+provider: Microsoft-Windows-AppLocker
+title: File was allowed to run but would have been prevented from running if the AppLocker policy were enforced
+shortTitle: Script or MSI would be blocked
+category: application-control
+summary: >-
+  AppLocker event 8006 records a script or MSI that ran but would have been blocked if the
+  policy were enforced — audit-mode view of unapproved scripts.
+description: |-
+  Event 8006 is written to the AppLocker **MSI and Script** log when the Script or Windows Installer rule collection is in **Audit only** mode and a file outside the allow rules is run. Execution proceeds; the event records the policy violation.
+
+  In audit deployments this is a list of every script and installer that falls outside the baseline: PowerShell scripts in user profiles, batch files dropped in temp folders, `.vbs` and `.js` files opened from downloads. Those are common first-stage payloads, so 8006 is worth reviewing even when nobody plans to enforce the policy.
+
+  A well-known source of noise is PowerShell itself: at startup it writes small test scripts named `__PSScriptPolicyTest_*.ps1` to the temp folder to detect the policy, and these show up here.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    An AppLocker policy with Windows Installer and/or Script rules — Computer Configuration > Windows
+    Settings > Security Settings > Application Control Policies > AppLocker — and the Application
+    Identity service (AppIDSvc) running. Logged only when the rule collection is in Audit only mode.
+  notes: >-
+    Script rules are checked by the script hosts themselves (PowerShell, Windows Script Host, the
+    command processor). When script rules are enforced, PowerShell sessions run in Constrained
+    Language Mode and only allowed scripts run in Full Language mode. AppLocker enforcement depends on the Windows edition; unsupported
+    editions log 8009 instead.
+fields:
+  - name: PolicyName
+    description: Rule collection that evaluated the file.
+    values:
+      - value: MSI
+        meaning: Windows Installer rules (.msi, .msp, .mst).
+      - value: SCRIPT
+        meaning: Script rules (.ps1, .bat, .cmd, .vbs, .js).
+  - name: RuleId
+    description: >-
+      GUID of the AppLocker rule that matched. An all-zero GUID means no rule matched and the
+      file fell under the implicit deny.
+  - name: RuleName
+    description: Name of the matching rule (for example `(Default Rule) All files located in the Windows folder`), or `-` when none matched.
+  - name: RuleSddl
+    description: Security descriptor of the rule, showing which user or group SID the rule applies to.
+  - name: TargetUser
+    description: SID of the user who tried to run the file.
+  - name: TargetProcessId
+    description: ID of the process involved in the execution attempt; correlate with Security 4688 or Sysmon 1.
+  - name: TargetLogonId
+    description: Logon session of the user; pivot to Security 4624 and 4688 with the same logon ID.
+  - name: FilePath
+    description: >-
+      Path of the file written with AppLocker path variables, e.g. `%OSDRIVE%\USERS\...`,
+      `%SYSTEM32%\...`, `%PROGRAMFILES%\...`.
+  - name: FullFilePath
+    description: The same path in plain form (`C:\Users\...`). Present on current Windows versions.
+  - name: FileHash
+    description: AppLocker hash of the file, used by file hash rules.
+  - name: Fqbn
+    description: >-
+      Fully qualified binary name from the file's signature — publisher, product, file name and
+      version. `-` for unsigned files.
+benign:
+  - PowerShell's `__PSScriptPolicyTest_*.ps1` probe files in `%TEMP%`.
+  - Scripts and per-user installers from legitimate software not yet covered by rules.
+attacker:
+  - Script-based first-stage payloads (`.js`, `.vbs`, `.ps1`, `.bat`) run from `Downloads`, `AppData` or `Temp`.
+  - Malicious `.msi` packages run from user-writable locations.
+investigation:
+  - Filter out the `__PSScriptPolicyTest_` files, then review the remaining paths.
+  - Correlate with PowerShell 4104 and process creation (wscript, cscript, mshta, msiexec, powershell) at the same time.
+  - Collect the script by FullFilePath and check its hash.
+related:
+  - applocker/8005
+  - applocker/8007
+  - applocker/8003
+  - powershell/4104
+  - security/4688
+  - sysmon/1
+attack:
+  - T1059.001
+  - T1059.005
+  - T1218.007
+  - T1204.002
+references:
+  - title: Microsoft Learn — Using Event Viewer with AppLocker
+    url: https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/applocker/using-event-viewer-with-applocker
+  - title: Microsoft Learn — AppLocker overview
+    url: https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/applocker/applocker-overview

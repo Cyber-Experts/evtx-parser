@@ -1,0 +1,39 @@
+title: Événement registre (valeur définie)
+shortTitle: Valeur de registre définie
+summary: >-
+  L'événement Sysmon 13 consigne l'écriture d'une valeur de registre et sa donnée (DWORD, QWORD,
+  chaîne). L'événement clé de la persistance registre.
+description: |-
+  L'événement Sysmon 13 consigne l'écriture d'une valeur de registre : le chemin de la valeur dans `TargetObject`, la donnée dans `Details`, et le processus qui a écrit. Les valeurs numériques apparaissent sous la forme `DWORD (0x...)` ou `QWORD (...)` ; les chaînes affichent leur texte ; les données binaires ne sont pas reproduites.
+
+  C'est l'événement qui montre la persistance par clés Run, les nouvelles valeurs `ImagePath` de services, les fonctions de sécurité désactivées (par exemple les paramètres de Defender ou de l'UAC) et les détournements via le débogueur IFEO, en un seul enregistrement avec le processus responsable.
+
+  Le volume dépend entièrement de la configuration ; ciblez les chemins connus de persistance et de paramètres de sécurité.
+logging:
+  requirement: Sysmon installé ; filtrez avec des règles `<RegistryEvent>` dans la configuration.
+fields:
+  - name: EventType
+    description: Toujours `SetValue` pour cet événement.
+  - name: ProcessGuid
+    description: Processus ayant écrit la valeur ; pivotez vers son événement 1.
+  - name: Image
+    description: Exécutable ayant écrit la valeur.
+  - name: TargetObject
+    description: Chemin complet de la valeur, par ex. `HKU\<SID>\Software\Microsoft\Windows\CurrentVersion\Run\<name>`.
+  - name: Details
+    description: >-
+      Donnée écrite. Pour les clés Run et l'`ImagePath` des services, il s'agit de la commande qui
+      sera exécutée ; pour les paramètres DWORD, par ex. `DWORD (0x00000001)`.
+  - name: User
+    description: Compte du processus (versions récentes de Sysmon).
+benign:
+  - Applications enregistrant des utilitaires de démarrage automatique dans les clés Run lors de l'installation.
+  - Windows et la stratégie de groupe écrivant des paramètres, l'Explorateur mettant à jour l'état propre à l'utilisateur (très fréquent).
+attacker:
+  - Valeurs Run ou RunOnce pointant vers un binaire ou un script dans un dossier accessible en écriture à l'utilisateur.
+  - '`ImagePath` d''un service remplacé par un nouveau binaire, ou valeur `Debugger` définie sous Image File Execution Options.'
+  - Paramètres de sécurité affaiblis, comme des valeurs de stratégie Defender ou pare-feu positionnées pour désactiver la protection.
+investigation:
+  - Lisez Details et vérifiez si le chemin référencé existe et a été écrit récemment (événement 11).
+  - Pivotez sur ProcessGuid vers l'événement 1 — `reg.exe`, PowerShell ou un binaire inconnu écrivant des clés Run se remarque.
+  - Recherchez la création de clé correspondante (événement 12) et l'exécution du programme persistant après redémarrage (événement 1).

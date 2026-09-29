@@ -1,0 +1,71 @@
+title: Netzwerkverbindung (Network connection)
+shortTitle: Netzwerkverbindung
+summary: >-
+  Sysmon-Event-ID 3 verknüpft jede TCP-/UDP-Verbindung mit dem auslösenden Prozess: Quelle, Ziel,
+  Ports und ProcessGuid. Zentral für C2 und Lateral Movement.
+description: |-
+  Sysmon-Event 3 protokolliert eine TCP- oder UDP-Verbindung zusammen mit dem dafür verantwortlichen Prozess. Genau das fehlt in Firewall- und Proxy-Logs: nicht nur, dass der Host mit einer Adresse kommuniziert hat, sondern welches Programm es tat und unter welchem Konto.
+
+  `Initiated` gibt die Richtung an: `true` bedeutet, dass der lokale Prozess die Verbindung geöffnet hat (ausgehend), `false`, dass er eine angenommen hat. Hostnamen werden per Reverse-DNS-Abfrage befüllt, wenn `DnsLookup` aktiviert ist; sie entsprechen also nicht unbedingt dem, was der Prozess tatsächlich aufgelöst hat — dafür Event 22 nutzen.
+
+  Das Event ist wegen seines Volumens standardmäßig deaktiviert. Gute Konfigurationen schließen Verbindungen von Skript-Hosts, LOLBins und benutzerbeschreibbaren Pfaden ein und Browser sowie bekannte Agenten aus.
+logging:
+  requirement: >-
+    Sysmon installiert mit aktivierter Netzwerküberwachung (Schalter `-n` oder eine Regel
+    `<NetworkConnect>` in der Konfiguration).
+  notes: >-
+    Hostnamen hängen von Reverse-DNS ab (Konfigurationseintrag `DnsLookup`). Mit Event 5156 der
+    Windows Filtering Platform vergleichen, wenn diese Überwachungsunterkategorie aktiviert ist.
+fields:
+  - name: ProcessGuid
+    description: Prozess, der die Verbindung aufgebaut oder angenommen hat; auf sein Event 1 pivotieren.
+  - name: Image
+    description: Programm hinter der Verbindung.
+  - name: User
+    description: Konto des Prozesses.
+  - name: Protocol
+    description: Transportprotokoll.
+    values:
+      - value: "tcp"
+        meaning: TCP-Verbindung.
+      - value: "udp"
+        meaning: UDP-Datenverkehr.
+  - name: Initiated
+    description: Richtung der Verbindung.
+    values:
+      - value: "true"
+        meaning: Der lokale Prozess hat die Verbindung initiiert (ausgehend).
+      - value: "false"
+        meaning: Der lokale Prozess hat eine eingehende Verbindung angenommen.
+  - name: SourceIp
+    description: Quelladresse.
+  - name: SourcePort
+    description: Quellport.
+  - name: DestinationIp
+    description: Zieladresse.
+  - name: DestinationHostname
+    description: Zielname aus Reverse-DNS, sofern verfügbar. Nicht zwingend der Name, den der Prozess abgefragt hat.
+  - name: DestinationPort
+    description: Zielport.
+  - name: DestinationPortName
+    description: Dienstname bei bekannten Ports, z. B. `https` oder `microsoft-ds`.
+  - name: SourceIsIpv6
+    description: "`true`, wenn die Verbindung IPv6 nutzt."
+benign:
+  - Browser, Office, Teams und Update-Agenten, die über 443 mit Cloud-Diensten kommunizieren.
+  - Domänenmitglieder, die sich über 88, 389, 445 und 135 mit Domänencontrollern verbinden.
+  - Management- und Backup-Agenten, die ihre Server abfragen.
+attacker:
+  - >-
+    Skript-Hosts oder LOLBins (`powershell.exe`, `rundll32.exe`, `regsvr32.exe`, `mshta.exe`,
+    `certutil.exe`), die ausgehende Verbindungen ins Internet aufbauen.
+  - Beaconing — regelmäßige Verbindungen desselben Prozesses zu einer seltenen externen IP.
+  - >-
+    Lateral Movement von einer Arbeitsstation zu anderen Hosts über 445 (SMB), 135 (RPC/WMI),
+    5985/5986 (WinRM) oder 3389 (RDP).
+  - Prozesse aus `%TEMP%`, `Downloads` oder `ProgramData`, die sich über nicht standardmäßige Ports nach außen verbinden.
+investigation:
+  - Über ProcessGuid auf Event 1 pivotieren, um Befehlszeile und Elternprozess des verbindenden Prozesses zu sehen.
+  - Mit Event 22 derselben ProcessGuid korrelieren, um zu erfahren, welcher Domänenname aufgelöst wurde.
+  - Nach Image und DestinationIp gruppieren, um seltene Paare in der gesamten Umgebung zu finden.
+  - Bei eingehendem Lateral Movement das Security-4624 (LogonType 3 oder 10) des Zielhosts zur selben Zeit abgleichen.

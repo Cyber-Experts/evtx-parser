@@ -1,0 +1,37 @@
+title: Creación de archivo (FileCreate)
+shortTitle: Archivo creado
+summary: >-
+  El evento 11 de Sysmon registra la creación o sobrescritura de un archivo y el proceso que lo escribió. Clave para payloads, persistencia y volcados.
+description: |-
+  El evento 11 de Sysmon registra la creación o sobrescritura de un archivo, indicando el archivo (`TargetFilename`) y el proceso que lo escribió. Es la respuesta de Sysmon a la pregunta "¿de dónde salió este archivo?".
+
+  Los objetivos útiles son las ubicaciones de inicio automático (carpetas Startup, `System32\Tasks`), las carpetas de descargas y temporales, las extensiones de scripts y ejecutables, y los archivos de volcado como `lsass.dmp`. `CreationUtcTime` es la marca de tiempo de creación del archivo; en un archivo sobrescrito puede ser anterior a la hora del evento.
+
+  La actividad de archivos es intensa en cualquier sistema, así que las configuraciones incluyen carpetas y extensiones concretas en lugar de registrar cualquier escritura.
+logging:
+  requirement: >-
+    Sysmon instalado; filtre con reglas `<FileCreate>` en la configuración (incluya las carpetas y
+    extensiones de interés).
+fields:
+  - name: ProcessGuid
+    description: Proceso que escribió el archivo; pivote hacia su evento 1.
+  - name: Image
+    description: Ejecutable que escribió el archivo.
+  - name: TargetFilename
+    description: Ruta completa del archivo creado.
+  - name: CreationUtcTime
+    description: Hora de creación del archivo (puede ser anterior a UtcTime cuando se sobrescribe un archivo existente).
+  - name: User
+    description: Cuenta del proceso (versiones recientes de Sysmon).
+benign:
+  - Navegadores que escriben descargas, instaladores que escriben en Program Files, actualizadores que sustituyen binarios.
+  - Office y Windows escribiendo archivos temporales y de caché.
+attacker:
+  - Payloads depositados en `%TEMP%`, `%APPDATA%`, `ProgramData` o `C:\Users\Public`.
+  - Archivos de persistencia en `...\Start Menu\Programs\Startup` o nuevos XML de tareas en `C:\Windows\System32\Tasks`.
+  - Volcados de memoria como `lsass.dmp` escritos por ProcDump, el Administrador de tareas o `rundll32.exe`.
+  - Herramientas copiadas en `C:\Windows` a través de recursos compartidos administrativos por `System` durante un movimiento lateral al estilo de PsExec.
+investigation:
+  - Pivote sobre ProcessGuid hacia el evento 1 para ver qué proceso y qué padre escribieron el archivo.
+  - "Busque un evento 1 posterior cuyo Image sea igual a TargetFilename: el archivo depositado se ejecutó."
+  - Revise el evento 15 para el flujo Zone.Identifier de los archivos descargados y obtener la URL de origen.

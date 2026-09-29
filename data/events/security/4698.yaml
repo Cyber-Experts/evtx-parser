@@ -1,0 +1,86 @@
+id: 4698
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A scheduled task was created
+shortTitle: Scheduled task created
+category: scheduled-task
+summary: >-
+  Security event 4698 records a new scheduled task with its full XML: command, arguments, run-as
+  account and triggers. A key persistence and remote exec signal.
+description: |-
+  Event 4698 is written when a scheduled task is registered. Its core is `TaskContent`, the complete task XML as stored by the Task Scheduler — so a single record tells you what will run (`<Exec><Command>` and `<Arguments>`), as whom (`<Principals>`), when (`<Triggers>`), and with which settings, plus the account that created it.
+
+  Scheduled tasks serve attackers in two ways: **persistence** (a task that runs a payload at logon, at boot or on a timer) and **remote execution** (create a task on another host, run it once, delete it — the pattern of `schtasks /create /s`, Impacket `atexec` and many ransomware deployments). The second pattern shows up as 4698 followed within seconds by 4699 for the same TaskName.
+
+  Built-in tasks under `\Microsoft\Windows\` and software updaters (browsers, Office, vendor tools) create and re-create tasks constantly, especially after updates. Baseline those names and focus on what they run.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Other Object Access Events
+    (Success). Not enabled in the default audit policy.
+  notes: >-
+    No SACL is needed. Recent Windows builds add `ClientProcessId`, `ParentProcessId`,
+    `ClientProcessStartKey`, `RpcCallClientLocality` and `FQDN` to identify the process that made
+    the request. The Task Scheduler Operational log records similar lifecycle events (106, 140, 141)
+    without audit policy.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Account that made the change. For remote task management (`schtasks /s`, Impacket) this is
+      the remote account.
+  - name: SubjectDomainName
+    description: Domain or computer name of that account.
+  - name: SubjectLogonId
+    description: Logon session of the account; pivot to 4624 on the same host to find where it came from.
+  - name: TaskName
+    description: >-
+      Full task path, e.g. `\Microsoft\Windows\...` for built-in tasks. Tasks at the root (`\Name`)
+      or with names mimicking Microsoft ones deserve a look.
+  - name: TaskContent
+    description: >-
+      The task's full XML definition. Read `Actions/Exec/Command` and `Arguments` (what runs),
+      `Principals` (`UserId`, `RunLevel` — `HighestAvailable` means elevated), `Triggers` and
+      `Settings/Hidden`.
+  - name: ClientProcessId
+    description: PID of the process that requested the change, on builds that log it. Match it to 4688.
+benign:
+  - Windows servicing and feature updates registering tasks under `\Microsoft\Windows\`.
+  - Browser and application updaters (Google, Edge, Adobe, Office) creating their update tasks.
+  - Administrators or GPO preferences deploying maintenance tasks.
+attacker:
+  - >-
+    Persistence tasks running `powershell.exe`, `cmd.exe`, `rundll32.exe`, `mshta.exe` or a binary in
+    `AppData` / `ProgramData` / `C:\Users\Public`, often at logon or every few minutes.
+  - >-
+    Remote execution: a task created by a remote account (network logon), run as SYSTEM, then deleted
+    (4699) within seconds.
+  - Tasks with `Hidden` set to true, names imitating Microsoft tasks, or placed at the root of the task library.
+  - Ransomware operators pushing a task to many hosts at once via GPO or remote `schtasks`.
+investigation:
+  - >-
+    Parse TaskContent and extract Command, Arguments, UserId and RunLevel; review anything not in
+    your baseline of known task names and commands.
+  - Look for 4699 with the same TaskName shortly after — create/run/delete is typical of remote execution.
+  - >-
+    Pivot on SubjectLogonId to the 4624 on the same host; a type 3 logon means the task was created
+    remotely and gives the source IP.
+  - Confirm execution in Task Scheduler Operational (106, 200, 201) and 4688 children of `svchost.exe` / `taskeng.exe`.
+related:
+  - security/4699
+  - security/4700
+  - security/4701
+  - security/4702
+  - task-scheduler/106
+  - task-scheduler/200
+  - task-scheduler/201
+  - security/4624
+  - security/4688
+attack:
+  - T1053.005
+references:
+  - title: "Microsoft Learn — 4698(S): A scheduled task was created"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4698
+  - title: Microsoft Learn — Audit Other Object Access Events
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-other-object-access-events
+  - title: MITRE ATT&CK — Scheduled Task
+    url: https://attack.mitre.org/techniques/T1053/005/

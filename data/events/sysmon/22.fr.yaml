@@ -1,0 +1,52 @@
+title: Événement DNS (requête DNS)
+shortTitle: Requête DNS
+summary: >-
+  L'événement Sysmon 22 consigne une requête DNS d'un processus : nom, statut et réponses. Relie
+  domaines et processus pour chasser C2, tunneling et phishing.
+description: |-
+  L'événement Sysmon 22 consigne une résolution DNS effectuée via le client DNS Windows, avec le processus qui l'a demandée. Il est consigné que la requête réussisse ou échoue, et que la réponse provienne du cache ou non.
+
+  Sa valeur, c'est l'attribution : les journaux DNS réseau montrent qu'un hôte a résolu un domaine, l'événement 22 montre quel exécutable l'a fait. `QueryResults` liste les adresses renvoyées (et les enregistrements CNAME), que vous pouvez ensuite rapprocher des connexions de l'événement 3 du même processus.
+
+  Le volume est élevé sur les postes de travail ; les configurations excluent généralement les domaines Microsoft, CDN et métiers bien connus. Cette télémétrie nécessite Windows 8.1 ou ultérieur.
+logging:
+  requirement: >-
+    Sysmon 10.0 ou ultérieur avec une règle `<DnsQuery>` dans la configuration. Non disponible sur
+    Windows 7 et versions antérieures.
+  notes: >-
+    Seules les résolutions passant par le client DNS Windows sont visibles ; un programme qui envoie
+    des paquets DNS bruts ou utilise DNS over HTTPS au sein de l'application y échappe.
+fields:
+  - name: ProcessGuid
+    description: Processus ayant émis la requête ; pivotez vers son événement 1.
+  - name: Image
+    description: Exécutable ayant émis la requête.
+  - name: QueryName
+    description: Nom résolu.
+  - name: QueryStatus
+    description: Code de résultat de la requête.
+    values:
+      - value: "0"
+        meaning: Succès.
+      - value: "9003"
+        meaning: DNS_ERROR_RCODE_NAME_ERROR — le nom n'existe pas (NXDOMAIN).
+      - value: "9501"
+        meaning: DNS_INFO_NO_RECORDS — le nom existe mais n'a pas d'enregistrement du type demandé.
+  - name: QueryResults
+    description: >-
+      Réponses renvoyées, séparées par des points-virgules. Les entrées CNAME sont affichées avec
+      leur type d'enregistrement ; les réponses IPv4 peuvent apparaître sous forme d'IPv6 mappée
+      IPv4 (`::ffff:a.b.c.d`).
+  - name: User
+    description: Compte du processus (versions récentes de Sysmon).
+benign:
+  - Navigateurs, Teams, Office et services Windows résolvant des noms cloud et CDN.
+  - Agents de sécurité et de mise à jour interrogeant les domaines de leur éditeur.
+attacker:
+  - Hôtes de scripts ou LOLBins résolvant des domaines rares ou récemment enregistrés, des sites de paste ou des services de tunneling.
+  - Nombreuses réponses NXDOMAIN (`9003`) pour un même processus — comportement d'algorithme de génération de domaines (DGA).
+  - Sous-domaines longs d'apparence aléatoire en masse — tunneling DNS ou exfiltration.
+investigation:
+  - Pivotez sur ProcessGuid vers l'événement 1 et vers les connexions de l'événement 3 à destination des IP de QueryResults.
+  - Comptez les QueryName sur l'ensemble du parc ; les domaines vus sur un seul hôte sont des candidats à examiner.
+  - Vérifiez l'âge et la réputation des domaines résolus par un hôte de scripts.

@@ -1,0 +1,57 @@
+id: 104
+channel: system
+provider: Microsoft-Windows-Eventlog
+title: The log file was cleared
+shortTitle: Event log cleared
+category: log-integrity
+summary: >-
+  System event 104 records that an event log (System, Application, Sysmon, PowerShell...) was
+  cleared, and by whom. Security log clears are event 1102 instead.
+description: |-
+  Event 104 is written by the Event Log service to the **System** log whenever a log other than Security is cleared — with `wevtutil cl`, `Clear-EventLog`, the Event Viewer "Clear Log" action, or the underlying API. The Security log has its own record, **1102**, written into the Security log itself.
+
+  `Channel` names the log that was wiped and `SubjectUserName` / `SubjectDomainName` the account that did it. If the System log itself was cleared, the 104 is the first record of the fresh log. A burst of 104 events for many channels within seconds is the classic footprint of a script that clears every log on the host.
+
+  Clearing does not remove all traces: the 104 survives, other logs keep their records, and deleted records can sometimes be carved from unallocated EVTX chunks or disk.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log when a non-Security log is cleared.
+  notes: >-
+    Stopping the Event Log service or deleting .evtx files does not produce 104. Look for 6006
+    and gaps in record IDs for those.
+fields:
+  - name: Channel
+    description: Name of the log that was cleared, e.g. `Application`, `Windows PowerShell`, `Microsoft-Windows-Sysmon/Operational`.
+  - name: SubjectUserName
+    description: Account that cleared the log.
+  - name: SubjectDomainName
+    description: Domain or computer name of that account.
+  - name: BackupPath
+    description: Path of the backup file when the log was saved before clearing; usually empty.
+benign:
+  - Administrators clearing noisy logs during troubleshooting or before building a lab image.
+  - Some management or imaging tools reset logs as part of deployment.
+attacker:
+  - >-
+    Anti-forensics after an intrusion: `wevtutil cl System`, `wevtutil cl "Windows PowerShell"`
+    or a loop over `wevtutil el`, producing many 104 records in a few seconds.
+  - Ransomware operators clearing logs before encryption to slow down the response.
+investigation:
+  - List every 104 with its `Channel` and `SubjectUserName`; clears of Sysmon, PowerShell or RDP logs are high-signal.
+  - Check the Security log for a 1102 at the same time and for the logon (4624) of the subject account.
+  - Look for the clearing command in process creation events (4688, Sysmon 1) and PowerShell 4104.
+  - Remember that everything before the clear is missing from that channel; widen the search to other logs and hosts.
+related:
+  - security/1102
+  - security/4624
+  - security/4688
+  - sysmon/1
+  - powershell/4104
+  - system/6006
+attack:
+  - T1685.005
+references:
+  - title: MITRE ATT&CK — Clear Windows Event Logs (T1685.005)
+    url: https://attack.mitre.org/techniques/T1685/005/
+  - title: "Microsoft Learn — 1102(S): The audit log was cleared"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-1102

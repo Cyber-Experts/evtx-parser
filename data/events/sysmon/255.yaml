@@ -1,0 +1,39 @@
+id: 255
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: Error
+shortTitle: Error
+category: log-integrity
+summary: >-
+  Sysmon event 255 reports an internal Sysmon error, such as events dropped under load or a failed
+  operation. Signals gaps in telemetry and possible tampering.
+description: |-
+  Sysmon event 255 is written when Sysmon hits an internal error: heavy system load that forces it to drop events, operations that fail, bugs, or security and integrity conditions that are not met.
+
+  For an analyst the meaning is simple: the Sysmon record around this time may be incomplete. Occasional errors happen on busy hosts, but repeated errors, or errors on a host under investigation, should make you rely more on other sources (Security log, EDR) for that period. The event cannot be filtered out by the configuration.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon installed. This event cannot be filtered by the configuration.
+fields:
+  - name: UtcTime
+    description: Time of the error.
+  - name: ID
+    description: Internal identifier of the error type.
+  - name: Description
+    description: Text describing the error, e.g. which event types were dropped from the driver queue.
+benign:
+  - Dropped events on heavily loaded servers or during boot storms.
+  - Errors after upgrades or with configuration schema mismatches.
+attacker:
+  - Errors appearing while an attacker interferes with the Sysmon driver or service.
+investigation:
+  - Read Description to learn which event types may be missing and for how long.
+  - Check for events 4 and 16 around the same time.
+  - Fill the gap with Security, System and EDR telemetry for the affected period.
+related:
+  - sysmon/4
+  - sysmon/16
+attack: []
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon

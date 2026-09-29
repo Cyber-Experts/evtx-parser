@@ -1,0 +1,47 @@
+id: 1121
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: An attack surface reduction rule blocked an operation
+shortTitle: ASR rule blocked an operation
+category: antimalware
+summary: >-
+  Defender event 1121 is logged when an attack surface reduction (ASR) rule in block mode stops
+  an operation, such as LSASS access or Office child processes.
+description: |-
+  Event 1121 records a block by an attack surface reduction rule: Office spawning child processes, credential theft from LSASS, process creation from PsExec and WMI, obfuscated scripts and similar behaviors that ASR rules target. The event names the rule by GUID, the process that was blocked and the target.
+
+  ASR audit mode logs the same situations as event 1122 without blocking, which is how rules are usually tested before enforcement.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    At least one attack surface reduction rule configured in block mode (Group Policy, Intune,
+    or `Set-MpPreference -AttackSurfaceReductionRules_Actions`).
+fields:
+  - name: ID
+    description: GUID of the ASR rule that fired.
+  - name: Path
+    description: Target of the blocked operation (for example the process or file being accessed).
+  - name: Process Name
+    description: Process whose operation was blocked.
+  - name: Detection Time
+    description: When the block happened.
+benign:
+  - Line-of-business apps and admin tools doing things ASR rules consider risky (Office add-ins, management agents creating processes via WMI).
+attacker:
+  - LSASS access attempts blocked by the credential-stealing rule.
+  - Macro documents spawning scripts or executables, blocked by the Office rules.
+  - Lateral movement through PsExec or WMI process creation, blocked by the corresponding rule.
+investigation:
+  - Map the rule GUID to its name in Microsoft's ASR rules reference.
+  - Investigate the blocked process chain with 4688 / Sysmon 1; a block means the attempt happened.
+related:
+  - defender/1116
+  - sysmon/10
+  - sysmon/1
+attack:
+  - T1003.001
+references:
+  - title: Microsoft Learn — Attack surface reduction rules reference
+    url: https://learn.microsoft.com/en-us/defender-endpoint/attack-surface-reduction-rules-reference
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

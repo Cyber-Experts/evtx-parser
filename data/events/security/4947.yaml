@@ -1,0 +1,55 @@
+id: 4947
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: "A change has been made to Windows Firewall exception list. A rule was modified."
+shortTitle: Firewall rule modified
+category: policy
+summary: >-
+  Security event 4947 logs a local change to an existing Windows Firewall rule. Watch for rules
+  enabled, widened or switched from block to allow.
+description: |-
+  Event 4947 is written by the Windows Firewall service when an existing rule is changed locally: enabled or disabled, its program, ports, addresses, profiles or action edited. Like 4946 it is **not** generated for changes pushed by Group Policy.
+
+  The record only names the rule (`RuleName`, `RuleId`) and the profiles (`ProfileChanged`); it does not show what was changed or who changed it. The Windows Firewall channel event 2005, logged at the same time, contains the rule's new state together with `ModifyingUser` and `ModifyingApplication`.
+
+  Enabling a predefined rule group is a common and quiet way to open access — for example `netsh advfirewall firewall set rule group="remote desktop" new enable=Yes` flips existing rules instead of creating new ones, so it shows up here rather than in 4946.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Policy Change > Audit MPSSVC Rule-Level Policy Change
+    (Success). Not audited in the default Windows audit policy.
+  notes: >-
+    Rule changes also appear in the Windows Firewall operational channel (2005), which is enabled by
+    default. Newer Windows builds log rule modifications there under a different event ID, so a
+    missing 2005 does not mean nothing changed.
+fields:
+  - name: ProfileChanged
+    description: Firewall profiles the modified rule applies to (`All`, `Domain`, `Private`, `Public` or a combination).
+  - name: RuleId
+    description: Unique ID of the rule; matches the value name under the `FirewallRules` registry key.
+  - name: RuleName
+    description: Display name of the modified rule.
+benign:
+  - Windows Update and application updates refreshing their own rules.
+  - Administrators enabling built-in rule groups such as File and Printer Sharing or Remote Desktop.
+  - Network location changes and feature configuration by management tools.
+attacker:
+  - Enabling the built-in Remote Desktop, WinRM or File and Printer Sharing rules to prepare remote access.
+  - Changing an existing rule from block to allow, or widening its remote address scope to `Any`, to avoid creating a visible new rule.
+investigation:
+  - Correlate with Windows Firewall event 2005 at the same timestamp to see the new rule state and the modifying process.
+  - Search process creation (4688, Sysmon 1) for `netsh advfirewall`, `Set-NetFirewallRule` or `Enable-NetFirewallRule` around the event.
+  - Check whether the enabled rule matches new inbound activity (4624 LogonType 3 or 10, 5156) shortly afterwards.
+related:
+  - security/4946
+  - security/4948
+  - firewall/2005
+  - security/4688
+  - security/5156
+attack:
+  - T1686.003
+references:
+  - title: "Microsoft Learn — 4947(S): A change has been made to Windows Firewall exception list. A rule was modified."
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4947
+  - title: Microsoft Learn — Audit MPSSVC Rule-Level Policy Change
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-mpssvc-rule-level-policy-change

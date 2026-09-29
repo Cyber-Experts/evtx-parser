@@ -1,0 +1,49 @@
+id: 7009
+channel: system
+provider: Service Control Manager
+title: A timeout was reached while waiting for the service to connect
+shortTitle: Service start timeout
+category: service
+summary: >-
+  System event 7009: a service did not report to the SCM within the timeout (30 s by default). Common with command-based malicious services.
+description: |-
+  Event 7009 is written when the Service Control Manager starts a service process but the process never connects back to it within the start timeout. `param1` is the timeout in milliseconds (`30000` by default) and `param2` the service name. It is almost always followed by **7000** for the same service.
+
+  Legitimately, this happens with slow or hung services, often at boot on overloaded systems. From a DFIR perspective it is interesting because a service whose `ImagePath` is not a real service binary — `cmd.exe /c <command>`, `powershell.exe ...`, an ordinary executable — behaves exactly this way: Windows launches the command, the command runs, and the SCM gives up waiting. Several remote execution tools produce this sequence on the target: **7045**, then 7009 about 30 seconds later, then 7000.
+
+  Treat 7009 after a fresh 7045 as evidence of execution attempt, not of failure.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log.
+  notes: >-
+    The timeout can be changed with the `ServicesPipeTimeout` registry value, so `param1` may
+    differ from 30000 on tuned systems.
+fields:
+  - name: param1
+    description: Timeout that was reached, in milliseconds (`30000` by default).
+  - name: param2
+    description: Name of the service that did not connect.
+benign:
+  - Slow services at boot on busy or under-provisioned servers and VMs.
+  - Hung services after failed updates.
+attacker:
+  - >-
+    Remote command execution through a temporary service whose binary path is a command line,
+    producing 7045, 7009 and 7000 in quick succession.
+investigation:
+  - Check for a 7045 for the same service in the preceding minute and read its `ImagePath`.
+  - Search process creation around the 7045 time for children of `services.exe` (`cmd.exe`, `powershell.exe`).
+  - Identify the source host via 4624 type 3 logons and 5145 `svcctl` pipe access just before.
+related:
+  - system/7045
+  - system/7000
+  - system/7036
+  - security/4624
+  - security/5145
+attack:
+  - T1569.002
+references:
+  - title: MITRE ATT&CK — Service Execution (T1569.002)
+    url: https://attack.mitre.org/techniques/T1569/002/
+  - title: Microsoft Learn — Service Control Manager
+    url: https://learn.microsoft.com/en-us/windows/win32/services/service-control-manager

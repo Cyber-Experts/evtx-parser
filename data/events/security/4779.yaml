@@ -1,0 +1,49 @@
+id: 4779
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A session was disconnected from a Window Station
+shortTitle: Session disconnected
+category: remote-access
+summary: >-
+  Event 4779 is logged when an interactive session is disconnected without logging off — an RDP
+  window closed or a user switch.
+description: |-
+  Event 4779 records that an interactive session was detached from its client but kept running: the RDP window was closed, the network dropped, or the user switched to another account. The logon session stays alive, so no 4634 or 4647 follows until an actual logoff.
+
+  For RDP timelines, 4779 and 4778 mark the gaps inside a single logon session. A session left disconnected keeps its processes and credentials in memory, which matters when assessing what an intruder could still reach.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Other Logon/Logoff Events
+    (Success).
+fields:
+  - name: AccountName
+    description: User whose session was disconnected.
+  - name: AccountDomain
+    description: Domain of that user.
+  - name: LogonID
+    description: Logon session ID (matches the original 4624).
+  - name: SessionName
+    description: Session name, e.g. `RDP-Tcp#3`.
+  - name: ClientName
+    description: Client computer that was connected.
+  - name: ClientAddress
+    description: Client IP address that was connected.
+benign:
+  - Users closing the RDP window instead of signing out.
+  - Idle-session policies disconnecting sessions.
+attacker:
+  - Operators disconnecting from a session to come back later, leaving tools running.
+investigation:
+  - Pair with 4778 and LocalSessionManager 24 to see disconnect and reconnect times and client IPs.
+  - Long-lived disconnected admin sessions are a credential-exposure risk; note them in the report.
+related:
+  - security/4778
+  - security/4634
+  - rdp-local-session-manager/24
+  - rdp-local-session-manager/40
+attack:
+  - T1021.001
+references:
+  - title: "Microsoft Learn — 4779(S): A session was disconnected from a Window Station"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4779

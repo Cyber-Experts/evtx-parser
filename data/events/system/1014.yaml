@@ -1,0 +1,46 @@
+id: 1014
+channel: system
+provider: Microsoft-Windows-DNS-Client
+title: Name resolution for the name timed out after none of the configured DNS servers responded
+shortTitle: DNS resolution timeout
+category: network
+summary: >-
+  System event 1014 (DNS Client) is logged when a name lookup timed out because none of the
+  configured DNS servers answered. Mostly network noise.
+description: |-
+  Event 1014 is a warning from the DNS Client service: a query for `QueryName` got no answer from any configured DNS server before the timeout. It says nothing about whether the name exists — only that the servers did not respond in time.
+
+  In practice it is dominated by network trouble: VPN transitions, Wi-Fi roaming, captive portals, a DNS server down, or queries for internal names (`wpad`, `isatap`, domain SRV records) made while the host is off the corporate network. Its forensic value is modest but real: `QueryName` shows names the host tried to resolve at a given time, even when no DNS Client Operational logging (3006/3008) is enabled.
+
+  A recurring timeout for an unfamiliar domain can reveal software — or malware — that keeps trying to reach a server that no longer answers.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log (Warning level).
+  notes: >-
+    Only failed lookups appear here. For every query, enable the DNS Client Operational log
+    (events 3006, 3008, 3020) or use Sysmon event 22.
+fields:
+  - name: QueryName
+    description: The name that could not be resolved.
+  - name: AddressLength
+    description: Length in bytes of the DNS server address data attached to the event.
+benign:
+  - Laptops off the corporate network trying to resolve internal names and WPAD.
+  - VPN connect or disconnect, sleep/resume and network changes.
+  - Misconfigured or overloaded DNS servers.
+attacker:
+  - >-
+    Implants beaconing to a command-and-control domain whose DNS infrastructure has been taken
+    down or blocked, producing repeated timeouts for the same unusual name.
+investigation:
+  - Aggregate `QueryName` values and discard internal and well-known vendor domains first.
+  - For a suspicious name, find the requesting process with Sysmon 22 or DNS Client 3008 if available, or with network telemetry.
+  - Check threat intelligence for the domain and whether other hosts log the same name.
+related:
+  - dns-client/3006
+  - dns-client/3008
+  - sysmon/22
+attack: []
+references:
+  - title: Microsoft Learn — DNS client event 1014 (Q&A)
+    url: https://learn.microsoft.com/en-us/answers/questions/1640092/dns-client-event-1014

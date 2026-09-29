@@ -1,0 +1,56 @@
+id: 24
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: ClipboardChange (New content in the clipboard)
+shortTitle: Clipboard content changed
+category: system
+summary: >-
+  Sysmon event 24 records a change to clipboard contents, with process, session and hash;
+  contents can be archived. Useful for RDP copy-paste investigations.
+description: |-
+  Sysmon event 24 fires when the system clipboard content changes. It logs the process that set the clipboard, the session and hashes of the content; when archiving is enabled, the text is saved to the Sysmon archive directory.
+
+  Its main forensic use is RDP: when content is pasted through an RDP session, the setting process is `rdpclip.exe` and `ClientInfo` identifies the remote user and client host. That helps prove what an operator copied into or out of a server. Because clipboard data can contain passwords and other secrets, enable archiving with care.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Sysmon 12.0 or later with a `<ClipboardChange>` rule and the `CaptureClipboard` configuration
+    entry. Captured contents are stored in `ArchiveDirectory`.
+fields:
+  - name: ProcessGuid
+    description: Process that changed the clipboard.
+  - name: Image
+    description: Executable that changed the clipboard; `rdpclip.exe` for RDP clipboard redirection.
+  - name: Session
+    description: Session ID where the change happened; non-zero sessions are interactive or RDP sessions.
+  - name: ClientInfo
+    description: For remote sessions, the remote user and client host name.
+  - name: Hashes
+    description: Hashes of the clipboard content; the archived copy is named after them.
+  - name: Archived
+    description: "`true` when the content was saved to the archive directory."
+  - name: User
+    description: Account of the process.
+benign:
+  - Every copy action by users — very frequent on workstations.
+  - Administrators copying commands and paths into RDP sessions.
+attacker:
+  - Operators pasting scripts or commands into an RDP session on a compromised server.
+  - Malware monitoring or replacing clipboard contents (for example swapping cryptocurrency addresses).
+investigation:
+  - Filter on Image `rdpclip.exe` and read ClientInfo to identify the remote user and host.
+  - Retrieve archived content by hash to see what was pasted, then match with process events right after.
+  - Correlate with RDP logon events (Security 4624 type 10, RDP 21/25) for the same session.
+related:
+  - rdp-local-session-manager/21
+  - rdp-local-session-manager/25
+  - security/4624
+  - sysmon/1
+attack:
+  - T1115
+  - T1021.001
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Clipboard Data (T1115)
+    url: https://attack.mitre.org/techniques/T1115/

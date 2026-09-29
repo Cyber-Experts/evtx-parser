@@ -1,0 +1,61 @@
+id: 13
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: RegistryEvent (Value Set)
+shortTitle: Registry value set
+category: registry
+summary: >-
+  Sysmon event 13 logs a registry value being written, with the data for DWORD, QWORD and string
+  values. The main Sysmon event for registry persistence.
+description: |-
+  Sysmon event 13 records a registry value write: the value path in `TargetObject`, the data in `Details`, and the writing process. Numeric values appear as `DWORD (0x...)` or `QWORD (...)`; string values show their text; binary data is not reproduced.
+
+  This is the event that shows Run key persistence, new service `ImagePath` values, disabled security features (for example Defender or UAC settings) and IFEO debugger hijacks, in one record with the responsible process.
+
+  Volume depends entirely on the configuration; target known persistence and security-setting paths.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon installed; filter with `<RegistryEvent>` rules in the configuration.
+fields:
+  - name: EventType
+    description: Always `SetValue` for this event.
+  - name: ProcessGuid
+    description: Process that wrote the value; pivot to its event 1.
+  - name: Image
+    description: Executable that wrote the value.
+  - name: TargetObject
+    description: Full path of the value, e.g. `HKU\<SID>\Software\Microsoft\Windows\CurrentVersion\Run\<name>`.
+  - name: Details
+    description: >-
+      Data written. For Run keys and service `ImagePath` this is the command that will run; for
+      DWORD settings, e.g. `DWORD (0x00000001)`.
+  - name: User
+    description: Account of the process (newer Sysmon versions).
+benign:
+  - Applications registering auto-start helpers in Run keys at install time.
+  - Windows and Group Policy writing settings, Explorer updating per-user state (very frequent).
+attacker:
+  - Run or RunOnce values pointing to a binary or script in a user-writable folder.
+  - Service `ImagePath` changed to a new binary, or a `Debugger` value set under Image File Execution Options.
+  - Security settings weakened, such as Defender or firewall policy values set to disable protection.
+investigation:
+  - Read Details and check whether the referenced path exists and was recently written (event 11).
+  - Pivot on ProcessGuid to event 1 — `reg.exe`, PowerShell or an unknown binary writing Run keys stands out.
+  - Check for the matching key creation (event 12) and for the persisted program running after reboot (event 1).
+related:
+  - sysmon/12
+  - sysmon/14
+  - sysmon/1
+  - sysmon/11
+  - security/4657
+  - defender/5007
+attack:
+  - T1547.001
+  - T1112
+  - T1543.003
+  - T1546.015
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Registry Run Keys / Startup Folder (T1547.001)
+    url: https://attack.mitre.org/techniques/T1547/001/

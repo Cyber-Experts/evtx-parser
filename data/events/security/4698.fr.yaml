@@ -1,0 +1,63 @@
+title: Une tâche planifiée a été créée
+shortTitle: Tâche planifiée créée
+summary: >-
+  L'événement 4698 consigne une nouvelle tâche planifiée et son XML complet : commande, compte,
+  déclencheurs. Signal clé de persistance et d'exécution distante.
+description: |-
+  L'événement 4698 est écrit lorsqu'une tâche planifiée est enregistrée. Son cœur est `TaskContent`, le XML complet de la tâche tel que stocké par le Planificateur de tâches — un seul enregistrement indique donc ce qui sera exécuté (`<Exec><Command>` et `<Arguments>`), sous quelle identité (`<Principals>`), quand (`<Triggers>`) et avec quels paramètres, en plus du compte qui l'a créée.
+
+  Les tâches planifiées servent les attaquants de deux façons : la **persistance** (une tâche qui lance une charge utile à l'ouverture de session, au démarrage ou à intervalle régulier) et l'**exécution à distance** (créer une tâche sur un autre hôte, l'exécuter une fois, la supprimer — le schéma de `schtasks /create /s`, d'`atexec` d'Impacket et de nombreux déploiements de rançongiciels). Ce second schéma se traduit par un 4698 suivi en quelques secondes d'un 4699 pour le même TaskName.
+
+  Les tâches intégrées sous `\Microsoft\Windows\` et les outils de mise à jour (navigateurs, Office, outils éditeurs) créent et recréent des tâches en permanence, surtout après les mises à jour. Établissez une référence de ces noms et concentrez-vous sur ce qu'elles exécutent.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Other Object Access Events
+    (Success). Non activé dans la stratégie d'audit par défaut.
+  notes: >-
+    Aucune SACL n'est nécessaire. Les builds récents de Windows ajoutent `ClientProcessId`,
+    `ParentProcessId`, `ClientProcessStartKey`, `RpcCallClientLocality` et `FQDN` pour identifier
+    le processus à l'origine de la demande. Le journal Task Scheduler Operational consigne des
+    événements de cycle de vie similaires (106, 140, 141) sans stratégie d'audit.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Compte ayant effectué la modification. Pour une gestion de tâches à distance (`schtasks /s`,
+      Impacket), il s'agit du compte distant.
+  - name: SubjectDomainName
+    description: Domaine ou nom d'ordinateur de ce compte.
+  - name: SubjectLogonId
+    description: Session du compte ; pivotez vers le 4624 du même hôte pour savoir d'où elle venait.
+  - name: TaskName
+    description: >-
+      Chemin complet de la tâche, par ex. `\Microsoft\Windows\...` pour les tâches intégrées. Les
+      tâches à la racine (`\Name`) ou aux noms imitant ceux de Microsoft méritent un examen.
+  - name: TaskContent
+    description: >-
+      Définition XML complète de la tâche. Lisez `Actions/Exec/Command` et `Arguments` (ce qui
+      s'exécute), `Principals` (`UserId`, `RunLevel` — `HighestAvailable` signifie élevé),
+      `Triggers` et `Settings/Hidden`.
+  - name: ClientProcessId
+    description: PID du processus ayant demandé la modification, sur les builds qui le consignent. À rapprocher du 4688.
+benign:
+  - Maintenance et mises à jour de fonctionnalités Windows enregistrant des tâches sous `\Microsoft\Windows\`.
+  - Outils de mise à jour des navigateurs et applications (Google, Edge, Adobe, Office) créant leurs tâches de mise à jour.
+  - Administrateurs ou préférences GPO déployant des tâches de maintenance.
+attacker:
+  - >-
+    Tâches de persistance exécutant `powershell.exe`, `cmd.exe`, `rundll32.exe`, `mshta.exe` ou un
+    binaire dans `AppData` / `ProgramData` / `C:\Users\Public`, souvent à l'ouverture de session ou
+    toutes les quelques minutes.
+  - >-
+    Exécution à distance : une tâche créée par un compte distant (ouverture de session réseau),
+    exécutée en tant que SYSTEM, puis supprimée (4699) en quelques secondes.
+  - Tâches avec `Hidden` à true, aux noms imitant des tâches Microsoft, ou placées à la racine de la bibliothèque de tâches.
+  - Opérateurs de rançongiciels poussant une tâche sur de nombreux hôtes à la fois via GPO ou `schtasks` à distance.
+investigation:
+  - >-
+    Analysez TaskContent et extrayez Command, Arguments, UserId et RunLevel ; examinez tout ce qui
+    ne figure pas dans votre référence de noms de tâches et de commandes connus.
+  - Recherchez un 4699 avec le même TaskName peu après — création/exécution/suppression est typique d'une exécution à distance.
+  - >-
+    Pivotez sur SubjectLogonId vers le 4624 du même hôte ; une ouverture de type 3 signifie que la
+    tâche a été créée à distance et donne l'IP source.
+  - Confirmez l'exécution dans Task Scheduler Operational (106, 200, 201) et via les 4688 enfants de `svchost.exe` / `taskeng.exe`.

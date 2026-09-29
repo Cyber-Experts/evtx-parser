@@ -1,0 +1,75 @@
+id: 551
+channel: smb-server
+provider: Microsoft-Windows-SMBServer
+title: SMB Session Authentication Failure
+shortTitle: SMB session auth failure
+category: network-share
+summary: >-
+  SMB server event 551 records a failed SMB session authentication, with client address, user name
+  and status code. Complements 4625 for SMB brute force.
+description: |-
+  Event 551 is logged in the `Microsoft-Windows-SMBServer/Security` channel on the file server when a client's SMB session setup fails authentication. It records the client name and address, the user name supplied, the SMB session ID and the NT status (raw and translated).
+
+  It is logged by default, which makes it valuable where Logon failure auditing (4625) is missing or where the Security log has rolled over. It is also SMB-specific: it tells you the failure happened on an SMB session, not RDP or another protocol.
+
+  Microsoft's own guidance in the event lists common benign causes: wrong credentials, mismatched LM compatibility levels between client and server, SPN problems or duplicate SPNs, bad Kerberos service tickets, and guest access attempts when guest is disabled. Non-Windows clients and devices (NAS, printers, scanners) trigger it often.
+logging:
+  enabledByDefault: true
+  requirement: Microsoft-Windows-SMBServer/Security channel, enabled by default.
+  notes: >-
+    A later version of the event adds `SPN` and `SPNValidationPolicy` for SMB server SPN
+    validation failures.
+fields:
+  - name: ClientName
+    description: Name of the client as recorded by the server for the session.
+  - name: ClientAddress
+    description: Network address of the client.
+  - name: UserName
+    description: User name supplied in the failed session setup.
+  - name: SessionId
+    description: SMB session ID assigned by the server.
+  - name: Status
+    description: NT status code of the failure.
+    values:
+      - value: "0xC000006D"
+        meaning: STATUS_LOGON_FAILURE — bad user name or password (or other authentication information).
+      - value: "0xC0000234"
+        meaning: STATUS_ACCOUNT_LOCKED_OUT — the account is locked out.
+      - value: "0xC0000072"
+        meaning: STATUS_ACCOUNT_DISABLED — the account is disabled.
+      - value: "0xC000015B"
+        meaning: STATUS_LOGON_TYPE_NOT_GRANTED — the account is not allowed network logon on this server.
+  - name: TranslatedStatus
+    description: Text version of `Status` (e.g. the logon-invalid message for `0xC000006D`).
+  - name: SPN
+    description: Service principal name presented by the client (newer event version only).
+  - name: SPNValidationPolicy
+    description: SMB server SPN validation setting in effect (newer event version only).
+benign:
+  - Users or services with stale passwords in mapped drives, scripts or scheduled tasks.
+  - NAS appliances, scanners and non-Windows clients using incompatible NTLM settings or guest access.
+  - Kerberos SPN misconfiguration (duplicate SPNs, DNS aliases) causing session setup failures.
+attacker:
+  - SMB password guessing or password spraying — many failures from one `ClientAddress` for one or many user names.
+  - Credential testing of stolen hashes or passwords across file servers before lateral movement.
+investigation:
+  - Group by `ClientAddress` and `UserName`; many user names from one address suggests spraying, many failures for one account suggests guessing.
+  - Correlate with Security 4625 (LogonType 3) and, on domain controllers, 4776 or 4771 for the same account and time.
+  - Check whether the same client later succeeded (4624 LogonType 3, 5140) — a success after a failure burst is a strong signal.
+  - On the client host, look for SMB client 31001 events and the process that initiated the connections.
+related:
+  - smb-client/31001
+  - security/4625
+  - security/4624
+  - security/4776
+  - security/4771
+  - security/5140
+attack:
+  - T1110
+  - T1110.003
+  - T1021.002
+references:
+  - title: Microsoft Learn — SMB security enhancements
+    url: https://learn.microsoft.com/en-us/windows-server/storage/file-server/smb-security
+  - title: MITRE ATT&CK — T1110 Brute Force
+    url: https://attack.mitre.org/techniques/T1110/

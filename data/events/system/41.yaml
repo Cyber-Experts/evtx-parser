@@ -1,0 +1,58 @@
+id: 41
+channel: system
+provider: Microsoft-Windows-Kernel-Power
+title: The system has rebooted without cleanly shutting down first
+shortTitle: Unclean reboot (Kernel-Power)
+category: system
+summary: >-
+  System event 41 (Kernel-Power) is logged at boot when the previous session ended without a clean
+  shutdown: crash, hang, power loss or forced reset.
+description: |-
+  Event 41 is written during startup, not at the moment of failure: Windows notices that the previous session never completed a clean shutdown and records what it knows. That makes it a **boot-time** marker for an abrupt stop, usually accompanied by **6008** from the EventLog service.
+
+  The `BugcheckCode` field separates the two main cases. A non-zero value is the stop code of a blue screen (in decimal; `159` is `0x9F`), with `BugcheckParameter1`–`4` giving its arguments. A value of `0` means no bugcheck was recorded: the machine lost power, was reset, or hung hard. `PowerButtonTimestamp` is non-zero when someone held the power button to force it off.
+
+  For an analyst, 41 bounds a gap in the logs. Anything that happened between the last record before the crash and the next boot (12) is unrecorded, and a crash right after an intrusion step (driver load, LSASS tampering, a kernel exploit) is worth correlating.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log at the first boot after an unclean shutdown.
+  notes: >-
+    Level is Critical. Additional fields (`SleepInProgress`, `ConnectedStandbyInProgress`,
+    `Checkpoint`, `BootAppStatus`) vary by Windows version.
+fields:
+  - name: BugcheckCode
+    description: >-
+      Stop code of the blue screen, in decimal. `0` means no bugcheck was captured (power loss,
+      reset or hard hang).
+  - name: BugcheckParameter1
+    description: First bugcheck parameter; meaning depends on the stop code. Parameters 2–4 follow.
+  - name: PowerButtonTimestamp
+    description: Non-zero when the power button was held to force the shutdown.
+  - name: SleepInProgress
+    description: Non-zero when the failure happened while the system was entering or resuming from sleep.
+  - name: ConnectedStandbyInProgress
+    description: Whether the system was in or transitioning to Modern Standby at the time.
+benign:
+  - Power outages, laptops running out of battery, and hypervisor hard resets of VMs.
+  - Blue screens caused by faulty drivers or hardware.
+  - Users holding the power button on a frozen machine.
+attacker:
+  - >-
+    Crashes caused by a failed kernel exploit or a vulnerable driver loaded for EDR tampering
+    (bring your own vulnerable driver).
+  - Forced resets used to interrupt logging or defensive tools during an intrusion.
+investigation:
+  - Read `BugcheckCode`; non-zero values point to a blue screen, so check for a memory dump (`MEMORY.DMP`, Minidump folder).
+  - Find the last records before the gap; driver installs (7045 with a kernel driver) or new services just before a crash are suspicious.
+  - Correlate with 6008 for the approximate time the previous session died.
+related:
+  - system/12
+  - system/13
+  - system/6008
+  - application/1001
+  - system/7045
+attack:
+  - T1529
+references:
+  - title: Microsoft Learn — Advanced troubleshooting for Event ID 41
+    url: https://learn.microsoft.com/en-us/troubleshoot/windows-client/performance/event-id-41-restart

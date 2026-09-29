@@ -1,0 +1,86 @@
+id: 4739
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: Domain Policy was changed
+shortTitle: Domain policy changed
+category: policy
+summary: >-
+  Security event 4739 logs a change to domain password, lockout or logoff policy, or to
+  ms-DS-MachineAccountQuota. Only the changed values are filled in.
+description: |-
+  Event 4739 is written when the domain account policy changes: password policy (length, age, history, complexity), account lockout policy, the force-logoff setting, or domain attributes such as `ms-DS-MachineAccountQuota` and the domain behavior version. `DomainPolicyChanged` says which policy area changed, and each attribute field shows the new value — unchanged attributes are `-`.
+
+  Weakening these settings helps attackers: lowering the lockout threshold to zero enables unlimited password guessing, reducing complexity or length eases spraying, and enabling reversible encryption (`PasswordProperties` 16 or 17) stores recoverable passwords for accounts that change their password afterwards.
+
+  Changes normally come from editing the Default Domain Policy GPO, so the subject is often the DC computer account. Find the human editor through directory change events on the GPO.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Policy Change > Audit Authentication Policy Change
+    (Success). Enabled for Success in the default Windows audit policy.
+  notes: Domain policy changes are recorded on domain controllers.
+fields:
+  - name: SubjectUserName
+    description: Account that applied the change, often the DC computer account (`DC01$`).
+  - name: SubjectLogonId
+    description: Logon session of the subject; `0x3e7` for SYSTEM.
+  - name: DomainPolicyChanged
+    description: >-
+      Policy area changed — `Password Policy`, `Lockout Policy`, `Logoff Policy`, or `-` for a
+      change to Machine Account Quota.
+  - name: DomainName
+    description: NetBIOS name of the domain.
+  - name: DomainSid
+    description: SID of the domain.
+  - name: MinPasswordLength
+    description: New minimum password length, or `-` if unchanged.
+  - name: PasswordHistoryLength
+    description: New number of remembered passwords, or `-`.
+  - name: MaxPasswordAge
+    description: New maximum password age, or `-`.
+  - name: PasswordProperties
+    description: Password complexity and reversible encryption settings, or `-` if unchanged.
+    values:
+      - value: "0"
+        meaning: Complexity disabled, reversible encryption disabled.
+      - value: "1"
+        meaning: Complexity enabled, reversible encryption disabled.
+      - value: "16"
+        meaning: Complexity disabled, reversible encryption enabled.
+      - value: "17"
+        meaning: Complexity enabled, reversible encryption enabled.
+  - name: LockoutThreshold
+    description: New number of failed attempts before lockout; `0` means accounts never lock out.
+  - name: LockoutDuration
+    description: New lockout duration, or `-`.
+  - name: LockoutObservationWindow
+    description: New "reset account lockout counter after" window, or `-`.
+  - name: MachineAccountQuota
+    description: New value of `ms-DS-MachineAccountQuota` — how many computer accounts a regular user may join (default 10).
+  - name: DomainBehaviorVersion
+    description: New domain functional level (`msDS-Behavior-Version`), or `-`.
+benign:
+  - Planned password or lockout policy updates in the Default Domain Policy.
+  - Setting `ms-DS-MachineAccountQuota` to 0 as a hardening step.
+  - Raising the domain functional level during a DC upgrade project.
+attacker:
+  - Setting `LockoutThreshold` to 0 or shortening the lockout window before password spraying.
+  - Enabling reversible encryption or lowering length and complexity requirements.
+  - >-
+    Raising `ms-DS-MachineAccountQuota` so a low-privileged user can create computer accounts,
+    a prerequisite for several relay and delegation attacks.
+investigation:
+  - Read only the fields that are not `-`; those are the attributes that changed.
+  - Compare the new values to the documented baseline and flag any weakening.
+  - Find the GPO or domain object edit with 5136 to identify the account that made it.
+related:
+  - security/4713
+  - security/5136
+  - security/4741
+  - security/4740
+  - security/4625
+attack:
+  - T1484
+references:
+  - title: "Microsoft Learn — 4739(S): Domain Policy was changed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4739

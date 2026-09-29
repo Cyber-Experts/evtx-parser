@@ -1,0 +1,60 @@
+id: 4780
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: The ACL was set on accounts which are members of administrators groups
+shortTitle: AdminSDHolder ACL applied
+category: account
+summary: >-
+  Security event 4780 is logged when SDProp resets the ACL of a protected admin account to match
+  AdminSDHolder, revealing ACL changes on privileged accounts.
+description: |-
+  Event 4780 comes from the **SDProp** process. Every hour, the domain controller holding the PDC emulator role compares the ACL of every protected account and group (members of administrative groups, marked with `adminCount` = 1) with the ACL of the `AdminSDHolder` object. When they differ, it overwrites the object's ACL with the AdminSDHolder template and logs 4780 for that object.
+
+  In other words, a 4780 means that the ACL of a privileged account had been changed since the last SDProp run — by a delegation tool, an administrator, or an attacker granting themselves rights (reset password, write members) on an admin account. It is also logged when an account newly becomes protected, for example right after being added to a privileged group.
+
+  The reverse also matters: if an attacker modifies the ACL of `AdminSDHolder` itself, SDProp will silently propagate the malicious ACL to every protected account. That change is not reported by 4780; audit it with directory service change events (5136) on the AdminSDHolder object.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Enabled for Success in the default Windows audit policy.
+  notes: >-
+    Only generated on the domain controller holding the PDC emulator role. Microsoft notes that the
+    event is not generated on some OS versions.
+fields:
+  - name: TargetUserName
+    description: Protected account or group whose ACL was reset.
+  - name: TargetDomainName
+    description: Domain of the target.
+  - name: TargetSid
+    description: SID of the target.
+  - name: SubjectUserName
+    description: Security context in which SDProp applied the ACL.
+  - name: SubjectLogonId
+    description: Logon session of the subject.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - An account just added to a protected group (Domain Admins, Account Operators and so on) receives the AdminSDHolder ACL at the next SDProp run.
+  - Administrative tools that modify permissions on admin accounts, which SDProp then reverts.
+attacker:
+  - An attacker granting themselves rights on an administrator account (for example a delegated password reset) — SDProp reverts it and logs 4780 for that account.
+  - Newly protected accounts appearing after an attacker adds them to privileged groups.
+investigation:
+  - For each target, look for group membership changes (4728, 4732, 4756) or ACL changes (5136) in the preceding hour.
+  - Recurring 4780 for the same account means something keeps changing its ACL; find the source.
+  - Separately monitor 5136 on the AdminSDHolder object, which this event does not cover.
+related:
+  - security/4728
+  - security/4732
+  - security/4756
+  - security/4738
+  - security/5136
+  - security/4662
+attack:
+  - T1098
+references:
+  - title: "Microsoft Learn — 4780(S): The ACL was set on accounts which are members of administrators groups"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4780
+  - title: Microsoft Learn — Audit User Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-user-account-management

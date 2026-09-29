@@ -1,0 +1,44 @@
+title: Se habilitó una cuenta de usuario
+shortTitle: Cuenta de usuario habilitada
+summary: >-
+  El evento 4722 se registra cuando se habilita una cuenta de usuario o de equipo. Indica quién la
+  habilitó y qué cuenta, identificada por nombre y SID.
+description: |-
+  El evento 4722 se escribe cuando se habilita una cuenta deshabilitada. Para las cuentas de usuario aparece en los controladores de dominio (cuentas de dominio) y en los servidores miembro y las estaciones de trabajo (cuentas locales); para las cuentas de equipo solo se registra en los controladores de dominio. El registro es breve: `Subject*` identifica quién hizo el cambio y `Target*` la cuenta.
+
+  La mayoría de los 4722 forman parte del aprovisionamiento normal: las cuentas creadas con Usuarios y equipos de Active Directory empiezan deshabilitadas, así que un 4720 suele ir seguido de un 4722 en pocos segundos. Un 4722 aislado, para una cuenta que llevaba mucho tiempo deshabilitada, es más interesante.
+
+  Vigile en particular las cuentas locales integradas `Administrator` (RID 500) y `Guest` (RID 501), deshabilitadas por defecto en las versiones actuales de Windows, y las cuentas inactivas de antiguos empleados.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Habilitado para Correcto en la directiva de auditoría predeterminada de Windows.
+  notes: >-
+    Habilitar una cuenta también genera un 4738 (usuario) o un 4742 (equipo) cuyo campo
+    UserAccountControl muestra que se ha quitado el indicador Account Disabled.
+fields:
+  - name: SubjectUserName
+    description: Cuenta que habilitó la cuenta de destino.
+  - name: SubjectDomainName
+    description: Dominio o nombre de equipo del sujeto.
+  - name: SubjectLogonId
+    description: Sesión del sujeto; correlacione con el 4624 para saber desde dónde se hizo el cambio.
+  - name: TargetUserName
+    description: Cuenta que se habilitó.
+  - name: TargetDomainName
+    description: Dominio de la cuenta habilitada, o el nombre del equipo en el caso de una cuenta local.
+  - name: TargetSid
+    description: >-
+      SID de la cuenta habilitada. Un SID terminado en `-500` es el Administrador integrado; en
+      `-501`, la cuenta Invitado.
+benign:
+  - Parte de la secuencia normal 4720, 4724, 4722 cuando los administradores crean una cuenta nueva.
+  - Empleados o contratistas que se reincorporan y cuyas cuentas vuelve a habilitar el help desk.
+  - Sistemas de gestión de identidades que habilitan cuentas en una fecha de incorporación.
+attacker:
+  - Habilitación de la cuenta local integrada Administrador o Invitado para disponer de una cuenta conocida para persistencia o movimiento lateral.
+  - Reactivación de una cuenta de dominio inactiva o de un antiguo empleado, que llama menos la atención que una nueva.
+investigation:
+  - Compruebe si la cuenta de destino se deshabilitó a propósito (baja, incidente de seguridad) y quién la volvió a habilitar.
+  - Busque un 4724 (restablecimiento de contraseña) y un 4738 sobre el mismo TargetSid en torno a la misma hora y, después, sus siguientes inicios de sesión (4624).
+  - Pivote sobre SubjectLogonId para reconstruir la sesión y las herramientas del administrador.

@@ -1,0 +1,48 @@
+id: 2033
+channel: firewall
+provider: Microsoft-Windows-Windows Firewall With Advanced Security
+title: All rules have been deleted from the Windows Defender Firewall configuration on this computer
+shortTitle: All rules deleted
+category: policy
+summary: >-
+  Firewall event 2033 records that every rule was deleted from a Windows Firewall rule store, with
+  the user SID and process responsible. Rare and worth reviewing.
+description: |-
+  Event 2033 is written to the Windows Firewall operational log when all rules are removed from a firewall configuration store at once. It records `StoreType`, the SID of the account in `ModifyingUser` and the process path in `ModifyingApplication`.
+
+  Wiping all rules removes every allow and block rule in that store in a single action. Depending on the default policy, this can cut off legitimate services or remove restrictions an administrator relied on, so it should be rare outside of imaging and deliberate resets.
+
+  Treat it as a significant configuration event: identify the process and account, then check what the firewall state looked like before and after (for example with 2004 events that follow as rules are restored).
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Microsoft-Windows-Windows Firewall With Advanced Security/Firewall channel, enabled by default.
+    No audit policy needed.
+fields:
+  - name: StoreType
+    description: The firewall policy store whose rules were deleted.
+  - name: ModifyingUser
+    description: SID of the account that deleted the rules.
+  - name: ModifyingApplication
+    description: Full path of the process that deleted the rules.
+benign:
+  - Administrators or deployment scripts resetting the firewall during imaging or troubleshooting.
+  - Management and security tools that rebuild the rule set from scratch.
+attacker:
+  - Removing all firewall rules to disrupt protections or to clear the way for remote access, for example with `netsh.exe` or `powershell.exe` run by an administrator account.
+investigation:
+  - Identify the account from `ModifyingUser` and correlate `ModifyingApplication` with process creation (4688, Sysmon 1).
+  - Review firewall events right after (2004 bursts) to see whether rules were restored, and whether new allow rules were slipped in.
+  - Check for other defense-impairment activity around the same time (firewall service or Defender changes).
+related:
+  - firewall/2004
+  - firewall/2006
+  - security/4948
+  - security/4688
+attack:
+  - T1686.003
+references:
+  - title: Microsoft Learn — Windows Firewall rules
+    url: https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-firewall/rules
+  - title: MITRE ATT&CK — T1686.003 Disable or Modify System Firewall - Windows Host Firewall
+    url: https://attack.mitre.org/techniques/T1686/003/

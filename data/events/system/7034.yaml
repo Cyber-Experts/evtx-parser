@@ -1,0 +1,47 @@
+id: 7034
+channel: system
+provider: Service Control Manager
+title: The service terminated unexpectedly
+shortTitle: Service crashed
+category: service
+summary: >-
+  System event 7034: a service process ended unexpectedly with no recovery action configured. Crashes, or security services being killed.
+description: |-
+  Event 7034 is written when a service's process terminates without the service reporting a stop, and no recovery action is configured (with a recovery action, the SCM logs **7031** instead). `param1` is the service display name and `param2` the number of times it has happened.
+
+  Operationally it points to crashing services. In a security context it is one of the few traces left when an attacker **kills** a service process rather than stopping it cleanly: a clean stop produces 7036 `stopped`, a kill produces 7034 or 7031. Security agents, Sysmon and backup services are the usual targets.
+
+  Remote execution services can also end this way when their process exits abruptly, so a 7034 shortly after a 7045 for the same service fits a one-shot execution pattern.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log.
+fields:
+  - name: param1
+    description: Display name of the service that terminated.
+  - name: param2
+    description: Number of times the service has terminated unexpectedly.
+benign:
+  - Application services crashing due to bugs or resource exhaustion.
+  - Services killed by installers during upgrades.
+attacker:
+  - Killing EDR, antivirus, Sysmon or backup service processes to disable them.
+  - A malicious service installed for remote execution exiting abruptly after running its payload.
+investigation:
+  - Check whether the service is security-related; if so, treat the kill as potential defense evasion.
+  - Look for Application 1000 or 1001 for the same process to distinguish a crash from a kill.
+  - Search 4688 or Sysmon 1 for `taskkill`, `sc`, or unknown tools right before, and 7045 for new drivers.
+related:
+  - system/7031
+  - system/7036
+  - system/7045
+  - application/1000
+  - application/1001
+  - security/4688
+attack:
+  - T1685
+  - T1489
+references:
+  - title: MITRE ATT&CK — Disable or Modify Tools (T1685)
+    url: https://attack.mitre.org/techniques/T1685/
+  - title: Microsoft Learn — Service Control Manager
+    url: https://learn.microsoft.com/en-us/windows/win32/services/service-control-manager

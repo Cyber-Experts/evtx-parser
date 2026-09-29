@@ -1,0 +1,63 @@
+title: Se agregó un miembro a un grupo global con seguridad habilitada
+shortTitle: Miembro añadido a grupo global
+summary: >-
+  El evento 4728 se registra en un controlador de dominio cuando se añade un miembro a un grupo
+  global de seguridad, como Domain Admins.
+description: |-
+  El evento 4728 se escribe en el controlador de dominio que procesó el cambio cuando se añade una cuenta o un grupo a un grupo **global** de seguridad. Los grupos globales son grupos de dominio (Domain Admins, Group Policy Creator Owners y la mayoría de los grupos de roles creados por los administradores), así que este evento nunca aparece en estaciones de trabajo ni en servidores miembro. Los grupos locales y locales de dominio usan el 4732; los universales, el 4756.
+
+  Los campos son los mismos que en el 4732: `TargetUserName`/`TargetSid` identifican el grupo, `MemberName` (nombre distintivo) y `MemberSid` el nuevo miembro, y `Subject*` quién hizo el cambio. Se registra un evento por cada miembro añadido, normalmente junto a un 4737 vacío.
+
+  Las adiciones a Domain Admins y a otros grupos globales de nivel 0 están entre las alertas de mayor valor en Active Directory. Construya la alerta sobre el SID del grupo (RID `512` para Domain Admins) en lugar del nombre, que está localizado y puede cambiarse.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). El éxito se audita en la directiva de auditoría predeterminada de Windows.
+  notes: >-
+    Solo se genera en los controladores de dominio, en el DC donde se escribió el cambio. Recopile el
+    registro de Seguridad de cada DC para ver la totalidad de los cambios de grupos.
+fields:
+  - name: MemberName
+    description: Nombre distintivo del miembro añadido, p. ej. `CN=jdoe,OU=Staff,DC=contoso,DC=local`.
+  - name: MemberSid
+    description: SID del miembro añadido.
+  - name: TargetUserName
+    description: Nombre del grupo global que recibió el miembro.
+  - name: TargetDomainName
+    description: Dominio del grupo.
+  - name: TargetSid
+    description: >-
+      SID del grupo. El último componente (RID) identifica los grupos de dominio conocidos
+      independientemente de su nombre para mostrar.
+    values:
+      - value: "*-512"
+        meaning: Domain Admins.
+      - value: "*-513"
+        meaning: Domain Users.
+      - value: "*-515"
+        meaning: Domain Computers.
+      - value: "*-516"
+        meaning: Domain Controllers.
+      - value: "*-520"
+        meaning: Group Policy Creator Owners.
+  - name: SubjectUserName
+    description: Cuenta que añadió el miembro.
+  - name: SubjectDomainName
+    description: Dominio del sujeto.
+  - name: SubjectLogonId
+    description: Sesión del sujeto en el DC; correlacione con el 4624 para encontrar el host de origen.
+  - name: PrivilegeList
+    description: Privilegios utilizados para la operación, a menudo `-`.
+benign:
+  - Gestión de identidades y aprovisionamiento dirigido por RR. HH. que añaden usuarios a grupos de roles.
+  - Administradores que conceden acceso mediante grupos de aplicaciones o de departamentos.
+  - Pertenencia temporal concedida por herramientas de gestión de accesos privilegiados, seguida más tarde de un 4729.
+attacker:
+  - Escalada de privilegios o persistencia añadiendo una cuenta controlada a Domain Admins o a otro grupo global privilegiado.
+  - Inclusión de una cuenta recién creada (4720) en un grupo privilegiado a los pocos minutos de su creación.
+  - Inclusión de cuentas en grupos con derechos delegados sobre objetos de AD, directivas de grupo o servidores, algo más discreto que Domain Admins.
+investigation:
+  - Alerte sobre las adiciones a grupos privilegiados por SID y verifique cada una frente a un cambio aprobado.
+  - Compruebe si el miembro se creó recientemente (4720) y qué hizo después (4624, 4672, 4769).
+  - Pivote sobre SubjectLogonId y los eventos 4624 del DC para encontrar el host desde el que se hizo el cambio.
+  - "Busque un 4729 posterior que elimine al mismo miembro: una pertenencia breve es una forma habitual de evitar la detección."

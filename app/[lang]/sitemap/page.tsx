@@ -6,6 +6,7 @@ import { siteConfig } from "@/site.config";
 import { LOCALES, hreflangFor, type Locale } from "@/lib/i18n";
 import { getDictionary, hasLocale } from "../dictionaries";
 import { PageHero } from "@/components/PageHero";
+import { getEventsDict } from "@/src/dict/events";
 
 type Params = { lang: string };
 
@@ -80,6 +81,14 @@ export default async function HtmlSitemap({
                 className="font-medium text-uv-700 underline decoration-uv-300 underline-offset-4 hover:decoration-uv-500 dark:text-uv-300 dark:decoration-uv-700"
               >
                 {dict.metadata.searchTitle}
+              </Link>
+            </li>
+            <li>
+              <Link
+                href={`/${locale}/events`}
+                className="font-medium text-uv-700 underline decoration-uv-300 underline-offset-4 hover:decoration-uv-500 dark:text-uv-300 dark:decoration-uv-700"
+              >
+                {getEventsDict(locale).navTitle}
               </Link>
             </li>
           </ul>

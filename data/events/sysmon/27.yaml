@@ -1,0 +1,54 @@
+id: 27
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: FileBlockExecutable
+shortTitle: Executable file blocked
+category: file
+summary: >-
+  Sysmon event 27 fires when Sysmon blocks the creation of an executable (PE) file matching its
+  rules. A preventive control added in Sysmon 14.0.
+description: |-
+  Sysmon event 27 is generated when Sysmon detects and blocks a process writing a PE executable file that matches a `<FileBlockExecutable>` rule. Unlike most Sysmon events, this one reflects an action: the file is not allowed to stay on disk.
+
+  Typical rules block executables written to user profile, temp or download folders by browsers, mail clients and script hosts. Each record means something tried to drop a binary; the question is whether it was a user download or a payload.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon 14.0 or later with a `<FileBlockExecutable>` rule in the configuration.
+  notes: >-
+    Blocking can break legitimate installers and updaters that write executables to the targeted
+    folders; test rules before deploying them.
+fields:
+  - name: ProcessGuid
+    description: Process that tried to write the executable.
+  - name: Image
+    description: Executable that tried to write the file.
+  - name: User
+    description: Account of the process.
+  - name: TargetFilename
+    description: Path of the blocked executable.
+  - name: Hashes
+    description: Hashes of the blocked file; use them for reputation lookups.
+benign:
+  - Users downloading legitimate installers into blocked folders.
+  - Software updaters writing new binaries to user-profile locations.
+attacker:
+  - A malicious document or script host trying to drop a payload EXE or DLL into `%TEMP%` or `%APPDATA%`.
+  - Tools copied to a host for lateral movement or privilege escalation being stopped on write.
+investigation:
+  - Pivot on ProcessGuid to event 1 to see what chain tried to drop the file.
+  - Look up Hashes; a known-bad hash confirms an intrusion attempt even though it was blocked.
+  - Check whether the attacker retried with another path or file type (events 11, 29).
+related:
+  - sysmon/29
+  - sysmon/11
+  - sysmon/1
+  - sysmon/28
+attack:
+  - T1105
+  - T1204.002
+  - T1570
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Ingress Tool Transfer (T1105)
+    url: https://attack.mitre.org/techniques/T1105/

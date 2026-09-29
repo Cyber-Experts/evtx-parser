@@ -1,0 +1,121 @@
+title: Se intentó obtener acceso a un objeto
+shortTitle: Acceso a objeto
+summary: >-
+  El evento 4663 registra un derecho de acceso realmente usado sobre un archivo, carpeta, clave de
+  registro u objeto auditado: quién, qué proceso y qué acceso.
+description: |-
+  El evento 4663 se escribe cuando un proceso usa un derecho de acceso sobre un objeto cuya SACL audita ese derecho. Mientras que el 4656 muestra la solicitud del handle, el 4663 muestra la operación: lectura de datos, escritura, eliminación, cambio de permisos. No existe versión de error; los accesos denegados solo aparecen como un 4656 de error.
+
+  Lea `AccessList` o `AccessMask` para saber qué ocurrió. En archivos, `0x1` es ReadData, `0x2` WriteData, `0x10000` DELETE y `0x40000` WRITE_DAC. En claves de registro los mismos bits tienen otros nombres (`0x1` es Consultar valor de clave, `0x2` Establecer valor de clave, `0x8` Enumerar subclaves). DELETE también se registra en renombrados y movimientos, así que use el 4660 para confirmar una eliminación real.
+
+  El 4663 vale lo que valgan las SACL desplegadas. Es la forma estándar de auditar recursos compartidos y carpetas sensibles, pero auditar lecturas sobre datos muy utilizados genera un volumen enorme; audite escrituras y eliminaciones de forma amplia y lecturas solo donde importen.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit File System, Audit Registry,
+    Audit Kernel Object o Audit Removable Storage (Success), más una SACL en el objeto que audite el
+    derecho utilizado.
+  notes: >-
+    Habilitar solo la subcategoría no registra nada para los archivos normales; las SACL deben
+    definirse por GPO (seguridad de Sistema de archivos / Registro o Global Object Access Auditing)
+    o en cada objeto.
+fields:
+  - name: SubjectUserName
+    description: Cuenta que usó el acceso.
+  - name: SubjectLogonId
+    description: Sesión de inicio de sesión; pivote hacia el 4624 para el tipo de inicio de sesión y el origen, y hacia el 4688 para el árbol de procesos.
+  - name: ObjectServer
+    description: Subsistema, normalmente `Security`.
+  - name: ObjectType
+    description: "`File` para archivos y carpetas, `Key` para claves de registro, otros tipos para objetos del kernel."
+  - name: ObjectName
+    description: Ruta completa del objeto (ruta de archivo o ruta de clave `\REGISTRY\...`).
+  - name: HandleId
+    description: Handle utilizado; enlaza con el 4656 (solicitud), el 4660 (eliminación) y el 4658 (cierre) del mismo proceso.
+  - name: AccessList
+    description: Derechos utilizados, como códigos de mensaje (véanse los valores).
+    values:
+      - value: "%%4416"
+        meaning: ReadData / ListDirectory (registro — Consultar valor de clave).
+      - value: "%%4417"
+        meaning: WriteData / AddFile (registro — Establecer valor de clave).
+      - value: "%%4418"
+        meaning: AppendData / AddSubdirectory / CreatePipeInstance.
+      - value: "%%4419"
+        meaning: ReadEA (registro — Enumerar subclaves).
+      - value: "%%4420"
+        meaning: WriteEA.
+      - value: "%%4421"
+        meaning: Execute / Traverse.
+      - value: "%%4422"
+        meaning: DeleteChild.
+      - value: "%%4423"
+        meaning: ReadAttributes.
+      - value: "%%4424"
+        meaning: WriteAttributes.
+      - value: "%%1537"
+        meaning: DELETE — también se registra en renombrados y movimientos.
+      - value: "%%1538"
+        meaning: READ_CONTROL — lectura del descriptor de seguridad (no de la SACL).
+      - value: "%%1539"
+        meaning: WRITE_DAC — cambio de permisos.
+      - value: "%%1540"
+        meaning: WRITE_OWNER — toma de posesión.
+      - value: "%%1541"
+        meaning: SYNCHRONIZE.
+      - value: "%%1542"
+        meaning: ACCESS_SYS_SEC — lectura o modificación de la SACL.
+  - name: AccessMask
+    description: Máscara hexadecimal de los derechos utilizados; una combinación de los bits siguientes.
+    values:
+      - value: "0x1"
+        meaning: ReadData / ListDirectory.
+      - value: "0x2"
+        meaning: WriteData / AddFile.
+      - value: "0x4"
+        meaning: AppendData / AddSubdirectory.
+      - value: "0x8"
+        meaning: ReadEA.
+      - value: "0x10"
+        meaning: WriteEA.
+      - value: "0x20"
+        meaning: Execute / Traverse.
+      - value: "0x40"
+        meaning: DeleteChild.
+      - value: "0x80"
+        meaning: ReadAttributes.
+      - value: "0x100"
+        meaning: WriteAttributes.
+      - value: "0x10000"
+        meaning: DELETE.
+      - value: "0x20000"
+        meaning: READ_CONTROL.
+      - value: "0x40000"
+        meaning: WRITE_DAC.
+      - value: "0x80000"
+        meaning: WRITE_OWNER.
+      - value: "0x100000"
+        meaning: SYNCHRONIZE.
+      - value: "0x1000000"
+        meaning: ACCESS_SYS_SEC.
+  - name: ProcessName
+    description: Proceso que usó el acceso. En los accesos SMB remotos a un servidor de archivos es `System`.
+  - name: ProcessId
+    description: PID hexadecimal de ese proceso.
+  - name: ResourceAttributes
+    description: Atributos de recurso de la directiva de acceso central del objeto, cuando se usa Dynamic Access Control.
+benign:
+  - Usuarios que abren y guardan documentos en carpetas auditadas.
+  - Procesos de copia de seguridad, antivirus e indexación de búsqueda que leen grandes cantidades de archivos auditados.
+  - Aplicaciones que actualizan sus propios archivos de configuración o claves de registro.
+attacker:
+  - Lecturas masivas de recursos compartidos o carpetas sensibles por parte de una cuenta antes de una exfiltración.
+  - Actividad masiva de WriteData y DELETE desde un único proceso, típica de un ransomware que cifra y renombra archivos.
+  - >-
+    Acceso por procesos inesperados a almacenes de credenciales cubiertos por una SACL, como copias
+    de `NTDS.dit` o copias de seguridad de hives del registro.
+  - WRITE_DAC o WRITE_OWNER sobre archivos sensibles para concederse acceso al atacante.
+investigation:
+  - Decodifique primero `AccessMask`; lecturas, escrituras, eliminaciones y cambios de permisos cuentan historias muy distintas.
+  - Agregue por `SubjectUserName`, `ProcessName` y carpeta para detectar accesos masivos en una ventana corta.
+  - En servidores de archivos, combínelo con el 5145 para obtener la IP del cliente y el nombre del recurso compartido del acceso SMB.
+  - Confirme las eliminaciones con el 4660 (mismo `HandleId` y `ProcessId`) y los cambios de permisos con el 4670.

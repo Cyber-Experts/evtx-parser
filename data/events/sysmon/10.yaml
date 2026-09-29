@@ -1,0 +1,93 @@
+id: 10
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: ProcessAccess
+shortTitle: Process accessed
+category: process
+summary: >-
+  Sysmon event 10 logs one process opening a handle to another, with the access mask and call
+  stack. The go-to event for LSASS credential dumping.
+description: |-
+  Sysmon event 10 records a process opening another process, with the rights it obtained (`GrantedAccess`) and the call stack that led to the open (`CallTrace`). Reading or writing another process's memory always starts with such a handle.
+
+  Its best-known use is detecting credential theft from `lsass.exe`: tools like Mimikatz, ProcDump or `comsvcs.dll` MiniDump must open LSASS with memory-read rights. The `CallTrace` adds context — a stack through `dbghelp.dll` or `dbgcore.dll` points to a minidump, and `UNKNOWN` frames mean the call came from memory not backed by a module, such as injected shellcode.
+
+  Unfiltered, the event is extremely noisy (security products and system processes open other processes constantly). Configure it for sensitive targets such as `lsass.exe` and exclude known scanners.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Sysmon installed with a `<ProcessAccess>` rule in the configuration, typically including
+    TargetImage `lsass.exe` and excluding known security tools.
+fields:
+  - name: SourceProcessGUID
+    description: GUID of the process that opened the handle (note the upper-case GUID in this event).
+  - name: SourceProcessId
+    description: PID of the source process.
+  - name: SourceThreadId
+    description: Thread that opened the handle.
+  - name: SourceImage
+    description: Executable of the source process.
+  - name: TargetProcessGUID
+    description: GUID of the process that was opened.
+  - name: TargetImage
+    description: Executable of the target, e.g. `C:\Windows\system32\lsass.exe`.
+  - name: GrantedAccess
+    description: >-
+      Access mask granted. Bits of interest are PROCESS_VM_READ (`0x10`), PROCESS_VM_WRITE
+      (`0x20`), PROCESS_VM_OPERATION (`0x8`) and PROCESS_CREATE_THREAD (`0x2`).
+    values:
+      - value: "0x1000"
+        meaning: PROCESS_QUERY_LIMITED_INFORMATION only. Very common and usually benign.
+      - value: "0x1010"
+        meaning: >-
+          Limited query + VM_READ. Enough to read LSASS memory; the classic mask of Mimikatz
+          `sekurlsa` commands.
+      - value: "0x1410"
+        meaning: >-
+          Query information + limited query + VM_READ. Also associated with credential dumping
+          tools, but used by some legitimate software.
+      - value: "0x1438"
+        meaning: Query + VM_READ, VM_WRITE and VM_OPERATION — memory read and write, as used before injection.
+      - value: "0x1FFFFF"
+        meaning: PROCESS_ALL_ACCESS. Full control; suspicious against LSASS from anything but trusted tools.
+  - name: CallTrace
+    description: >-
+      Pipe-separated stack of module+offset frames. Look for `dbghelp.dll`/`dbgcore.dll`
+      (minidump), `comsvcs.dll`, or `UNKNOWN` frames (unbacked memory).
+  - name: SourceUser
+    description: Account of the source process (newer Sysmon versions).
+  - name: TargetUser
+    description: Account of the target process (newer Sysmon versions).
+benign:
+  - Antivirus/EDR, `MsMpEng.exe`, and system processes such as `csrss.exe`, `wininit.exe` and `svchost.exe` querying LSASS.
+  - Task Manager, Process Explorer and performance tools with query-only masks such as `0x1000`.
+  - Windows Error Reporting (`WerFault.exe`) reading a crashing process.
+attacker:
+  - Mimikatz or a clone opening `lsass.exe` with `0x1010` or `0x1410`.
+  - >-
+    `rundll32.exe` loading `comsvcs.dll` and calling MiniDump on LSASS, or `procdump.exe -ma
+    lsass.exe`, with a CallTrace through `dbghelp.dll`/`dbgcore.dll`.
+  - Injection preparation — a process gaining `0x1438` or wider on another process before event 8.
+investigation:
+  - Filter on TargetImage `lsass.exe` and exclude a baseline of known SourceImage values.
+  - Read the CallTrace; `UNKNOWN` frames and minidump DLLs are strong indicators.
+  - Pivot on SourceProcessGUID to event 1 and look for a dump file written by the same process (event 11).
+  - Follow up with the account's logons from other hosts (Security 4624, 4648) after the dump time.
+related:
+  - sysmon/1
+  - sysmon/7
+  - sysmon/8
+  - sysmon/11
+  - security/4656
+  - security/4663
+  - security/4624
+attack:
+  - T1003.001
+  - T1055
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — OS Credential Dumping, LSASS Memory (T1003.001)
+    url: https://attack.mitre.org/techniques/T1003/001/
+  - title: Microsoft Learn — Process security and access rights
+    url: https://learn.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights

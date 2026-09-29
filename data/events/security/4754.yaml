@@ -1,0 +1,61 @@
+id: 4754
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A security-enabled universal group was created
+shortTitle: Universal group created
+category: group
+summary: >-
+  Security event 4754 is logged on a domain controller when a new security-enabled universal
+  group is created in Active Directory.
+description: |-
+  Event 4754 is written on the domain controller that processed the request when a new security-enabled **universal** group is created. Universal groups can hold members from any domain in the forest and their membership is published to the global catalog. Global groups are reported by 4727, local and domain local groups by 4731.
+
+  The fields are the same as 4727 and 4731: the new group's `TargetUserName`, `TargetDomainName`, `TargetSid`, `SamAccountName` and `SidHistory`, and the creator in `Subject*`.
+
+  As with any new group, the risk lies in what the group is given afterward: follow its SID into membership changes (4756) and permission changes.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Success is audited in the default Windows audit policy.
+  notes: Only generated on domain controllers.
+fields:
+  - name: TargetUserName
+    description: Name of the new group.
+  - name: TargetDomainName
+    description: Domain of the new group.
+  - name: TargetSid
+    description: SID of the new group.
+  - name: SamAccountName
+    description: Pre-Windows 2000 name of the group.
+  - name: SidHistory
+    description: Previous SIDs; `-` for a newly created group.
+  - name: SubjectUserName
+    description: Account that created the group.
+  - name: SubjectDomainName
+    description: Domain of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject on the DC; correlate with 4624.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Administrators creating groups for cross-domain resource access.
+  - Products that extend Active Directory (for example Exchange) creating their universal groups during setup.
+attacker:
+  - Creating a group to hold backdoor accounts and later grant it rights across the forest.
+investigation:
+  - Verify the creator and the business purpose of the group.
+  - Follow TargetSid into later 4756 events and directory changes (5136).
+related:
+  - security/4756
+  - security/4755
+  - security/4727
+  - security/4731
+  - security/5136
+attack:
+  - T1098
+references:
+  - title: "Microsoft Learn — Audit Security Group Management (4754 description)"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-group-management
+  - title: "Microsoft Learn — 4731(S): A security-enabled local group was created"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4731

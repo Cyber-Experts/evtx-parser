@@ -1,0 +1,58 @@
+title: Der Computer hat versucht, die Anmeldeinformationen für ein Konto zu überprüfen
+shortTitle: NTLM-Überprüfung der Anmeldedaten
+summary: >-
+  Event-ID 4776 protokolliert eine NTLM-Prüfung von Anmeldeinformationen: auf dem DC für
+  Domänenkonten, auf dem lokalen Rechner für lokale Konten.
+description: |-
+  Event 4776 wird von dem Computer geschrieben, der **für das Konto maßgeblich ist**, wenn er Anmeldeinformationen per NTLM überprüft: vom Domänencontroller für Domänenkonten oder vom lokalen Rechner für lokale Konten (SAM). Es wird bei Erfolg und Fehlschlag ausgelöst, das Feld `Status` sagt, was zutrifft.
+
+  Es schließt die Lücke, die die Kerberos-Events lassen: NTLM-Anmeldungen erzeugen kein 4768/4769, daher ist 4776 auf einem DC der einzige Nachweis einer NTLM-Authentifizierung. Das Feld `Workstation` enthält den vom Client übermittelten Namen des Quellcomputers — eine IP-Adresse gibt es nicht, daher über 4624 auf dem Zielserver zurückverfolgen.
+
+  Pass-the-Hash- und Relay-Angriffe nutzen NTLM, daher verdienen Häufungen von NTLM-Überprüfungen für privilegierte Konten oder von unerwarteten Arbeitsstationen Aufmerksamkeit.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Logon > Audit Credential Validation (Success,
+    Failure). „Erfolg“ wird auf Servern standardmäßig überwacht; „Fehler“ explizit aktivieren.
+fields:
+  - name: PackageName
+    description: Authentifizierungspaket, normalerweise `MICROSOFT_AUTHENTICATION_PACKAGE_V1_0`.
+  - name: TargetUserName
+    description: Konto, dessen Anmeldeinformationen überprüft wurden.
+  - name: Workstation
+    description: Im NTLM-Austausch übermittelter Name des Client-Computers (fälschbar, kann leer sein).
+  - name: Status
+    description: Ergebnis (NTSTATUS).
+    values:
+      - value: "0x0"
+        meaning: Erfolg.
+      - value: "0xC0000064"
+        meaning: Benutzername existiert nicht.
+      - value: "0xC000006A"
+        meaning: Falsches Kennwort.
+      - value: "0xC000006F"
+        meaning: Anmeldung außerhalb der zulässigen Zeiten.
+      - value: "0xC0000070"
+        meaning: Einschränkung auf bestimmte Arbeitsstationen.
+      - value: "0xC0000071"
+        meaning: Kennwort abgelaufen.
+      - value: "0xC0000072"
+        meaning: Konto deaktiviert.
+      - value: "0xC0000193"
+        meaning: Konto abgelaufen.
+      - value: "0xC0000224"
+        meaning: Benutzer muss das Kennwort bei der nächsten Anmeldung ändern.
+      - value: "0xC0000234"
+        meaning: Konto gesperrt.
+benign:
+  - Anwendungen und Geräte, die nur NTLM beherrschen (ältere NAS, Drucker, manche Web-Apps).
+  - Anmeldungen per IP-Adresse statt Hostname, die auf NTLM zurückfallen.
+  - Anmeldungen mit lokalen Konten auf eigenständigen Rechnern.
+attacker:
+  - "Pass-the-Hash — NTLM-Überprüfungen für Admin-Konten von Arbeitsstationen, die normalerweise Kerberos verwenden."
+  - "NTLM-Password-Spraying — viele Konten scheitern mit `0xC000006A` vom selben Workstation-Namen."
+  - NTLM-Relay — Überprüfungen für ein Konto, die von einem Rechner kommen, an dem der Benutzer nicht sitzt.
+investigation:
+  - Auf DCs nach TargetUserName und Workstation gruppieren; nach privilegierten Konten suchen, die sich per NTLM authentifizieren.
+  - Bei Fehlschlägen die Anzahl von `0xC0000064` und `0xC000006A` vergleichen, um Enumeration von Raten zu unterscheiden.
+  - Das passende 4624 (AuthenticationPackageName NTLM) auf Mitgliedsservern finden, um die Quell-IP zu ermitteln.
+  - NTLM-Überwachung in Betracht ziehen (NTLM-Operational-Protokoll 8001–8004), um zu sehen, welche Server noch NTLM empfangen.

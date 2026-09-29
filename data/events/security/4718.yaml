@@ -1,0 +1,52 @@
+id: 4718
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: System security access was removed from an account
+shortTitle: Logon right removed
+category: policy
+summary: >-
+  Security event 4718 logs a logon right (such as a Deny logon right or RDP logon right) being
+  removed from an account or group in local security policy.
+description: |-
+  Event 4718 is the counterpart of 4717: a logon right was removed from a security principal. `TargetSid` is the principal and `AccessRemoved` the right, for example `SeRemoteInteractiveLogonRight` or `SeDenyNetworkLogonRight`.
+
+  Removing an allow right restricts access; removing a **deny** right widens it. Deny rights like `SeDenyNetworkLogonRight` and `SeDenyRemoteInteractiveLogonRight` are commonly used to keep privileged or local accounts from logging on remotely, so their removal outside a GPO change is significant.
+
+  As with 4717, most records come from Group Policy with the computer account or SYSTEM as subject.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Policy Change > Audit Authentication Policy Change
+    (Success). Enabled for Success in the default Windows audit policy.
+fields:
+  - name: SubjectUserName
+    description: Account that made the change; the computer account or SYSTEM for Group Policy.
+  - name: SubjectLogonId
+    description: Logon session of the subject.
+  - name: TargetSid
+    description: SID of the account or group that lost the right.
+  - name: AccessRemoved
+    description: >-
+      Logon right removed, using the same names as 4717 (e.g. `SeNetworkLogonRight`,
+      `SeDenyRemoteInteractiveLogonRight`, `SeServiceLogonRight`).
+benign:
+  - Group Policy re-applying User Rights Assignment and removing rights granted locally.
+  - Decommissioning of service accounts or removal of support staff access.
+attacker:
+  - >-
+    Removing a `SeDeny...LogonRight` that blocked local or privileged accounts from network or RDP
+    logons, to open a lateral movement path.
+  - Removing a right granted earlier (4717) after use, to clean up.
+investigation:
+  - Pay most attention to removed deny rights; check which principal is now allowed to log on.
+  - Look for a matching 4717 and a GPO refresh around the same time to decide if the change is policy-driven.
+  - Correlate with subsequent 4624 logons by the affected principal.
+related:
+  - security/4717
+  - security/4705
+  - security/4624
+attack:
+  - T1098
+references:
+  - title: "Microsoft Learn — 4718(S): System security access was removed from an account"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4718

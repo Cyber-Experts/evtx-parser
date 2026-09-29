@@ -1,0 +1,86 @@
+id: 4769
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A Kerberos service ticket was requested
+shortTitle: Kerberos service ticket requested
+category: kerberos
+summary: >-
+  Event 4769 is logged on domain controllers for every Kerberos service ticket (TGS) request —
+  the key record for spotting Kerberoasting.
+description: |-
+  Event 4769 is written by the KDC on a **domain controller** when an account that already holds a TGT asks for a ticket to a specific service (a Ticket Granting Service request). Every access to a Kerberos-protected resource — file shares, SQL Server, HTTP with Windows authentication, LDAP, other hosts — produces one.
+
+  The `ServiceName` field shows which service account the ticket is for, and `TicketEncryptionType` shows how it is encrypted. That combination is how Kerberoasting is found: an attacker requests tickets for user accounts that have an SPN, preferably RC4-encrypted (`0x17`) because they crack faster offline. Requests like that for many services in a short time, from one account, are the classic signature.
+
+  Volume is very high on DCs. Exclude computer accounts (ServiceName ending in `$`) and `krbtgt` before hunting.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Logon > Audit Kerberos Service Ticket
+    Operations (Success, Failure). Only meaningful on domain controllers.
+  notes: >-
+    Check the effective policy with `auditpol /get /subcategory:"Kerberos Service Ticket
+    Operations"`; Failure auditing is often not enabled.
+fields:
+  - name: TargetUserName
+    description: Account that requested the service ticket, in `user@DOMAIN` form.
+  - name: TargetDomainName
+    description: Domain of the requesting account.
+  - name: ServiceName
+    description: >-
+      Account that runs the service the ticket is for. Computer accounts end in `$`; a user
+      account here means a service with an SPN on a user — a Kerberoasting target.
+  - name: ServiceSid
+    description: SID of the service account.
+  - name: TicketOptions
+    description: Kerberos ticket options requested (hex).
+  - name: TicketEncryptionType
+    description: Encryption type of the service ticket.
+    values:
+      - value: "0x11"
+        meaning: AES128-CTS-HMAC-SHA1-96
+      - value: "0x12"
+        meaning: AES256-CTS-HMAC-SHA1-96
+      - value: "0x17"
+        meaning: RC4-HMAC — the type Kerberoasting tools ask for.
+      - value: "0x18"
+        meaning: RC4-HMAC-EXP
+      - value: "0xffffffff"
+        meaning: No ticket issued (failure).
+  - name: Status
+    description: Kerberos result code; `0x0` means the ticket was issued.
+  - name: IpAddress
+    description: Client IP address.
+  - name: IpPort
+    description: Client source port.
+  - name: LogonGuid
+    description: GUID linking this request to the logon (the same GUID appears in the 4624 on the target server).
+  - name: TransmittedServices
+    description: Services involved in delegation (constrained delegation / S4U), otherwise `-`.
+benign:
+  - Normal access to file servers, SQL, IIS and other Kerberos services — thousands per hour on busy DCs.
+  - Computers requesting tickets to DCs (LDAP, CIFS) for Group Policy processing.
+  - Old applications or service accounts configured for RC4 only.
+attacker:
+  - "Kerberoasting — one account requesting RC4 (`0x17`) tickets for many user-account SPNs within minutes (Rubeus, Impacket GetUserSPNs)."
+  - Targeted Kerberoasting of a single high-value service account, which only stands out through RC4 use or an unusual requesting host.
+  - Silver tickets do not produce 4769 at all — a service logon (4624 on the server) with no matching 4769 on any DC is a lead.
+investigation:
+  - Filter ServiceName not ending in `$` and not `krbtgt`, then count distinct ServiceName per TargetUserName and IpAddress per hour.
+  - Flag TicketEncryptionType `0x17` where the account supports AES.
+  - Check whether the requesting account usually uses those services at all.
+  - Pivot to the service accounts involved; if Kerberoasting is confirmed, rotate their passwords and review later logons (4624) by them.
+related:
+  - security/4768
+  - security/4770
+  - security/4624
+  - security/4776
+  - security/4662
+attack:
+  - T1558.003
+  - T1558.002
+references:
+  - title: "Microsoft Learn — 4769(S, F): A Kerberos service ticket was requested"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4769
+  - title: MITRE ATT&CK — Kerberoasting (T1558.003)
+    url: https://attack.mitre.org/techniques/T1558/003/

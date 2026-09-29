@@ -1,0 +1,72 @@
+title: Se agregó un miembro a un grupo local con seguridad habilitada
+shortTitle: Miembro añadido a grupo local
+summary: >-
+  El evento 4732 se registra cuando se añade un miembro a un grupo local de seguridad, como el grupo
+  local Administradores o un grupo local de dominio.
+description: |-
+  El evento 4732 se escribe cuando se añade una cuenta o un grupo a un grupo **local** de seguridad. En estaciones de trabajo y servidores miembro se trata de grupos de la SAM local como `Administrators`, `Remote Desktop Users` o `Backup Operators`. En los controladores de dominio abarca los grupos Builtin del dominio (Administrators, Account Operators, Server Operators, Backup Operators…) y los grupos **locales de dominio** como `DnsAdmins`. Los grupos globales y universales tienen sus propios eventos (4728, 4756).
+
+  `TargetUserName` y `TargetSid` identifican el grupo, `MemberSid` la cuenta añadida y `Subject*` quién hizo el cambio. En servidores miembro y estaciones de trabajo, `MemberName` suele ser `-`, incluso para cuentas de dominio, así que resuelva `MemberSid` en su lugar. Se registra un evento por cada miembro añadido, normalmente precedido de un 4735 vacío.
+
+  Añadir una cuenta al grupo local Administradores es uno de los pasos de persistencia y de privilegios más habituales tras un compromiso, lo que convierte este evento en una detección de alto valor en cada endpoint, no solo en los controladores de dominio.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). El éxito se audita en la directiva de auditoría predeterminada de Windows.
+  notes: >-
+    Los cambios en grupos locales solo se registran en la máquina propietaria del grupo, así que
+    recopile los registros de Seguridad de endpoints y servidores, no solo de los controladores de
+    dominio. La pertenencia impuesta por directiva de grupo (Grupos restringidos, preferencias de
+    Usuarios y grupos locales) también produce un 4732 en cada máquina de destino.
+fields:
+  - name: MemberSid
+    description: SID de la cuenta o el grupo añadido. El campo fiable en estaciones de trabajo y servidores miembro.
+  - name: MemberName
+    description: >-
+      Nombre distintivo del miembro añadido cuando está disponible (p. ej.
+      `CN=jdoe,CN=Users,DC=contoso,DC=local`). Normalmente `-` para los grupos locales en máquinas
+      que no son DC.
+  - name: TargetUserName
+    description: Nombre del grupo que recibió el nuevo miembro, p. ej. `Administrators`.
+  - name: TargetDomainName
+    description: Dominio del grupo; `Builtin` para los grupos locales integrados, el nombre del equipo para otros grupos locales y el dominio para los grupos locales de dominio.
+  - name: TargetSid
+    description: SID del grupo. Los SID Builtin conocidos permiten filtrar independientemente del idioma.
+    values:
+      - value: "S-1-5-32-544"
+        meaning: Administrators.
+      - value: "S-1-5-32-548"
+        meaning: Account Operators.
+      - value: "S-1-5-32-549"
+        meaning: Server Operators.
+      - value: "S-1-5-32-551"
+        meaning: Backup Operators.
+      - value: "S-1-5-32-555"
+        meaning: Remote Desktop Users.
+      - value: "S-1-5-32-562"
+        meaning: Distributed COM Users.
+      - value: "S-1-5-32-580"
+        meaning: Remote Management Users (WinRM).
+  - name: SubjectUserName
+    description: Cuenta que añadió el miembro.
+  - name: SubjectDomainName
+    description: Dominio o nombre de equipo del sujeto.
+  - name: SubjectLogonId
+    description: Sesión del sujeto; correlacione con 4624 y 4688.
+  - name: PrivilegeList
+    description: Privilegios utilizados para la operación, a menudo `-`.
+benign:
+  - Directiva de grupo (Grupos restringidos o Preferencias de directiva de grupo) que impone la pertenencia al grupo local Administradores en cada actualización.
+  - Personal de TI que concede derechos de administrador local o de Escritorio remoto en una máquina concreta.
+  - Instalaciones de software que añaden cuentas de servicio a grupos locales.
+attacker:
+  - >-
+    Persistencia o escalada de privilegios añadiendo una cuenta controlada al grupo local
+    Administradores, p. ej. `net localgroup administrators <user> /add`.
+  - Inclusión de una cuenta en Remote Desktop Users o Remote Management Users para habilitar el acceso RDP o WinRM para el movimiento lateral.
+  - En los controladores de dominio, inclusión de cuentas en Builtin Administrators, Backup Operators o DnsAdmins, que conducen al compromiso del dominio.
+investigation:
+  - Resuelva MemberSid y compruebe si el miembro es nuevo (4720), si se espera en ese grupo y cómo se usa después (4624, 4672).
+  - Pivote sobre SubjectLogonId para encontrar la sesión y el comando (4624, 4688) que realizaron el cambio.
+  - "Compruebe si aparece más tarde la eliminación 4733 correspondiente: una pertenencia de corta duración es una forma habitual de ocultarse."
+  - Distinga la directiva de grupo que vuelve a aplicar la pertenencia (el sujeto es la cuenta de equipo, de forma periódica) de los cambios interactivos.

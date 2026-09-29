@@ -1,0 +1,66 @@
+title: Ein Dienst wurde im System installiert
+shortTitle: Dienst installiert
+summary: >-
+  Event-ID 7045 im System-Log erfasst jeden neuen Dienst oder Treiber: Name, Binärpfad, Starttyp
+  und Konto. Eines der besten Signale für Lateral Movement.
+description: |-
+  Event 7045 wird vom Dienststeuerungs-Manager (Service Control Manager) geschrieben, wenn ein neuer Dienst angelegt wird — über `sc create`, `New-Service`, ein Installationsprogramm, die API `CreateService` oder remote über die RPC-Schnittstelle des SCM. Als Dienste registrierte Kerneltreiber erscheinen ebenfalls hier. Anders als Security-**4697** wird es standardmäßig protokolliert, was es zu einem der zuverlässigsten Artefakte für Persistenz und Lateral Movement unter Windows macht.
+
+  `ImagePath` ist das Feld, das man zuerst liest. Legitime Dienste verweisen auf signierte Binärdateien unter `C:\Windows\System32` oder `C:\Program Files`. Pfade in `C:\Windows\Temp`, Benutzerprofilen, `C:\ProgramData` oder `ADMIN$` sowie Befehlszeilen wie `cmd.exe /c ...`, `%COMSPEC%` oder `powershell -enc ...` sind starke Indikatoren für Remote-Ausführungstools und Malware. Zufällige Dienstnamen mit 8 Zeichen oder im GUID-Stil sind typisch für dienstbasierte Ausführung mit Impacket, Metasploit und Cobalt Strike.
+
+  Remote-Ausführung über den SCM (PsExec und seine Klone) hinterlässt ein 7045 auf dem **Ziel**host, meist direkt nach einer Typ-3-Anmeldung (4624) von der Quelle, dann 7036, wenn der Dienst startet und stoppt.
+logging:
+  requirement: Wird immer im System-Protokoll erfasst, wenn ein Dienst installiert wird.
+  notes: >-
+    Security-4697 enthält ähnliche Daten, erfordert aber Audit Security System Extension. Ein 7045
+    wird nur bei der Erstellung geschrieben; Änderungen am Binärpfad eines bestehenden Dienstes
+    erzeugen keines.
+fields:
+  - name: ServiceName
+    description: Anzeigename des neuen Dienstes. `PSEXESVC`, zufällige Buchstaben oder GUID-artige Namen verdienen Aufmerksamkeit.
+  - name: ImagePath
+    description: >-
+      Binärpfad oder Befehlszeile, die der Dienst ausführt. Auf temporäre Ordner,
+      Benutzerverzeichnisse, `cmd.exe /c`, `powershell`, `rundll32`, `mshta` oder UNC-Pfade achten.
+  - name: ServiceType
+    description: Art des Dienstes.
+    values:
+      - value: "user mode service"
+        meaning: Normaler Dienst, der ein Programm im Benutzermodus ausführt.
+      - value: "kernel mode driver"
+        meaning: Kerneltreiber. Unerwartete Treiber können Rootkits oder verwundbare Treiber sein, die geladen werden, um Sicherheitstools auszuschalten.
+      - value: "file system driver"
+        meaning: Dateisystem- oder Filtertreiber.
+  - name: StartType
+    description: Wann der Dienst startet.
+    values:
+      - value: "auto start"
+        meaning: Startet bei jedem Systemstart — Persistenz.
+      - value: "demand start"
+        meaning: Manueller Start; typisch für Dienste zur einmaligen Remote-Ausführung.
+      - value: "disabled"
+        meaning: Kann erst nach Neukonfiguration gestartet werden.
+      - value: "boot start"
+        meaning: Treiber, der vom Bootloader geladen wird.
+      - value: "system start"
+        meaning: Treiber, der während der Kernel-Initialisierung geladen wird.
+  - name: AccountName
+    description: >-
+      Konto, unter dem der Dienst läuft, z. B. `LocalSystem`, `NT AUTHORITY\LocalService` oder ein
+      Domänenkonto. Bei Treibern leer.
+benign:
+  - Software-Installer und Updates, die ihre Dienste und Treiber registrieren.
+  - Von der IT verteilte Endpoint-Agenten, Backup- und Fernwartungstools.
+  - Hardwaretreiber, die beim Anschließen neuer Geräte installiert werden.
+  - Legitime Nutzung von PsExec durch Administratoren (Dienst `PSEXESVC`).
+attacker:
+  - >-
+    Remote-Ausführung mit PsExec, Impacket `psexec.py` / `smbexec.py`, Metasploit oder Cobalt
+    Strike `jump psexec`: kurzlebige Dienste mit zufälligen Namen oder `cmd.exe /c` in `ImagePath`.
+  - Persistenz über einen neuen automatisch startenden Dienst, der auf eine abgelegte Payload zeigt.
+  - Laden eines verwundbaren signierten Treibers (BYOVD), um EDR auszuschalten, sichtbar als neuer Kerneltreiber.
+investigation:
+  - Jedes 7045 in der Timeline prüfen; das Volumen ist gering genug, um alle zu lesen.
+  - Speicherort, Signatur und Hash von `ImagePath` prüfen; die Binärdatei sichern, falls sie noch existiert.
+  - Mit 4624 Typ 3 und 5145 (ADMIN$ / IPC$ `svcctl`) kurz davor auf demselben Host korrelieren, um die Quelle zu identifizieren.
+  - Mit 7036 (running/stopped), 7009 oder 7000 (Startfehler) weiterverfolgen, um zu sehen, ob und wie lange er lief.

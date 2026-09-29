@@ -1,0 +1,97 @@
+id: 5136
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A directory service object was modified
+shortTitle: AD object modified
+category: directory
+summary: >-
+  Security event 5136 logs an attribute change on an Active Directory object, with the
+  attribute and value — GPO edits, SPNs, ACLs, shadow credentials.
+description: |-
+  Event 5136 is written on a domain controller when an attribute of an audited Active Directory object is modified. Each record names the object (`ObjectDN`, `ObjectClass`, `ObjectGUID`), the attribute (`AttributeLDAPDisplayName`), the value and whether the value was added or deleted. A replaced value usually appears as two records — **Value Deleted** with the old value, then **Value Added** with the new one — sharing the same `OpCorrelationID`.
+
+  Because it carries the actual values, 5136 is the best native record of AD tampering. Attributes worth alerting on include `nTSecurityDescriptor` (permission changes such as granting replication rights), `gPCFileSysPath` and `gPCMachineExtensionNames` on Group Policy objects, `servicePrincipalName` (setting an SPN to Kerberoast an account), `msDS-KeyCredentialLink` (**shadow credentials**), `msDS-AllowedToActOnBehalfOfOtherIdentity` (resource-based constrained delegation), `sIDHistory` and `member`.
+
+  Coverage depends on SACLs: only attributes and objects covered by an auditing ACE are logged.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > DS Access > Audit Directory Service Changes (Success),
+    applied to domain controllers, plus SACLs on the objects and attributes to audit.
+  notes: >-
+    Only logged on domain controllers, by the DC that processed the change. Collect from every
+    DC. Changes made through replication from another DC are logged on the originating DC.
+fields:
+  - name: SubjectUserName
+    description: Account that made the change.
+  - name: SubjectLogonId
+    description: Logon session on the DC; pivot to 4624 for the source IP.
+  - name: DSName
+    description: Name of the directory partition (domain) that was modified.
+  - name: ObjectDN
+    description: Distinguished name of the modified object.
+  - name: ObjectGUID
+    description: objectGUID of the object; stable across renames and moves.
+  - name: ObjectClass
+    description: Class of the object, e.g. `user`, `computer`, `group`, `groupPolicyContainer`, `domainDNS`.
+  - name: AttributeLDAPDisplayName
+    description: >-
+      LDAP name of the modified attribute, e.g. `servicePrincipalName`, `msDS-KeyCredentialLink`,
+      `nTSecurityDescriptor`, `gPCFileSysPath`, `member`.
+  - name: AttributeSyntaxOID
+    description: Syntax OID of the attribute (how the value is encoded).
+  - name: AttributeValue
+    description: The value added or deleted. For `nTSecurityDescriptor` this is SDDL.
+  - name: OperationType
+    description: Whether the value was added or removed.
+    values:
+      - value: "%%14674"
+        meaning: Value Added — the new value.
+      - value: "%%14675"
+        meaning: Value Deleted — the previous value, typically part of a change.
+  - name: OpCorrelationID
+    description: Groups all 5136, 5137 and 5141 records belonging to the same LDAP operation.
+  - name: AppCorrelationID
+    description: Application correlation ID; often empty.
+benign:
+  - Administrators editing users, groups and GPOs through ADUC, GPMC or PowerShell.
+  - Identity management and HR provisioning systems updating attributes at scale.
+  - >-
+    Windows Hello for Business and device registration writing `msDS-KeyCredentialLink` for
+    users and computers as part of normal enrollment.
+  - Service installations registering `servicePrincipalName` values on their accounts.
+attacker:
+  - >-
+    Shadow credentials: a new `msDS-KeyCredentialLink` value on a user or computer written by an
+    account other than the normal enrollment service, enabling PKINIT authentication as that target.
+  - Targeted Kerberoasting by adding a `servicePrincipalName` to a user account, then removing it.
+  - >-
+    Resource-based constrained delegation: writing `msDS-AllowedToActOnBehalfOfOtherIdentity` on
+    a computer object to impersonate users to it.
+  - GPO abuse via changes to `gPCFileSysPath`, `gPCMachineExtensionNames` or `versionNumber` of a Group Policy object.
+  - "`nTSecurityDescriptor` changes on the domain root or AdminSDHolder granting DCSync or full-control rights."
+  - "`sIDHistory` values added to give an account a privileged SID."
+investigation:
+  - Group records by `OpCorrelationID` and compare the Value Deleted / Value Added pair to see before and after.
+  - Alert on the sensitive attribute list above when the subject is not a known admin or service.
+  - For `nTSecurityDescriptor`, decode the SDDL and look for new ACEs with replication GUIDs or GenericAll.
+  - Pivot `SubjectLogonId` to the DC's 4624 to find the workstation the change came from.
+related:
+  - security/5137
+  - security/5141
+  - security/4662
+  - security/4738
+  - security/4742
+  - security/4728
+  - security/4769
+  - security/4768
+attack:
+  - T1484.001
+  - T1098
+  - T1558.003
+  - T1134.005
+references:
+  - title: "Microsoft Learn — 5136(S): A directory service object was modified"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-5136
+  - title: Microsoft Learn — Audit Directory Service Changes
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-directory-service-changes

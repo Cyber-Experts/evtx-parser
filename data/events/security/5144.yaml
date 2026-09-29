@@ -1,0 +1,55 @@
+id: 5144
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A network share object was deleted
+shortTitle: Network share deleted
+category: network-share
+summary: >-
+  Security event 5144 records the removal of a network share, with the account that deleted it and the share's name and path. Often a cleanup step.
+description: |-
+  Event 5144 is written on the computer where a share is removed (`net share NAME /delete`, `Remove-SmbShare`, Explorer or a remote API call). It carries the same fields as 5142: the account and logon session that made the change, the share name and the local path it exposed.
+
+  On its own the event is mostly administrative. Its value comes from pairing it with 5142: a share that existed for a few minutes or hours, was accessed from other hosts (5140) and then deleted, fits the pattern of temporary staging or tool distribution.
+
+  Deleting built-in administrative shares such as `ADMIN$` or `C$` is unusual; they are recreated at the next Server service restart unless disabled in the registry.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit File Share (Success). Not audited in
+    the default Windows audit policy.
+fields:
+  - name: SubjectUserSid
+    description: SID of the account that deleted the share.
+  - name: SubjectUserName
+    description: Account that deleted the share.
+  - name: SubjectDomainName
+    description: Domain or computer name of the account.
+  - name: SubjectLogonId
+    description: Logon session that deleted the share; pivot to 4624 and 4688 for context.
+  - name: ShareName
+    description: Deleted share name in the form `\\*\NAME`.
+  - name: ShareLocalPath
+    description: Folder that the share exposed.
+benign:
+  - Administrators decommissioning shares during file server clean-up or migration.
+  - Application uninstallers removing shares they created.
+attacker:
+  - Removing a temporary share used to stage collected data or distribute tools, to reduce traces.
+  - Deleting administrative shares on a host to hinder remote administration or response tooling.
+investigation:
+  - Find the matching 5142 for the same `ShareName` to measure how long the share existed and who created it.
+  - Review 5140 and 5145 events on that share during its lifetime to see which hosts and accounts used it.
+  - Identify the process that removed the share (`net.exe`, `powershell.exe`) through 4688 or Sysmon 1.
+related:
+  - security/5142
+  - security/5140
+  - security/5145
+  - security/4688
+attack:
+  - T1070
+  - T1074
+references:
+  - title: "Microsoft Learn — 5144(S): A network share object was deleted"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-5144
+  - title: Microsoft Learn — Audit File Share
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-file-share

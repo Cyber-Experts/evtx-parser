@@ -1,0 +1,76 @@
+id: 5858
+channel: wmi-activity
+provider: Microsoft-Windows-WMI-Activity
+title: WMI operation error
+shortTitle: Operation error
+category: wmi
+summary: >-
+  WMI-Activity event 5858 logs a failed WMI operation with the client machine, user, process ID
+  and the query or method that failed. Noisy but revealing.
+description: |-
+  Event 5858 is written when a WMI operation returns an error. Unlike most WMI activity, which leaves no trace in the Operational log when it succeeds, failures are recorded with the client machine (`ClientMachine`), the user (`User`), the client process ID (`ClientProcessId`), the operation text (`Operation`, which includes the namespace and the WQL query or method) and the error (`ResultCode`).
+
+  That makes 5858 a partial window into WMI usage: reconnaissance queries against classes that do not exist on the host, access-denied errors from low-privileged accounts, and remote clients probing namespaces all show up here. The `Operation` text is the main thing to read.
+
+  Expect a lot of volume. Management agents and monitoring tools generate repeated 5858 errors, most commonly "not found" results for classes or instances that are simply absent on that machine.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Microsoft-Windows-WMI-Activity/Operational channel is enabled by default.
+  notes: >-
+    Only failed operations are logged; successful queries do not produce 5858. Full tracing of WMI
+    calls requires the analytic Trace channel, which is off by default and very verbose.
+fields:
+  - name: Id
+    description: Identifier of the operation.
+  - name: ClientMachine
+    description: Name of the machine the request came from; a name other than the local host means remote WMI.
+  - name: User
+    description: Account that made the request.
+  - name: ClientProcessId
+    description: Process ID of the client that issued the request.
+  - name: Component
+    description: WMI component that reported the error.
+  - name: Operation
+    description: >-
+      The failing operation, e.g. `Start IWbemServices::ExecQuery - root\cimv2 : SELECT * FROM ...`.
+      Read this for the namespace, class and query.
+  - name: ResultCode
+    description: WMI (WBEM) error code returned by the operation.
+    values:
+      - value: "0x80041002"
+        meaning: WBEM_E_NOT_FOUND — the object or instance was not found. The most common, usually benign.
+      - value: "0x80041003"
+        meaning: WBEM_E_ACCESS_DENIED — the caller lacks permission; watch for this from unexpected accounts.
+      - value: "0x80041010"
+        meaning: WBEM_E_INVALID_CLASS — the class does not exist in the namespace.
+      - value: "0x80041017"
+        meaning: WBEM_E_INVALID_QUERY — the query is syntactically invalid.
+      - value: "0x80041032"
+        meaning: WBEM_E_CALL_CANCELLED — the call was cancelled.
+  - name: PossibleCause
+    description: Hint from WMI about the likely cause, when available.
+benign:
+  - Management, inventory and monitoring agents querying classes that are missing on some hardware or OS versions.
+  - Security and backup software polling WMI and hitting not-found or access-denied errors.
+attacker:
+  - Reconnaissance scripts and offensive tools enumerating WMI classes (antivirus products, processes, shares) and failing on some of them.
+  - Remote WMI attempts from another host with insufficient rights, visible through ClientMachine and access-denied codes.
+investigation:
+  - Group by Operation and ClientMachine; filter the recurring agent noise, then review the rest.
+  - Resolve ClientProcessId to a process (4688 / Sysmon 1) when the client is local.
+  - For remote ClientMachine values, correlate with network logons (Security 4624 type 3) at the same time.
+related:
+  - wmi-activity/5857
+  - wmi-activity/5860
+  - wmi-activity/5861
+  - security/4624
+  - security/4688
+  - sysmon/1
+attack:
+  - T1047
+references:
+  - title: Microsoft Learn — WMI error constants
+    url: https://learn.microsoft.com/en-us/windows/win32/wmisdk/wmi-error-constants
+  - title: MITRE ATT&CK — Windows Management Instrumentation (T1047)
+    url: https://attack.mitre.org/techniques/T1047/

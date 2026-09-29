@@ -1,0 +1,40 @@
+title: Es wurde versucht, das Kennwort eines Kontos zurückzusetzen
+shortTitle: Versuch der Kennwortzurücksetzung
+summary: >-
+  Event-ID 4724: Ein Konto setzt das Kennwort eines anderen zurück, ohne das alte zu kennen — eine administrative Aktion, die geprüft werden sollte.
+description: |-
+  Event 4724 protokolliert eine Kennwort-**Zurücksetzung**: Das Subject setzt ein neues Kennwort für das Zielkonto, ohne das alte anzugeben. Dazu ist das Recht „Kennwort zurücksetzen“ auf dem Konto nötig (bzw. lokale Administratorrechte bei einem lokalen Konto), daher wird dies normalerweise von Helpdesk-Personal, Administratoren oder Provisioning-Tools durchgeführt. `Subject*` ist, wer das Kennwort zurückgesetzt hat, `Target*`, wessen Kennwort zurückgesetzt wurde.
+
+  Zurücksetzungen gehören zur Kontoerstellung (ein neues Konto erhält so sein erstes Kennwort, meist neben 4720 und 4722) und zur Routinearbeit des Helpdesks. Sie sind aber auch der schnellste Weg für einen Angreifer mit delegierten Rechten, ein anderes Konto zu übernehmen: Kennwort zurücksetzen, dann als Ziel anmelden. Tools, die Active-Directory-Berechtigungen missbrauchen, etwa ein delegiertes Recht „Kennwort zurücksetzen“ auf einem privilegierten Benutzer, landen in diesem Event.
+
+  Ein Fehler-Event wird protokolliert, wenn das neue Kennwort die Kennwortrichtlinie nicht erfüllt; ein „Zugriff verweigert“ bei der Zurücksetzung erzeugt **kein** 4724 mit Fehler. Das Event wird auch beim Zurücksetzen des Kennworts eines Computerkontos protokolliert.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success, Failure). „Erfolg“ wird standardmäßig überwacht; „Fehler“ muss aktiviert werden, um
+    abgelehnte Versuche zu sehen.
+fields:
+  - name: SubjectUserName
+    description: Konto, das die Zurücksetzung durchgeführt hat. Mit den erwarteten Helpdesk- und Admin-Konten abgleichen.
+  - name: SubjectDomainName
+    description: Domäne oder Computername des Subjects.
+  - name: SubjectLogonId
+    description: Anmeldesitzung des Subjects; mit 4624 korrelieren.
+  - name: TargetUserName
+    description: Konto, dessen Kennwort zurückgesetzt wurde.
+  - name: TargetDomainName
+    description: Domäne des Zielkontos oder der Computername bei einem lokalen Konto.
+  - name: TargetSid
+    description: SID des Zielkontos.
+benign:
+  - Kennwortzurücksetzungen durch den Helpdesk, nachdem ein Benutzer sein Kennwort vergessen hat oder gesperrt ist (oft mit vorangehendem 4740 und folgendem 4767).
+  - Setzen des ersten Kennworts bei der Kontoerstellung, neben 4720 und 4722.
+  - Kennwortverwaltungstools, die das Kennwort des lokalen Administrators oder von Dienstkonten rotieren.
+attacker:
+  - Kontoübernahme durch Missbrauch einer delegierten Berechtigung zum Zurücksetzen des Kennworts eines anderen Benutzers, auch privilegierter Benutzer.
+  - Zurücksetzen des Kennworts eines ruhenden Kontos oder Dienstkontos, um funktionierende Anmeldeinformationen für Lateral Movement zu erhalten.
+  - Massenhafte Kennwortzurücksetzungen, um Administratoren bei einem destruktiven Angriff auszusperren.
+investigation:
+  - Prüfen, ob SubjectUserName das Kennwort des Ziels zurücksetzen darf und ob ein Ticket oder eine Anfrage existiert.
+  - Kurz nach der Zurücksetzung nach einer Anmeldung des TargetUserName (4624, 4768) von einem Host suchen, den das Subject kontrolliert.
+  - Zurücksetzungen privilegierter Konten (Domain Admins, Dienstkonten) durch Konten außerhalb von Tier 0 sofort prüfen.

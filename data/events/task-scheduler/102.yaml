@@ -1,0 +1,53 @@
+id: 102
+channel: task-scheduler
+provider: Microsoft-Windows-TaskScheduler
+title: Task completed
+shortTitle: Task completed
+category: scheduled-task
+summary: >-
+  Task Scheduler event 102 marks the end of a task instance. With event 100 it bounds how long
+  a task ran; the action's return code is in event 201.
+description: |-
+  Event 102 is written when the Task Scheduler service considers a task instance finished. It carries the same three fields as event 100 — `TaskName`, `UserContext` and `InstanceId` — so the pair 100/102 with a matching `InstanceId` gives the start and end time of one run.
+
+  "Successfully finished" refers to the scheduler's handling of the instance, not to the outcome of the program it launched. The exit code of each action is recorded in event 201 (`ResultCode`), which is where to look to know whether the payload or script actually succeeded.
+
+  A task that starts (100) but never logs 102 may still be running, may have been killed, or may have been interrupted by a reboot.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    The Microsoft-Windows-TaskScheduler/Operational channel must be enabled — "Enable All Tasks
+    History" in the Task Scheduler console, or `wevtutil sl Microsoft-Windows-TaskScheduler/Operational /e:true`.
+  notes: >-
+    The default state of this channel is not consistent across Windows versions, editions and
+    builds: on some installs it is already recording, on others task history is off and the log
+    stays empty until someone enables it. Check whether the log holds any records before treating
+    a missing event as evidence. On busy hosts the log rolls over quickly.
+fields:
+  - name: TaskName
+    description: Full path of the task in the library.
+  - name: UserContext
+    description: Account the task instance ran as.
+  - name: InstanceId
+    description: GUID of the run; matches `InstanceId` in 100 and `TaskInstanceId` in 200/201.
+benign:
+  - Completion of built-in maintenance and update tasks, in large numbers.
+  - Application and management tasks finishing their scheduled work.
+attacker:
+  - The end of a malicious task run; a very short run time is typical of a launcher that spawns a payload and exits.
+  - One-shot remote execution tasks, usually followed by deletion (141).
+investigation:
+  - Pair 100 and 102 by InstanceId to compute run duration for suspicious tasks.
+  - Read 201 for the same instance to get the action's ResultCode.
+  - Look for 141 shortly after 102 for the same TaskName — task used once then removed.
+related:
+  - task-scheduler/100
+  - task-scheduler/201
+  - task-scheduler/200
+  - task-scheduler/141
+  - task-scheduler/129
+attack:
+  - T1053.005
+references:
+  - title: Microsoft Learn — Task Scheduler
+    url: https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-start-page

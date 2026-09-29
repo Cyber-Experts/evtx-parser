@@ -1,0 +1,66 @@
+id: 1116
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: The antimalware platform detected malware or other potentially unwanted software
+shortTitle: Malware detected
+category: antimalware
+summary: >-
+  Defender event 1116 is logged when Microsoft Defender Antivirus detects malware or unwanted
+  software: threat name, file path, process and user.
+description: |-
+  Event 1116 is the detection record of Microsoft Defender Antivirus: something matched a signature, heuristic or cloud verdict. It names the threat, where it was found (`Path`), which process touched it, which user was involved and which component caught it (`Source Name`: real-time protection, a scan, AMSI, downloads…).
+
+  A detection is followed by 1117 when the remediation action succeeded, or 1118/1119 when it failed. A 1116 without a successful 1117 means the threat may still be on disk or running.
+
+  For incident response the detection time and path are anchors: the process that wrote the file, the user session and the network activity just before it usually explain how it arrived.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — logged by Microsoft Defender Antivirus in the Windows Defender/Operational channel
+    whenever it is the active antivirus.
+  notes: >-
+    When a third-party antivirus is active, Defender runs in passive or disabled mode and these
+    events may be absent.
+fields:
+  - name: Threat Name
+    description: Name of the detection, e.g. `HackTool:Win32/Mimikatz` or `Trojan:PowerShell/...`. The prefix gives the threat type.
+  - name: Severity Name
+    description: Severity (Low, Moderate, High, Severe).
+  - name: Category Name
+    description: Threat category (Trojan, Tool, Exploit, Potentially Unwanted Software…).
+  - name: Path
+    description: File, script or resource where the threat was found (may list several `file:_` / `containerfile:_` entries).
+  - name: Process Name
+    description: Process that accessed or created the detected item.
+  - name: Detection User
+    description: Account in whose context the detection happened.
+  - name: Source Name
+    description: >-
+      Component that detected it — Real-Time Protection, User or System scan, IOAV (downloads and
+      attachments), AMSI (scripts), ELAM (boot) and others.
+  - name: Detection Origin Name
+    description: Where the item came from (Local machine, Network share, Internet…).
+benign:
+  - Potentially unwanted applications, adware and cracked software on user machines.
+  - Security tools and test files (EICAR, pentest tools) used by IT or red teams.
+attacker:
+  - Credential dumping and hacking tools dropped by an intruder (HackTool detections are rarely benign on servers).
+  - Malicious scripts caught through AMSI (Source Name AMSI), often PowerShell download cradles.
+  - Ransomware and loader payloads — the first detection is frequently one step of a larger intrusion.
+investigation:
+  - Check for the matching 1117 (action succeeded); treat 1118/1119 or no follow-up as an active threat.
+  - Pivot on Process Name and the time to process creation (4688, Sysmon 1) to find the parent chain.
+  - For AMSI detections, read the 4104 script blocks from the same minute.
+  - Look for configuration changes (5001, 5007) shortly before or after — attackers often try to disable Defender after a detection.
+related:
+  - defender/1117
+  - defender/1118
+  - defender/1119
+  - defender/1006
+  - defender/5001
+  - powershell/4104
+  - sysmon/1
+attack: []
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

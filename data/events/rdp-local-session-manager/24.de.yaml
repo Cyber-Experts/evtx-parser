@@ -1,0 +1,27 @@
+title: "Remotedesktopdienste: Die Sitzung wurde getrennt"
+shortTitle: Sitzung getrennt
+summary: >-
+  RDP-Event-ID 24 wird protokolliert, wenn eine Remotedesktopsitzung ohne Abmeldung getrennt wird,
+  mit Benutzer, Sitzungs-ID und Client-Adresse.
+description: |-
+  Event 24 protokolliert, dass eine Sitzung von ihrem Client gelöst wurde — das RDP-Fenster wurde geschlossen, das Netzwerk ist abgebrochen oder ein anderer Client hat die Sitzung übernommen. Die Sitzung läuft mit ihren Prozessen und Anmeldeinformationen auf dem Server weiter und kann daher wieder aufgenommen werden (Event 25).
+
+  Das Feld `Address` nennt den zu diesem Zeitpunkt verbundenen Client. Serien von 24/25-Paaren mit wechselnden Adressen zeigen, dass eine Sitzung von mehreren Orten aus genutzt wird.
+logging:
+  requirement: >-
+    Keine — der Kanal LocalSessionManager/Operational ist standardmäßig aktiviert.
+fields:
+  - name: User
+    description: Konto, dessen Sitzung getrennt wurde.
+  - name: SessionID
+    description: Sitzungsnummer.
+  - name: Address
+    description: IP-Adresse des verbundenen Clients oder `LOCAL`.
+benign:
+  - Benutzer, die das RDP-Fenster schließen statt sich abzumelden, Laptops im Ruhezustand, instabile Netzwerke.
+attacker:
+  - Angreifer, die eine Sitzung laufen lassen, um später per 25 zurückzukehren.
+  - Session Hijacking oder Übernahme — eine Trennung, gefolgt von einer Wiederverbindung derselben Sitzung von einer anderen Adresse oder durch eine andere Sitzung (siehe 39).
+investigation:
+  - Die SessionID zum nächsten 25 oder 23 verfolgen; Address-Werte vergleichen.
+  - Mit Security 4779 für die Anmelde-ID und 40 für den Code des Trennungsgrunds kombinieren.

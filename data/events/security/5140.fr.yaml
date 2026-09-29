@@ -1,0 +1,62 @@
+title: Un objet de partage réseau a fait l'objet d'un accès
+shortTitle: Accès à un partage réseau
+summary: >-
+  L'événement 5140 consigne le premier accès à un partage réseau dans une session SMB : compte, IP
+  source et partage. Clé pour suivre C$, ADMIN$ et IPC$.
+description: |-
+  L'événement 5140 est écrit sur l'ordinateur qui **héberge** le partage lorsqu'un client s'y connecte. Il est généré une fois par session, lors de la première tentative d'accès : il montre donc quels partages un compte distant a ouverts, et non chaque fichier qu'il a touché (c'est le rôle du 5145).
+
+  Les champs clés sont `SubjectUserName` / `SubjectDomainName` (qui), `IpAddress` / `IpPort` (d'où), `ShareName` et `ShareLocalPath` (quel partage). `SubjectLogonId` relie l'accès à l'ouverture de session réseau (4624 LogonType 3) qui a créé la session.
+
+  Les partages administratifs sont la principale raison de le collecter : `ADMIN$` et `C$` sont utilisés par les outils de type PsExec et par les attaquants qui copient des charges utiles, et `IPC$` sert aux canaux nommés (contrôle des services, registre distant, énumération SAMR/LSARPC). Sur les contrôleurs de domaine, les accès à `SYSVOL` et `NETLOGON` par tous les ordinateurs génèrent beaucoup de bruit.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit File Share (Success, Failure). Non
+    audité dans la stratégie d'audit par défaut de Windows.
+  notes: >-
+    Volume élevé sur les serveurs de fichiers et les contrôleurs de domaine (accès SYSVOL par la
+    stratégie de groupe), faible sur les postes de travail. La même sous-catégorie produit les
+    5142, 5143, 5144 et 5168. Un 5140 en échec est consigné lorsque l'accès est refusé au niveau
+    du partage.
+fields:
+  - name: SubjectUserSid
+    description: SID du compte ayant accédé au partage.
+  - name: SubjectUserName
+    description: Compte ayant accédé au partage. Les comptes machine (`HOST$`) sont fréquents et généralement bénins.
+  - name: SubjectDomainName
+    description: Domaine ou nom d'ordinateur du compte.
+  - name: SubjectLogonId
+    description: Session de l'utilisateur distant ; correspond au `TargetLogonId` du 4624 réseau sur cet hôte.
+  - name: ObjectType
+    description: Toujours `File` pour cet événement.
+  - name: IpAddress
+    description: Adresse IP du client. `::1` ou `127.0.0.1` pour un accès local via un chemin UNC.
+  - name: IpPort
+    description: Port source de la connexion cliente.
+  - name: ShareName
+    description: >-
+      Nom du partage sous la forme `\\*\SHARE`, par ex. `\\*\C$`, `\\*\ADMIN$`, `\\*\IPC$`,
+      `\\*\SYSVOL`.
+  - name: ShareLocalPath
+    description: Chemin local du partage, par ex. `\??\C:\Windows` pour `ADMIN$`. Vide pour `IPC$`.
+  - name: AccessMask
+    description: Droits d'accès demandés. Pour le 5140, normalement `0x1` (ReadData / ListDirectory).
+  - name: AccessList
+    description: Droits d'accès sous forme symbolique, par ex. `%%4416` (ReadData ou ListDirectory).
+benign:
+  - Postes de travail et serveurs lisant `SYSVOL` et `NETLOGON` sur les contrôleurs de domaine pour les stratégies de groupe et les scripts d'ouverture de session.
+  - Utilisateurs mappant des partages de service et leurs lecteurs personnels.
+  - Outils d'administration et de sauvegarde, agents de déploiement logiciel et d'inventaire se connectant à `ADMIN$`, `C$` ou `IPC$`.
+attacker:
+  - >-
+    Mouvement latéral avec PsExec, `smbexec`/`psexec` d'Impacket ou des outils similaires : un
+    accès à `ADMIN$` ou `IPC$` depuis un poste de travail, suivi de l'installation d'un service
+    (7045, 4697).
+  - Dépôt ou récupération de fichiers via `C$` sur un hôte distant avec des identifiants volés.
+  - Énumération des partages et des utilisateurs via `IPC$` (canaux nommés SAMR, LSARPC, SRVSVC) depuis un hôte qui n'interroge pas habituellement ce serveur.
+  - Collecte de données sur des serveurs de fichiers par un compte qui y accède rarement.
+investigation:
+  - Éliminez les comptes machine et `SYSVOL`/`NETLOGON`, puis examinez `ADMIN$`, `C$` et les autres partages administratifs par IP source et par compte.
+  - Pivotez sur `SubjectLogonId` vers le 4624 LogonType 3 du même hôte pour confirmer le package d'authentification (NTLM ou Kerberos).
+  - Si Detailed File Share est activé, consultez les 5145 pour les fichiers et canaux nommés utilisés dans la même session (`svcctl`, `samr`, `lsarpc`, `srvsvc`).
+  - Sur l'hôte source, recherchez la connexion sortante correspondante (Sysmon 3, 5156) et l'outil qui l'a initiée.

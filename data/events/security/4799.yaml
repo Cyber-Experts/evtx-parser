@@ -1,0 +1,67 @@
+id: 4799
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A security-enabled local group membership was enumerated
+shortTitle: Local group members enumerated
+category: group
+summary: >-
+  Security event 4799 logs a process listing the members of a local group such as Administrators,
+  with the caller process. Good signal for local admin discovery.
+description: |-
+  Event 4799 is written when a process enumerates the members of a security-enabled local group. It names the group (`TargetUserName`, `TargetSid`), the account and session that asked (`Subject*`), and the process (`CallerProcessName`, `CallerProcessId`).
+
+  Attackers need to know who is a local administrator before moving laterally, and `net localgroup administrators`, PowerShell `Get-LocalGroupMember` or AD reconnaissance tools that query local admin membership of many hosts all produce 4799 on the machine being queried. Queries of `Administrators` (`S-1-5-32-544`) and `Remote Desktop Users` are the ones to watch.
+
+  Expect noise from Windows itself: the Volume Shadow Copy service and other built-in components enumerate local groups routinely. Baseline caller processes before alerting.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Enabled in the default audit policy.
+  notes: >-
+    Available on Windows 10 / Server 2016 and later. Not generated when group members are listed
+    with the Active Directory Users and Computers snap-in.
+fields:
+  - name: TargetUserName
+    description: Name of the group that was enumerated, e.g. `Administrators`.
+  - name: TargetDomainName
+    description: Domain of the group; `Builtin` for built-in local groups.
+  - name: TargetSid
+    description: >-
+      SID of the group. `S-1-5-32-544` is Administrators, `S-1-5-32-555` Remote Desktop Users,
+      `S-1-5-32-551` Backup Operators.
+  - name: SubjectUserName
+    description: Account that performed the enumeration.
+  - name: SubjectLogonId
+    description: Logon session of that account; pivot to 4624 and 4688.
+  - name: CallerProcessId
+    description: Hexadecimal PID of the process that performed the enumeration.
+  - name: CallerProcessName
+    description: >-
+      Full path of that process. Built-in services (for example `VSSVC.exe`) are routine; `net1.exe`,
+      `powershell.exe` or unknown binaries are worth a look.
+benign:
+  - Volume Shadow Copy and backup software enumerating Administrators and Backup Operators.
+  - Administrators opening Local Users and Groups or running inventory scripts.
+  - Endpoint management agents collecting local admin membership for reporting.
+attacker:
+  - Local admin discovery with `net localgroup administrators` or `Get-LocalGroupMember` after initial access.
+  - Domain-wide reconnaissance tools querying local group membership on many hosts to map admin paths.
+investigation:
+  - Filter to TargetSid `S-1-5-32-544` and unusual CallerProcessName values first.
+  - >-
+    Pivot on CallerProcessId and SubjectLogonId to 4688 for the exact command line and parent
+    process.
+  - >-
+    For remote queries, the Subject is the remote account — find its type 3 logon (4624) on the same
+    host to get the source, and check how many other hosts saw the same pattern.
+related:
+  - security/4798
+  - security/4688
+  - security/4624
+  - security/4732
+attack:
+  - T1069.001
+references:
+  - title: "Microsoft Learn — 4799(S): A security-enabled local group membership was enumerated"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4799

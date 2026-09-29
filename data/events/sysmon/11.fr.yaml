@@ -1,0 +1,38 @@
+title: Création de fichier (FileCreate)
+shortTitle: Fichier créé
+summary: >-
+  L'événement Sysmon 11 consigne la création ou l'écrasement d'un fichier et le processus
+  responsable. Clé pour les charges déposées, la persistance, les dumps.
+description: |-
+  L'événement Sysmon 11 consigne la création ou l'écrasement d'un fichier, en nommant le fichier (`TargetFilename`) et le processus qui l'a écrit. C'est la réponse de Sysmon à la question « d'où vient ce fichier ? ».
+
+  Les cibles utiles sont les emplacements de démarrage automatique (dossiers Startup, `System32\Tasks`), les dossiers de téléchargement et temporaires, les extensions de scripts et d'exécutables, et les fichiers de dump comme `lsass.dmp`. `CreationUtcTime` est l'horodatage de création du fichier ; pour un fichier écrasé, il peut être antérieur à l'heure de l'événement.
+
+  L'activité fichier est intense sur tout système : les configurations incluent des dossiers et extensions précis plutôt que de tout journaliser.
+logging:
+  requirement: >-
+    Sysmon installé ; filtrez avec des règles `<FileCreate>` dans la configuration (incluez les
+    dossiers et extensions d'intérêt).
+fields:
+  - name: ProcessGuid
+    description: Processus ayant écrit le fichier ; pivotez vers son événement 1.
+  - name: Image
+    description: Exécutable ayant écrit le fichier.
+  - name: TargetFilename
+    description: Chemin complet du fichier créé.
+  - name: CreationUtcTime
+    description: Heure de création du fichier (peut être antérieure à UtcTime lorsqu'un fichier existant est écrasé).
+  - name: User
+    description: Compte du processus (versions récentes de Sysmon).
+benign:
+  - Navigateurs enregistrant des téléchargements, installateurs écrivant dans Program Files, outils de mise à jour remplaçant des binaires.
+  - Office et Windows écrivant des fichiers temporaires et de cache.
+attacker:
+  - Charges utiles déposées dans `%TEMP%`, `%APPDATA%`, `ProgramData` ou `C:\Users\Public`.
+  - Fichiers de persistance dans `...\Start Menu\Programs\Startup` ou nouveau XML de tâche dans `C:\Windows\System32\Tasks`.
+  - Dumps mémoire comme `lsass.dmp` écrits par ProcDump, le Gestionnaire des tâches ou `rundll32.exe`.
+  - Outils copiés dans `C:\Windows` via les partages administratifs par `System` lors d'un mouvement latéral de type PsExec.
+investigation:
+  - Pivotez sur ProcessGuid vers l'événement 1 pour voir quel processus et quel parent ont écrit le fichier.
+  - Recherchez un événement 1 ultérieur dont l'Image est égale au TargetFilename — le fichier déposé a été exécuté.
+  - Consultez l'événement 15 pour le flux Zone.Identifier des fichiers téléchargés afin d'obtenir l'URL source.

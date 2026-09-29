@@ -1,0 +1,133 @@
+title: Se inició sesión correctamente en una cuenta
+shortTitle: Inicio de sesión correcto
+summary: >-
+  El evento 4624 registra cada inicio de sesión correcto: quién, cómo (LogonType), desde dónde
+  (IpAddress) y con qué paquete. La base del análisis.
+description: |-
+  El evento 4624 lo escribe la autoridad de seguridad local (LSA) en el equipo que **aceptó** el inicio de sesión, cada vez que se crea una sesión. Es por tanto el registro del acceso del lado de la máquina: el controlador de dominio ve la autenticación (4768, 4769, 4776), mientras que el host de destino escribe el 4624.
+
+  El registro responde a cuatro preguntas. **Quién**: `TargetUserName`, `TargetDomainName` y `TargetUserSid`. **Cómo**: `LogonType`, `LogonProcessName` y `AuthenticationPackageName`. **Desde dónde**: `WorkstationName`, `IpAddress` y `IpPort`. **Qué sesión**: `TargetLogonId`, la clave que vincula el inicio de sesión con cualquier actividad realizada en ella (4672, 4688, 4663, 4634/4647).
+
+  En un servidor con mucha actividad, el 4624 es el evento más ruidoso del registro de Seguridad: la mayoría de los registros corresponden a servicios, cuentas de equipo (nombres terminados en `$`) y `SYSTEM`. Fíltrelos primero y después agrupe por `LogonType` y por origen.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logon (Success). Habilitado para
+    Correcto en la directiva de auditoría predeterminada de Windows.
+  notes: >-
+    La información de red (`IpAddress`, `IpPort`) solo se rellena en los inicios de sesión remotos;
+    los locales muestran `-` o `127.0.0.1`. Los campos `ImpersonationLevel`, `RestrictedAdminMode`,
+    `VirtualAccount`, `ElevatedToken` y `TargetLinkedLogonId` aparecen a partir de Windows 10 /
+    Server 2016.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Cuenta que solicitó el inicio de sesión en la máquina local: normalmente la cuenta de equipo
+      (`HOST$`) o `-` en los inicios de sesión de red. No es la cuenta que inició sesión.
+  - name: SubjectLogonId
+    description: Sesión del solicitante; `0x3e7` es la sesión SYSTEM local.
+  - name: TargetUserName
+    description: La cuenta que inició sesión. Es este campo el que hay que revisar, no los campos Subject.
+  - name: TargetDomainName
+    description: Dominio o nombre de equipo de la cuenta de destino.
+  - name: TargetUserSid
+    description: SID de la cuenta que inició sesión. Se mantiene estable aunque se cambie el nombre de la cuenta.
+  - name: TargetLogonId
+    description: >-
+      ID hexadecimal de la nueva sesión. Pivote sobre él para encontrar el 4672 correspondiente, los
+      procesos creados en la sesión (SubjectLogonId del 4688) y el cierre de sesión (4634, 4647).
+  - name: LogonType
+    description: Cómo se produjo el inicio de sesión. Es el primer campo que hay que leer.
+    values:
+      - value: "2"
+        meaning: Interactivo — teclado y pantalla en la consola (o consola KVM / de hipervisor).
+      - value: "3"
+        meaning: >-
+          Red — acceso a un recurso a través de la red: recurso compartido SMB, registro remoto, WMI,
+          WinRM, PsExec. No se almacenan credenciales en caché en el destino.
+      - value: "4"
+        meaning: Por lotes — tarea programada que se ejecuta como un usuario.
+      - value: "5"
+        meaning: Servicio — un servicio iniciado con una cuenta de servicio.
+      - value: "7"
+        meaning: Desbloqueo — estación de trabajo desbloqueada.
+      - value: "8"
+        meaning: >-
+          NetworkCleartext — inicio de sesión de red en el que la contraseña se envió en texto claro
+          (autenticación básica de IIS, algunas configuraciones de PowerShell/WinRM).
+      - value: "9"
+        meaning: >-
+          NewCredentials — `runas /netonly` o un proceso al que se le dan credenciales alternativas
+          solo para las conexiones salientes. La identidad local no cambia.
+      - value: "10"
+        meaning: RemoteInteractive — inicio de sesión por Escritorio remoto / Terminal Services.
+      - value: "11"
+        meaning: >-
+          CachedInteractive — inicio de sesión interactivo con credenciales de dominio en caché (sin
+          ningún DC accesible).
+  - name: LogonProcessName
+    description: >-
+      Proceso de inicio de sesión de confianza que gestionó la solicitud, p. ej. `User32`
+      (interactivo/RDP), `NtLmSsp` (inicio de sesión de red NTLM), `Kerberos`, `Advapi` (servicios,
+      runas), `seclogo` (runas / NewCredentials).
+  - name: AuthenticationPackageName
+    description: >-
+      `Kerberos`, `NTLM` o `Negotiate`. Los inicios de sesión de red NTLM desde estaciones de trabajo
+      donde se esperaba Kerberos merecen una segunda revisión.
+  - name: LmPackageName
+    description: >-
+      En los inicios de sesión NTLM, la versión del protocolo: `NTLM V1`, `NTLM V2` o `LM`. NTLMv1 y
+      LM son débiles y no deberían aparecer en un dominio moderno.
+  - name: KeyLength
+    description: Longitud de la clave de sesión en NTLM; 0 para Kerberos y para NTLM sin seguridad de sesión.
+  - name: WorkstationName
+    description: Nombre NetBIOS del equipo de origen tal como lo proporciona el cliente (puede falsificarse o venir vacío).
+  - name: IpAddress
+    description: IP de origen de un inicio de sesión remoto. `-` o `::1` / `127.0.0.1` en los inicios de sesión locales.
+  - name: IpPort
+    description: Puerto TCP de origen; `0` o `-` en los inicios de sesión locales.
+  - name: ProcessName
+    description: >-
+      Proceso que realizó el inicio de sesión, p. ej. `C:\Windows\System32\winlogon.exe` en los
+      interactivos, `services.exe` en los de servicio, `-` en los de red.
+  - name: ElevatedToken
+    description: >-
+      `%%1842` (Sí) cuando la sesión recibió un token administrativo completo, `%%1843` (No) en caso
+      contrario. Una forma rápida de detectar inicios de sesión de administradores.
+  - name: RestrictedAdminMode
+    description: >-
+      Para LogonType 10, indica si el cliente RDP usó el modo Restricted Admin (no se envían
+      credenciales al servidor). `%%1843` (No) o `%%1842` (Sí).
+  - name: VirtualAccount
+    description: Sí para las cuentas virtuales, como las identidades de servicio administradas `NT SERVICE\...`.
+  - name: TargetLinkedLogonId
+    description: >-
+      Con UAC, el inicio de sesión de un administrador crea dos sesiones vinculadas (filtrada y
+      elevada); este es el ID de la otra.
+benign:
+  - Usuarios que inician sesión en la consola (tipo 2), desbloquean (tipo 7) o se conectan por RDP (tipo 10).
+  - Inicios de sesión de cuentas de equipo (`HOST$`) y de `SYSTEM`, `LOCAL SERVICE`, `NETWORK SERVICE`, sobre todo de tipo 5.
+  - "Tráfico de servidores de archivos y controladores de dominio: miles de inicios de sesión de tipo 3 por hora desde estaciones de trabajo."
+  - Tareas programadas (tipo 4) y grupos de aplicaciones de IIS que usan cuentas configuradas.
+  - Administradores que usan `runas /netonly` (tipo 9) para herramientas que necesitan otras credenciales.
+attacker:
+  - >-
+    Movimiento lateral con credenciales robadas: inicios de sesión de tipo 3 desde una estación de
+    trabajo hacia servidores (PsExec, SMB, WMI), a menudo con una ráfaga de nuevos pares origen/destino.
+  - Acceso RDP (tipo 10) desde direcciones IP inusuales, a horas inusuales o a hosts que la cuenta nunca usa.
+  - >-
+    Pass-the-hash: inicios de sesión NTLM de tipo 3 donde se espera Kerberos. En el host de origen,
+    `sekurlsa::pth` de Mimikatz aparece como tipo 9 con LogonProcessName `seclogo`.
+  - Un inicio de sesión correcto justo después de muchos fallos 4625 para la misma cuenta (fuerza bruta o password spraying que tuvo éxito).
+  - Inicios de sesión de cuentas recién creadas (4720) o de cuentas que acaban de añadirse a un grupo de administradores (4732, 4728).
+investigation:
+  - >-
+    Filtre primero el ruido: TargetUserName terminado en `$`, `SYSTEM`, `ANONYMOUS LOGON` (salvo que
+    busque sesiones nulas) y LogonType 5.
+  - Agrupe por TargetUserName, LogonType e IpAddress para detectar combinaciones vistas por primera vez.
+  - >-
+    Pivote sobre TargetLogonId: un 4672 en el mismo segundo indica una sesión de administrador; los
+    4688 con el mismo SubjectLogonId muestran lo que ejecutó la sesión; 4634/4647 da el final de la sesión.
+  - Para el tipo 10, correlacione con los eventos RDP 1149, 21, 22, 24 y 25 para obtener la cronología completa de la sesión.
+  - >-
+    En los controladores de dominio, relacione los inicios de sesión de tipo 3 con 4768/4769
+    (Kerberos) o 4776 (NTLM) para confirmar qué protocolo se usó realmente.

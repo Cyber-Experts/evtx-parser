@@ -1,0 +1,154 @@
+id: 4624
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: An account was successfully logged on
+shortTitle: Successful logon
+category: logon
+summary: >-
+  Security event 4624 records every successful logon: who, how (LogonType), from where
+  (IpAddress) and with which package. The core of logon forensics.
+description: |-
+  Event 4624 is written by the Local Security Authority on the computer that **accepted** the logon, each time a logon session is created. That makes it the machine-side record of access: the domain controller sees the authentication (4768, 4769, 4776), while the target host writes 4624.
+
+  The record answers four questions. **Who**: `TargetUserName`, `TargetDomainName` and `TargetUserSid`. **How**: `LogonType`, `LogonProcessName` and `AuthenticationPackageName`. **From where**: `WorkstationName`, `IpAddress` and `IpPort`. **Which session**: `TargetLogonId`, the key that ties the logon to everything done in it (4672, 4688, 4663, 4634/4647).
+
+  On a busy server 4624 is the noisiest event in the Security log — most records are services, machine accounts (names ending in `$`) and `SYSTEM`. Filter those out first, then group by `LogonType` and source.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logon (Success). Enabled for
+    Success in the default Windows audit policy.
+  notes: >-
+    Network information (`IpAddress`, `IpPort`) is only filled for remote logons; local logons show
+    `-` or `127.0.0.1`. The `ImpersonationLevel`, `RestrictedAdminMode`, `VirtualAccount`,
+    `ElevatedToken` and `TargetLinkedLogonId` fields appear on Windows 10 / Server 2016 and later.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Account that requested the logon on the local machine — usually the computer account
+      (`HOST$`) or `-` for network logons. Not the account that logged on.
+  - name: SubjectLogonId
+    description: Logon session of the requester; `0x3e7` is the local SYSTEM session.
+  - name: TargetUserName
+    description: The account that was logged on. Check this, not the Subject fields.
+  - name: TargetDomainName
+    description: Domain or computer name of the target account.
+  - name: TargetUserSid
+    description: SID of the logged-on account. Stable even if the account is renamed.
+  - name: TargetLogonId
+    description: >-
+      Hexadecimal ID of the new logon session. Pivot on it to find the matching 4672, the
+      processes created in the session (4688 SubjectLogonId) and the logoff (4634, 4647).
+  - name: LogonType
+    description: How the logon happened. Read this field first.
+    values:
+      - value: "2"
+        meaning: Interactive — keyboard and screen at the console (or KVM / hypervisor console).
+      - value: "3"
+        meaning: >-
+          Network — access to a resource over the network: SMB share, remote registry, WMI, WinRM,
+          PsExec. No credentials are cached on the target.
+      - value: "4"
+        meaning: Batch — scheduled task running as a user.
+      - value: "5"
+        meaning: Service — a service started under a service account.
+      - value: "7"
+        meaning: Unlock — workstation unlocked.
+      - value: "8"
+        meaning: NetworkCleartext — network logon where the password was sent in clear text (IIS Basic authentication, some PowerShell/WinRM setups).
+      - value: "9"
+        meaning: >-
+          NewCredentials — `runas /netonly` or a process given alternate credentials for outbound
+          connections only. The local identity stays the same.
+      - value: "10"
+        meaning: RemoteInteractive — Remote Desktop / Terminal Services logon.
+      - value: "11"
+        meaning: CachedInteractive — interactive logon with cached domain credentials (no DC reachable).
+  - name: LogonProcessName
+    description: >-
+      Trusted logon process that handled the request, e.g. `User32` (interactive/RDP), `NtLmSsp`
+      (NTLM network logon), `Kerberos`, `Advapi` (services, runas), `seclogo` (runas / NewCredentials).
+  - name: AuthenticationPackageName
+    description: >-
+      `Kerberos`, `NTLM` or `Negotiate`. NTLM network logons from workstations where Kerberos was
+      expected deserve a second look.
+  - name: LmPackageName
+    description: >-
+      For NTLM logons, the protocol version: `NTLM V1`, `NTLM V2` or `LM`. NTLMv1 and LM are weak
+      and should not appear in a modern domain.
+  - name: KeyLength
+    description: Session key length for NTLM; 0 for Kerberos and for NTLM without session security.
+  - name: WorkstationName
+    description: NetBIOS name of the source computer as supplied by the client (can be spoofed or empty).
+  - name: IpAddress
+    description: Source IP of a remote logon. `-` or `::1` / `127.0.0.1` for local logons.
+  - name: IpPort
+    description: Source TCP port; `0` or `-` for local logons.
+  - name: ProcessName
+    description: >-
+      Process that performed the logon, e.g. `C:\Windows\System32\winlogon.exe` for interactive
+      logons, `services.exe` for service logons, `-` for network logons.
+  - name: ElevatedToken
+    description: >-
+      `%%1842` (Yes) when the session received a full administrative token, `%%1843` (No)
+      otherwise. A quick way to spot admin logons.
+  - name: RestrictedAdminMode
+    description: >-
+      For LogonType 10, whether the RDP client used Restricted Admin mode (no credentials sent to
+      the server). `%%1843` (No) or `%%1842` (Yes).
+  - name: VirtualAccount
+    description: Yes for virtual accounts such as `NT SERVICE\...` managed service identities.
+  - name: TargetLinkedLogonId
+    description: >-
+      With UAC, an administrator logon creates two linked sessions (filtered and elevated); this is
+      the ID of the other one.
+benign:
+  - Users signing in at the console (type 2), unlocking (type 7) or connecting over RDP (type 10).
+  - Machine accounts (`HOST$`) and `SYSTEM`, `LOCAL SERVICE`, `NETWORK SERVICE` logons, especially type 5.
+  - "File server and domain controller traffic — thousands of type 3 logons per hour from workstations."
+  - Scheduled tasks (type 4) and IIS application pools using configured accounts.
+  - Administrators using `runas /netonly` (type 9) for tools that need other credentials.
+attacker:
+  - >-
+    Lateral movement with stolen credentials: type 3 logons from a workstation to servers
+    (PsExec, SMB, WMI), often with a burst of new source/target pairs.
+  - RDP access (type 10) from unusual IP addresses, at unusual times, or to hosts the account never uses.
+  - >-
+    Pass-the-hash: NTLM type 3 logons where Kerberos is expected. On the source host, Mimikatz
+    `sekurlsa::pth` shows up as type 9 with LogonProcessName `seclogo`.
+  - A successful logon right after many 4625 failures for the same account (brute force or password spraying that worked).
+  - Logons by freshly created accounts (4720) or accounts that were just added to an admin group (4732, 4728).
+investigation:
+  - >-
+    Filter out noise first: TargetUserName ending in `$`, `SYSTEM`, `ANONYMOUS LOGON` (unless you
+    hunt null sessions) and LogonType 5.
+  - Group by TargetUserName, LogonType and IpAddress to spot first-seen combinations.
+  - >-
+    Pivot on TargetLogonId: 4672 in the same second means an admin session; 4688 with the same
+    SubjectLogonId lists what the session executed; 4634/4647 gives the session end.
+  - For type 10, correlate with RDP events 1149, 21, 22, 24 and 25 to get the full session timeline.
+  - >-
+    On domain controllers, match type 3 logons with 4768/4769 (Kerberos) or 4776 (NTLM) to confirm
+    which protocol was really used.
+related:
+  - security/4625
+  - security/4634
+  - security/4647
+  - security/4648
+  - security/4672
+  - security/4688
+  - security/4768
+  - security/4769
+  - security/4776
+  - rdp-remote-connection-manager/1149
+  - rdp-local-session-manager/21
+attack:
+  - T1078
+  - T1021.001
+  - T1021.002
+  - T1550.002
+references:
+  - title: "Microsoft Learn — 4624(S): An account was successfully logged on"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4624
+  - title: Microsoft Learn — Audit Logon
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-logon

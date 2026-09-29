@@ -1,0 +1,49 @@
+id: 169
+channel: winrm
+provider: Microsoft-Windows-WinRM
+title: User authenticated successfully
+shortTitle: User authenticated (legacy)
+category: remote-access
+summary: >-
+  WinRM event 169 logs a user authenticating to the WinRM service and the mechanism used. It is
+  defined only in Windows 7 / Server 2008 R2 era manifests.
+description: |-
+  Event 169 is written by the WinRM service on the target when a remote user authenticates successfully. It names the account (`username`) and the authentication mechanism (`authenticationMechanism`, such as Negotiate, Kerberos or Basic), which makes it a convenient server-side marker for the start of a remote management session.
+
+  The event is tied to older Windows releases. It appears in the WinRM provider manifest of Windows 7 and Windows Server 2008 R2, but not in the manifests of later releases (Windows 8 through Windows 11, Server 2012 through Server 2022), so on modern systems its absence says nothing. There, rely on event 91 plus Security 4624 (type 3) for the account and source.
+
+  Where it exists, it pairs with event 91 (shell created) and the network logon to reconstruct who connected and how.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Microsoft-Windows-WinRM/Operational channel is enabled by default, on Windows versions
+    whose WinRM provider defines this event.
+  notes: >-
+    Defined in the Windows 7 / Server 2008 R2 WinRM manifest; not defined in the manifests of
+    Windows 8 through Windows 11 or Server 2012 through Server 2022. Treat it as legacy evidence and use 91 and Security 4624 on current systems.
+fields:
+  - name: username
+    description: Account that authenticated to WinRM (`DOMAIN\user`).
+  - name: authenticationMechanism
+    description: >-
+      Authentication method used, e.g. Negotiate, Kerberos or Basic. Basic authentication sends
+      credentials that are only protected by the transport, so it is worth flagging.
+benign:
+  - Administrators and management tools connecting to legacy servers with WinRM.
+attacker:
+  - Lateral movement through PowerShell remoting or `winrs` to older hosts with stolen credentials.
+investigation:
+  - Correlate with Security 4624 (type 3) for the source IP and with event 91 for the shell type.
+  - Flag Basic authentication and accounts that do not normally manage the host.
+related:
+  - winrm/91
+  - winrm/6
+  - security/4624
+attack:
+  - T1021.006
+  - T1078
+references:
+  - title: Microsoft Learn — Authentication for remote connections (WinRM)
+    url: https://learn.microsoft.com/en-us/windows/win32/winrm/authentication-for-remote-connections
+  - title: MITRE ATT&CK — Windows Remote Management (T1021.006)
+    url: https://attack.mitre.org/techniques/T1021/006/

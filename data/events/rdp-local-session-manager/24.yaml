@@ -1,0 +1,42 @@
+id: 24
+channel: rdp-local-session-manager
+provider: Microsoft-Windows-TerminalServices-LocalSessionManager
+title: "Remote Desktop Services: Session has been disconnected"
+shortTitle: Session disconnected
+category: remote-access
+summary: >-
+  RDP event 24 is logged when a Remote Desktop session is disconnected without logoff, with the
+  user, session ID and client address.
+description: |-
+  Event 24 records that a session was detached from its client — the RDP window was closed, the network dropped, or another client took the session over. The session keeps running on the server with its processes and credentials, so it can be picked up again (event 25).
+
+  The `Address` field gives the client that was connected at the time. Series of 24/25 pairs from changing addresses show a session being used from several places.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the LocalSessionManager/Operational channel is enabled by default.
+fields:
+  - name: User
+    description: Account whose session was disconnected.
+  - name: SessionID
+    description: Session number.
+  - name: Address
+    description: IP address of the client that was connected, or `LOCAL`.
+benign:
+  - Users closing the RDP window instead of signing out, laptops going to sleep, flaky networks.
+attacker:
+  - Operators leaving a session running to come back later with 25.
+  - Session hijacking or takeover — a disconnect followed by a reconnect of the same session from a different address or by a different session (see 39).
+investigation:
+  - Follow the SessionID to the next 25 or 23; compare Address values.
+  - Pair with Security 4779 for the logon ID, and 40 for the disconnect reason code.
+related:
+  - rdp-local-session-manager/25
+  - rdp-local-session-manager/39
+  - rdp-local-session-manager/40
+  - security/4779
+attack:
+  - T1021.001
+references:
+  - title: JPCERT/CC — Detecting Lateral Movement through Tracking Event Logs
+    url: https://www.jpcert.or.jp/english/pub/sr/ir_research.html

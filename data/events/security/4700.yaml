@@ -1,0 +1,64 @@
+id: 4700
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A scheduled task was enabled
+shortTitle: Scheduled task enabled
+category: scheduled-task
+summary: >-
+  Security event 4700 records a scheduled task being enabled, with its XML definition. Watch for
+  dormant or attacker-created tasks switched back on.
+description: |-
+  Event 4700 is written when a disabled scheduled task is enabled. The record includes the task's XML (`TaskContent`), so you see exactly what the re-enabled task will run.
+
+  It is uncommon in day-to-day operations compared with creation and modification. It matters when an attacker reactivates an existing task — a built-in or third-party task whose action has been replaced, or a malicious task staged disabled and switched on later — because reusing an existing task name draws less attention than creating a new one.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Object Access > Audit Other Object Access Events
+    (Success). Not enabled in the default audit policy.
+  notes: >-
+    No SACL is needed. Recent Windows builds add `ClientProcessId`, `ParentProcessId`,
+    `ClientProcessStartKey`, `RpcCallClientLocality` and `FQDN` to identify the process that made
+    the request. The Task Scheduler Operational log records similar lifecycle events (106, 140, 141)
+    without audit policy.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Account that made the change. For remote task management (`schtasks /s`, Impacket) this is
+      the remote account.
+  - name: SubjectDomainName
+    description: Domain or computer name of that account.
+  - name: SubjectLogonId
+    description: Logon session of the account; pivot to 4624 on the same host to find where it came from.
+  - name: TaskName
+    description: >-
+      Full task path, e.g. `\Microsoft\Windows\...` for built-in tasks. Tasks at the root (`\Name`)
+      or with names mimicking Microsoft ones deserve a look.
+  - name: TaskContent
+    description: >-
+      The task's full XML definition. Read `Actions/Exec/Command` and `Arguments` (what runs),
+      `Principals` (`UserId`, `RunLevel` — `HighestAvailable` means elevated), `Triggers` and
+      `Settings/Hidden`.
+  - name: ClientProcessId
+    description: PID of the process that requested the change, on builds that log it. Match it to 4688.
+benign:
+  - Software or administrators re-enabling maintenance tasks after troubleshooting.
+  - Updaters toggling their own tasks during upgrades.
+attacker:
+  - Re-enabling a previously disabled task whose action points to a payload, to gain persistence without a new 4698.
+  - Enabling a staged task on many hosts at the same time.
+investigation:
+  - Compare TaskContent with the last known 4698/4702 for the same TaskName to see whether the action changed before it was enabled.
+  - Pivot on SubjectLogonId to the logon that performed the change.
+related:
+  - security/4698
+  - security/4701
+  - security/4702
+  - task-scheduler/106
+  - task-scheduler/140
+  - security/4624
+attack:
+  - T1053.005
+references:
+  - title: "Microsoft Learn — 4700(S): A scheduled task was enabled"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4700

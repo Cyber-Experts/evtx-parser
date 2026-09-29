@@ -1,0 +1,68 @@
+id: 1074
+channel: system
+provider: User32
+title: The process has initiated the restart or power off of the computer on behalf of the user
+shortTitle: Shutdown or restart requested
+category: system
+summary: >-
+  System event 1074 (User32) records who requested a shutdown or restart: the process, the user,
+  the reason code and the comment. Answers "who rebooted this box?"
+description: |-
+  Event 1074 is written when a process asks Windows to shut down or restart through the standard API — the Start menu, `shutdown.exe`, `Restart-Computer`, Windows Update, installers, or a remote shutdown request. It is the best record of **intent**: which process asked, on behalf of which account, and with which reason.
+
+  The fields are positional: `param1` is the requesting process followed by a computer name in parentheses, `param2` the computer being shut down, `param3` the reason text, `param4` the reason code, `param5` the action (`restart`, `power off`), `param6` the free-text comment and `param7` the user. Reason codes follow the documented shutdown reason format (major and minor reason plus the planned flag).
+
+  A clean restart typically reads 1074, then 6006 and 13, then 12 and 6005 on the way back up. A crash has none of the first three.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log when a shutdown or restart is requested via the API.
+  notes: >-
+    Forced power-offs, hypervisor resets and crashes do not produce 1074. `param3` and `param5`
+    are localized on non-English systems.
+fields:
+  - name: param1
+    description: >-
+      Requesting process, e.g. `C:\Windows\system32\shutdown.exe`, `winlogon.exe`,
+      `TrustedInstaller.exe`, followed by a computer name in parentheses.
+  - name: param2
+    description: Name of the computer that is shut down or restarted.
+  - name: param3
+    description: >-
+      Reason text, e.g. `Operating System: Upgrade (Planned)` or `Other (Unplanned)`.
+  - name: param4
+    description: Shutdown reason code in hex, e.g. `0x80020003`. `0x0` means no reason was given.
+  - name: param5
+    description: Action requested, e.g. `restart` or `power off`.
+  - name: param6
+    description: Comment supplied by the requester (for example `shutdown /c "..."`). Often empty.
+  - name: param7
+    description: Account on whose behalf the shutdown was requested, e.g. `NT AUTHORITY\SYSTEM` or `CONTOSO\admin`.
+benign:
+  - Users restarting from the Start menu (`winlogon.exe`, `explorer.exe`, `RuntimeBroker.exe`).
+  - Windows Update and servicing restarts by `TrustedInstaller.exe`, `MoUsoCoreWorker.exe` or `winlogon.exe` as `SYSTEM`.
+  - Software installers and management agents rebooting after deployment.
+attacker:
+  - >-
+    `shutdown.exe /r` or `Restart-Computer` run by an attacker to activate persistence or to
+    disrupt operations, sometimes with a comment left as a message.
+  - Mass reboots of servers by ransomware operators, often with `shutdown.exe` run from a remote session.
+investigation:
+  - Check `param7` and `param1` together; interactive user accounts running `shutdown.exe` on servers are worth confirming.
+  - Match the time with process creation (4688, Sysmon 1) to see the exact command line and parent process.
+  - For remote shutdowns, look for a network logon (4624 type 3) to the host just before.
+  - Confirm the sequence 1074, 6006, 13, 12, 6005 to validate a clean restart.
+related:
+  - system/12
+  - system/13
+  - system/6006
+  - system/6005
+  - security/4688
+  - security/4624
+  - sysmon/1
+attack:
+  - T1529
+references:
+  - title: Microsoft Learn — System shutdown reason codes
+    url: https://learn.microsoft.com/en-us/windows/win32/shutdown/system-shutdown-reason-codes
+  - title: MITRE ATT&CK — System Shutdown/Reboot (T1529)
+    url: https://attack.mitre.org/techniques/T1529/

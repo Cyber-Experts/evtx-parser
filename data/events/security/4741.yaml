@@ -1,0 +1,90 @@
+id: 4741
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A computer account was created
+shortTitle: Computer account created
+category: account
+summary: >-
+  Security event 4741 is logged on a domain controller when a computer account is created in
+  Active Directory, e.g. by a domain join or a manual pre-creation.
+description: |-
+  Event 4741 is written on the domain controller that processed the request when a new computer object is created. `Subject*` identifies who created it and `Target*` the new account (name ending in `$`). The event also snapshots initial attributes: `SamAccountName`, `DnsHostName`, `ServicePrincipalNames`, `PrimaryGroupId`, `AllowedToDelegateTo`, `SidHistory` and the SAM account flags.
+
+  By default any authenticated domain user can create up to 10 computer accounts (the `ms-DS-MachineAccountQuota` attribute of the domain). Attackers use that quota to obtain an account they fully control, which is the first step of several attacks: resource-based constrained delegation abuse, the noPac sAMAccountName spoofing chain, and relay attacks that need a machine account. A computer account created by a regular user rather than by an administrator or deployment service is therefore worth a look.
+
+  A normal workstation or server join shows `PrimaryGroupId` `515` (Domain Computers) and `NewUacValue` `0x80` (workstation trust account), and is followed by a 4742 when the machine updates its DNS name and SPNs.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Computer Account Management
+    (Success).
+  notes: >-
+    Only generated on domain controllers. This subcategory is not part of the Windows default
+    audit policy table published by Microsoft, although many domain controller baselines (Microsoft
+    security baselines, CIS) enable it; confirm with `auditpol /get /subcategory:"Computer Account Management"`.
+fields:
+  - name: SubjectUserName
+    description: Account that created the computer object. A standard user here usually means the machine account quota was used.
+  - name: SubjectLogonId
+    description: Logon session of the subject on the DC; correlate with 4624 to find the source host.
+  - name: TargetUserName
+    description: Name of the new computer account, ending in `$`.
+  - name: TargetSid
+    description: SID of the new computer account.
+  - name: SamAccountName
+    description: Pre-Windows 2000 name of the computer account.
+  - name: DnsHostName
+    description: DNS name registered for the computer, if set at creation.
+  - name: ServicePrincipalNames
+    description: SPNs registered for the account, e.g. `HOST/` and `RestrictedKrbHost/` entries.
+  - name: PrimaryGroupId
+    description: Primary group RID.
+    values:
+      - value: "515"
+        meaning: Domain Computers — workstations and member servers.
+      - value: "516"
+        meaning: Domain Controllers.
+      - value: "521"
+        meaning: Read-only Domain Controllers.
+  - name: NewUacValue
+    description: SAM account flags of the new account (SAM definition, not the AD `userAccountControl` bits).
+    values:
+      - value: "0x80"
+        meaning: Workstation trust account — a normal workstation or member server.
+      - value: "0x100"
+        meaning: Server trust account — a domain controller.
+      - value: "0x2000"
+        meaning: Trusted for delegation (unconstrained Kerberos delegation).
+  - name: UserAccountControl
+    description: The same flags as message codes, e.g. `%%2087` (Workstation Trust Account) for a normal join.
+  - name: AllowedToDelegateTo
+    description: SPNs for constrained delegation; normally `-` at creation.
+  - name: SidHistory
+    description: Previous SIDs; should be `-` for a new computer account.
+benign:
+  - Workstations and servers joining the domain, performed by admins, deployment accounts (MDT, SCCM, Autopilot hybrid join) or delegated joiners.
+  - Cluster, failover and other roles creating virtual computer objects.
+attacker:
+  - A regular user adding a computer account through the machine account quota (for example with PowerMad or Impacket addcomputer) to prepare RBCD abuse or relay attacks.
+  - Creating a computer account as the starting point of noPac, followed by a rename (4781) to a domain controller's name.
+investigation:
+  - Flag computer accounts created by accounts that are not in the approved domain-join or deployment list.
+  - Look for a 4742 and 5136 on the same or another computer object shortly after, especially changes to delegation settings.
+  - Check whether the new account authenticates (4768, 4769) from hosts that are not the named computer.
+related:
+  - security/4742
+  - security/4743
+  - security/4781
+  - security/4720
+  - security/4624
+  - security/4768
+  - security/4769
+  - security/5136
+attack:
+  - T1136.002
+  - T1098
+references:
+  - title: "Microsoft Learn — 4741(S): A computer account was created"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4741
+  - title: Microsoft Learn — Audit Computer Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-computer-account-management

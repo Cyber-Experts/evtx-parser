@@ -1,0 +1,50 @@
+title: Se intentó iniciar sesión con credenciales explícitas
+shortTitle: Inicio con credenciales explícitas
+summary: >-
+  El evento 4648 se registra en el host de origen cuando un proceso usa credenciales proporcionadas
+  explícitamente, como runas, net use /user o PsExec -u.
+description: |-
+  El evento 4648 se escribe en la máquina **donde se escribieron o proporcionaron las credenciales**, no en el destino. Se genera cuando un proceso inicia sesión con una cuenta distinta de aquella con la que se ejecuta: `runas /user`, `net use \\server /user:...`, `PsExec -u`, una tarea programada con credenciales almacenadas o una herramienta que llama a `LogonUser` o `CreateProcessWithLogonW`.
+
+  El registro vincula tres cosas: quién tenía ya la sesión iniciada (`SubjectUserName`), qué credenciales de cuenta se usaron (`TargetUserName`) y adónde se enviaron (`TargetServerName`, `TargetInfo`). Eso lo convierte en uno de los pocos registros del movimiento lateral en el lado de origen: el destino solo muestra un 4624 desde la IP del atacante.
+
+  Hay que contar con ruido: en los controladores de dominio y los servidores, `SYSTEM` produce 4648 constantemente para cuentas de servicio. Filtre los valores de SubjectUserName que correspondan a usuarios reales.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logon (Success). Habilitado para
+    Correcto en la directiva de auditoría predeterminada.
+fields:
+  - name: SubjectUserName
+    description: Cuenta con la que se ejecutaba el proceso que proporcionó las credenciales.
+  - name: SubjectLogonId
+    description: Sesión de ese proceso; pivote hacia su 4624 y hacia los eventos 4688.
+  - name: TargetUserName
+    description: Cuenta cuyas credenciales se usaron.
+  - name: TargetDomainName
+    description: Dominio de esa cuenta.
+  - name: TargetServerName
+    description: >-
+      Servidor contra el que se usaron las credenciales (`localhost` para un runas local). Un nombre
+      de host remoto aquí es una pista de movimiento lateral.
+  - name: TargetInfo
+    description: Información adicional del destino, a menudo el SPN o de nuevo el nombre del destino.
+  - name: ProcessName
+    description: Proceso que usó las credenciales, p. ej. `C:\Windows\System32\runas.exe`, `svchost.exe`, `lsass.exe`, un binario de PsExec.
+  - name: ProcessId
+    description: PID de ese proceso (hexadecimal).
+  - name: IpAddress
+    description: Dirección IP del destino cuando se conoce.
+benign:
+  - Administradores que usan `runas` o Ejecutar como otro usuario.
+  - Tareas programadas y servicios configurados con credenciales almacenadas.
+  - Asignación de una unidad con otras credenciales (`net use /user`).
+  - Controladores de dominio y servidores de administración donde SYSTEM realiza inicios de sesión explícitos para cuentas de servicio.
+attacker:
+  - "Movimiento lateral con contraseñas robadas: PsExec -u, `net use` hacia recursos compartidos administrativos, WMI o WinRM con credenciales explícitas, todo registrado en el host de origen."
+  - Una estación de trabajo comprometida en la que la sesión de un usuario normal empieza de repente a proporcionar credenciales de una cuenta de administrador del dominio a servidores.
+  - Bucles de validación de credenciales en los que un proceso prueba muchos valores de TargetUserName contra un mismo servidor.
+investigation:
+  - Excluya los SubjectUserName terminados en `$` y SYSTEM, y después liste los pares TargetUserName → TargetServerName.
+  - Busque cuentas de administrador usadas desde estaciones de trabajo donde esos administradores nunca inician sesión de forma interactiva.
+  - Correlacione con 4624 de tipo 3 o tipo 9 en el servidor de destino a la misma hora; la IpAddress del 4624 debería ser este host.
+  - Revise ProcessName; binarios inusuales en rutas en las que el usuario puede escribir son una señal fuerte.

@@ -1,0 +1,52 @@
+id: 4634
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: An account was logged off
+shortTitle: Logoff
+category: logon
+summary: >-
+  Event 4634 marks the end of a logon session. Match its TargetLogonId to a 4624 to measure how
+  long a session lasted.
+description: |-
+  Event 4634 is written when a logon session is destroyed. It carries the same `TargetLogonId` as the 4624 that opened the session, so the pair gives you a start and end time for any logon — interactive, network or service.
+
+  It is not a reliable "user clicked Sign out" record. For network logons (type 3) Windows tears the session down when the last connection closes, which can be seconds or hours later, and sometimes a 4634 is never written if the machine shuts down abruptly. When a user deliberately logs off an interactive or RDP session, event 4647 is written first and 4634 follows.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logoff (Success). Enabled for
+    Success in the default audit policy.
+  notes: >-
+    Short-lived network sessions produce 4624/4634 pairs within the same second; on file servers
+    and DCs these pairs are the bulk of the log.
+fields:
+  - name: TargetUserSid
+    description: SID of the account whose session ended.
+  - name: TargetUserName
+    description: Account whose session ended.
+  - name: TargetDomainName
+    description: Domain or computer of that account.
+  - name: TargetLogonId
+    description: Logon session ID — the same value as TargetLogonId in the matching 4624.
+  - name: LogonType
+    description: Logon type of the session that ended (2, 3, 4, 5, 7, 10, 11…); see event 4624.
+benign:
+  - Every normal session end, including machine accounts and services.
+  - Type 3 logoffs a few seconds after the matching logon on file servers and domain controllers.
+attacker:
+  - "Not an attack signal on its own; it bounds the activity window of a suspicious session opened by a 4624."
+  - Very short type 10 or type 3 sessions from an unusual source may be automated tooling checking credentials.
+investigation:
+  - Join on TargetLogonId with 4624 to compute session duration; missing 4634 may mean the session was still open at acquisition or the host crashed.
+  - For RDP, use 4779/4778 and the LocalSessionManager events 23/24 instead to see disconnects and reconnects.
+  - Everything logged with the same SubjectLogonId between the 4624 and the 4634 (4688, 4663, 5145…) belongs to that session.
+related:
+  - security/4624
+  - security/4647
+  - security/4778
+  - security/4779
+  - rdp-local-session-manager/23
+attack: []
+references:
+  - title: "Microsoft Learn — 4634(S): An account was logged off"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4634

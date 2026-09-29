@@ -1,0 +1,67 @@
+title: Se instaló un servicio en el sistema
+shortTitle: Servicio instalado
+summary: >-
+  El evento 7045 de System registra cada nuevo servicio o controlador: nombre, ruta del binario,
+  tipo de inicio y cuenta. Gran señal de movimiento lateral.
+description: |-
+  El evento 7045 lo escribe el Administrador de control de servicios cuando se crea un nuevo servicio, ya sea con `sc create`, `New-Service`, un instalador, la API `CreateService` o de forma remota a través de la interfaz RPC del SCM. Los controladores de kernel registrados como servicios también aparecen aquí. A diferencia del **4697** de Seguridad, se registra por defecto, lo que lo convierte en uno de los artefactos de persistencia y de movimiento lateral más fiables de Windows.
+
+  `ImagePath` es el primer campo que hay que leer. Los servicios legítimos apuntan a binarios firmados en `C:\Windows\System32` o `C:\Program Files`. Las rutas en `C:\Windows\Temp`, perfiles de usuario, `C:\ProgramData` o `ADMIN$`, y líneas de comandos como `cmd.exe /c ...`, `%COMSPEC%` o `powershell -enc ...`, son fuertes indicadores de herramientas de ejecución remota y de malware. Los nombres de servicio aleatorios de 8 caracteres o con aspecto de GUID son típicos de la ejecución basada en servicios de Impacket, Metasploit y Cobalt Strike.
+
+  La ejecución remota a través del SCM (PsExec y sus clones) deja un 7045 en el host de **destino**, normalmente justo después de un inicio de sesión de tipo 3 (4624) desde el origen, y después un 7036 cuando el servicio se inicia y se detiene.
+logging:
+  requirement: Se registra siempre en el registro System cuando se instala un servicio.
+  notes: >-
+    El 4697 de Seguridad contiene datos similares pero requiere Audit Security System Extension. Un
+    7045 solo se escribe en la creación; los cambios en la ruta del binario de un servicio existente
+    no producen ninguno.
+fields:
+  - name: ServiceName
+    description: Nombre para mostrar del nuevo servicio. `PSEXESVC`, letras aleatorias o nombres con aspecto de GUID merecen atención.
+  - name: ImagePath
+    description: >-
+      Ruta del binario o línea de comandos que ejecutará el servicio. Busque carpetas temporales,
+      directorios de usuario, `cmd.exe /c`, `powershell`, `rundll32`, `mshta` o rutas UNC.
+  - name: ServiceType
+    description: Tipo de servicio.
+    values:
+      - value: "user mode service"
+        meaning: Servicio normal que ejecuta un ejecutable en modo usuario.
+      - value: "kernel mode driver"
+        meaning: Controlador de kernel. Los controladores inesperados pueden ser rootkits o controladores vulnerables cargados para desactivar herramientas de seguridad.
+      - value: "file system driver"
+        meaning: Controlador de sistema de archivos o de filtro.
+  - name: StartType
+    description: Cuándo se inicia el servicio.
+    values:
+      - value: "auto start"
+        meaning: Se inicia en cada arranque; persistencia.
+      - value: "demand start"
+        meaning: Inicio manual; típico de los servicios de ejecución remota puntual.
+      - value: "disabled"
+        meaning: No puede iniciarse hasta que se reconfigure.
+      - value: "boot start"
+        meaning: Controlador cargado por el cargador de arranque.
+      - value: "system start"
+        meaning: Controlador cargado durante la inicialización del kernel.
+  - name: AccountName
+    description: >-
+      Cuenta con la que se ejecuta el servicio, p. ej. `LocalSystem`, `NT AUTHORITY\LocalService` o
+      una cuenta de dominio. Vacía en los controladores.
+benign:
+  - Instaladores y actualizaciones de software que registran sus servicios y controladores.
+  - Agentes de endpoint, herramientas de copia de seguridad y de soporte remoto desplegados por TI.
+  - Controladores de hardware instalados al conectar nuevos dispositivos.
+  - Uso legítimo de PsExec por parte de administradores (servicio `PSEXESVC`).
+attacker:
+  - >-
+    Ejecución remota con PsExec, `psexec.py` / `smbexec.py` de Impacket, Metasploit o `jump psexec`
+    de Cobalt Strike: servicios de corta duración con nombres aleatorios o `cmd.exe /c` en
+    `ImagePath`.
+  - Persistencia mediante un nuevo servicio de inicio automático que apunta a un payload depositado.
+  - Carga de un controlador firmado vulnerable (BYOVD) para desactivar el EDR, visible como un nuevo controlador en modo kernel.
+investigation:
+  - Revise cada 7045 de la cronología; el volumen es lo bastante bajo como para leerlos uno a uno.
+  - Compruebe la ubicación, la firma y el hash de `ImagePath`; recupere el binario si aún existe.
+  - Correlacione con el 4624 de tipo 3 y el 5145 (ADMIN$ / IPC$ `svcctl`) justo antes en el mismo host para identificar el origen.
+  - Continúe con el 7036 (running/stopped) y el 7009 o 7000 (errores de inicio) para ver si se ejecutó y durante cuánto tiempo.

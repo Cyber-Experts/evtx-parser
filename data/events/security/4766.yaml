@@ -1,0 +1,51 @@
+id: 4766
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: An attempt to add SID History to an account failed
+shortTitle: SID History add failed
+category: account
+summary: >-
+  Security event 4766 is logged on a domain controller when an attempt to add SID History to
+  an account fails — worth checking outside a migration project.
+description: |-
+  Event 4766 is the failure counterpart of 4765: a request to add SIDs to an account's `sIDHistory` was rejected by the domain controller. It records the subject that made the attempt, the target account and the source account whose SID was supposed to be copied.
+
+  During migrations, failures happen because of missing trust settings, auditing prerequisites or permissions, and they come in batches from the migration account. Outside a migration, a failed attempt is a sign that someone is trying SID History injection and may retry with other means.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Failure). Only Success is audited by default, so Failure auditing must be enabled.
+  notes: Only generated on domain controllers. Microsoft does not publish a sample of this event.
+fields:
+  - name: SubjectUserName
+    description: Account that attempted to add the SID History.
+  - name: SubjectLogonId
+    description: Logon session of the subject; correlate with 4624.
+  - name: TargetUserName
+    description: Account that was supposed to receive the SID History.
+  - name: TargetDomainName
+    description: Domain of the target account.
+  - name: TargetSid
+    description: SID of the target account.
+  - name: PrivilegeList
+    description: Privileges used for the attempt, often `-`.
+benign:
+  - Migration tools failing because a prerequisite (trust, auditing in the source domain, permissions) is missing.
+attacker:
+  - Unsuccessful SID History injection attempt against a controlled account.
+investigation:
+  - Identify the subject and source host; outside a migration, treat it as an attempted privilege escalation.
+  - Look for a later successful 4765 or SidHistory changes in 4738 and 5136 for the same target.
+related:
+  - security/4765
+  - security/4738
+  - security/5136
+  - security/4624
+attack:
+  - T1134.005
+references:
+  - title: "Microsoft Learn — 4766(F): An attempt to add SID History to an account failed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4766
+  - title: Microsoft Learn — Audit User Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-user-account-management

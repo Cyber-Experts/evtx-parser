@@ -1,0 +1,48 @@
+title: Se borró el registro de auditoría
+shortTitle: Registro de Seguridad borrado
+summary: >-
+  El evento 1102 se genera cuando se borra el registro de Seguridad e indica la cuenta que lo hizo.
+  Raro en operación normal y señal clásica de antiforense.
+description: |-
+  El evento 1102 lo escribe el servicio Registro de eventos de Windows como primer registro de un log de Seguridad recién borrado. Sobrevive al borrado porque se crea después de él, y registra la cuenta que realizó el borrado en el elemento `UserData/LogFileCleared`: `SubjectUserName`, `SubjectDomainName`, `SubjectUserSid` y `SubjectLogonId`.
+
+  Hay muy pocas razones legítimas para borrar el registro de Seguridad en un sistema de producción: el archivado se gestiona normalmente mediante el reenvío de logs o la configuración de retención. Un analista que encuentra un 1102 debe considerar potencialmente perdidos los registros anteriores y recurrir a otras fuentes: copias reenviadas a un SIEM, otros canales del host y los logs de las máquinas a las que accedió la cuenta.
+
+  El borrado de otros registros (System, Application, PowerShell, etc.) se registra como evento 104 de System, no como 1102. Los atacantes que borran todos los registros suelen dejar ambos.
+logging:
+  requirement: >-
+    El servicio Registro de eventos de Windows lo registra siempre que se borra el registro de
+    Seguridad; no requiere ninguna directiva de auditoría.
+  notes: >-
+    Los campos se encuentran en `UserData/LogFileCleared`, no en `EventData`. La cuenta que borra
+    necesita el derecho Administrar registro de auditoría y seguridad (los administradores lo tienen
+    por defecto).
+fields:
+  - name: SubjectUserName
+    description: Cuenta que borró el registro.
+  - name: SubjectDomainName
+    description: Dominio o nombre de equipo de esa cuenta.
+  - name: SubjectUserSid
+    description: SID de la cuenta que borró el registro; se mantiene estable aunque se cambie el nombre de la cuenta.
+  - name: SubjectLogonId
+    description: >-
+      Sesión de inicio de sesión que realizó el borrado. Pivote hacia el 4624 con el mismo
+      TargetLogonId en los logs reenviados u otros registros para saber de dónde venía la sesión.
+benign:
+  - Máquinas de laboratorio, imágenes maestras y sistemas en preparación para su despliegue, donde los logs se borran como parte del proceso de construcción.
+  - Un administrador que borra un registro lleno en un host configurado para no sobrescribir eventos (tras un 1104).
+attacker:
+  - >-
+    Borrado de huellas tras una intrusión con `wevtutil cl Security`, `Clear-EventLog` o
+    `Remove-EventLog` de PowerShell, o la acción Borrar registro del Visor de eventos.
+  - Ransomware y wipers que borran todos los registros de eventos justo antes o después del cifrado.
+  - Borrado del registro en un único servidor tras un movimiento lateral, dejando intactos los demás hosts.
+investigation:
+  - >-
+    Identifique la sesión: SubjectLogonId y SubjectUserName; después busque en los logs reenviados o
+    en los controladores de dominio el inicio de sesión (4624, 4768/4769, 4776) que la creó.
+  - Revise el evento 104 de System a la misma hora; varios registros borrados a la vez apuntan a un script o una herramienta.
+  - >-
+    Busque creaciones de procesos (4688, Sysmon 1) y eventos 4104 de PowerShell en torno a esa hora
+    con llamadas a `wevtutil`, `Clear-EventLog` o `ClearLog` para identificar el proceso ejecutor.
+  - Compare los eventos reenviados del host con lo que queda en local para ver exactamente qué se borró.

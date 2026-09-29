@@ -1,0 +1,61 @@
+id: 23
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: FileDelete (File Delete archived)
+shortTitle: File deleted (archived)
+category: file
+summary: >-
+  Sysmon event 23 logs a file deletion and saves a copy of the deleted file in the archive
+  folder. Recovers payloads and tools attackers delete after use.
+description: |-
+  Sysmon event 23 records a file being deleted, with the deleting process, the file path and its hashes — and Sysmon also keeps a copy of the file in the `ArchiveDirectory` (default `C:\Sysmon`, protected by a SYSTEM-only ACL). That makes it possible to recover droppers, scripts and tools that attackers remove to cover their tracks.
+
+  Archiving has a cost: the directory can grow very large, so rules should target interesting extensions and folders. Event 26 (FileDeleteDetected, Sysmon 13.10+) logs the same information without keeping the file.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Sysmon 11.0 or later with a `<FileDelete>` rule in the configuration. `ArchiveDirectory` sets
+    where copies are stored.
+  notes: >-
+    Configuration entries such as `CopyOnDeletePE`, `CopyOnDeleteExtensions` and
+    `CopyOnDeleteProcesses` control what is preserved. Monitor free disk space on hosts with broad rules.
+fields:
+  - name: ProcessGuid
+    description: Process that deleted the file.
+  - name: Image
+    description: Executable that deleted the file.
+  - name: User
+    description: Account of the process.
+  - name: TargetFilename
+    description: Path of the deleted file.
+  - name: Hashes
+    description: Hashes of the deleted file, per `HashAlgorithms`.
+  - name: IsExecutable
+    description: "`true` when the deleted file is a PE executable."
+  - name: Archived
+    description: "`true` when a copy was saved in the archive directory."
+benign:
+  - Installers, updaters and cleanup tasks removing temporary files.
+  - Browsers and Office deleting caches and temp files.
+attacker:
+  - Droppers deleting themselves after launching the payload.
+  - Operators removing tools, scripts and dump files from temp folders when done.
+  - Ransomware deleting originals after writing encrypted copies.
+investigation:
+  - Retrieve the archived copy (named by hash) from the archive directory for analysis.
+  - Pivot on ProcessGuid to event 1 and on TargetFilename to the earlier event 11 that created it.
+  - Look for many deletions in a short time from one process (ransomware or wiper).
+related:
+  - sysmon/26
+  - sysmon/11
+  - sysmon/1
+  - security/4660
+attack:
+  - T1070.004
+  - T1485
+  - T1486
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Indicator Removal, File Deletion (T1070.004)
+    url: https://attack.mitre.org/techniques/T1070/004/

@@ -1,0 +1,45 @@
+id: 11707
+channel: application
+provider: MsiInstaller
+title: "Product: <name> -- Installation completed successfully"
+shortTitle: MSI installation succeeded
+category: software
+summary: >-
+  Application event 11707 (MsiInstaller) confirms that an MSI product installation completed
+  successfully, with the product name and the installing user's SID.
+description: |-
+  Event 11707 is written by Windows Installer when an installation finishes successfully. The message is short — `Product: <name> -- Installation completed successfully.` — and the account that ran it is identified by the user SID in the record's System section. Failed installations are logged as 11708.
+
+  It is usually paired with **1033**, which adds version and manufacturer. Uninstalls appear as **11724** and **1034**. Because both install events are written by default and survive for as long as the Application log retains them, they are a practical source for a software installation timeline.
+
+  In incident response, 11707 is most useful to date the arrival of remote access tools, attacker utilities packaged as MSI, or unexpected software on servers.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the Application log for successful MSI installations.
+  notes: >-
+    The data is a set of unnamed insertion strings; this viewer shows them joined in `Data1`.
+fields:
+  - name: Data1
+    description: >-
+      The message text, e.g. `Product: Google Update Helper -- Installation completed successfully.`
+benign:
+  - Software deployment, updates and user-initiated installs of MSI packages.
+attacker:
+  - Installation of remote access software or malicious MSI payloads by an intruder.
+investigation:
+  - Extract the product name and timestamp; compare with approved software and with the incident timeline.
+  - Resolve the user SID to find the installing account and check its logons (4624) around that time.
+  - Find the `msiexec.exe` process and parent in 4688 or Sysmon 1.
+related:
+  - application/1033
+  - security/4688
+  - security/4624
+  - sysmon/1
+attack:
+  - T1218.007
+  - T1219
+references:
+  - title: Microsoft Learn — Windows Installer event logging
+    url: https://learn.microsoft.com/en-us/windows/win32/msi/event-logging
+  - title: MITRE ATT&CK — Remote Access Tools (T1219)
+    url: https://attack.mitre.org/techniques/T1219/

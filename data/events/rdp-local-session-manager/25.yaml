@@ -1,0 +1,43 @@
+id: 25
+channel: rdp-local-session-manager
+provider: Microsoft-Windows-TerminalServices-LocalSessionManager
+title: "Remote Desktop Services: Session reconnection succeeded"
+shortTitle: Session reconnected
+category: remote-access
+summary: >-
+  RDP event 25 is logged when a user reconnects to an existing disconnected session, with the
+  new client address.
+description: |-
+  Event 25 records that a client reattached to a session that was disconnected (24). No new session is created, so there is no event 21 — this event and Security 4778 are the records of the reconnection.
+
+  Its `Address` field is the IP of the client that reconnected, which can differ from the one that originally logged on. That makes 25 essential when tracking RDP access: an attacker who reconnects to an admin's disconnected session never produces a fresh 21.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the LocalSessionManager/Operational channel is enabled by default.
+fields:
+  - name: User
+    description: Account owning the session.
+  - name: SessionID
+    description: Session number that was resumed.
+  - name: Address
+    description: IP address of the reconnecting client, or `LOCAL`.
+benign:
+  - Users resuming their RDP session after a disconnect or from another device.
+attacker:
+  - Reconnecting to a disconnected privileged session with the same credentials from another host.
+  - RDP session takeover, where a session is attached to a different client.
+investigation:
+  - Compare Address with the one in the original 21 for the SessionID.
+  - Pair with the preceding 1149 (the new connection) and Security 4778 / 4624 LogonType 7 or 10.
+related:
+  - rdp-local-session-manager/21
+  - rdp-local-session-manager/24
+  - rdp-remote-connection-manager/1149
+  - security/4778
+attack:
+  - T1021.001
+  - T1563.002
+references:
+  - title: JPCERT/CC — Detecting Lateral Movement through Tracking Event Logs
+    url: https://www.jpcert.or.jp/english/pub/sr/ir_research.html

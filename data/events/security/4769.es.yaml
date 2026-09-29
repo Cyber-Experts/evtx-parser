@@ -1,0 +1,67 @@
+title: Se solicitó un vale de servicio Kerberos
+shortTitle: Ticket de servicio Kerberos pedido
+summary: >-
+  El evento 4769 se registra en los controladores de dominio por cada solicitud de ticket de servicio Kerberos (TGS); clave para detectar Kerberoasting.
+description: |-
+  El evento 4769 lo escribe el KDC en un **controlador de dominio** cuando una cuenta que ya tiene un TGT solicita un ticket para un servicio concreto (una solicitud al Ticket Granting Service). Cada acceso a un recurso protegido por Kerberos (recursos compartidos de archivos, SQL Server, HTTP con autenticación de Windows, LDAP, otros hosts) produce uno.
+
+  El campo `ServiceName` muestra para qué cuenta de servicio es el ticket, y `TicketEncryptionType` cómo está cifrado. Esa combinación es la que permite detectar el Kerberoasting: un atacante solicita tickets para cuentas de usuario que tienen un SPN, preferiblemente cifrados con RC4 (`0x17`) porque se descifran más rápido offline. Solicitudes de ese tipo para muchos servicios en poco tiempo, desde una misma cuenta, son la firma clásica.
+
+  El volumen en los DC es muy alto. Excluya las cuentas de equipo (ServiceName terminado en `$`) y `krbtgt` antes de empezar la búsqueda.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Logon > Audit Kerberos Service Ticket
+    Operations (Success, Failure). Solo tiene sentido en los controladores de dominio.
+  notes: >-
+    Compruebe la directiva efectiva con `auditpol /get /subcategory:"Kerberos Service Ticket
+    Operations"`; la auditoría de errores a menudo no está habilitada.
+fields:
+  - name: TargetUserName
+    description: Cuenta que solicitó el ticket de servicio, con el formato `user@DOMAIN`.
+  - name: TargetDomainName
+    description: Dominio de la cuenta solicitante.
+  - name: ServiceName
+    description: >-
+      Cuenta que ejecuta el servicio para el que es el ticket. Las cuentas de equipo terminan en `$`;
+      una cuenta de usuario aquí indica un servicio con un SPN sobre un usuario, un objetivo de
+      Kerberoasting.
+  - name: ServiceSid
+    description: SID de la cuenta de servicio.
+  - name: TicketOptions
+    description: Opciones de ticket Kerberos solicitadas (hexadecimal).
+  - name: TicketEncryptionType
+    description: Tipo de cifrado del ticket de servicio.
+    values:
+      - value: "0x11"
+        meaning: AES128-CTS-HMAC-SHA1-96
+      - value: "0x12"
+        meaning: AES256-CTS-HMAC-SHA1-96
+      - value: "0x17"
+        meaning: RC4-HMAC — el tipo que piden las herramientas de Kerberoasting.
+      - value: "0x18"
+        meaning: RC4-HMAC-EXP
+      - value: "0xffffffff"
+        meaning: No se emitió ningún ticket (error).
+  - name: Status
+    description: Código de resultado Kerberos; `0x0` significa que se emitió el ticket.
+  - name: IpAddress
+    description: Dirección IP del cliente.
+  - name: IpPort
+    description: Puerto de origen del cliente.
+  - name: LogonGuid
+    description: GUID que vincula esta solicitud con el inicio de sesión (el mismo GUID aparece en el 4624 del servidor de destino).
+  - name: TransmittedServices
+    description: Servicios implicados en la delegación (delegación restringida / S4U); en otro caso, `-`.
+benign:
+  - "Acceso normal a servidores de archivos, SQL, IIS y otros servicios Kerberos: miles por hora en DC con mucha actividad."
+  - Equipos que solicitan tickets a los DC (LDAP, CIFS) para procesar la directiva de grupo.
+  - Aplicaciones antiguas o cuentas de servicio configuradas solo para RC4.
+attacker:
+  - "Kerberoasting: una cuenta que solicita tickets RC4 (`0x17`) para muchos SPN de cuentas de usuario en pocos minutos (Rubeus, GetUserSPNs de Impacket)."
+  - Kerberoasting dirigido contra una única cuenta de servicio de alto valor, que solo destaca por el uso de RC4 o por un host solicitante inusual.
+  - "Los silver tickets no producen ningún 4769: un inicio de sesión en un servicio (4624 en el servidor) sin ningún 4769 correspondiente en ningún DC es una pista."
+investigation:
+  - Filtre los ServiceName que no terminan en `$` y no son `krbtgt`; después cuente los ServiceName distintos por TargetUserName e IpAddress por hora.
+  - Marque TicketEncryptionType `0x17` cuando la cuenta admite AES.
+  - Compruebe si la cuenta solicitante suele usar esos servicios.
+  - Pivote hacia las cuentas de servicio implicadas; si se confirma el Kerberoasting, rote sus contraseñas y revise sus inicios de sesión posteriores (4624).

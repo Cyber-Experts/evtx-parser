@@ -1,0 +1,92 @@
+id: 3
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: Network connection
+shortTitle: Network connection
+category: network
+summary: >-
+  Sysmon event 3 ties each TCP/UDP connection to the process that made it: source, destination,
+  ports and ProcessGuid. Key for C2 and lateral movement.
+description: |-
+  Sysmon event 3 records a TCP or UDP connection together with the process responsible for it. That is the piece firewall and proxy logs miss: not just that the host talked to an address, but which executable did it and under which account.
+
+  `Initiated` tells the direction: `true` means the local process opened the connection (outbound), `false` means it accepted one. Host names are filled by reverse DNS lookup when `DnsLookup` is enabled, so they may not match what the process actually resolved — use event 22 for that.
+
+  The event is disabled by default because of its volume. Good configurations include connections from script hosts, LOLBins and user-writable paths, and exclude browsers and known agents.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Sysmon installed with network monitoring enabled (`-n` switch or a `<NetworkConnect>` rule in
+    the configuration).
+  notes: >-
+    Host names depend on reverse DNS (`DnsLookup` configuration entry). Compare with Windows
+    Filtering Platform event 5156 when that audit subcategory is enabled.
+fields:
+  - name: ProcessGuid
+    description: Process that made or accepted the connection; pivot to its event 1.
+  - name: Image
+    description: Executable behind the connection.
+  - name: User
+    description: Account of the process.
+  - name: Protocol
+    description: Transport protocol.
+    values:
+      - value: tcp
+        meaning: TCP connection.
+      - value: udp
+        meaning: UDP traffic.
+  - name: Initiated
+    description: Direction of the connection.
+    values:
+      - value: "true"
+        meaning: The local process initiated the connection (outbound).
+      - value: "false"
+        meaning: The local process accepted an inbound connection.
+  - name: SourceIp
+    description: Source address.
+  - name: SourcePort
+    description: Source port.
+  - name: DestinationIp
+    description: Destination address.
+  - name: DestinationHostname
+    description: Destination name from reverse DNS, when available. Not necessarily the name the process queried.
+  - name: DestinationPort
+    description: Destination port.
+  - name: DestinationPortName
+    description: Service name for well-known ports, e.g. `https` or `microsoft-ds`.
+  - name: SourceIsIpv6
+    description: "`true` when the connection uses IPv6."
+benign:
+  - Browsers, Office, Teams and update agents talking to cloud services on 443.
+  - Domain members connecting to domain controllers on 88, 389, 445 and 135.
+  - Management and backup agents polling their servers.
+attacker:
+  - >-
+    Script hosts or LOLBins (`powershell.exe`, `rundll32.exe`, `regsvr32.exe`, `mshta.exe`,
+    `certutil.exe`) making outbound connections to the internet.
+  - Beaconing — regular connections from the same process to a rare external IP.
+  - >-
+    Lateral movement from a workstation to other hosts on 445 (SMB), 135 (RPC/WMI), 5985/5986
+    (WinRM) or 3389 (RDP).
+  - Processes from `%TEMP%`, `Downloads` or `ProgramData` connecting out on non-standard ports.
+investigation:
+  - Pivot on ProcessGuid to event 1 to see the command line and parent of the connecting process.
+  - Correlate with event 22 from the same ProcessGuid to learn which domain name was resolved.
+  - Group by Image and DestinationIp to find rare pairs across the fleet.
+  - For inbound lateral movement, match the destination host's Security 4624 (LogonType 3 or 10) at the same time.
+related:
+  - sysmon/1
+  - sysmon/22
+  - security/5156
+  - security/4624
+attack:
+  - T1071
+  - T1105
+  - T1571
+  - T1021.001
+  - T1021.002
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Application Layer Protocol (T1071)
+    url: https://attack.mitre.org/techniques/T1071/

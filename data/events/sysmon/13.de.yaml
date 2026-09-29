@@ -1,0 +1,39 @@
+title: Registry-Wert gesetzt (RegistryEvent – Value Set)
+shortTitle: Registry-Wert gesetzt
+summary: >-
+  Sysmon-Event-ID 13 protokolliert das Schreiben eines Registry-Werts, mit den Daten bei DWORD,
+  QWORD und Zeichenfolgen. Das Haupt-Event für Registry-Persistenz.
+description: |-
+  Sysmon-Event 13 protokolliert das Schreiben eines Registry-Werts: den Pfad des Werts in `TargetObject`, die Daten in `Details` und den schreibenden Prozess. Numerische Werte erscheinen als `DWORD (0x...)` oder `QWORD (...)`, Zeichenfolgen zeigen ihren Text; Binärdaten werden nicht wiedergegeben.
+
+  Dieses Event zeigt Persistenz über Run-Schlüssel, neue `ImagePath`-Werte von Diensten, deaktivierte Sicherheitsfunktionen (etwa Defender- oder UAC-Einstellungen) und IFEO-Debugger-Hijacks — in einem Eintrag zusammen mit dem verantwortlichen Prozess.
+
+  Das Volumen hängt vollständig von der Konfiguration ab; gezielt bekannte Persistenz- und Sicherheitseinstellungspfade überwachen.
+logging:
+  requirement: Sysmon installiert; Filterung über Regeln `<RegistryEvent>` in der Konfiguration.
+fields:
+  - name: EventType
+    description: Bei diesem Event immer `SetValue`.
+  - name: ProcessGuid
+    description: Prozess, der den Wert geschrieben hat; auf sein Event 1 pivotieren.
+  - name: Image
+    description: Programm, das den Wert geschrieben hat.
+  - name: TargetObject
+    description: Vollständiger Pfad des Werts, z. B. `HKU\<SID>\Software\Microsoft\Windows\CurrentVersion\Run\<name>`.
+  - name: Details
+    description: >-
+      Geschriebene Daten. Bei Run-Schlüsseln und `ImagePath` von Diensten ist dies der Befehl, der
+      ausgeführt wird; bei DWORD-Einstellungen z. B. `DWORD (0x00000001)`.
+  - name: User
+    description: Konto des Prozesses (neuere Sysmon-Versionen).
+benign:
+  - Anwendungen, die bei der Installation Autostart-Helfer in Run-Schlüsseln registrieren.
+  - Windows und Gruppenrichtlinie, die Einstellungen schreiben, Explorer, der den Benutzerzustand aktualisiert (sehr häufig).
+attacker:
+  - Run- oder RunOnce-Werte, die auf eine Binärdatei oder ein Skript in einem benutzerbeschreibbaren Ordner zeigen.
+  - "`ImagePath` eines Dienstes auf eine neue Binärdatei geändert oder ein `Debugger`-Wert unter Image File Execution Options gesetzt."
+  - Geschwächte Sicherheitseinstellungen, etwa Defender- oder Firewall-Richtlinienwerte, die den Schutz deaktivieren.
+investigation:
+  - Details lesen und prüfen, ob der referenzierte Pfad existiert und kürzlich geschrieben wurde (Event 11).
+  - Über ProcessGuid auf Event 1 pivotieren — `reg.exe`, PowerShell oder eine unbekannte Binärdatei, die Run-Schlüssel schreibt, fällt auf.
+  - Nach der passenden Schlüsselerstellung (Event 12) und nach dem Start des persistierten Programms nach einem Neustart (Event 1) suchen.

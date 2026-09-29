@@ -1,0 +1,138 @@
+title: L'ouverture de session d'un compte s'est déroulée correctement
+shortTitle: Ouverture de session réussie
+summary: >-
+  L'événement 4624 consigne chaque ouverture de session réussie : qui, comment (LogonType), d'où
+  (IpAddress) et avec quel package. Le socle de l'analyse.
+description: |-
+  L'événement 4624 est écrit par l'autorité de sécurité locale (LSA) sur l'ordinateur qui a **accepté** l'ouverture de session, à chaque création d'une session. C'est donc la trace côté machine de l'accès : le contrôleur de domaine voit l'authentification (4768, 4769, 4776), tandis que l'hôte cible écrit le 4624.
+
+  L'enregistrement répond à quatre questions. **Qui** : `TargetUserName`, `TargetDomainName` et `TargetUserSid`. **Comment** : `LogonType`, `LogonProcessName` et `AuthenticationPackageName`. **D'où** : `WorkstationName`, `IpAddress` et `IpPort`. **Quelle session** : `TargetLogonId`, la clé qui relie l'ouverture de session à tout ce qui s'y est fait (4672, 4688, 4663, 4634/4647).
+
+  Sur un serveur chargé, le 4624 est l'événement le plus bruyant du journal Sécurité — la plupart des enregistrements concernent des services, des comptes machine (noms se terminant par `$`) et `SYSTEM`. Filtrez-les d'abord, puis regroupez par `LogonType` et par source.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logon (Success). Activé en succès
+    dans la stratégie d'audit par défaut de Windows.
+  notes: >-
+    Les informations réseau (`IpAddress`, `IpPort`) ne sont renseignées que pour les ouvertures de
+    session distantes ; les ouvertures locales affichent `-` ou `127.0.0.1`. Les champs
+    `ImpersonationLevel`, `RestrictedAdminMode`, `VirtualAccount`, `ElevatedToken` et
+    `TargetLinkedLogonId` apparaissent à partir de Windows 10 / Server 2016.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Compte qui a demandé l'ouverture de session sur la machine locale — généralement le compte
+      ordinateur (`HOST$`) ou `-` pour les ouvertures réseau. Ce n'est pas le compte qui s'est
+      connecté.
+  - name: SubjectLogonId
+    description: Session du demandeur ; `0x3e7` est la session SYSTEM locale.
+  - name: TargetUserName
+    description: Le compte qui a ouvert la session. C'est ce champ qu'il faut regarder, pas les champs Subject.
+  - name: TargetDomainName
+    description: Domaine ou nom d'ordinateur du compte cible.
+  - name: TargetUserSid
+    description: SID du compte connecté. Stable même si le compte est renommé.
+  - name: TargetLogonId
+    description: >-
+      Identifiant hexadécimal de la nouvelle session. Pivotez dessus pour retrouver le 4672
+      correspondant, les processus créés dans la session (SubjectLogonId des 4688) et la fermeture
+      de session (4634, 4647).
+  - name: LogonType
+    description: Mode d'ouverture de session. C'est le premier champ à lire.
+    values:
+      - value: "2"
+        meaning: Interactive — clavier et écran sur la console (ou console KVM / hyperviseur).
+      - value: "3"
+        meaning: >-
+          Network — accès à une ressource via le réseau : partage SMB, registre distant, WMI,
+          WinRM, PsExec. Aucun identifiant n'est mis en cache sur la cible.
+      - value: "4"
+        meaning: Batch — tâche planifiée exécutée sous un compte utilisateur.
+      - value: "5"
+        meaning: Service — un service démarré sous un compte de service.
+      - value: "7"
+        meaning: Unlock — déverrouillage du poste de travail.
+      - value: "8"
+        meaning: >-
+          NetworkCleartext — ouverture de session réseau où le mot de passe a transité en clair
+          (authentification Basic IIS, certaines configurations PowerShell/WinRM).
+      - value: "9"
+        meaning: >-
+          NewCredentials — `runas /netonly` ou processus disposant d'identifiants alternatifs pour
+          les seules connexions sortantes. L'identité locale reste inchangée.
+      - value: "10"
+        meaning: RemoteInteractive — ouverture de session Bureau à distance / Terminal Services.
+      - value: "11"
+        meaning: >-
+          CachedInteractive — ouverture de session interactive avec des identifiants de domaine
+          mis en cache (aucun contrôleur de domaine joignable).
+  - name: LogonProcessName
+    description: >-
+      Processus d'ouverture de session de confiance ayant traité la demande, par ex. `User32`
+      (interactif/RDP), `NtLmSsp` (ouverture réseau NTLM), `Kerberos`, `Advapi` (services, runas),
+      `seclogo` (runas / NewCredentials).
+  - name: AuthenticationPackageName
+    description: >-
+      `Kerberos`, `NTLM` ou `Negotiate`. Des ouvertures réseau en NTLM depuis des postes de travail
+      là où Kerberos est attendu méritent un second regard.
+  - name: LmPackageName
+    description: >-
+      Pour les ouvertures NTLM, la version du protocole : `NTLM V1`, `NTLM V2` ou `LM`. NTLMv1 et
+      LM sont faibles et ne devraient pas apparaître dans un domaine moderne.
+  - name: KeyLength
+    description: Longueur de la clé de session NTLM ; 0 pour Kerberos et pour NTLM sans sécurité de session.
+  - name: WorkstationName
+    description: Nom NetBIOS de l'ordinateur source tel que fourni par le client (peut être usurpé ou vide).
+  - name: IpAddress
+    description: IP source d'une ouverture de session distante. `-` ou `::1` / `127.0.0.1` pour les ouvertures locales.
+  - name: IpPort
+    description: Port TCP source ; `0` ou `-` pour les ouvertures locales.
+  - name: ProcessName
+    description: >-
+      Processus ayant réalisé l'ouverture de session, par ex. `C:\Windows\System32\winlogon.exe`
+      pour les ouvertures interactives, `services.exe` pour les services, `-` pour les ouvertures
+      réseau.
+  - name: ElevatedToken
+    description: >-
+      `%%1842` (Oui) lorsque la session a reçu un jeton administrateur complet, `%%1843` (Non)
+      sinon. Un moyen rapide de repérer les sessions administrateur.
+  - name: RestrictedAdminMode
+    description: >-
+      Pour le LogonType 10, indique si le client RDP a utilisé le mode Restricted Admin (aucun
+      identifiant envoyé au serveur). `%%1843` (Non) ou `%%1842` (Oui).
+  - name: VirtualAccount
+    description: Oui pour les comptes virtuels, comme les identités de service gérées `NT SERVICE\...`.
+  - name: TargetLinkedLogonId
+    description: >-
+      Avec l'UAC, une ouverture de session administrateur crée deux sessions liées (filtrée et
+      élevée) ; ce champ contient l'identifiant de l'autre.
+benign:
+  - Utilisateurs se connectant à la console (type 2), déverrouillant leur poste (type 7) ou se connectant en RDP (type 10).
+  - Ouvertures de session des comptes machine (`HOST$`) et de `SYSTEM`, `LOCAL SERVICE`, `NETWORK SERVICE`, en particulier en type 5.
+  - "Trafic des serveurs de fichiers et contrôleurs de domaine — des milliers d'ouvertures de type 3 par heure depuis les postes de travail."
+  - Tâches planifiées (type 4) et pools d'applications IIS utilisant des comptes configurés.
+  - Administrateurs utilisant `runas /netonly` (type 9) pour des outils nécessitant d'autres identifiants.
+attacker:
+  - >-
+    Mouvement latéral avec des identifiants volés : ouvertures de type 3 depuis un poste de
+    travail vers des serveurs (PsExec, SMB, WMI), souvent avec une rafale de nouveaux couples
+    source/cible.
+  - Accès RDP (type 10) depuis des adresses IP inhabituelles, à des heures inhabituelles, ou vers des hôtes que le compte n'utilise jamais.
+  - >-
+    Pass-the-hash : ouvertures NTLM de type 3 là où Kerberos est attendu. Sur l'hôte source,
+    `sekurlsa::pth` de Mimikatz apparaît en type 9 avec le LogonProcessName `seclogo`.
+  - Une ouverture de session réussie juste après de nombreux 4625 pour le même compte (force brute ou password spraying ayant abouti).
+  - Ouvertures de session par des comptes fraîchement créés (4720) ou tout juste ajoutés à un groupe d'administration (4732, 4728).
+investigation:
+  - >-
+    Éliminez d'abord le bruit : TargetUserName se terminant par `$`, `SYSTEM`, `ANONYMOUS LOGON`
+    (sauf si vous chassez les sessions nulles) et LogonType 5.
+  - Regroupez par TargetUserName, LogonType et IpAddress pour repérer les combinaisons jamais vues.
+  - >-
+    Pivotez sur TargetLogonId : un 4672 dans la même seconde signale une session administrateur ;
+    les 4688 avec le même SubjectLogonId listent ce que la session a exécuté ; le 4634/4647 donne
+    la fin de session.
+  - Pour le type 10, corrélez avec les événements RDP 1149, 21, 22, 24 et 25 pour obtenir la chronologie complète de la session.
+  - >-
+    Sur les contrôleurs de domaine, rapprochez les ouvertures de type 3 des 4768/4769 (Kerberos)
+    ou 4776 (NTLM) pour confirmer le protocole réellement utilisé.

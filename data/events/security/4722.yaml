@@ -1,0 +1,65 @@
+id: 4722
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A user account was enabled
+shortTitle: User account enabled
+category: account
+summary: >-
+  Security event 4722 is logged when a user or computer account is enabled. It shows who
+  enabled it and which account, identified by name and SID.
+description: |-
+  Event 4722 is written when a disabled account is enabled. For user accounts it appears on domain controllers (domain accounts) and on member servers and workstations (local accounts); for computer accounts it is only logged on domain controllers. The record is short: `Subject*` identifies who made the change, `Target*` identifies the account.
+
+  Most 4722 events are part of normal provisioning: accounts created in Active Directory Users and Computers start disabled, so a 4720 is usually followed by a 4722 within seconds. A 4722 on its own, for an account that has been disabled for a long time, is more interesting.
+
+  Watch in particular the built-in local `Administrator` (RID 500) and `Guest` (RID 501) accounts, which are disabled by default on current Windows versions, and dormant accounts of former employees.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Enabled for Success in the default Windows audit policy.
+  notes: >-
+    Enabling an account also generates a 4738 (user) or 4742 (computer) whose UserAccountControl
+    field shows the Account Disabled flag being cleared.
+fields:
+  - name: SubjectUserName
+    description: Account that enabled the target account.
+  - name: SubjectDomainName
+    description: Domain or computer name of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject; correlate with 4624 to find where the change was made from.
+  - name: TargetUserName
+    description: Account that was enabled.
+  - name: TargetDomainName
+    description: Domain of the enabled account, or the computer name for a local account.
+  - name: TargetSid
+    description: >-
+      SID of the enabled account. A SID ending in `-500` is the built-in Administrator, `-501`
+      the Guest account.
+benign:
+  - Part of the normal sequence 4720, 4724, 4722 when administrators create a new account.
+  - Returning employees or contractors whose accounts are re-enabled by the helpdesk.
+  - Identity management systems enabling accounts on a start date.
+attacker:
+  - Enabling the built-in local Administrator or Guest account to get a known account for persistence or lateral movement.
+  - Reactivating a dormant or former-employee domain account, which is less likely to be noticed than a new one.
+investigation:
+  - Check whether the target account was disabled on purpose (offboarding, security incident) and who re-enabled it.
+  - Look for 4724 (password reset) and 4738 on the same TargetSid around the same time, then for its next logons (4624).
+  - Pivot on SubjectLogonId to reconstruct the administrator's session and tooling.
+related:
+  - security/4720
+  - security/4724
+  - security/4725
+  - security/4738
+  - security/4742
+  - security/4624
+attack:
+  - T1098
+  - T1078.002
+  - T1078.003
+references:
+  - title: "Microsoft Learn — 4722(S): A user account was enabled"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4722
+  - title: Microsoft Learn — Audit User Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-user-account-management

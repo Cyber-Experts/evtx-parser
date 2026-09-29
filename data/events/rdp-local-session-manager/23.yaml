@@ -1,0 +1,39 @@
+id: 23
+channel: rdp-local-session-manager
+provider: Microsoft-Windows-TerminalServices-LocalSessionManager
+title: "Remote Desktop Services: Session logoff succeeded"
+shortTitle: Session logoff
+category: remote-access
+summary: >-
+  RDP event 23 is logged when a Remote Desktop or console session is logged off, closing the
+  session opened by event 21.
+description: |-
+  Event 23 marks the end of a session: the user signed out, or the session was logged off by an administrator or a policy. It carries the user and session ID but no source address.
+
+  Together with 21 it bounds the lifetime of a session. Sessions that were only disconnected (24) stay alive and end with 23 later — sometimes much later, when a disconnected-session time limit applies.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the LocalSessionManager/Operational channel is enabled by default.
+fields:
+  - name: User
+    description: Account whose session was logged off.
+  - name: SessionID
+    description: Session number, matching the 21 that opened it.
+benign:
+  - Users signing out; session time limits logging off idle or disconnected sessions.
+attacker:
+  - An intruder logging off to close the session; the time bounds their hands-on activity.
+investigation:
+  - Match SessionID with 21 and 24/25 to reconstruct the full session timeline.
+  - Security 4647 and 4634 for the same user should appear at about the same time.
+related:
+  - rdp-local-session-manager/21
+  - rdp-local-session-manager/24
+  - security/4647
+  - security/4634
+attack:
+  - T1021.001
+references:
+  - title: JPCERT/CC — Detecting Lateral Movement through Tracking Event Logs
+    url: https://www.jpcert.or.jp/english/pub/sr/ir_research.html

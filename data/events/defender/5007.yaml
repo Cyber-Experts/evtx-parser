@@ -1,0 +1,44 @@
+id: 5007
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: The antimalware platform configuration changed
+shortTitle: Configuration changed
+category: antimalware
+summary: >-
+  Defender event 5007 logs every Defender configuration change with old and new values —
+  including exclusions added by attackers.
+description: |-
+  Event 5007 records a change to Microsoft Defender Antivirus configuration, with the registry-style setting path in `Old Value` and `New Value`. Exclusions, disabled features, sample submission settings and ASR rule changes all appear here.
+
+  It is the best place to find **exclusions**: an entry under `\Microsoft\Windows Defender\Exclusions\Paths`, `\Extensions` or `\Processes` added during an incident is a strong sign an intruder made room for their tools.
+logging:
+  enabledByDefault: true
+  requirement: None — logged by Microsoft Defender Antivirus.
+  notes: Also produced in bulk by policy refreshes and platform updates; focus on unusual values.
+fields:
+  - name: Old Value
+    description: Previous setting (registry path and value); may be empty for new settings.
+  - name: New Value
+    description: New setting, e.g. `HKLM\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths\C:\Users\Public = 0x0`.
+benign:
+  - Policy application by Intune, Group Policy or configuration management; product updates.
+  - Exclusions added by administrators for backup, database or development tools.
+attacker:
+  - Adding path, extension or process exclusions (`Add-MpPreference -ExclusionPath`).
+  - Disabling features such as real-time monitoring, cloud protection or sample submission.
+investigation:
+  - Search New Value for `Exclusions`, `DisableRealtimeMonitoring`, `SpyNet`, `SubmitSamplesConsent`.
+  - Tie the change to a process and user via PowerShell logs (4104, 4103), registry auditing (4657, Sysmon 13) or process creation.
+  - Review whether files were later written to an excluded path.
+related:
+  - defender/5001
+  - defender/5004
+  - defender/5013
+  - sysmon/13
+  - powershell/4104
+attack:
+  - T1685
+  - T1112
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

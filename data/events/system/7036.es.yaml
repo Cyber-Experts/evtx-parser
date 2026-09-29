@@ -1,0 +1,38 @@
+title: El servicio entró en estado de ejecución o detenido
+shortTitle: Cambio de estado de servicio
+summary: >-
+  El evento 7036 de System se registra cada vez que un servicio pasa a ejecución o se detiene. Muestra cuándo corrieron servicios y cuándo se pararon defensas.
+description: |-
+  El evento 7036 lo escribe el Administrador de control de servicios cada vez que un servicio cambia de estado. `param1` es el nombre para mostrar del servicio y `param2` el nuevo estado, casi siempre `running` o `stopped`. Es, con diferencia, el evento más frecuente del Administrador de control de servicios, ya que muchos servicios se inician y se detienen a petición.
+
+  Su valor está en la correlación. Tras un **7045**, un par `running` / `stopped` con segundos de diferencia es la huella típica de una ejecución remota puntual (estilo PsExec). Antes de una fase de cifrado o de borrado, una serie de registros `stopped` para servicios de copia de seguridad, bases de datos y seguridad es un paso clásico de preparación de un ransomware. Que un agente de seguridad o el Registro de eventos de Windows pase a `stopped` fuera de un apagado es una señal de alarma.
+
+  El evento no indica quién detuvo el servicio. Búsquelo en la creación de procesos (4688, Sysmon 1: `sc stop`, `net stop`, `Stop-Service`, `taskkill`) a la misma hora.
+logging:
+  requirement: Se registra siempre en el registro System.
+  notes: >-
+    Muy ruidoso. El texto del estado en `param2` puede estar localizado en sistemas que no están en
+    inglés, y los datos binarios del registro contienen el nombre de clave del servicio.
+fields:
+  - name: param1
+    description: Nombre para mostrar del servicio, p. ej. `Windows Defender Antivirus Service`, `Volume Shadow Copy`.
+  - name: param2
+    description: Nuevo estado del servicio.
+    values:
+      - value: "running"
+        meaning: El servicio se inició.
+      - value: "stopped"
+        meaning: El servicio se detuvo, de forma limpia o a petición.
+benign:
+  - Servicios de inicio a petición que se inician y detienen a lo largo del día (Windows Update, BITS, Windows Modules Installer).
+  - Servicios detenidos y reiniciados durante la aplicación de parches y las actualizaciones de software.
+attacker:
+  - >-
+    Servicios de ejecución remota (PSEXESVC o nombres aleatorios) que pasan a `running` y después a
+    `stopped` justo después de su instalación 7045.
+  - Ransomware que detiene servicios de copia de seguridad, SQL, Exchange, VSS y antivirus antes del cifrado.
+  - Evasión de defensas deteniendo los servicios de EDR, Defender o Sysmon.
+investigation:
+  - Excluya los servicios ruidosos de inicio a petición y después busque servicios de seguridad, copia de seguridad y registro que pasen a `stopped`.
+  - Empareje los registros `running`/`stopped` con el 7045 para medir cuánto tiempo se ejecutó un servicio instalado.
+  - Encuentre el comando que detuvo el servicio en el 4688 o en Sysmon 1 en el mismo segundo.

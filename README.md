@@ -37,6 +37,14 @@ the analyst's machine.
   PowerShell, AMSI bypass, cleared logs, shadow-copy deletion and more — each
   showing its hit count on your data.
 - Built-in findings for common high-signal events.
+- **Sigma rules, in the browser**: 2,395 SigmaHQ Windows rules (pinned
+  release, bundled at build time) run on every load, like Hayabusa or
+  Chainsaw but with nothing to install — matches grouped by level with the
+  rule's description, ATT&CK techniques, false positives, references and
+  author, filters by level/tactic, one click to the matched events or to the
+  time window around one, CSV/JSON export with attribution. Paste or drop
+  your own Sigma YAML too; it is validated and run locally, never uploaded.
+  See [Sigma](#sigma).
 
 **Investigation**
 - **Logon sessions**: logon → activity → logoff per session, UAC split tokens
@@ -128,6 +136,51 @@ Built-in fields: `EventID`, `Level`, `Provider`, `Channel`, `Computer`, `File`,
 `Name`, `Record`. Any other name is looked up in the event's EventData. A
 regular-expression mode (`.*` button) is also available.
 
+## Sigma
+
+The Sigma tab runs [SigmaHQ](https://github.com/SigmaHQ/sigma) detection rules
+over the loaded events, inside the same web worker that parses them.
+
+- **Rule set**: `rules/windows/**` of a pinned SigmaHQ release (currently
+  `r2026-07-01`), fetched by `npm run sigma:update` and committed as
+  `lib/sigma/sigmahq-rules.json` — never fetched at runtime (the CSP forbids
+  it). 2,403 rule files scanned → **2,395 bundled**; excluded: 8 whose
+  logsource has no EVTX channel (`file_access`, `file_rename` are ETW-only),
+  plus SigmaHQ's own `deprecated/` (152) and `unsupported/` (55) Windows
+  trees. The script lists every skipped rule and why in
+  `lib/sigma/sigmahq-skipped.json`.
+- **Log sources**: `category:` maps to Sysmon Event IDs (process_creation →
+  Sysmon 1 *and* Security 4688, network_connection → 3, image_load → 7,
+  process_access → 10, file_event → 11, registry_* → 12/13/14, dns_query →
+  22, …), `ps_script`/`ps_module` → PowerShell 4104/4103, `ps_classic_*` →
+  Windows PowerShell 400/600/800; `service:` maps to its channel (security,
+  system, application, windefend, taskscheduler, bits-client, …).
+- **Fields**: Sigma's Windows taxonomy is the EventData names; Security 4688
+  is mapped to it (`Image` ← NewProcessName, `ParentImage` ←
+  ParentProcessName, `User`, `IntegrityLevel` ← MandatoryLabel, hex PIDs),
+  `Provider_Name`/`Channel`/`EventID`/`Computer` come from System, `Hashes`
+  is split into `md5`/`sha1`/`sha256`/`Imphash`, classic PowerShell `Data`
+  is joined and its `HostApplication=`… lines exposed as fields, and names
+  are matched case- and space-insensitively (Defender's "Threat Name").
+- **Engine** (`lib/sigma/engine.ts`): selections, lists, keywords, wildcards
+  and escaping, modifiers `contains` `startswith` `endswith` `all` `exists`
+  `re` (+`i`/`m`/`s`) `cased` `base64` `base64offset` `utf16le`/`utf16be`/
+  `utf16`/`wide` `windash` `cidr` `gt`/`gte`/`lt`/`lte` `fieldref`;
+  conditions with `and`/`or`/`not`, parentheses, `1 of`/`any of`/`all of`/
+  `N of` over patterns and `them`. Not supported (reported, never silently
+  ignored): aggregations (`| count() by …`), `near`, correlation rules and the
+  `expand` modifier — none of the bundled Windows rules use them.
+- **Speed**: rules are compiled once and bucketed by (channel, Event ID);
+  each rule also gets a literal pre-filter (an Aho–Corasick / hash index of
+  values one of which must be present), so an event only runs the few rules
+  that can match. 200,000 synthetic events × 2,395 rules take ~5 s in the
+  test suite; the worker yields between chunks and reports progress.
+- **License**: SigmaHQ rules are under the
+  [Detection Rule License 1.1](https://github.com/SigmaHQ/Detection-Rule-License).
+  Every match shows "Rule by *author*, SigmaHQ, DRL 1.1" and a link to the
+  rule, and exports carry the same on every row — see
+  [LICENSE-SIGMA](LICENSE-SIGMA).
+
 ## How it works
 
 ```
@@ -142,6 +195,8 @@ regular-expression mode (`.*` button) is also available.
 - `lib/evtx.worker.ts`, `lib/evtx-client.ts` — worker and its client.
 - `lib/search-query.ts` — query language (parser, matcher, highlighting).
 - `lib/hunts.ts` — hunt catalogue; `lib/detections.ts` — built-in findings.
+- `lib/sigma/` — Sigma engine, logsource mapping, runner, exports and the
+  bundled SigmaHQ rules; `scripts/sigma-update.ts` refreshes them.
 - `lib/event-decode.ts` — `%%`/NTSTATUS/Kerberos decoding and descriptions.
 - `lib/sessions.ts` — logon-session reconstruction.
 - `lib/saved-sessions.ts` — local session save/restore (IndexedDB).
@@ -159,12 +214,15 @@ npm run dev            # http://localhost:3000
 npm test               # Vitest
 npm run lint           # ESLint
 npm run lint:content   # Markdown content lint (blog, glossary)
+npm run sigma:update   # re-bundle SigmaHQ rules (pinned release)
 npm run build          # production build
 ```
 
 **Tests** cover the query language, decoding, event descriptions, hunts (an
-attack case for every hunt, plus benign look-alikes), logon sessions and time
-formatting. Suites that run against real `.evtx` files skip automatically when
+attack case for every hunt, plus benign look-alikes), logon sessions, time
+formatting and the Sigma engine (every modifier and condition form, real
+SigmaHQ rules against positive and negative events, pre-filter equivalence,
+and a 200k-event performance run). Suites that run against real `.evtx` files skip automatically when
 the fixtures are absent — they come from a training disk image and are not
 distributed (see [`tests/fixtures/evtx/README.md`](tests/fixtures/evtx/README.md)).
 
@@ -180,6 +238,10 @@ npm run wasm:build     # → lib/evtx-wasm/ and public/evtx_wasm_bg.wasm
 **Website content** (blog posts, glossary, Event ID pages, landing pages) and
 the hosted site's configuration are documented in
 [`docs/CONTENT.md`](docs/CONTENT.md).
+
+**Updating the Sigma rules**: bump `PINNED_RELEASE` in
+`scripts/sigma-update.ts`, run `npm run sigma:update`, check the printed
+counts and `npm test`, and commit the regenerated `lib/sigma/*.json`.
 
 **Adding a hunt**: add an entry to `lib/hunts.ts` (query in the search syntax,
 MITRE technique, name in all locales) and a positive and negative case in
@@ -199,6 +261,9 @@ public issue.
 
 - [`evtx`](https://github.com/omerbenamram/evtx) by Omer Ben-Amram — the Rust
   EVTX parser at the core of this tool (MIT/Apache-2.0).
+- [SigmaHQ](https://github.com/SigmaHQ/sigma) — the Sigma rules bundled in
+  `lib/sigma/`, by their respective authors, under the Detection Rule License
+  1.1 ([LICENSE-SIGMA](LICENSE-SIGMA)).
 - Third-party dependencies are listed in `package.json` and
   `crates/evtx-wasm/Cargo.toml`; see [NOTICE](NOTICE).
 
@@ -210,4 +275,5 @@ public issue.
 Licensed under the [Elastic License 2.0](LICENSE). You may use, modify and run
 it — including for commercial incident-response work — but you may not offer
 it to third parties as a hosted or managed service, or remove the licensing
-notices.
+notices. The bundled Sigma rules are under the Detection Rule License 1.1
+([LICENSE-SIGMA](LICENSE-SIGMA)).

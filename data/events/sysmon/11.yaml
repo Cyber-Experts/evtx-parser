@@ -1,0 +1,60 @@
+id: 11
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: FileCreate
+shortTitle: File created
+category: file
+summary: >-
+  Sysmon event 11 logs a file being created or overwritten and the process that wrote it. Key
+  for dropped payloads, persistence folders and dump files.
+description: |-
+  Sysmon event 11 records file creation or overwrite, naming the file (`TargetFilename`) and the process that wrote it. It is the Sysmon answer to "where did this file come from?".
+
+  Useful targets are autostart locations (Startup folders, `System32\Tasks`), download and temp folders, script and executable extensions, and dump files such as `lsass.dmp`. `CreationUtcTime` is the file's creation timestamp; for an overwritten file it can be older than the event time.
+
+  File activity is heavy on any system, so configurations include specific folders and extensions rather than logging everything.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Sysmon installed; filter with `<FileCreate>` rules in the configuration (include folders and
+    extensions of interest).
+fields:
+  - name: ProcessGuid
+    description: Process that wrote the file; pivot to its event 1.
+  - name: Image
+    description: Executable that wrote the file.
+  - name: TargetFilename
+    description: Full path of the created file.
+  - name: CreationUtcTime
+    description: Creation time of the file (can predate UtcTime when an existing file is overwritten).
+  - name: User
+    description: Account of the process (newer Sysmon versions).
+benign:
+  - Browsers writing downloads, installers writing to Program Files, updaters replacing binaries.
+  - Office and Windows writing temp and cache files.
+attacker:
+  - Payloads dropped in `%TEMP%`, `%APPDATA%`, `ProgramData` or `C:\Users\Public`.
+  - Persistence files in `...\Start Menu\Programs\Startup` or new task XML in `C:\Windows\System32\Tasks`.
+  - Memory dumps such as `lsass.dmp` written by ProcDump, Task Manager or `rundll32.exe`.
+  - Tools copied to `C:\Windows` via admin shares by `System` during PsExec-style lateral movement.
+investigation:
+  - Pivot on ProcessGuid to event 1 to see which process and parent wrote the file.
+  - Look for a later event 1 whose Image equals TargetFilename — the dropped file was executed.
+  - Check event 15 for the Zone.Identifier stream on downloaded files to get the source URL.
+related:
+  - sysmon/1
+  - sysmon/15
+  - sysmon/23
+  - sysmon/29
+  - security/4663
+  - security/5145
+attack:
+  - T1105
+  - T1547.001
+  - T1570
+  - T1003.001
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Ingress Tool Transfer (T1105)
+    url: https://attack.mitre.org/techniques/T1105/

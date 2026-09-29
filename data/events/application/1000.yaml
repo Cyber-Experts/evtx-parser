@@ -1,0 +1,83 @@
+id: 1000
+channel: application
+provider: Application Error
+title: Faulting application name, version, faulting module name
+shortTitle: Application crash
+category: software
+summary: >-
+  Application event 1000 records a process crash: application, faulting module, exception code and offset. Exposes exploits and killed tools.
+description: |-
+  Event 1000 is written by Windows Error Reporting's "Application Error" source when a process crashes with an unhandled exception. It names the crashing executable (`AppName`, `AppPath`), the module where the fault happened (`ModuleName`, `ModulePath`), the exception code and the offset inside the module. A matching **1001** usually follows with the WER report bucket.
+
+  Most crashes are bugs. The security-relevant ones stand out by **what** crashed and **how**: a crash of `lsass.exe` can follow credential-dumping or injection attempts; repeated crashes of a browser, Office application, PDF reader or network-facing service can be failed exploitation; crashes of antivirus or EDR processes can be tampering. A faulting module in a user-writable path (temp folders, `AppData`) inside a legitimate process points to DLL side-loading or injection.
+
+  `ExceptionCode` helps classify: access violations (`c0000005`) and stack buffer overruns (`c0000409`) are common in memory corruption; .NET applications report `e0434352`.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the Application log when a user-mode process crashes.
+  notes: >-
+    Named fields (`AppName`, `ExceptionCode`...) appear on recent Windows 10/11 and Server builds;
+    older builds store the same values as unnamed insertion strings in message order.
+fields:
+  - name: AppName
+    description: File name of the crashing executable, e.g. `lsass.exe`, `winword.exe`.
+  - name: AppVersion
+    description: File version of the crashing executable.
+  - name: AppPath
+    description: Full path of the crashing executable. Unusual locations are worth a look.
+  - name: ModuleName
+    description: Module in which the fault occurred (`ntdll.dll`, `KERNELBASE.dll`, or a third-party DLL).
+  - name: ModulePath
+    description: Full path of the faulting module. A DLL in a user-writable folder loaded by a system process is suspicious.
+  - name: ExceptionCode
+    description: Exception that caused the crash, in hex.
+    values:
+      - value: c0000005
+        meaning: Access violation — invalid memory read or write. The most common crash and typical of memory corruption.
+      - value: c0000409
+        meaning: Stack buffer overrun / fail-fast — the process terminated itself after detecting corruption.
+      - value: c0000374
+        meaning: Heap corruption.
+      - value: "80000003"
+        meaning: Breakpoint reached with no debugger attached.
+      - value: e0434352
+        meaning: Unhandled .NET (CLR) exception.
+  - name: FaultingOffset
+    description: Offset within the faulting module. Identical offsets across hosts suggest the same bug or exploit.
+  - name: ProcessId
+    description: Process ID of the crashed process, in hex.
+  - name: IntegratorReportId
+    description: Report ID linking to the matching Windows Error Reporting 1001 record and report folder.
+benign:
+  - Ordinary application bugs, incompatible plug-ins and out-of-memory conditions.
+  - Crashes during updates when files are replaced under a running process.
+attacker:
+  - >-
+    `lsass.exe` crashes after failed credential dumping or injection attempts; an LSASS crash
+    also forces a reboot.
+  - >-
+    Repeated crashes of Office, browsers, PDF readers or exposed services with the same offset:
+    exploitation attempts.
+  - Security tools (for example `MsMpEng.exe`) crashing after tampering or exploitation.
+investigation:
+  - Prioritize crashes of `lsass.exe`, security products, and document or web-facing processes.
+  - Check `ModulePath` for DLLs outside system and program directories.
+  - Correlate with process creation, network activity and file writes right before the crash; retrieve WER report files and dumps if present.
+  - Match `IntegratorReportId` with the 1001 record to find the WER report on disk.
+related:
+  - application/1001
+  - system/7031
+  - system/7034
+  - sysmon/10
+  - security/4688
+attack:
+  - T1203
+  - T1068
+  - T1003.001
+references:
+  - title: Microsoft Learn — Windows Error Reporting
+    url: https://learn.microsoft.com/en-us/windows/win32/wer/windows-error-reporting
+  - title: Microsoft Learn — Collecting user-mode dumps
+    url: https://learn.microsoft.com/en-us/windows/win32/wer/collecting-user-mode-dumps
+  - title: MITRE ATT&CK — Exploitation for Client Execution (T1203)
+    url: https://attack.mitre.org/techniques/T1203/

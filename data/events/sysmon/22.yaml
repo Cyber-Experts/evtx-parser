@@ -1,0 +1,70 @@
+id: 22
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: DNSEvent (DNS query)
+shortTitle: DNS query
+category: network
+summary: >-
+  Sysmon event 22 logs a DNS query made by a process, with the name, status and answers. Links
+  domains to processes for C2, tunneling and phishing hunts.
+description: |-
+  Sysmon event 22 records a DNS lookup performed through the Windows DNS client, together with the process that asked. It is logged whether the query succeeds or fails and whether the answer came from cache.
+
+  The value is attribution: network DNS logs show that a host resolved a domain, event 22 shows which executable did it. `QueryResults` lists the returned addresses (and CNAME records), which you can then match against event 3 connections from the same process.
+
+  Volume is high on workstations; configurations usually exclude well-known Microsoft, CDN and business domains. The telemetry relies on Windows 8.1 or later.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Sysmon 10.0 or later with a `<DnsQuery>` rule in the configuration. Not available on Windows 7
+    and earlier.
+  notes: >-
+    Only lookups made through the Windows DNS client are seen; a program that sends raw DNS packets
+    or uses DNS over HTTPS inside the application bypasses it.
+fields:
+  - name: ProcessGuid
+    description: Process that made the query; pivot to its event 1.
+  - name: Image
+    description: Executable that made the query.
+  - name: QueryName
+    description: Name that was resolved.
+  - name: QueryStatus
+    description: Result code of the query.
+    values:
+      - value: "0"
+        meaning: Success.
+      - value: "9003"
+        meaning: DNS_ERROR_RCODE_NAME_ERROR — the name does not exist (NXDOMAIN).
+      - value: "9501"
+        meaning: DNS_INFO_NO_RECORDS — the name exists but has no record of the requested type.
+  - name: QueryResults
+    description: >-
+      Answers returned, separated by semicolons. CNAME entries are shown with their record type;
+      IPv4 answers may appear in IPv4-mapped IPv6 form (`::ffff:a.b.c.d`).
+  - name: User
+    description: Account of the process (newer Sysmon versions).
+benign:
+  - Browsers, Teams, Office and Windows services resolving cloud and CDN names.
+  - Endpoint and update agents querying their vendor domains.
+attacker:
+  - Script hosts or LOLBins resolving rare or newly registered domains, paste sites or tunneling services.
+  - Many NXDOMAIN (`9003`) answers from one process — domain generation algorithm (DGA) behavior.
+  - Long random-looking subdomains in bulk — DNS tunneling or exfiltration.
+investigation:
+  - Pivot on ProcessGuid to event 1 and to event 3 connections toward the IPs in QueryResults.
+  - Count QueryName across the fleet; domains seen on a single host are candidates for review.
+  - Check domain age and reputation for anything resolved by a script host.
+related:
+  - sysmon/3
+  - sysmon/1
+  - dns-client/3008
+  - dns-client/3006
+attack:
+  - T1071.004
+  - T1568.002
+  - T1572
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Application Layer Protocol, DNS (T1071.004)
+    url: https://attack.mitre.org/techniques/T1071/004/

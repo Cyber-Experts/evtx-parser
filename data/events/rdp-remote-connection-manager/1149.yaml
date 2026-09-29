@@ -1,0 +1,58 @@
+id: 1149
+channel: rdp-remote-connection-manager
+provider: Microsoft-Windows-TerminalServices-RemoteConnectionManager
+title: "Remote Desktop Services: User authentication succeeded"
+shortTitle: Connection authenticated
+category: remote-access
+summary: >-
+  RDP event 1149 records an inbound Remote Desktop connection with user, domain and source IP.
+  It means the network connection succeeded, not the logon.
+description: |-
+  Event 1149 is written on the **RDP server** when a client's Remote Desktop connection passes the network-level step. Despite the message text "User authentication succeeded", it does not prove that a desktop session was opened: with Network Level Authentication (NLA) it means the credentials were accepted at the network level, and without NLA it can be logged as soon as the connection is made, before any password is checked.
+
+  Its value is the source: `Param3` holds the client IP address, together with the user name and domain the client sent. The log is enabled by default and often survives when the Security log has rolled over or was cleared, so it is frequently the best surviving record of who connected over RDP and from where.
+
+  Confirm the actual logon with Security 4624 (LogonType 10, or 7 for a reconnect to a locked session) and LocalSessionManager 21, 22 or 25.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational channel is
+    enabled by default on hosts that accept Remote Desktop connections.
+  notes: >-
+    The data sits under UserData/EventXML as `Param1`, `Param2` and `Param3` rather than named
+    EventData fields.
+fields:
+  - name: Param1
+    description: User name supplied by the client.
+  - name: Param2
+    description: Domain supplied by the client (can be empty or the computer name for local accounts).
+  - name: Param3
+    description: Source IP address of the RDP client. If an RDP gateway or tunnel is in use, this is the gateway or tunnel endpoint.
+benign:
+  - Administrators and users connecting over RDP from their usual workstations or jump hosts.
+  - Remote support staff and monitoring that tests RDP availability with credentials.
+attacker:
+  - External RDP access with valid or brute-forced credentials — public source IPs in Param3.
+  - Lateral movement over RDP inside the network, often from a server or workstation that never RDPs elsewhere.
+  - RDP tunneled through a compromised host (for example with SSH or proxy tools) — Param3 is then a local address such as `127.0.0.1` or `::1`.
+investigation:
+  - List Param3 values per user and flag first-seen IPs, public IPs and loopback addresses.
+  - Confirm each connection with Security 4624 type 10 and LocalSessionManager 21/25 at the same time; a 1149 without a logon may be a failed or aborted attempt.
+  - Use this log to fill gaps when the Security log has been cleared (1102) — it is a separate file.
+  - On the source host, the RDPClient log (1024, 1102) shows outbound connections toward this server.
+related:
+  - security/4624
+  - security/4625
+  - rdp-local-session-manager/21
+  - rdp-local-session-manager/25
+  - rdp-client/1024
+  - rdp-core-ts/131
+attack:
+  - T1021.001
+  - T1133
+  - T1078
+references:
+  - title: Microsoft Learn — Remote Desktop Services overview
+    url: https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/remote-desktop-services-overview
+  - title: JPCERT/CC — Detecting Lateral Movement through Tracking Event Logs
+    url: https://www.jpcert.or.jp/english/pub/sr/ir_research.html

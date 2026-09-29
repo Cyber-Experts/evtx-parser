@@ -1,0 +1,105 @@
+title: Ein neuer Prozess wurde erstellt
+shortTitle: Prozesserstellung
+summary: >-
+  Event-ID 4688 protokolliert jeden neuen Prozess: Programm, Elternprozess, Konto, Erhöhung und
+  optional die vollständige Befehlszeile. Standardmäßig aus.
+description: |-
+  Event 4688 ist der native Windows-Nachweis für Prozessausführung. Jeder Eintrag nennt das neue Programm (`NewProcessName`), den Prozess, der es gestartet hat (`ProcessId` und ab Windows 10 / Server 2016 `ParentProcessName`), das Konto und die Anmeldesitzung (`SubjectUserName`, `SubjectLogonId`) sowie das erhaltene Token (`TokenElevationType`, `MandatoryLabel`).
+
+  Das wertvollste Feld, `CommandLine`, ist **leer, solange nicht eine separate Richtlinie aktiviert ist**: „Befehlszeile in Prozesserstellungsereignisse einschließen“. Ohne sie weiß man, dass `powershell.exe` lief, aber nicht, was ausgeführt wurde. Mit Unterkategorie und Befehlszeilenrichtlinie wird 4688 zu einer schlanken Alternative zu Sysmon-Event 1 (das zusätzlich Hashes und die Befehlszeile des Elternprozesses liefert).
+
+  Laufen Ersteller und neuer Prozess unter verschiedenen Anmeldesitzungen (etwa ein Dienst, der einen Prozess als anderer Benutzer startet), nennen die `Target*`-Felder das Konto, unter dem der Prozess tatsächlich läuft; andernfalls sind sie leer. `SubjectLogonId` / `TargetLogonId` verknüpfen jeden Prozess mit seiner 4624-Anmeldung.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Detailed Tracking > Audit Process Creation (Success).
+    Für Befehlszeilen zusätzlich Computer Configuration > Administrative Templates > System >
+    Audit Process Creation > Include command line in process creation events aktivieren.
+  notes: >-
+    In der Standard-Überwachungsrichtlinie nicht aktiviert. `CommandLine` gibt es ab Windows 8.1 /
+    Server 2012 R2 (Event-Version 1); `Target*`-Felder, `ParentProcessName` und `MandatoryLabel`
+    ab Windows 10 / Server 2016 (Version 2). Das Volumen ist hoch — Protokollgröße und
+    Weiterleitung entsprechend planen. Befehlszeilen können als Argumente eingegebene Geheimnisse
+    enthalten.
+fields:
+  - name: SubjectUserName
+    description: Konto, das den Prozess erstellt hat (der Ersteller). `HOST$` bedeutet SYSTEM oder ein anderer Dienst im Computerkontext.
+  - name: SubjectLogonId
+    description: >-
+      Anmeldesitzung des Erstellers. Mit TargetLogonId in 4624 abgleichen, um zu erfahren, wie die
+      Sitzung begann (interaktiv, RDP, Netzwerk, Dienst).
+  - name: NewProcessId
+    description: Hexadezimale PID des neuen Prozesses. Mit ProcessId in 4689 für das Beenden oder mit späteren Kindprozessen abgleichen.
+  - name: NewProcessName
+    description: Vollständiger Pfad des neuen Programms. Den Ordner ebenso prüfen wie den Namen.
+  - name: TokenElevationType
+    description: Art des Tokens, das der Prozess unter UAC erhalten hat.
+    values:
+      - value: "%%1936"
+        meaning: >-
+          Typ 1, vollständiges Token — UAC ist für dieses Konto aus, oder es handelt sich um den
+          integrierten Administrator, ein Dienstkonto oder SYSTEM.
+      - value: "%%1937"
+        meaning: >-
+          Typ 2, erhöhtes Token — der Benutzer hat das Programm mit „Als Administrator ausführen“
+          gestartet, oder das Programm erfordert Erhöhung und der Benutzer ist Administrator.
+      - value: "%%1938"
+        meaning: Typ 3, eingeschränktes Token — UAC ist aktiv und der Prozess läuft ohne Administratorrechte.
+  - name: MandatoryLabel
+    description: Integritätsstufe des neuen Prozesses.
+    values:
+      - value: "S-1-16-0"
+        meaning: Nicht vertrauenswürdig (Untrusted).
+      - value: "S-1-16-4096"
+        meaning: Niedrige Integrität (z. B. Browser-Prozesse in der Sandbox).
+      - value: "S-1-16-8192"
+        meaning: Mittlere Integrität — Prozesse von Standardbenutzern.
+      - value: "S-1-16-8448"
+        meaning: Medium Plus.
+      - value: "S-1-16-12288"
+        meaning: Hohe Integrität — erhöhte Administratorprozesse.
+      - value: "S-1-16-16384"
+        meaning: Systemintegrität — SYSTEM-Dienste.
+      - value: "S-1-16-20480"
+        meaning: Geschützter Prozess.
+  - name: ProcessId
+    description: >-
+      Hexadezimale PID des erstellenden (Eltern-)Prozesses. PIDs werden wiederverwendet, daher auch
+      zeitlich mit dem eigenen 4688 des Elternprozesses abgleichen.
+  - name: ParentProcessName
+    description: Vollständiger Pfad des erstellenden Prozesses (ab Windows 10 / Server 2016).
+  - name: CommandLine
+    description: >-
+      Vollständige Befehlszeile des neuen Prozesses. Leer, solange die Befehlszeilenrichtlinie nicht
+      aktiviert ist; wenn vorhanden, zuerst prüfen.
+  - name: TargetUserName
+    description: >-
+      Konto, unter dem der neue Prozess läuft, wenn es von der Sitzung des Erstellers abweicht;
+      `-`, wenn Ersteller und neuer Prozess dieselbe Anmeldung teilen.
+  - name: TargetLogonId
+    description: Anmeldesitzung des neuen Prozesses, wenn sie von der des Erstellers abweicht; sonst `0x0`.
+benign:
+  - Normale Benutzer- und Systemaktivität — Tausende Einträge pro Tag und Host, dominiert von Diensten, Updatern und Browsern.
+  - Softwareverteilungs- und Management-Agenten (SCCM, Intune, Backup, Monitoring), die `cmd.exe` oder `powershell.exe` als SYSTEM starten.
+  - Administratoren, die Tools mit „Als Administrator ausführen“ starten und so erhöhte Tokens `%%1937` erzeugen.
+attacker:
+  - >-
+    Living-off-the-Land-Ausführung: `powershell.exe` mit `-enc` oder Download-Cradles,
+    `rundll32.exe`, `regsvr32.exe`, `mshta.exe`, `certutil.exe` mit ungewöhnlichen Argumenten.
+  - >-
+    Office-Anwendungen, Browser oder `w3wp.exe`, die Befehlsinterpreter starten — ein häufiges
+    Zeichen für bösartige Dokumente oder Webshells.
+  - >-
+    Artefakte von Remote-Ausführung auf dem Ziel: Kindprozesse von `services.exe` mit zufälligen
+    Namen (PsExec-artig), `WmiPrvSE.exe`, das `cmd.exe` startet (WMI), `wsmprovhost.exe` (WinRM).
+  - Discovery-Häufungen aus einer Sitzung — `whoami`, `net`, `nltest`, `ipconfig`, `systeminfo` innerhalb von Sekunden.
+  - Programme, die aus benutzerbeschreibbaren Orten wie `%TEMP%`, `AppData`, `C:\ProgramData` oder `C:\Users\Public` laufen.
+investigation:
+  - >-
+    Den Prozessbaum über NewProcessId / ProcessId und ParentProcessName rekonstruieren und dabei
+    beachten, dass PIDs mit der Zeit wiederverwendet werden.
+  - >-
+    Nach SubjectLogonId gruppieren, um alles zu sehen, was eine einzelne Sitzung ausgeführt hat,
+    dann auf das 4624 pivotieren, das diese Sitzung erstellt hat, um ihre Herkunft zu ermitteln.
+  - Über die gesamte Umgebung nach seltenen Eltern-/Kind-Paaren suchen statt nach einzelnen verdächtigen Namen.
+  - Ist CommandLine überall leer, ist die Befehlszeilenrichtlinie aus — auf Sysmon 1, PowerShell 4104 oder EDR-Daten ausweichen.
+  - 4689 mit derselben PID nutzen, um Endzeit und Laufzeit kurzlebiger Tools zu ermitteln.

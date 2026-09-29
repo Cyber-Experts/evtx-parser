@@ -1,0 +1,40 @@
+id: 39
+channel: rdp-local-session-manager
+provider: Microsoft-Windows-TerminalServices-LocalSessionManager
+title: Session has been disconnected by session
+shortTitle: Session disconnected by another session
+category: remote-access
+summary: >-
+  RDP event 39 records that one session was disconnected by another session, as with a session
+  takeover or tscon.
+description: |-
+  Event 39 is logged when a session is disconnected by an action taken from a different session — for example an administrator using Task Manager or `tscon` to connect to someone else's session, or a user logging on again and taking over their own existing session.
+
+  It names both sessions: the one that was disconnected and the session that caused it. On servers where users do not share accounts, a session being disconnected by a different user's session is unusual and worth checking against RDP hijacking.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the LocalSessionManager/Operational channel is enabled by default.
+fields:
+  - name: TargetSession
+    description: Session that was disconnected.
+  - name: Source
+    description: Session that initiated the disconnect.
+benign:
+  - A user reconnecting from a new device, which disconnects their previous connection.
+  - Administrators taking over a session for support.
+attacker:
+  - "RDP session hijacking — running `tscon <id>` as SYSTEM to attach to another user's disconnected session without their password."
+investigation:
+  - Map both session numbers to users with events 21/25 and check whether they belong to the same account.
+  - Look for `tscon.exe` in process creation logs (4688, Sysmon 1) at the same time, especially run as SYSTEM.
+related:
+  - rdp-local-session-manager/40
+  - rdp-local-session-manager/24
+  - rdp-local-session-manager/25
+  - security/4688
+attack:
+  - T1563.002
+references:
+  - title: MITRE ATT&CK — RDP Hijacking (T1563.002)
+    url: https://attack.mitre.org/techniques/T1563/002/

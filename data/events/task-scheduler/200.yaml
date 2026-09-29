@@ -1,0 +1,59 @@
+id: 200
+channel: task-scheduler
+provider: Microsoft-Windows-TaskScheduler
+title: Action started
+shortTitle: Action started
+category: scheduled-task
+summary: >-
+  Task Scheduler event 200 records that a task action was launched: which task, which instance
+  and the action itself — often the program path that ran.
+description: |-
+  Event 200 is written when the Task Scheduler launches one of a task's actions. It records the task path (`TaskName`), the action (`ActionName`) and the run's `TaskInstanceId`, which matches the `InstanceId` of the 100 event that started the instance.
+
+  For executable actions, `ActionName` shows the program that was started, which makes 200 one of the quickest ways to see what a task actually does without opening its XML. For COM handler actions it shows the handler instead. Arguments are not included; get them from the task definition or from process creation logs.
+
+  Each action produces its own 200, so a task with several actions logs several 200 events under one instance, each followed by a 201 when it completes.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    The Microsoft-Windows-TaskScheduler/Operational channel must be enabled — "Enable All Tasks
+    History" in the Task Scheduler console, or `wevtutil sl Microsoft-Windows-TaskScheduler/Operational /e:true`.
+  notes: >-
+    The default state of this channel is not consistent across Windows versions, editions and
+    builds: on some installs it is already recording, on others task history is off and the log
+    stays empty until someone enables it. Check whether the log holds any records before treating
+    a missing event as evidence. On busy hosts the log rolls over quickly.
+fields:
+  - name: TaskName
+    description: Full path of the task in the library.
+  - name: ActionName
+    description: >-
+      The action launched — for an executable action, the program path (e.g.
+      `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`).
+  - name: TaskInstanceId
+    description: GUID of the task run; same value as `InstanceId` in 100 and 102.
+benign:
+  - Built-in tasks launching `System32` binaries or COM handlers.
+  - Vendor updaters and management agents launching their executables from `Program Files`.
+attacker:
+  - Tasks launching payloads from user-writable folders or script interpreters with encoded arguments.
+  - Persistence tasks whose action points to a renamed or look-alike binary.
+investigation:
+  - Stack ActionName across hosts to find rare programs launched by tasks.
+  - Pivot on TaskInstanceId to 100 (start, run-as user), 201 (result code) and 102 (end).
+  - Use 129 or process creation logs at the same time to recover the full command line.
+related:
+  - task-scheduler/100
+  - task-scheduler/201
+  - task-scheduler/129
+  - task-scheduler/102
+  - task-scheduler/106
+  - security/4688
+  - sysmon/1
+attack:
+  - T1053.005
+references:
+  - title: Microsoft Learn — Task Scheduler
+    url: https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-start-page
+  - title: MITRE ATT&CK — Scheduled Task (T1053.005)
+    url: https://attack.mitre.org/techniques/T1053/005/

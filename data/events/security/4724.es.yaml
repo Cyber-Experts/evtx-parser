@@ -1,0 +1,41 @@
+title: Se intentó restablecer la contraseña de una cuenta
+shortTitle: Intento de restablecer contraseña
+summary: >-
+  El evento 4724 se registra cuando una cuenta restablece la contraseña de otra sin conocer la
+  anterior; una acción administrativa que conviene revisar.
+description: |-
+  El evento 4724 registra un **restablecimiento** de contraseña: el sujeto establece una nueva contraseña para la cuenta de destino sin proporcionar la anterior. Esto requiere el derecho Restablecer contraseña sobre la cuenta (o derechos de administrador local en el caso de una cuenta local), por lo que normalmente lo realizan el personal de help desk, los administradores o las herramientas de aprovisionamiento. `Subject*` es quién restableció la contraseña y `Target*` la cuenta cuya contraseña se restableció.
+
+  Los restablecimientos forman parte de la creación de cuentas (una cuenta nueva recibe así su primera contraseña, normalmente junto a 4720 y 4722) y del trabajo rutinario del help desk. También son la forma más rápida de que un atacante con derechos delegados se apodere de otra cuenta: restablecer la contraseña e iniciar sesión como el destino. Las herramientas que abusan de permisos de Active Directory, como un derecho delegado de "restablecer contraseña" sobre un usuario privilegiado, acaban en este evento.
+
+  Se registra un evento de error cuando la nueva contraseña no cumple la directiva de contraseñas; un "acceso denegado" durante el restablecimiento **no** genera un 4724 de error. El evento también se registra cuando se restablece la contraseña de una cuenta de equipo.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success, Failure). El éxito se audita por defecto; hay que habilitar Failure para ver los
+    intentos rechazados.
+fields:
+  - name: SubjectUserName
+    description: Cuenta que realizó el restablecimiento. Compárela con las cuentas de help desk y de administración esperadas.
+  - name: SubjectDomainName
+    description: Dominio o nombre de equipo del sujeto.
+  - name: SubjectLogonId
+    description: Sesión del sujeto; correlacione con el 4624.
+  - name: TargetUserName
+    description: Cuenta cuya contraseña se restableció.
+  - name: TargetDomainName
+    description: Dominio de la cuenta de destino, o el nombre del equipo en el caso de una cuenta local.
+  - name: TargetSid
+    description: SID de la cuenta de destino.
+benign:
+  - Restablecimientos de contraseña por el help desk cuando un usuario olvida su contraseña o queda bloqueado (a menudo precedidos de un 4740 y seguidos de un 4767).
+  - Establecimiento de la contraseña inicial durante la creación de la cuenta, junto a 4720 y 4722.
+  - Herramientas de gestión de contraseñas que rotan la contraseña del Administrador local o de cuentas de servicio.
+attacker:
+  - Toma de control de cuentas abusando de un permiso delegado de restablecimiento de contraseña sobre otro usuario, incluidos usuarios privilegiados.
+  - Restablecimiento de la contraseña de una cuenta inactiva o de servicio para obtener una credencial válida para el movimiento lateral.
+  - Restablecimientos masivos de contraseñas para dejar fuera a los administradores durante un ataque destructivo.
+investigation:
+  - Verifique que SubjectUserName tiene permiso para restablecer la contraseña del destino y que existe un ticket o una solicitud.
+  - Busque un inicio de sesión del TargetUserName poco después del restablecimiento (4624, 4768) desde un host que controle el sujeto.
+  - Los restablecimientos de cuentas privilegiadas (Domain Admins, cuentas de servicio) por cuentas que no son de nivel 0 requieren revisión inmediata.

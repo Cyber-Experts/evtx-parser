@@ -1,0 +1,45 @@
+title: La stratégie d'audit du système a été modifiée
+shortTitle: Stratégie d'audit modifiée
+summary: >-
+  L'événement 4719 consigne une modification de la stratégie d'audit système, par exemple l'audit
+  des succès ou échecs retiré d'une sous-catégorie via auditpol.
+description: |-
+  L'événement 4719 est écrit lorsque la stratégie d'audit locale change pour une sous-catégorie : audit des succès ou des échecs ajouté ou retiré. Les champs identifient la catégorie, la sous-catégorie (par nom et GUID) et ce qui a changé.
+
+  Désactiver l'audit est une technique classique d'évasion des défenses : un attaquant qui coupe l'audit des ouvertures de session, de la création de processus ou de l'accès aux objets avant d'agir supprime précisément les événements sur lesquels une investigation s'appuierait. `auditpol /clear`, `auditpol /set ... /success:disable` et les modifications de stratégie scriptées apparaissent toutes ici.
+
+  La stratégie de groupe réapplique aussi régulièrement la stratégie d'audit, si bien que de nombreux enregistrements ont le compte ordinateur ou SYSTEM comme sujet. Concentrez-vous sur les modifications qui **retirent** l'audit et sur celles effectuées par des comptes utilisateurs.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Policy Change > Audit Audit Policy Change (Success).
+    Activé en succès dans la stratégie d'audit par défaut de Windows.
+  notes: >-
+    Les modifications appliquées par stratégie de groupe peuvent produire une série de 4719 lors
+    de l'actualisation de la stratégie. Si la sous-catégorie Audit Policy Change est elle-même
+    désactivée, les modifications ultérieures ne sont plus consignées.
+fields:
+  - name: SubjectUserName
+    description: Compte ayant modifié la stratégie ; le compte ordinateur pour la stratégie de groupe.
+  - name: SubjectLogonId
+    description: Session ; `0x3e7` pour SYSTEM, sinon pivotez vers les 4624 et 4688.
+  - name: CategoryId
+    description: Catégorie d'audit de la sous-catégorie modifiée (par ex. Logon/Logoff, Detailed Tracking), sous forme de code de message.
+  - name: SubcategoryId
+    description: Sous-catégorie modifiée, sous forme de code de message converti en nom (par ex. Logon, Process Creation).
+  - name: SubcategoryGuid
+    description: GUID de la sous-catégorie ; identique quelle que soit la langue.
+  - name: AuditPolicyChanges
+    description: >-
+      Ce qui a changé, affiché comme « Succès supprimé », « Échec supprimé », « Succès ajouté » ou
+      « Échec ajouté », ou une combinaison séparée par des virgules.
+benign:
+  - Actualisation de la stratégie de groupe appliquant une stratégie d'audit avancée nouvelle ou mise à jour.
+  - Administrateurs ou scripts de déploiement configurant l'audit avec `auditpol` lors de la construction ou du durcissement.
+  - Agents de sécurité qui définissent la stratégie d'audit dont ils dépendent.
+attacker:
+  - "`auditpol /clear` ou `auditpol /set /category:* /success:disable /failure:disable` pour aveugler le journal Sécurité."
+  - Retrait de l'audit de sous-catégories précises (Process Creation, Logon, Object Access) avant un mouvement latéral ou un accès aux données.
+investigation:
+  - Filtrez les modifications de type « supprimé » et les sujets qui sont des comptes utilisateurs plutôt que le compte ordinateur.
+  - Pivotez de `SubjectLogonId` vers les 4688 pour trouver `auditpol.exe` ou le script à l'origine de la modification.
+  - Recherchez un 1102 (journal effacé) ou des trous dans le journal autour de la modification, et vérifiez la stratégie actuelle avec `auditpol /get /category:*`.

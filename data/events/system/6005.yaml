@@ -1,0 +1,43 @@
+id: 6005
+channel: system
+provider: EventLog
+title: The Event log service was started
+shortTitle: Event Log service started
+category: system
+summary: >-
+  System event 6005 is written when the Event Log service starts, which in practice means at every
+  boot. A simple, reliable startup marker next to event 12.
+description: |-
+  Event 6005 is logged by the Event Log service as soon as it starts. Since the service starts automatically early in boot and is not normally restarted, 6005 is effectively a **boot marker**, paired with **6006** (service stopped) at shutdown. It is often used for uptime reports together with **6013**.
+
+  It carries no useful data: the timestamp is the evidence. Its position relative to kernel event **12** is also informative — 12 comes first (kernel start), 6005 follows seconds later once logging is up. Records between the two are generated from boot-time buffers.
+
+  A 6005 that is **not** near a 12 means the Event Log service itself was restarted while the system stayed up, which is unusual and worth explaining.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log when the Event Log service starts.
+fields:
+  - name: Data1
+    description: Empty. The event carries no insertion strings; use the record time.
+benign:
+  - Every system boot.
+attacker:
+  - >-
+    A 6005 in the middle of a session, after a 6006 or a gap, can reveal an attacker who stopped
+    and restarted the Event Log service to suspend logging.
+investigation:
+  - Pair each 6005 with a 12 from Kernel-General; a lone 6005 means a service restart, not a boot.
+  - Check the previous records for 6006 or for a gap in time and record IDs.
+related:
+  - system/12
+  - system/6006
+  - system/6008
+  - system/6013
+  - security/1100
+attack:
+  - T1685.001
+references:
+  - title: Microsoft Learn — Event logging
+    url: https://learn.microsoft.com/en-us/windows/win32/eventlog/event-logging
+  - title: MITRE ATT&CK — Disable or Modify Windows Event Log (T1685.001)
+    url: https://attack.mitre.org/techniques/T1685/001/

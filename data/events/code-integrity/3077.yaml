@@ -1,0 +1,62 @@
+id: 3077
+channel: code-integrity
+provider: Microsoft-Windows-CodeIntegrity
+title: Code Integrity determined that a process attempted to load a file that did not meet the policy requirements
+shortTitle: App Control (WDAC) block
+category: application-control
+summary: >-
+  Code Integrity event 3077 is the main App Control for Business (WDAC) enforcement block: a
+  file failed the active policy and was prevented from loading.
+description: |-
+  Event 3077 is written to `Microsoft-Windows-CodeIntegrity/Operational` when an **enforced** App Control for Business (formerly WDAC) policy blocks an executable, DLL or driver. It is the enforcement counterpart of **3076**, which reports what an audit-mode policy **would** have blocked. Each block is followed by one or more **3089** events carrying the file's signature information, linked by the Correlation ActivityID.
+
+  The record names the blocked file and the process that tried to load it, the requested and validated signing levels, the file hashes, the version resource (`OriginalFileName`, product and description) and the policy responsible (`PolicyName`, `PolicyID`, `PolicyGUID`). That is enough to tell whether a block is a missing allow rule for a legitimate app or an actual attack stopped by policy.
+
+  The **Microsoft vulnerable driver blocklist** is also enforced through App Control, so 3077 is where a blocked bring-your-own-vulnerable-driver attempt shows up.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    An App Control for Business policy in enforced mode (custom policy, or the vulnerable driver
+    blocklist). The CodeIntegrity/Operational log itself is enabled by default.
+  notes: >-
+    File and process names use field names containing spaces in some builds (e.g. `File Name`,
+    `Process Name`) and device paths such as `\Device\HarddiskVolume3\...`.
+fields:
+  - name: PolicyName
+    description: Name of the policy that blocked the file.
+  - name: PolicyID
+    description: Policy ID string from the policy's settings.
+  - name: PolicyGUID
+    description: GUID of the policy; identifies base or supplemental policy files.
+  - name: OriginalFileName
+    description: Original file name from the version resource; survives renaming of the binary.
+  - name: Status
+    description: NTSTATUS result of the validation.
+benign:
+  - Legitimate software not yet covered by allow rules after deploying or updating a policy.
+  - Old drivers on the vulnerable driver blocklist still installed on the system.
+attacker:
+  - Attempts to run unapproved tools or payloads on hosts with enforced App Control.
+  - BYOVD — loading a known vulnerable signed driver to kill EDR — blocked by the driver blocklist.
+  - DLL side-loading attempts with unsigned DLLs.
+investigation:
+  - Read the blocked file path, the loading process and `OriginalFileName`; a renamed known tool is a strong signal.
+  - Pull the SHA256 hash from the event and check it against threat intelligence and the driver blocklist.
+  - Join with 3089 (same Correlation ActivityID) for publisher and certificate details.
+  - Trace how the file arrived (Sysmon 11, 4663) and what started the loading process (4688, Sysmon 1).
+related:
+  - code-integrity/3033
+  - applocker/8004
+  - applocker/8007
+  - sysmon/6
+  - sysmon/7
+  - security/4688
+attack:
+  - T1068
+  - T1685
+  - T1574.001
+references:
+  - title: Microsoft Learn — Understanding App Control event IDs
+    url: https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/operations/event-id-explanations
+  - title: Microsoft Learn — Understanding App Control event tags
+    url: https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/operations/event-tag-explanations

@@ -1,0 +1,59 @@
+id: 4672
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: Special privileges assigned to new logon
+shortTitle: Special privileges assigned
+category: logon
+summary: >-
+  Event 4672 follows a 4624 when the new session holds sensitive privileges such as SeDebug or
+  SeTcb — a marker of administrator logons.
+description: |-
+  Event 4672 is written right after a 4624 when the new logon's token contains one or more "sensitive" privileges: debugging programs, acting as part of the operating system, backup and restore, taking ownership, loading drivers and similar. In practice that means administrators, `SYSTEM` and some service accounts.
+
+  It shares its logon ID (`SubjectLogonId`) with the 4624 it belongs to, so filtering 4624 events down to those that have a matching 4672 is the quickest way to list privileged logons on a host. On domain controllers, every 4672 for a human account is worth knowing about.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Special Logon (Success).
+    Enabled for Success in the default audit policy.
+  notes: >-
+    Logged for SYSTEM and machine accounts at a high rate; the interesting records are the ones
+    for named user accounts.
+fields:
+  - name: SubjectUserSid
+    description: SID of the account that received the privileges.
+  - name: SubjectUserName
+    description: Account that received the privileges (despite the "Subject" name, this is the account that logged on).
+  - name: SubjectDomainName
+    description: Domain of that account.
+  - name: SubjectLogonId
+    description: Logon session ID, equal to TargetLogonId in the matching 4624.
+  - name: PrivilegeList
+    description: >-
+      Sensitive privileges present in the token, one per line, e.g. `SeDebugPrivilege`,
+      `SeTcbPrivilege`, `SeBackupPrivilege`, `SeRestorePrivilege`, `SeTakeOwnershipPrivilege`,
+      `SeLoadDriverPrivilege`, `SeImpersonatePrivilege`, `SeSecurityPrivilege`.
+benign:
+  - Administrators logging on to servers they manage.
+  - SYSTEM, LOCAL SERVICE, NETWORK SERVICE and machine accounts at boot and for services.
+  - Backup software service accounts (SeBackupPrivilege, SeRestorePrivilege).
+attacker:
+  - Use of a stolen admin account — a 4624 + 4672 pair for that account from a host or IP it does not normally use.
+  - Newly created or newly promoted accounts (4720, 4732, 4728) suddenly receiving special privileges.
+  - Lateral movement with admin credentials produces 4624 type 3 plus 4672 on every target.
+investigation:
+  - Join 4672 to 4624 on logon ID to get LogonType and source IP for each privileged logon.
+  - Baseline which human accounts get 4672 on each server; alert on new ones.
+  - An account that should be a standard user getting `SeDebugPrivilege` means its group memberships changed — check 4732/4728/4756.
+related:
+  - security/4624
+  - security/4648
+  - security/4732
+  - security/4728
+  - security/4688
+attack:
+  - T1078
+  - T1078.002
+references:
+  - title: "Microsoft Learn — 4672(S): Special privileges assigned to new logon"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4672

@@ -1,0 +1,52 @@
+id: 410
+channel: kernel-pnp
+provider: Microsoft-Windows-Kernel-PnP
+title: Device was started
+shortTitle: Device started
+category: device
+summary: >-
+  Kernel-PnP event 410 is logged when a device is started with its driver and service. Dates USB storage connections, including repeat ones.
+description: |-
+  Event 410 in the `Microsoft-Windows-Kernel-PnP/Configuration` log is written when the Plug and Play manager starts a device, naming the `DeviceInstanceId`, driver INF, class and the driver service (`ServiceName`, e.g. `USBSTOR`, `disk`).
+
+  Where **400** mostly marks the first configuration of a device, 410 is useful for dating connections of devices already known to the system. For a USB drive, look for the pair of nodes: the `USB\VID_...&PID_...\<serial>` device started by `USBSTOR`, and the `USBSTOR\DISK&VEN_...` child started by `disk`.
+
+  Combine it with Partition **1006** (disk and volume details) and System **20001** (first driver install) to reconstruct when a device was attached and what it was.
+logging:
+  enabledByDefault: true
+  requirement: Microsoft-Windows-Kernel-PnP/Configuration log, enabled by default.
+  notes: The log is small by default and rolls over quickly on busy hosts.
+fields:
+  - name: DeviceInstanceId
+    description: Plug and Play instance ID; contains vendor, product and serial number for USB storage.
+  - name: DriverName
+    description: Driver INF used, e.g. `usbstor.inf`.
+  - name: ClassGuid
+    description: Device setup class GUID.
+  - name: ServiceName
+    description: Driver service that started the device, e.g. `USBSTOR`, `disk`, `WUDFRd`.
+  - name: Status
+    description: Result code; `0x0` is success.
+benign:
+  - Every device start at boot, and every hot-plug of known peripherals.
+attacker:
+  - Repeated connections of the same USB storage device during a data theft window.
+  - New network or HID devices started on a server (hardware additions).
+investigation:
+  - Filter for storage-related `ServiceName` values (`USBSTOR`, `disk`) and group by serial number.
+  - Line up start times with user logons (4624, 4800/4801) to attribute the connection to a session.
+  - Correlate with 1006 to get capacity, vendor and volume serial for the same disk.
+related:
+  - kernel-pnp/400
+  - system/20001
+  - partition/1006
+  - security/6416
+  - security/4624
+attack:
+  - T1052.001
+  - T1200
+references:
+  - title: Microsoft Learn — Device instance IDs
+    url: https://learn.microsoft.com/en-us/windows-hardware/drivers/install/device-instance-ids
+  - title: MITRE ATT&CK — Hardware Additions (T1200)
+    url: https://attack.mitre.org/techniques/T1200/

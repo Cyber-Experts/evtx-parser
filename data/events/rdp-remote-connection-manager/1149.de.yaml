@@ -1,0 +1,36 @@
+title: "Remotedesktopdienste: Benutzerauthentifizierung erfolgreich"
+shortTitle: Verbindung authentifiziert
+summary: >-
+  RDP-Event-ID 1149 protokolliert eine eingehende Remotedesktopverbindung mit Benutzer, Domäne und Quell-IP. Belegt die Verbindung, nicht die Anmeldung.
+description: |-
+  Event 1149 wird auf dem **RDP-Server** geschrieben, wenn die Remotedesktopverbindung eines Clients den Schritt auf Netzwerkebene passiert. Trotz des Meldungstexts „Benutzerauthentifizierung erfolgreich“ beweist es nicht, dass eine Desktop-Sitzung geöffnet wurde: Mit Network Level Authentication (NLA) bedeutet es, dass die Anmeldeinformationen auf Netzwerkebene akzeptiert wurden; ohne NLA kann es bereits beim Verbindungsaufbau protokolliert werden, bevor überhaupt ein Kennwort geprüft wird.
+
+  Sein Wert liegt in der Quelle: `Param3` enthält die IP-Adresse des Clients, zusammen mit dem Benutzernamen und der Domäne, die der Client übermittelt hat. Das Protokoll ist standardmäßig aktiviert und überdauert oft, wenn das Sicherheitsprotokoll überschrieben oder gelöscht wurde; daher ist es häufig der beste verbliebene Nachweis, wer sich per RDP von wo verbunden hat.
+
+  Die tatsächliche Anmeldung mit Security 4624 (LogonType 10 oder 7 bei Wiederverbindung mit einer gesperrten Sitzung) und LocalSessionManager 21, 22 oder 25 bestätigen.
+logging:
+  requirement: >-
+    Keine — der Kanal Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational ist
+    auf Hosts, die Remotedesktopverbindungen annehmen, standardmäßig aktiviert.
+  notes: >-
+    Die Daten liegen unter UserData/EventXML als `Param1`, `Param2` und `Param3` statt als benannte
+    EventData-Felder.
+fields:
+  - name: Param1
+    description: Vom Client übermittelter Benutzername.
+  - name: Param2
+    description: Vom Client übermittelte Domäne (kann leer oder bei lokalen Konten der Computername sein).
+  - name: Param3
+    description: Quell-IP-Adresse des RDP-Clients. Bei Nutzung eines RDP-Gateways oder Tunnels ist dies der Gateway- oder Tunnel-Endpunkt.
+benign:
+  - Administratoren und Benutzer, die sich per RDP von ihren üblichen Arbeitsstationen oder Jump-Hosts verbinden.
+  - Fernwartungspersonal und Monitoring, das die RDP-Verfügbarkeit mit Anmeldeinformationen testet.
+attacker:
+  - Externer RDP-Zugriff mit gültigen oder per Brute Force erlangten Anmeldeinformationen — öffentliche Quell-IPs in Param3.
+  - Lateral Movement per RDP innerhalb des Netzwerks, oft von einem Server oder einer Arbeitsstation, die sonst nie per RDP auf andere Systeme zugreift.
+  - RDP, das über einen kompromittierten Host getunnelt wird (etwa mit SSH- oder Proxy-Tools) — Param3 ist dann eine lokale Adresse wie `127.0.0.1` oder `::1`.
+investigation:
+  - Param3-Werte pro Benutzer auflisten und erstmals gesehene IPs, öffentliche IPs und Loopback-Adressen markieren.
+  - Jede Verbindung mit Security 4624 Typ 10 und LocalSessionManager 21/25 zur selben Zeit bestätigen; ein 1149 ohne Anmeldung kann ein fehlgeschlagener oder abgebrochener Versuch sein.
+  - Dieses Protokoll nutzen, um Lücken zu füllen, wenn das Sicherheitsprotokoll gelöscht wurde (1102) — es ist eine separate Datei.
+  - Auf dem Quellhost zeigt das RDPClient-Protokoll (1024, 1102) die ausgehenden Verbindungen zu diesem Server.

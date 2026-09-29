@@ -1,0 +1,61 @@
+id: 8002
+channel: ntlm
+provider: Microsoft-Windows-NTLM
+title: "NTLM server blocked audit: Audit Incoming NTLM Traffic that would be blocked"
+shortTitle: Incoming authentication audit
+category: ntlm
+summary: >-
+  NTLM event 8002 logs incoming NTLM authentication processed by this server, with the calling
+  process and its identity. Maps which servers still accept NTLM.
+description: |-
+  Event 8002 is written on the **server** that received an NTLM authentication request when incoming NTLM auditing is enabled. Like the other 800x events it is an audit-only record of traffic that would be blocked by the corresponding restriction policy; nothing is blocked.
+
+  It identifies the local process that handled the authentication (`ProcessName`, `CallerPID`) and the identity and logon session of that calling process (`ClientUserName`, `ClientDomainName`, `ClientLUID`), as labelled in the message. It does not include the source IP; correlate with 4624 on the same host (same time, `AuthenticationPackageName` NTLM) to get the authenticated account, `IpAddress` and `WorkstationName`.
+
+  The main use is inventory before restricting NTLM, but it also helps spot NTLM authentication to servers that should only see Kerberos — for example relayed or pass-the-hash logons, which always use NTLM.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Security Options > Network security: Restrict NTLM: Audit Incoming NTLM Traffic = Enable
+    auditing for domain accounts, or Enable auditing for all accounts.
+  notes: >-
+    Only traffic to the computer where the policy is set is logged. Volume can be high on file and
+    web servers; size the NTLM/Operational log accordingly.
+fields:
+  - name: CallerPID
+    description: PID of the server process that handled the authentication; `4` for SMB handled in kernel mode.
+  - name: ProcessName
+    description: Path of the server process (IIS worker, `lsass.exe`, an application service).
+  - name: ClientLUID
+    description: Logon session (LUID) of the calling process, shown as "Calling process LUID" in the message.
+  - name: ClientUserName
+    description: User identity of the calling process, shown as "Calling process user identity".
+  - name: ClientDomainName
+    description: Domain identity of the calling process.
+  - name: MechanismOID
+    description: Negotiation mechanism OID, often `(NULL)`.
+benign:
+  - Clients connecting by IP address or through DNS aliases without matching SPNs.
+  - Non-domain devices and legacy applications authenticating with local or domain accounts.
+  - Monitoring and backup products configured for NTLM.
+attacker:
+  - NTLM relay (for example from coerced authentication) landing on this server.
+  - Pass-the-hash lateral movement, which necessarily uses NTLM and therefore shows up as incoming NTLM on the target.
+investigation:
+  - Build a list of processes accepting NTLM per server, then use the matching 4624 events to list the accounts involved; privileged accounts using NTLM to sensitive servers deserve review.
+  - Correlate with 4624 (LogonType 3, `AuthenticationPackageName` NTLM) at the same time to get the source IP and workstation.
+  - On domain controllers, match with 8004 and 4776 for the same account.
+related:
+  - ntlm/8001
+  - ntlm/8003
+  - ntlm/8004
+  - security/4624
+  - security/4776
+attack:
+  - T1550.002
+  - T1557.001
+references:
+  - title: "Microsoft Learn — Network security: Restrict NTLM: Audit incoming NTLM traffic"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/security-policy-settings/network-security-restrict-ntlm-audit-incoming-ntlm-traffic
+  - title: Microsoft Learn (archive) — NTLM Blocking and You, auditing methodologies
+    url: https://learn.microsoft.com/en-us/archive/blogs/askds/ntlm-blocking-and-you-application-analysis-and-auditing-methodologies-in-windows-7

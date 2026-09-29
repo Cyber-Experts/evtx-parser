@@ -1,0 +1,41 @@
+title: Tentative de réinitialisation du mot de passe d'un compte
+shortTitle: Réinitialisation de mot de passe
+summary: >-
+  L'événement 4724 est consigné quand un compte réinitialise le mot de passe d'un autre sans
+  connaître l'ancien — une action d'administration à vérifier.
+description: |-
+  L'événement 4724 consigne une **réinitialisation** de mot de passe : le sujet définit un nouveau mot de passe pour le compte cible sans fournir l'ancien. Cela exige le droit Reset Password sur le compte (ou des droits d'administrateur local pour un compte local) : l'opération est donc normalement effectuée par le helpdesk, les administrateurs ou des outils de provisionnement. `Subject*` désigne l'auteur de la réinitialisation, `Target*` le compte dont le mot de passe a été réinitialisé.
+
+  Les réinitialisations font partie de la création de compte (un nouveau compte reçoit ainsi son premier mot de passe, généralement à côté des 4720 et 4722) et du travail courant du helpdesk. C'est aussi le moyen le plus rapide pour un attaquant disposant de droits délégués de prendre le contrôle d'un autre compte : réinitialiser le mot de passe, puis se connecter en tant que la cible. Les outils qui abusent des permissions Active Directory, comme un droit délégué de « réinitialisation du mot de passe » sur un utilisateur privilégié, aboutissent à cet événement.
+
+  Un événement d'échec est consigné lorsque le nouveau mot de passe ne respecte pas la stratégie de mots de passe ; un « accès refusé » lors de la réinitialisation ne génère **pas** de 4724 en échec. L'événement est également consigné lors de la réinitialisation du mot de passe d'un compte ordinateur.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success, Failure). Les succès sont audités par défaut ; les échecs doivent être activés pour
+    voir les tentatives rejetées.
+fields:
+  - name: SubjectUserName
+    description: Compte ayant effectué la réinitialisation. À comparer aux comptes helpdesk et d'administration attendus.
+  - name: SubjectDomainName
+    description: Domaine ou nom d'ordinateur du sujet.
+  - name: SubjectLogonId
+    description: Session du sujet ; corrélez avec le 4624.
+  - name: TargetUserName
+    description: Compte dont le mot de passe a été réinitialisé.
+  - name: TargetDomainName
+    description: Domaine du compte cible, ou nom de l'ordinateur pour un compte local.
+  - name: TargetSid
+    description: SID du compte cible.
+benign:
+  - Réinitialisations par le helpdesk après un oubli de mot de passe ou un verrouillage (souvent précédées d'un 4740 et suivies d'un 4767).
+  - Définition du mot de passe initial lors de la création du compte, à côté des 4720 et 4722.
+  - Outils de gestion des mots de passe assurant la rotation du mot de passe Administrateur local ou de ceux des comptes de service.
+attacker:
+  - Prise de contrôle de compte en abusant d'une permission déléguée de réinitialisation de mot de passe sur un autre utilisateur, y compris privilégié.
+  - Réinitialisation du mot de passe d'un compte dormant ou de service pour obtenir un identifiant valide en vue d'un mouvement latéral.
+  - Réinitialisations massives de mots de passe pour bloquer l'accès des administrateurs lors d'une attaque destructrice.
+investigation:
+  - Vérifiez que SubjectUserName est autorisé à réinitialiser le mot de passe de la cible et qu'un ticket ou une demande existe.
+  - Recherchez une ouverture de session du TargetUserName peu après la réinitialisation (4624, 4768) depuis un hôte contrôlé par le sujet.
+  - Les réinitialisations de comptes privilégiés (Domain Admins, comptes de service) par des comptes hors tier 0 doivent être examinées immédiatement.

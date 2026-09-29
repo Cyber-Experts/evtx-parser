@@ -1,0 +1,38 @@
+id: 4106
+channel: powershell
+provider: Microsoft-Windows-PowerShell
+title: Completed invocation of ScriptBlock
+shortTitle: Script block invocation completed
+category: powershell
+summary: >-
+  PowerShell event 4106 marks the end of a script block's execution, paired with 4105 by
+  ScriptBlockId when invocation logging is enabled.
+description: |-
+  Event 4106 closes the pair opened by 4105: the script block identified by `ScriptBlockId` finished executing. The gap between the two events is the block's run time.
+
+  Like 4105 it only exists when invocation logging is enabled, and it is mainly useful for precise ordering of script execution in a timeline.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Turn on PowerShell Script Block Logging with the option "Log script block invocation start /
+    stop events" enabled.
+fields:
+  - name: ScriptBlockId
+    description: GUID of the script block; matches 4104 and 4105.
+  - name: RunspaceId
+    description: Runspace in which the block ran.
+benign:
+  - Any PowerShell execution when invocation logging is on.
+attacker:
+  - A 4105 without a 4106 can mean the block was still running (for example a long-lived implant loop) when logging stopped.
+investigation:
+  - Pair with 4105 to compute duration; look for long-running blocks.
+  - Get the code from 4104 with the same ScriptBlockId.
+related:
+  - powershell/4105
+  - powershell/4104
+attack:
+  - T1059.001
+references:
+  - title: Microsoft Learn — about_Logging_Windows
+    url: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_logging_windows

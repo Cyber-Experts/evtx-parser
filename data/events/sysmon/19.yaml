@@ -1,0 +1,55 @@
+id: 19
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: WmiEvent (WmiEventFilter activity detected)
+shortTitle: WMI event filter registered
+category: wmi
+summary: >-
+  Sysmon event 19 logs a WMI event filter being registered, with namespace, name and WQL query.
+  The first of three events behind WMI subscription persistence.
+description: |-
+  Sysmon event 19 records the creation (or deletion) of a WMI `__EventFilter`: the query that defines when a permanent WMI subscription fires. It logs the namespace, the filter name and the WQL `Query`.
+
+  WMI event subscription is a fileless persistence method: a filter (event 19) defines the trigger, a consumer (event 20) defines the action, and a binding (event 21) links the two. Attackers often use triggers such as system uptime reaching a few minutes, a user logon, or a timer.
+
+  Legitimate permanent subscriptions are rare on most endpoints, so every event 19 is worth a look.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon installed; filter with `<WmiEvent>` rules in the configuration.
+fields:
+  - name: EventType
+    description: "`WmiFilterEvent` for this event."
+  - name: Operation
+    description: "`Created` for a new filter; removal is also recorded."
+  - name: User
+    description: Account that registered the filter.
+  - name: EventNamespace
+    description: WMI namespace the filter watches, commonly `root\cimv2`.
+  - name: Name
+    description: Name of the filter. Random or product-imitating names are common in attacks.
+  - name: Query
+    description: >-
+      WQL query that triggers the subscription, e.g. a `__InstanceModificationEvent` on
+      `Win32_PerfFormattedData_PerfOS_System` for uptime.
+benign:
+  - Built-in or legacy filters such as `SCM Event Log Filter` and `BVTFilter` on older systems.
+  - Management agents (SCCM, hardware vendor tools) registering their own subscriptions.
+attacker:
+  - A new filter created by PowerShell or `wmic` right before events 20 and 21 — WMI persistence being installed.
+  - Filters triggering on uptime or logon to relaunch a backdoor after every reboot.
+investigation:
+  - Collect events 19, 20 and 21 around the same time to rebuild the full subscription.
+  - Compare the filter Name against a fleet baseline; new names on single hosts stand out.
+  - Check WMI-Activity 5861 for the same subscription and query the `root\subscription` namespace on the host.
+related:
+  - sysmon/20
+  - sysmon/21
+  - wmi-activity/5861
+  - wmi-activity/5857
+attack:
+  - T1546.003
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — WMI Event Subscription (T1546.003)
+    url: https://attack.mitre.org/techniques/T1546/003/

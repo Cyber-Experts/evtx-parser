@@ -1,0 +1,65 @@
+id: 5137
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A directory service object was created
+shortTitle: AD object created
+category: directory
+summary: >-
+  Security event 5137 logs the creation of an Active Directory object — user, computer, group,
+  GPO or any other class — with its DN, class and creator.
+description: |-
+  Event 5137 is written on a domain controller when a new object is created in an audited container. It records the creator, the new object's `ObjectDN`, `ObjectGUID` and `ObjectClass`. Unlike account events such as 4720 or 4741, it covers every object class: organizational units, Group Policy containers, DNS records stored in AD, and configuration objects.
+
+  That breadth matters for detection. Creating a `groupPolicyContainer` shows a new GPO; creating computer objects from a regular user account shows use of the machine account quota; creating server objects under `CN=Sites,CN=Configuration` outside a DC promotion is a known sign of **DCShadow**, where an attacker briefly registers a rogue domain controller and deletes it afterwards (5141).
+
+  The attributes set at creation are not listed in 5137; related 5136 records sharing the same `OpCorrelationID` may carry them.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > DS Access > Audit Directory Service Changes (Success),
+    applied to domain controllers, plus a SACL auditing Create Child on the parent containers.
+fields:
+  - name: SubjectUserName
+    description: Account that created the object.
+  - name: SubjectLogonId
+    description: Logon session on the DC; pivot to 4624 for the source.
+  - name: DSName
+    description: Directory partition where the object was created.
+  - name: ObjectDN
+    description: Distinguished name of the new object.
+  - name: ObjectGUID
+    description: objectGUID of the new object; use it to follow later 5136 and 5141 records.
+  - name: ObjectClass
+    description: Class of the object, e.g. `user`, `computer`, `group`, `organizationalUnit`, `groupPolicyContainer`.
+  - name: OpCorrelationID
+    description: Links the creation to other records from the same LDAP operation.
+benign:
+  - Administrators and provisioning systems creating users, groups, computers and OUs.
+  - Domain joins creating computer objects.
+  - New GPOs created in GPMC.
+  - DC promotion creating server and NTDS Settings objects under the Sites container.
+attacker:
+  - >-
+    DCShadow: short-lived server or `nTDSDSA` objects created under `CN=Sites,CN=Configuration` by
+    a host that is not being promoted, followed by their deletion.
+  - Computer accounts created by a regular user through the machine account quota, used for relay or delegation attacks.
+  - Creation of new GPOs or accounts for persistence.
+investigation:
+  - Filter by `ObjectClass` for sensitive types (computer, groupPolicyContainer, server, nTDSDSA) and review the creators.
+  - Check for a matching 5141 on the same `ObjectGUID` soon after; create-then-delete is suspicious.
+  - Pivot `SubjectLogonId` to 4624 on the DC to find the source workstation.
+related:
+  - security/5136
+  - security/5141
+  - security/4720
+  - security/4741
+  - security/4727
+attack:
+  - T1207
+  - T1136.002
+  - T1484.001
+references:
+  - title: "Microsoft Learn — 5137(S): A directory service object was created"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-5137
+  - title: "MITRE ATT&CK — T1207 Rogue Domain Controller"
+    url: https://attack.mitre.org/techniques/T1207/

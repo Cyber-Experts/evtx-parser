@@ -1,0 +1,83 @@
+title: Un service a été installé sur le système
+shortTitle: Service installé
+summary: >-
+  L'événement 4697 consigne un nouveau service Windows : nom, binaire, type de démarrage et compte.
+  Clé pour le mouvement latéral type PsExec et la persistance.
+description: |-
+  L'événement 4697 est écrit lorsqu'un service est enregistré auprès du Gestionnaire de contrôle des services (SCM). Il consigne le nom du service (`ServiceName`), la commande qu'il exécutera (`ServiceFileName`), son mode de démarrage (`ServiceStartType`), son type (`ServiceType`) et le compte sous lequel il s'exécute (`ServiceAccount`), ainsi que le compte qui l'a installé (`Subject*`).
+
+  C'est le pendant, dans le journal Sécurité, de l'événement System 7045, consigné par le Gestionnaire de contrôle des services sur tous les systèmes sans aucune stratégie d'audit. Le 4697 nécessite la sous-catégorie Security System Extension, mais ajoute le compte installateur et sa session — utile pour rattacher l'installation à une ouverture de session distante précise.
+
+  Les nouveaux services sont prisés tant pour la persistance que pour l'exécution à distance : PsExec, `smbexec`/`psexec` d'Impacket, `jump psexec` de Cobalt Strike et de nombreux opérateurs de rançongiciels créent un service sur la cible pour exécuter leur charge utile en tant que SYSTEM. Les installations de pilotes (services noyau) apparaissent aussi ici.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > System > Audit Security System Extension (Success). Non
+    activé dans la stratégie d'audit par défaut.
+  notes: >-
+    L'événement System 7045 couvre les mêmes installations par défaut et doit être consulté lorsque
+    le 4697 n'est pas audité.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Compte ayant installé le service. Pour une installation à distance, il s'agit du compte
+      d'administration distant ; `HOST$` signifie SYSTEM.
+  - name: SubjectLogonId
+    description: Session de l'installateur ; pivotez vers son 4624 (souvent une ouverture réseau de type 3) pour trouver la source.
+  - name: ServiceName
+    description: Nom du nouveau service. Des noms d'apparence aléatoire ou très courts sont un signal d'alerte.
+  - name: ServiceFileName
+    description: >-
+      Ligne de commande exécutée par le service. Recherchez `cmd.exe /c`, `powershell`, des chemins
+      sous `\Temp\`, la racine `ADMIN$` / `C:\Windows\`, ou des arguments encodés.
+  - name: ServiceType
+    description: Nature du service.
+    values:
+      - value: "0x1"
+        meaning: Pilote noyau.
+      - value: "0x2"
+        meaning: Pilote de système de fichiers.
+      - value: "0x8"
+        meaning: Pilote de reconnaissance (recognizer).
+      - value: "0x10"
+        meaning: Service Win32 s'exécutant dans son propre processus.
+      - value: "0x20"
+        meaning: Service Win32 partageant un processus (hébergé par svchost).
+      - value: "0x110"
+        meaning: Service à processus propre autorisé à interagir avec le bureau.
+      - value: "0x120"
+        meaning: Service à processus partagé autorisé à interagir avec le bureau.
+  - name: ServiceStartType
+    description: Moment du démarrage du service.
+    values:
+      - value: "0"
+        meaning: Boot — pilote chargé par le chargeur de démarrage.
+      - value: "1"
+        meaning: System — pilote démarré pendant l'initialisation du noyau.
+      - value: "2"
+        meaning: Automatique — démarré au boot par le Gestionnaire de contrôle des services.
+      - value: "3"
+        meaning: Manuel (démarrage à la demande).
+      - value: "4"
+        meaning: Désactivé.
+  - name: ServiceAccount
+    description: Compte sous lequel s'exécute le service, par ex. `LocalSystem`, `NT AUTHORITY\LocalService` ou un compte de domaine.
+benign:
+  - Installations et mises à jour de logiciels (pilotes, agents, services de mise à jour des navigateurs).
+  - Outils d'administration et de support à distance qui installent un service temporaire sur la cible.
+  - Installation de fonctionnalités et de rôles Windows.
+attacker:
+  - >-
+    Exécution à distance via PsExec ou Impacket : un nouveau service à démarrage manuel au nom
+    aléatoire ou propre à l'outil, exécutant un binaire depuis `ADMIN$` ou une ligne de commande
+    `cmd.exe /c` / `%COMSPEC%`.
+  - Persistance via un service à démarrage automatique pointant vers une charge utile dans un dossier accessible en écriture à l'utilisateur.
+  - Chargement d'un pilote noyau malveillant ou vulnérable (ServiceType `0x1`, type de démarrage 0 à 3) pour neutraliser les outils de sécurité.
+investigation:
+  - >-
+    Examinez d'abord ServiceFileName : tout ce qui se trouve hors de `Program Files` / `System32`
+    ou contient un shell, un hôte de scripts ou un blob encodé mérite l'attention.
+  - >-
+    Pivotez sur SubjectLogonId vers le 4624 du même hôte — une ouverture de type 3 quelques
+    secondes avant l'installation révèle l'IP source de l'exécution à distance.
+  - Corrélez avec les événements System 7045 et 7036 (service démarré/arrêté) pour savoir s'il a été exécuté puis supprimé.
+  - Recherchez les 4688 enfants de `services.exe` juste après l'installation pour voir ce que le service a exécuté.

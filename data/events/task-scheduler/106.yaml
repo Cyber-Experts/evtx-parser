@@ -1,0 +1,70 @@
+id: 106
+channel: task-scheduler
+provider: Microsoft-Windows-TaskScheduler
+title: Task registered
+shortTitle: Task registered
+category: scheduled-task
+summary: >-
+  Task Scheduler event 106 records that a user registered a new scheduled task: the task path
+  and the account that created it. Key for persistence hunting.
+description: |-
+  Event 106 is written by the Task Scheduler service when a new task is registered through its API — `schtasks /create`, the `Register-ScheduledTask` cmdlet, the Task Scheduler console, installers, or remote registration over RPC. It carries only two fields: `TaskName`, the full path of the task in the task library, and `UserContext`, the account that registered it.
+
+  The event does not include the action (the program and arguments). To see what the task runs, read the task definition in `C:\Windows\System32\Tasks\<TaskName>`, the `TaskCache` registry keys, or the Security event 4698, which embeds the full task XML when object access auditing is enabled. Later runs of the task show up as 100, 129 and 200 with the same `TaskName`.
+
+  Because it survives in a channel that attackers rarely think to clear, 106 is often the only record of a short-lived task used for remote execution: create, run once, delete (106, 100, 141 in quick succession).
+logging:
+  enabledByDefault: false
+  requirement: >-
+    The Microsoft-Windows-TaskScheduler/Operational channel must be enabled — "Enable All Tasks
+    History" in the Task Scheduler console, or `wevtutil sl Microsoft-Windows-TaskScheduler/Operational /e:true`.
+  notes: >-
+    The default state of this channel is not consistent across Windows versions, editions and
+    builds: on some installs it is already recording, on others task history is off and the log
+    stays empty until someone enables it. Check whether the log holds any records before treating
+    a missing event as evidence. On busy hosts the log rolls over quickly.
+fields:
+  - name: TaskName
+    description: >-
+      Full path of the task in the Task Scheduler library, e.g. `\Microsoft\Windows\Defrag\ScheduledDefrag`
+      or `\UpdateCheck`. Tasks at the root (`\Name`) or with random or GUID-like names deserve a look.
+  - name: UserContext
+    description: >-
+      Account that registered the task (`DOMAIN\user`). Not necessarily the account the task will
+      run as — that is in the task definition.
+benign:
+  - Software installers and updaters registering their own tasks (browsers, Office, vendor agents).
+  - Windows servicing and feature updates creating or re-registering built-in tasks under `\Microsoft\Windows\`.
+  - Administrators and management tools (GPO scheduled task preferences, SCCM, Intune) deploying tasks.
+attacker:
+  - Persistence through a new task that runs a payload at logon, at startup or on a timer.
+  - >-
+    Remote execution: a task registered on a remote host (`schtasks /create /s`, Impacket
+    `atexec`), run once and deleted, leaving 106, 100/200 and 141 within seconds.
+  - Tasks named to blend in with built-in ones, placed at the library root or under a fake `\Microsoft\Windows\...` folder.
+investigation:
+  - List all 106 events and compare TaskName against a baseline of known tasks for the host or fleet.
+  - >-
+    Read the task definition (the XML file under `C:\Windows\System32\Tasks\` or Security 4698) to
+    get the action, arguments, triggers and run-as account.
+  - Look for 141 (deleted) shortly after 106 for the same TaskName — a hallmark of one-shot remote execution.
+  - >-
+    If UserContext is a remote admin account, correlate with a type 3 logon (Security 4624) on the
+    same host at the same time to find the source machine.
+related:
+  - task-scheduler/142
+  - task-scheduler/100
+  - task-scheduler/129
+  - task-scheduler/140
+  - task-scheduler/141
+  - task-scheduler/200
+  - security/4698
+  - security/4702
+  - security/4624
+attack:
+  - T1053.005
+references:
+  - title: Microsoft Learn — Task Scheduler
+    url: https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-start-page
+  - title: MITRE ATT&CK — Scheduled Task (T1053.005)
+    url: https://attack.mitre.org/techniques/T1053/005/

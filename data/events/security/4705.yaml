@@ -1,0 +1,47 @@
+id: 4705
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A user right was removed
+shortTitle: User right removed
+category: policy
+summary: >-
+  Security event 4705 logs a user right (privilege) being removed from an account or group in
+  local security policy. Mirror of event 4704.
+description: |-
+  Event 4705 is written when a privilege is removed from a security principal in the computer's local security policy. It has the same shape as 4704: `TargetSid` is the principal and `PrivilegeList` the rights taken away.
+
+  Most records come from Group Policy re-applying the defined User Rights Assignment, which removes rights that were granted outside the policy. A 4704 followed shortly by a 4705 for the same SID is often exactly that: a manual grant being reverted at the next GPO refresh — or an attacker cleaning up after using the right.
+
+  Removal of rights from security tooling or administrators can also be a way to impair defenses or operations.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Policy Change > Audit Authorization Policy Change
+    (Success).
+fields:
+  - name: SubjectUserName
+    description: Account that made the change; the computer account when applied by Group Policy.
+  - name: SubjectLogonId
+    description: Logon session of the subject.
+  - name: TargetSid
+    description: SID of the account or group that lost the right.
+  - name: PrivilegeList
+    description: Privileges removed, e.g. `SeBackupPrivilege`, `SeSecurityPrivilege`.
+benign:
+  - Group Policy refresh removing rights that are not part of the defined policy.
+  - Uninstallation of software that had granted rights to its service account.
+attacker:
+  - Removing a right granted earlier (4704) after it was used, to reduce traces.
+  - Stripping `SeSecurityPrivilege` or other rights from security or admin groups to disrupt auditing and response.
+investigation:
+  - Look for a matching 4704 for the same `TargetSid` and privilege; the window between them is when the right was usable.
+  - Check whether the subject is the computer account (GPO) or a user performing a manual change.
+related:
+  - security/4704
+  - security/4718
+  - security/4688
+attack:
+  - T1098
+references:
+  - title: "Microsoft Learn — 4705(S): A user right was removed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4705

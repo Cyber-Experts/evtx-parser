@@ -1,0 +1,96 @@
+id: 2004
+channel: firewall
+provider: Microsoft-Windows-Windows Firewall With Advanced Security
+title: A rule has been added to the Windows Defender Firewall exception list
+shortTitle: Rule added
+category: policy
+summary: >-
+  Firewall event 2004 records a new Windows Firewall rule with its program, ports, action and the
+  user and process that added it. On by default, richer than 4946.
+description: |-
+  Event 2004 is written to the Windows Firewall operational log when a rule is added. Unlike Security event 4946, it is logged by default and contains the full rule definition: program (`ApplicationPath`), service, `Direction`, `Protocol`, `LocalPorts`, `RemotePorts`, addresses, `Action` and `Active` state.
+
+  It also records **who** made the change: `ModifyingUser` holds the SID of the account and `ModifyingApplication` the full path of the process that called the firewall API (`netsh.exe`, `powershell.exe`, `svchost.exe`, an installer). That makes it the best single event for spotting rules created by attackers.
+
+  Legitimate software adds rules all the time, so focus on allow rules (`Action` 3) for programs in user-writable paths, on inbound rules for remote-access ports, and on rules created by scripting tools outside change windows.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Microsoft-Windows-Windows Firewall With Advanced Security/Firewall channel, enabled by default.
+    No audit policy needed.
+  notes: >-
+    Newer Windows 10 and Windows 11 builds log rule additions under other event IDs in the same
+    channel (public detection rules such as Sigma match 2071 and 2097 alongside 2004), so hunt on
+    all of them.
+fields:
+  - name: RuleId
+    description: Unique ID of the rule; matches the value name under `HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules`.
+  - name: RuleName
+    description: Display name of the rule.
+  - name: ApplicationPath
+    description: Program the rule applies to. Empty when the rule is not tied to a program.
+  - name: ServiceName
+    description: Windows service the rule applies to, if any.
+  - name: Direction
+    description: Traffic direction.
+    values:
+      - value: "1"
+        meaning: Inbound.
+      - value: "2"
+        meaning: Outbound.
+  - name: Protocol
+    description: IANA protocol number (`6` TCP, `17` UDP, `1` ICMP).
+  - name: LocalPorts
+    description: Local ports covered by the rule (the listening port for inbound rules).
+  - name: RemotePorts
+    description: Remote ports covered by the rule.
+  - name: Action
+    description: What the rule does.
+    values:
+      - value: "2"
+        meaning: Block.
+      - value: "3"
+        meaning: Allow.
+  - name: Profiles
+    description: Firewall profiles (Domain, Private, Public) the rule applies to.
+  - name: RemoteAddresses
+    description: Remote addresses the rule is limited to; `*` or empty means any.
+  - name: Active
+    description: Whether the rule is enabled.
+    values:
+      - value: "0"
+        meaning: Disabled.
+      - value: "1"
+        meaning: Enabled.
+  - name: ModifyingUser
+    description: SID of the account that added the rule (`S-1-5-18` for SYSTEM).
+  - name: ModifyingApplication
+    description: Full path of the process that added the rule — the most useful field for triage.
+benign:
+  - Installers and updaters (browsers, Teams, Zoom, VPN clients, games) creating allow rules for their programs.
+  - Windows servicing (`TiWorker.exe`, `svchost.exe`) and Microsoft Defender adding or refreshing built-in rules.
+  - Administrators running `netsh advfirewall firewall add rule` or `New-NetFirewallRule` during planned changes.
+attacker:
+  - An allow rule for a binary in `AppData`, `Temp`, `ProgramData` or `C:\Users\Public`, created by `netsh.exe` or `powershell.exe`.
+  - Inbound allow rules for RDP (3389), WinRM (5985/5986), SMB (445) or a custom listener port to enable remote access or tunneling.
+  - Rules named to look legitimate (e.g. imitating Windows or security products) but pointing to an unexpected path.
+investigation:
+  - Filter out known `ModifyingApplication` values (TiWorker, MsMpEng, known installers) and review the rest.
+  - Resolve `ModifyingUser` to an account and match the time with process creation (4688, Sysmon 1) to get the full command line.
+  - Check the binary in `ApplicationPath` (hash, signature, creation time) and any network activity it had afterwards (5156, Sysmon 3).
+  - Look for a later 2006 deleting the same `RuleId`, which suggests cleanup.
+related:
+  - firewall/2005
+  - firewall/2006
+  - firewall/2033
+  - security/4946
+  - security/4688
+  - security/5156
+  - sysmon/1
+attack:
+  - T1686.003
+references:
+  - title: Microsoft Learn — Windows Firewall rules
+    url: https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-firewall/rules
+  - title: MITRE ATT&CK — T1686.003 Disable or Modify System Firewall - Windows Host Firewall
+    url: https://attack.mitre.org/techniques/T1686/003/

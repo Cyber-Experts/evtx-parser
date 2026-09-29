@@ -1,0 +1,64 @@
+id: 4733
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A member was removed from a security-enabled local group
+shortTitle: Member removed from local group
+category: group
+summary: >-
+  Security event 4733 is logged when a member is removed from a security-enabled local group,
+  such as the local Administrators group or a domain local group.
+description: |-
+  Event 4733 is the counterpart of 4732: it is written when an account or group is removed from a security-enabled **local** group — local SAM groups on workstations and member servers, Builtin and domain local groups on domain controllers. `TargetUserName`/`TargetSid` identify the group, `MemberSid` the removed member, `Subject*` who removed it. One event is written per removed member, often preceded by an empty 4735.
+
+  Removals are usually routine (cleanup, Group Policy enforcing membership), but two patterns matter in an investigation. First, an add (4732) followed by a removal of the same member minutes or hours later suggests temporary privilege used for a specific action. Second, removal of legitimate administrators from the Administrators group can be a way to lock responders out.
+
+  As with 4732, `MemberName` is usually `-` on non-DC machines; rely on `MemberSid`.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit Security Group Management
+    (Success). Success is audited in the default Windows audit policy.
+fields:
+  - name: MemberSid
+    description: SID of the removed account or group.
+  - name: MemberName
+    description: Distinguished name of the removed member when available; usually `-` on workstations and member servers.
+  - name: TargetUserName
+    description: Name of the group the member was removed from.
+  - name: TargetDomainName
+    description: Domain of the group — `Builtin`, the computer name, or the domain for domain local groups.
+  - name: TargetSid
+    description: SID of the group, e.g. `S-1-5-32-544` for Administrators.
+  - name: SubjectUserName
+    description: Account that removed the member.
+  - name: SubjectDomainName
+    description: Domain or computer name of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject; correlate with 4624.
+  - name: PrivilegeList
+    description: Privileges used for the operation, often `-`.
+benign:
+  - Group Policy removing members that are not in the approved Restricted Groups list.
+  - Access reviews and offboarding removing users from local groups.
+attacker:
+  - Cleaning up after temporary privilege escalation by removing the account added earlier (4732).
+  - Removing legitimate administrators from local Administrators to hinder incident response.
+investigation:
+  - Pair each 4733 with the matching 4732 for the same MemberSid and group to measure how long the membership lasted.
+  - Check what the member did while it was in the group (4624, 4672, 4688 between the two events).
+  - Review removals of administrator accounts that were not initiated by Group Policy or the IAM process.
+related:
+  - security/4732
+  - security/4735
+  - security/4729
+  - security/4757
+  - security/4624
+  - security/4672
+attack:
+  - T1098.007
+  - T1531
+references:
+  - title: "Microsoft Learn — 4733(S): A member was removed from a security-enabled local group"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4733
+  - title: Microsoft Learn — Audit Security Group Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-group-management

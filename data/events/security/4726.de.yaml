@@ -1,0 +1,43 @@
+title: Ein Benutzerkonto wurde gelöscht
+shortTitle: Benutzerkonto gelöscht
+summary: >-
+  Event-ID 4726 wird beim Löschen eines lokalen oder Domänen-Benutzerkontos protokolliert, mit Ausführendem sowie Name und SID des Kontos.
+description: |-
+  Event 4726 wird geschrieben, wenn ein Benutzerobjekt gelöscht wird — auf Domänencontrollern für Domänenkonten und auf Mitgliedsservern und Arbeitsstationen für lokale Konten. `Subject*` identifiziert, wer die Löschung durchgeführt hat, `Target*` das gelöschte Konto.
+
+  Eine Löschung ist schwerer rückgängig zu machen als eine Deaktivierung (4725), daher deaktivieren viele Organisationen zuerst und löschen später. Die Löschung eines kurz zuvor angelegten Kontos (4720) ist ein klassisches Aufräummuster: Ein Eindringling legt ein temporäres Konto an, nutzt es und entfernt es wieder. Da das Konto verschwunden ist, ist `TargetSid` der einzige zuverlässige Schlüssel, um die Löschung mit früheren Events desselben Kontos zu verknüpfen.
+
+  Das massenhafte Löschen von Konten durch ein Subject ist zudem eine destruktive Technik, um legitimen Benutzern und Administratoren den Zugang zu verwehren.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). In der Standard-Überwachungsrichtlinie von Windows für „Erfolg“ aktiviert.
+  notes: >-
+    Löschungen von Computerkonten werden von 4743 (Computer Account Management) gemeldet, nicht
+    von 4726.
+fields:
+  - name: SubjectUserName
+    description: Konto, das den Benutzer gelöscht hat.
+  - name: SubjectDomainName
+    description: Domäne oder Computername des Subjects.
+  - name: SubjectLogonId
+    description: Anmeldesitzung des Subjects; mit 4624 korrelieren.
+  - name: TargetUserName
+    description: Name des gelöschten Kontos.
+  - name: TargetDomainName
+    description: Domäne des gelöschten Kontos oder der Computername bei einem lokalen Konto.
+  - name: TargetSid
+    description: SID des gelöschten Kontos. In älteren Events (4720, 4624, 4728, 4732) danach suchen.
+  - name: PrivilegeList
+    description: Für den Vorgang genutzte Privilegien, oft `-`.
+benign:
+  - Geplante Bereinigung von Konten, die beim Offboarding deaktiviert wurden.
+  - Entfernen lokaler Konten durch Software-Deinstallationsprogramme oder Konfigurationsmanagement.
+  - Labor- und Testumgebungen, in denen Konten routinemäßig angelegt und gelöscht werden.
+attacker:
+  - Entfernen eines temporären Backdoor-Kontos nach Gebrauch, um Spuren zu verwischen.
+  - Löschen vieler Konten, einschließlich Administratoren, im Rahmen einer destruktiven oder Ransomware-Operation.
+investigation:
+  - In früheren 4720-, 4624- und Gruppenmitgliedschafts-Events nach der TargetSid suchen, um den Lebenszyklus des Kontos zu rekonstruieren.
+  - Löschungen von Konten markieren, die weniger als wenige Tage zuvor angelegt wurden, besonders durch denselben SubjectUserName.
+  - Prüfen, ob das gelöschte Konto privilegiert war oder ein Dienstkonto, dessen Entfernung Anwendungen beeinträchtigen könnte.

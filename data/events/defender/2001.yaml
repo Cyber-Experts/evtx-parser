@@ -1,0 +1,39 @@
+id: 2001
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: The security intelligence update failed
+shortTitle: Security intelligence update failed
+category: antimalware
+summary: >-
+  Defender event 2001 is logged when a security intelligence (signature) update fails, with the
+  versions, update source and error.
+description: |-
+  Event 2001 records a failed update of Defender's security intelligence (definitions). It includes the current and attempted versions, the update source (Microsoft Update, WSUS, file share…) and the error.
+
+  Occasional failures are normal on laptops and isolated networks. A long run of failures leaves the host with stale definitions, and blocked updates are one of the quieter ways an intruder can weaken protection.
+logging:
+  enabledByDefault: true
+  requirement: None — logged by Microsoft Defender Antivirus when it is the active antivirus.
+fields:
+  - name: Current Signature Version
+    description: Definitions version installed before the attempt.
+  - name: Update Source
+    description: Where the update was requested from.
+  - name: Error Code
+    description: Error returned.
+  - name: Error Description
+    description: Text of that error.
+benign:
+  - Offline machines, proxy problems, WSUS misconfiguration.
+attacker:
+  - Update sources blocked or tampered with (hosts file, firewall rules, proxy settings) to keep definitions stale.
+investigation:
+  - Check how long updates have been failing and whether other hosts on the same network are affected.
+  - Look for firewall rule or hosts file changes near the start of the failures.
+related:
+  - defender/5007
+  - defender/5001
+attack: []
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

@@ -1,0 +1,38 @@
+title: Fermeture de session d'un compte
+shortTitle: Fermeture de session
+summary: >-
+  L'événement 4634 marque la fin d'une session. Associez son TargetLogonId à un 4624 pour mesurer
+  la durée de la session.
+description: |-
+  L'événement 4634 est écrit lorsqu'une session d'ouverture de session est détruite. Il porte le même `TargetLogonId` que le 4624 qui a ouvert la session : le couple donne ainsi une heure de début et de fin pour n'importe quelle ouverture de session — interactive, réseau ou de service.
+
+  Ce n'est pas une trace fiable d'un « l'utilisateur a cliqué sur Se déconnecter ». Pour les ouvertures réseau (type 3), Windows détruit la session à la fermeture de la dernière connexion, ce qui peut arriver quelques secondes ou plusieurs heures plus tard, et il arrive qu'aucun 4634 ne soit écrit si la machine s'arrête brutalement. Lorsqu'un utilisateur ferme volontairement une session interactive ou RDP, l'événement 4647 est écrit d'abord, suivi du 4634.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Logoff (Success). Activé en succès
+    dans la stratégie d'audit par défaut.
+  notes: >-
+    Les sessions réseau éphémères produisent des couples 4624/4634 dans la même seconde ; sur les
+    serveurs de fichiers et les contrôleurs de domaine, ces couples constituent l'essentiel du
+    journal.
+fields:
+  - name: TargetUserSid
+    description: SID du compte dont la session s'est terminée.
+  - name: TargetUserName
+    description: Compte dont la session s'est terminée.
+  - name: TargetDomainName
+    description: Domaine ou ordinateur de ce compte.
+  - name: TargetLogonId
+    description: Identifiant de session — la même valeur que le TargetLogonId du 4624 correspondant.
+  - name: LogonType
+    description: Type d'ouverture de session de la session terminée (2, 3, 4, 5, 7, 10, 11…) ; voir l'événement 4624.
+benign:
+  - Toute fin de session normale, y compris celles des comptes machine et des services.
+  - Fermetures de type 3 quelques secondes après l'ouverture correspondante sur les serveurs de fichiers et les contrôleurs de domaine.
+attacker:
+  - "Pas un signal d'attaque en soi ; il borne la fenêtre d'activité d'une session suspecte ouverte par un 4624."
+  - Des sessions de type 10 ou de type 3 très courtes depuis une source inhabituelle peuvent trahir un outil automatisé qui vérifie des identifiants.
+investigation:
+  - Joignez sur TargetLogonId avec le 4624 pour calculer la durée de session ; un 4634 manquant peut signifier que la session était encore ouverte lors de l'acquisition ou que l'hôte a planté.
+  - Pour RDP, utilisez plutôt les 4779/4778 et les événements LocalSessionManager 23/24 pour voir les déconnexions et reconnexions.
+  - Tout ce qui est journalisé avec le même SubjectLogonId entre le 4624 et le 4634 (4688, 4663, 5145…) appartient à cette session.

@@ -1,0 +1,60 @@
+id: 400
+channel: windows-powershell
+provider: PowerShell
+title: Engine state is changed from None to Available
+shortTitle: Engine started
+category: powershell
+summary: >-
+  Windows PowerShell event 400 logs every engine start with HostApplication (the command line)
+  and EngineVersion — key to spot PowerShell v2 downgrades.
+description: |-
+  Event 400 is written to the classic **Windows PowerShell** log each time a PowerShell engine starts in a process — a console, `powershell.exe -c`, a script host, or an application that hosts PowerShell. It is logged by default, with no policy needed.
+
+  Its event data contains key=value lines, of which two matter most. `HostApplication` is the command line of the hosting process, including `-EncodedCommand` payloads. `EngineVersion` is the PowerShell version that ran: a value of `2.0` on a system with PowerShell 5 installed is a downgrade — the version 2 engine does not support script block logging or AMSI, which is exactly why attackers request it with `-Version 2`.
+
+  Event 403 is logged when the same engine stops.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Windows PowerShell classic event log is enabled by default.
+  notes: >-
+    The data is stored as unnamed values; the host details appear as `Name=Value` lines inside the
+    event data (HostName, HostVersion, HostApplication, EngineVersion, RunspaceId…).
+fields:
+  - name: NewEngineState
+    description: State after the change — `Available` for event 400.
+  - name: PreviousEngineState
+    description: State before the change — `None` for event 400.
+  - name: HostApplication
+    description: Command line of the process hosting PowerShell (for example `powershell.exe -nop -w hidden -enc ...`).
+  - name: EngineVersion
+    description: Version of the PowerShell engine; `2.0` indicates a downgrade when newer versions are installed.
+  - name: HostName
+    description: Host type, e.g. `ConsoleHost` for powershell.exe, or a custom host name for applications embedding PowerShell.
+  - name: RunspaceId
+    description: Runspace GUID; matches the corresponding 403.
+benign:
+  - Every PowerShell launch by administrators, installers and management agents.
+  - Applications that embed PowerShell (custom HostName values).
+attacker:
+  - "Encoded or hidden commands visible in HostApplication — `-enc`, `-w hidden`, `-nop`, `IEX` download cradles."
+  - PowerShell downgrade to version 2 (EngineVersion `2.0`) to evade script block logging and AMSI.
+  - PowerShell hosted inside unusual processes (unmanaged PowerShell), visible as unexpected HostApplication paths.
+investigation:
+  - Extract HostApplication from all 400 events and decode any Base64 `-EncodedCommand` arguments.
+  - Alert on EngineVersion 2.0 wherever PowerShell 5 is installed.
+  - Pair with 403 by RunspaceId for session duration and with 4104 for script content when available.
+related:
+  - windows-powershell/403
+  - windows-powershell/600
+  - windows-powershell/800
+  - powershell/4104
+  - powershell/40961
+attack:
+  - T1059.001
+  - T1689
+references:
+  - title: Microsoft Learn — about_Logging_Windows
+    url: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_logging_windows
+  - title: MITRE ATT&CK — Downgrade Attack (T1689)
+    url: https://attack.mitre.org/techniques/T1689/

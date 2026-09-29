@@ -1,0 +1,40 @@
+id: 1008
+channel: defender
+provider: Microsoft-Windows-Windows Defender
+title: The antimalware platform attempted to perform an action but the action failed
+shortTitle: Engine action failed
+category: antimalware
+summary: >-
+  Defender event 1008 means Defender could not complete an action on detected malware (engine
+  level); the item may still be on the system.
+description: |-
+  Event 1008 is logged when Defender tried to act on a detected item and failed, with the error that prevented it. It is the engine-level counterpart of 1118.
+
+  The threat should be considered present until a later successful action is recorded or the item is removed manually.
+logging:
+  enabledByDefault: true
+  requirement: None — logged by Microsoft Defender Antivirus when it is the active antivirus.
+fields:
+  - name: Threat Name
+    description: Name of the detection.
+  - name: Path
+    description: Item that could not be handled.
+  - name: Action Name
+    description: Action attempted.
+  - name: Error Code
+    description: Error returned.
+benign:
+  - Locked or in-use files, read-only locations.
+attacker:
+  - Active malware preventing its own removal.
+investigation:
+  - Verify whether the item still exists and runs; remediate manually.
+  - Check for a later 1007 or 1117 on the same path.
+related:
+  - defender/1006
+  - defender/1007
+  - defender/1118
+attack: []
+references:
+  - title: Microsoft Learn — Microsoft Defender Antivirus event IDs and error codes
+    url: https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus

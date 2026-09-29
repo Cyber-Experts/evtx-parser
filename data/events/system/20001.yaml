@@ -1,0 +1,65 @@
+id: 20001
+channel: system
+provider: Microsoft-Windows-UserPnp
+title: Driver Management concluded the process to install driver for Device Instance ID with the following status
+shortTitle: Device driver installed
+category: device
+summary: >-
+  System event 20001 (UserPnp) records a device driver install with the device instance ID. First-connection evidence for USB storage.
+description: |-
+  Event 20001 is written by the user-mode Plug and Play manager when it finishes installing a driver for a device. The device is identified by `DeviceInstanceID` — for a USB mass storage device something like `USBSTOR\DISK&VEN_...&PROD_...&REV_...\<serial>&0` — with the driver package, provider and setup class.
+
+  Because a driver is installed the **first** time a given device is seen, 20001 is a classic indicator of the first connection of a USB drive, phone or other peripheral to the host, including the device serial number embedded in the instance ID. Later connections of the same device usually do not produce a new 20001; use Kernel-PnP **400/410** and Partition **1006** for those.
+
+  The event data is under `UserData`, not `EventData`. `InstallStatus` `0x0` means success.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log when a device driver is installed.
+fields:
+  - name: DeviceInstanceID
+    description: >-
+      Plug and Play instance ID of the device. For USB storage it contains vendor, product,
+      revision and the device serial number (before `&0`).
+  - name: DriverName
+    description: INF of the driver installed, e.g. `disk.inf` or `usbstor.inf`.
+  - name: DriverDescription
+    description: Friendly description of the driver or device.
+  - name: DriverProvider
+    description: Publisher of the driver package.
+  - name: DriverVersion
+    description: Version of the driver installed.
+  - name: SetupClass
+    description: >-
+      Device setup class GUID, e.g. `4d36e967-e325-11ce-bfc1-08002be10318` for disk drives or
+      `4d36e972-e325-11ce-bfc1-08002be10318` for network adapters.
+  - name: IsDriverOEM
+    description: Whether the driver is a third-party (OEM) package rather than an inbox Windows driver.
+  - name: InstallStatus
+    description: Result of the installation; `0x0` is success.
+benign:
+  - Users connecting new USB drives, phones, printers, docks and headsets.
+  - Driver installs on first boot, after hardware changes or VM migration.
+attacker:
+  - >-
+    Data theft to removable media: a new `USBSTOR` device appearing on a server or sensitive
+    workstation, especially outside business hours.
+  - Hardware additions such as rogue network adapters or keystroke-injection devices presenting as keyboards.
+investigation:
+  - Extract vendor, product and serial number from `DeviceInstanceID` and compare with the approved device inventory.
+  - Build the full USB timeline with Kernel-PnP 400/410 and Partition 1006 (connections, volume details).
+  - Look for file access and copy activity (4663, Sysmon 11, LNK and jump lists) during the connection window.
+related:
+  - kernel-pnp/400
+  - kernel-pnp/410
+  - partition/1006
+  - security/6416
+  - security/4663
+  - sysmon/11
+attack:
+  - T1052.001
+  - T1200
+references:
+  - title: Microsoft Learn — Device instance IDs
+    url: https://learn.microsoft.com/en-us/windows-hardware/drivers/install/device-instance-ids
+  - title: MITRE ATT&CK — Exfiltration over USB (T1052.001)
+    url: https://attack.mitre.org/techniques/T1052/001/

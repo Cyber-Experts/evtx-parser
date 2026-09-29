@@ -1,0 +1,44 @@
+id: 13
+channel: system
+provider: Microsoft-Windows-Kernel-General
+title: The operating system is shutting down at system time
+shortTitle: Operating system shutdown
+category: system
+summary: >-
+  System event 13 (Kernel-General) is written on a clean shutdown with the exact stop time. No 13 before a boot means a crash or power loss.
+description: |-
+  Event 13 is the kernel's last word before a clean shutdown or restart. `StopTime` gives the precise moment, and the record is usually one of the last in the System log for that session.
+
+  On its own it says little about **why** the system went down. The reason and the requester are in **1074** (User32), written a few seconds earlier, and **6006** (EventLog service stopped) appears around the same time. The next boot starts with **12**.
+
+  The absence of a 13 is what matters most: if a boot (12) follows without a 13, the previous session ended abruptly — crash, power loss, hard reset — and Windows will log **41** and **6008** on the next start.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log on a clean shutdown or restart.
+fields:
+  - name: StopTime
+    description: UTC time at which the kernel began the shutdown.
+benign:
+  - Users and administrators shutting down or restarting the host.
+  - Restarts scheduled by Windows Update or configuration management.
+attacker:
+  - >-
+    Attackers restarting a host to activate persistence or drivers, or shutting systems down as
+    part of an impact phase (T1529).
+investigation:
+  - Look for 1074 just before the 13 to identify the requesting process, user and reason.
+  - Measure the downtime until the next 12; long gaps on servers deserve an explanation.
+  - A missing 13 between two boots points to a crash; check 41 and 6008.
+related:
+  - system/12
+  - system/41
+  - system/1074
+  - system/6006
+  - system/6008
+attack:
+  - T1529
+references:
+  - title: MITRE ATT&CK — System Shutdown/Reboot (T1529)
+    url: https://attack.mitre.org/techniques/T1529/
+  - title: Microsoft Learn — System shutdown reason codes
+    url: https://learn.microsoft.com/en-us/windows/win32/shutdown/system-shutdown-reason-codes

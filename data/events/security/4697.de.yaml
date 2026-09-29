@@ -1,0 +1,83 @@
+title: Ein Dienst wurde im System installiert
+shortTitle: Dienst installiert
+summary: >-
+  Event-ID 4697 protokolliert einen neuen Windows-Dienst mit Name, Binärpfad, Starttyp und Konto.
+  Zentral für Lateral Movement à la PsExec und Persistenz.
+description: |-
+  Event 4697 wird geschrieben, wenn ein Dienst beim Dienststeuerungs-Manager (Service Control Manager) registriert wird. Es protokolliert den Dienstnamen (`ServiceName`), den auszuführenden Befehl (`ServiceFileName`), die Startart (`ServiceStartType`), den Typ (`ServiceType`) und das Konto, unter dem er läuft (`ServiceAccount`), zusammen mit dem Konto, das ihn installiert hat (`Subject*`).
+
+  Es ist das Gegenstück im Sicherheitsprotokoll zu System-Event 7045, das der Service Control Manager auf jedem System ohne Überwachungsrichtlinie protokolliert. 4697 benötigt die Unterkategorie Security System Extension, ergänzt aber das installierende Konto und die Anmeldesitzung — nützlich, um die Installation einer bestimmten Remote-Anmeldung zuzuordnen.
+
+  Neue Dienste sind sowohl für Persistenz als auch für Remote-Ausführung beliebt: PsExec, Impacket `smbexec`/`psexec`, Cobalt Strike `jump psexec` und viele Ransomware-Akteure legen auf dem Ziel einen Dienst an, um ihre Payload als SYSTEM auszuführen. Auch Treiberinstallationen (Kerneldienste) erscheinen hier.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > System > Audit Security System Extension (Success). In
+    der Standard-Überwachungsrichtlinie nicht aktiviert.
+  notes: >-
+    System-Event 7045 deckt dieselben Installationen standardmäßig ab und sollte geprüft werden,
+    wenn 4697 nicht überwacht wird.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Konto, das den Dienst installiert hat. Bei Remote-Installationen ist dies das entfernte
+      Admin-Konto; `HOST$` bedeutet SYSTEM.
+  - name: SubjectLogonId
+    description: Anmeldesitzung des Installierenden; auf das zugehörige 4624 (oft Netzwerkanmeldung Typ 3) pivotieren, um die Quelle zu finden.
+  - name: ServiceName
+    description: Name des neuen Dienstes. Zufällig wirkende oder sehr kurze Namen sind ein Warnsignal.
+  - name: ServiceFileName
+    description: >-
+      Befehlszeile, die der Dienst ausführt. Auf `cmd.exe /c`, `powershell`, Pfade unter `\Temp\`,
+      `ADMIN$` / das Stammverzeichnis `C:\Windows\` oder kodierte Argumente achten.
+  - name: ServiceType
+    description: Art des Dienstes.
+    values:
+      - value: "0x1"
+        meaning: Kerneltreiber.
+      - value: "0x2"
+        meaning: Dateisystemtreiber.
+      - value: "0x8"
+        meaning: Recognizer-Treiber.
+      - value: "0x10"
+        meaning: Win32-Dienst in eigenem Prozess.
+      - value: "0x20"
+        meaning: Win32-Dienst in gemeinsam genutztem Prozess (in svchost gehostet).
+      - value: "0x110"
+        meaning: Dienst mit eigenem Prozess, der mit dem Desktop interagieren darf.
+      - value: "0x120"
+        meaning: Dienst mit gemeinsam genutztem Prozess, der mit dem Desktop interagieren darf.
+  - name: ServiceStartType
+    description: Wann der Dienst startet.
+    values:
+      - value: "0"
+        meaning: Boot — Treiber, der vom Bootloader geladen wird.
+      - value: "1"
+        meaning: System — Treiber, der während der Kernel-Initialisierung gestartet wird.
+      - value: "2"
+        meaning: Automatisch — beim Systemstart vom Service Control Manager gestartet.
+      - value: "3"
+        meaning: Manuell (Start bei Bedarf).
+      - value: "4"
+        meaning: Deaktiviert.
+  - name: ServiceAccount
+    description: Konto, unter dem der Dienst läuft, z. B. `LocalSystem`, `NT AUTHORITY\LocalService` oder ein Domänenkonto.
+benign:
+  - Softwareinstallationen und -updates (Treiber, Agenten, Update-Dienste von Browsern).
+  - Management- und Fernwartungstools, die auf dem Ziel einen temporären Dienst installieren.
+  - Installation von Windows-Features und -Rollen.
+attacker:
+  - >-
+    Remote-Ausführung per PsExec oder Impacket: ein neuer Dienst mit Starttyp „Manuell“ und
+    zufälligem oder toolspezifischem Namen, der eine Binärdatei aus `ADMIN$` oder eine
+    Befehlszeile `cmd.exe /c` / `%COMSPEC%` ausführt.
+  - Persistenz über einen automatisch startenden Dienst, der auf eine Payload in einem benutzerbeschreibbaren Ordner zeigt.
+  - Laden eines bösartigen oder verwundbaren Kerneltreibers (ServiceType `0x1`, Starttyp 0–3), um Sicherheitstools auszuschalten.
+investigation:
+  - >-
+    Zuerst ServiceFileName prüfen: Alles außerhalb von `Program Files` / `System32` oder mit
+    Shell, Skript-Host oder kodiertem Blob verdient Aufmerksamkeit.
+  - >-
+    Über SubjectLogonId auf das 4624 auf demselben Host pivotieren — eine Typ-3-Anmeldung Sekunden
+    vor der Installation verrät die Quell-IP der Remote-Ausführung.
+  - Mit System 7045 und 7036 (Dienst gestartet/beendet) korrelieren, um zu sehen, ob er lief und wieder entfernt wurde.
+  - Nach 4688-Kindprozessen von `services.exe` direkt nach der Installation suchen, um zu sehen, was der Dienst ausgeführt hat.

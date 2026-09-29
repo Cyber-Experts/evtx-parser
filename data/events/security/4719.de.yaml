@@ -1,0 +1,44 @@
+title: Die Systemüberwachungsrichtlinie wurde geändert
+shortTitle: Überwachungsrichtlinie geändert
+summary: >-
+  Event-ID 4719 protokolliert eine Änderung der Überwachungsrichtlinie, etwa wenn per auditpol die Erfolgs- oder Fehlerüberwachung entfernt wird.
+description: |-
+  Event 4719 wird geschrieben, wenn sich die lokale Überwachungsrichtlinie für eine Unterkategorie ändert: Erfolgs- oder Fehlerüberwachung hinzugefügt oder entfernt. Die Felder identifizieren Kategorie, Unterkategorie (per Name und GUID) und was sich geändert hat.
+
+  Das Abschalten der Überwachung ist ein klassischer Defense-Evasion-Schritt: Ein Angreifer, der vor dem Handeln die Überwachung von Anmeldung, Prozesserstellung oder Objektzugriff deaktiviert, entfernt genau die Events, auf die sich eine Untersuchung stützen würde. `auditpol /clear`, `auditpol /set ... /success:disable` und skriptgesteuerte Richtlinienänderungen erscheinen alle hier.
+
+  Die Gruppenrichtlinie wendet die Überwachungsrichtlinie zudem regelmäßig neu an, daher haben viele Einträge das Computerkonto oder SYSTEM als Subject. Auf Änderungen konzentrieren, die Überwachung **entfernen**, und auf Änderungen durch Benutzerkonten.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Policy Change > Audit Audit Policy Change (Success). In
+    der Standard-Überwachungsrichtlinie von Windows für „Erfolg“ aktiviert.
+  notes: >-
+    Per Gruppenrichtlinie angewendete Änderungen können bei der Richtlinienaktualisierung eine
+    ganze Reihe von 4719-Einträgen erzeugen. Ist die Unterkategorie Audit Policy Change selbst
+    deaktiviert, werden spätere Änderungen nicht protokolliert.
+fields:
+  - name: SubjectUserName
+    description: Konto, das die Richtlinie geändert hat; bei Gruppenrichtlinie das Computerkonto.
+  - name: SubjectLogonId
+    description: Anmeldesitzung; `0x3e7` für SYSTEM, sonst auf 4624 und 4688 pivotieren.
+  - name: CategoryId
+    description: Überwachungskategorie der geänderten Unterkategorie (z. B. Logon/Logoff, Detailed Tracking) als Meldungscode.
+  - name: SubcategoryId
+    description: Geänderte Unterkategorie als Meldungscode, dargestellt als ihr Name (z. B. Logon, Process Creation).
+  - name: SubcategoryGuid
+    description: GUID der Unterkategorie; sprachunabhängig stabil.
+  - name: AuditPolicyChanges
+    description: >-
+      Was sich geändert hat, dargestellt als „Success removed“, „Failure removed“, „Success added“
+      oder „Failure added“ bzw. als kommagetrennte Kombination (in deutscher Oberfläche lokalisiert).
+benign:
+  - Aktualisierung der Gruppenrichtlinie, die eine neue oder geänderte erweiterte Überwachungsrichtlinie anwendet.
+  - Administratoren oder Bereitstellungsskripte, die die Überwachung beim Build oder Hardening mit `auditpol` konfigurieren.
+  - Sicherheitsagenten, die die Überwachungsrichtlinie setzen, auf die sie angewiesen sind.
+attacker:
+  - "`auditpol /clear` oder `auditpol /set /category:* /success:disable /failure:disable`, um das Sicherheitsprotokoll blind zu machen."
+  - Entfernen der Überwachung für bestimmte Unterkategorien (Process Creation, Logon, Object Access) vor Lateral Movement oder Datenzugriff.
+investigation:
+  - Nach „removed“-Änderungen filtern und nach Subjects, die Benutzerkonten statt des Computerkontos sind.
+  - Über `SubjectLogonId` auf 4688 pivotieren, um `auditpol.exe` oder das Skript zu finden, das die Änderung vorgenommen hat.
+  - Nach 1102 (Protokoll gelöscht) oder Lücken im Protokoll rund um die Änderung suchen und die aktuelle Richtlinie mit `auditpol /get /category:*` bestätigen.

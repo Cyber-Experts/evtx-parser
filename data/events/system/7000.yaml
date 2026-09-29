@@ -1,0 +1,52 @@
+id: 7000
+channel: system
+provider: Service Control Manager
+title: The service failed to start due to the following error
+shortTitle: Service failed to start
+category: service
+summary: >-
+  System event 7000 is logged when a service fails to start, with the error. Often follows a
+  malicious 7045 whose payload is not a real service binary.
+description: |-
+  Event 7000 is written by the Service Control Manager when it cannot start a service. `param1` is the service display name and `param2` the error text, such as "The system cannot find the file specified", "Access is denied" or "The service did not respond to the start or control request in a timely fashion".
+
+  Most 7000 records are operational: uninstalled software leaving a service behind, a driver that no longer matches the hardware, or a service account with an expired password. In an investigation, 7000 matters when it follows a **7045** by seconds. Many offensive tools register a service whose `ImagePath` is a plain command (`cmd.exe /c ...`) or a non-service executable: the command runs, but the process never reports to the SCM, so the start is recorded as a failure (**7009** timeout, then **7000**) even though the payload executed.
+
+  So a failed start is not proof that nothing happened. Check process creation for what the service command actually launched.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log.
+fields:
+  - name: param1
+    description: Display name of the service that failed to start.
+  - name: param2
+    description: >-
+      Error text returned by the SCM, e.g. "The system cannot find the file specified" (binary
+      deleted) or "The service did not respond to the start or control request in a timely fashion".
+benign:
+  - Leftover services of uninstalled software pointing to missing files.
+  - Services with a changed or expired service account password (logon failure errors).
+  - Drivers for absent hardware.
+attacker:
+  - >-
+    Service-based remote execution (Impacket `smbexec.py`, similar tools) where the service runs a
+    command instead of a service binary: 7045, then 7009 and 7000 within about 30 seconds.
+  - A persistence service whose payload was quarantined by antivirus, failing at every boot.
+investigation:
+  - Look for a 7045 for the same service just before; the pair is a strong lateral movement indicator.
+  - Read the `ImagePath` from the 7045 or the registry and search process creation (4688, Sysmon 1) at the same time for its child processes.
+  - Repeated 7000 at each boot for an unknown service can reveal broken or quarantined persistence.
+related:
+  - system/7045
+  - system/7009
+  - system/7036
+  - security/4688
+  - sysmon/1
+attack:
+  - T1569.002
+  - T1543.003
+references:
+  - title: MITRE ATT&CK — Service Execution (T1569.002)
+    url: https://attack.mitre.org/techniques/T1569/002/
+  - title: Microsoft Learn — Service Control Manager
+    url: https://learn.microsoft.com/en-us/windows/win32/services/service-control-manager

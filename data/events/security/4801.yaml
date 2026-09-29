@@ -1,0 +1,54 @@
+id: 4801
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: The workstation was unlocked
+shortTitle: Workstation unlocked
+category: logon
+summary: >-
+  Security event 4801 records a user unlocking their workstation, with the account and logon
+  session. Pairs with 4800 to show when the user was present.
+description: |-
+  Event 4801 is written when a locked interactive session is unlocked. Like 4800 it records the user (`TargetUserName`, `TargetUserSid`), the logon session (`TargetLogonId`) and the terminal session number (`SessionId`).
+
+  An unlock also involves an authentication, which is logged separately as a 4624 with LogonType 7 (or a 4625 if the password was wrong). 4801 is the simpler marker that the session is back in use, and it closes the interval opened by the matching 4800.
+
+  Unlocks at unusual hours, or an unlock of a session with no matching user presence (badge records, VPN logs), can indicate someone else using the account at the console or over RDP.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Advanced Audit Policy Configuration > Logon/Logoff > Audit Other Logon/Logoff Events (Success).
+    Not enabled in the default audit policy.
+fields:
+  - name: TargetUserName
+    description: Account whose session was unlocked.
+  - name: TargetDomainName
+    description: Domain or computer name of that account.
+  - name: TargetUserSid
+    description: SID of that account.
+  - name: TargetLogonId
+    description: Logon session that was unlocked; matches the 4800 and the original 4624 of the session.
+  - name: SessionId
+    description: Terminal Services session number that was unlocked.
+benign:
+  - Users returning to their desk and unlocking the screen.
+  - Users reconnecting to a locked RDP session.
+attacker:
+  - >-
+    Someone with the user's password unlocking a session at the console or over RDP at an unusual
+    time.
+investigation:
+  - Match with the preceding 4800 on the same TargetLogonId to measure the absence interval.
+  - Check the 4624 LogonType 7 at the same time for authentication details, and 4625 for failed unlock attempts.
+  - For remote sessions, correlate with 4778 and RDP events 25 / 1149 to get the client address.
+related:
+  - security/4800
+  - security/4624
+  - security/4625
+  - security/4778
+  - rdp-local-session-manager/25
+attack: []
+references:
+  - title: "Microsoft Learn — 4801(S): The workstation was unlocked"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4801
+  - title: Microsoft Learn — Audit Other Logon/Logoff Events
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-other-logonlogoff-events

@@ -1,0 +1,72 @@
+id: 4717
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: System security access was granted to an account
+shortTitle: Logon right granted
+category: policy
+summary: >-
+  Security event 4717 logs a logon right (e.g. SeRemoteInteractiveLogonRight, SeServiceLogonRight)
+  being granted to an account or group in local security policy.
+description: |-
+  Event 4717 is written when a **logon right** is granted to a security principal: the rights that control how an account may log on, such as `SeInteractiveLogonRight`, `SeNetworkLogonRight`, `SeRemoteInteractiveLogonRight`, `SeBatchLogonRight` and `SeServiceLogonRight`, and their `SeDeny...` counterparts. Privileges such as `SeDebugPrivilege` are logged in 4704 instead.
+
+  `TargetSid` is the principal and `AccessGranted` the right. Most records are Group Policy applying User Rights Assignment, with the computer account or SYSTEM as subject. A grant outside a GPO refresh, or to an unexpected account, is worth checking.
+
+  Granting RDP logon to a new account, or service logon to an account that runs attacker tooling, is a common way to prepare access on a host.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Policy Change > Audit Authentication Policy Change
+    (Success). Enabled for Success in the default Windows audit policy.
+fields:
+  - name: SubjectUserName
+    description: Account that made the change; the computer account or SYSTEM when applied by Group Policy.
+  - name: SubjectLogonId
+    description: Logon session of the subject; `0x3e7` for SYSTEM.
+  - name: TargetSid
+    description: SID of the account or group that received the right.
+  - name: AccessGranted
+    description: Logon right granted.
+    values:
+      - value: SeInteractiveLogonRight
+        meaning: Allow log on locally.
+      - value: SeNetworkLogonRight
+        meaning: Access this computer from the network.
+      - value: SeRemoteInteractiveLogonRight
+        meaning: Allow log on through Remote Desktop Services.
+      - value: SeBatchLogonRight
+        meaning: Log on as a batch job (scheduled tasks).
+      - value: SeServiceLogonRight
+        meaning: Log on as a service.
+      - value: SeDenyInteractiveLogonRight
+        meaning: Deny log on locally.
+      - value: SeDenyNetworkLogonRight
+        meaning: Deny access to this computer from the network.
+      - value: SeDenyRemoteInteractiveLogonRight
+        meaning: Deny log on through Remote Desktop Services.
+      - value: SeDenyBatchLogonRight
+        meaning: Deny log on as a batch job.
+      - value: SeDenyServiceLogonRight
+        meaning: Deny log on as a service.
+benign:
+  - Group Policy applying the User Rights Assignment defined for the host.
+  - Service installation granting `SeServiceLogonRight` to the service account (e.g. through `services.msc`).
+  - Administrators granting RDP access to support staff.
+attacker:
+  - Granting `SeRemoteInteractiveLogonRight` to a newly created or compromised account to enable RDP access.
+  - Granting `SeServiceLogonRight` or `SeBatchLogonRight` to an account used for malicious services or tasks.
+investigation:
+  - Resolve `TargetSid` and check whether that principal should hold the right on this host.
+  - If the subject is not the computer account, pivot `SubjectLogonId` to 4688 to see how the change was made.
+  - Look for follow-on logons by the principal (4624 with the matching logon type) after the grant.
+related:
+  - security/4718
+  - security/4704
+  - security/4624
+  - security/4720
+  - security/4732
+attack:
+  - T1098
+references:
+  - title: "Microsoft Learn — 4717(S): System security access was granted to an account"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4717

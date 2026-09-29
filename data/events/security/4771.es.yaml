@@ -1,0 +1,53 @@
+title: Error en la autenticación previa Kerberos
+shortTitle: Fallo de preautenticación Kerberos
+summary: >-
+  El evento 4771 se registra en los controladores de dominio cuando falla la preautenticación
+  Kerberos, casi siempre por una contraseña incorrecta (Status 0x18).
+description: |-
+  El evento 4771 es el registro del controlador de dominio de un inicio de sesión Kerberos fallido en la fase de preautenticación. La causa más común es una contraseña incorrecta (`0x18`); otras son una contraseña caducada, una cuenta deshabilitada o bloqueada, o una diferencia horaria.
+
+  Como Kerberos es el protocolo predeterminado en un dominio, los intentos fallidos de contraseña contra cuentas de dominio aparecen aquí y no como 4625 en el DC. Un password spraying sobre Kerberos aparece como una IP que produce 4771 para muchas cuentas, y nunca pasa por los servidores miembro, así que este evento puede ser el único rastro.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Logon > Audit Kerberos Authentication Service
+    (Failure). Solo tiene sentido en los controladores de dominio.
+fields:
+  - name: TargetUserName
+    description: Cuenta cuya preautenticación falló.
+  - name: TargetSid
+    description: SID de esa cuenta.
+  - name: ServiceName
+    description: Servicio solicitado, normalmente `krbtgt/<DOMAIN>`.
+  - name: TicketOptions
+    description: Opciones del ticket (hexadecimal).
+  - name: Status
+    description: Código de error Kerberos.
+    values:
+      - value: "0x18"
+        meaning: KDC_ERR_PREAUTH_FAILED — contraseña incorrecta.
+      - value: "0x12"
+        meaning: KDC_ERR_CLIENT_REVOKED — cuenta deshabilitada, caducada o bloqueada.
+      - value: "0x17"
+        meaning: KDC_ERR_KEY_EXPIRED — contraseña caducada.
+      - value: "0x25"
+        meaning: KRB_AP_ERR_SKEW — diferencia horaria demasiado grande.
+      - value: "0x10"
+        meaning: KDC_ERR_PADATA_TYPE_NOSUPP — problema de inicio de sesión con tarjeta inteligente (por ejemplo, falta el certificado del KDC).
+  - name: PreAuthType
+    description: Tipo de preautenticación intentado (2 = contraseña, 15/16 = tarjeta inteligente o certificado).
+  - name: IpAddress
+    description: Dirección IP del cliente.
+  - name: IpPort
+    description: Puerto de origen del cliente.
+benign:
+  - Usuarios que escriben una contraseña incorrecta; dispositivos con una contraseña antigua en caché tras un cambio.
+  - "Servicios o tareas programadas todavía configurados con una contraseña antigua: fallos repetidos con una periodicidad fija."
+  - Problemas de hora en un cliente (`0x25`).
+attacker:
+  - "Password spraying sobre Kerberos: un origen, muchas cuentas, Status `0x18`, a menudo con pocos intentos por cuenta para no superar el umbral de bloqueo (Kerbrute, Rubeus)."
+  - Adivinación de contraseñas contra una sola cuenta, que suele terminar en un bloqueo 4740.
+investigation:
+  - Cuente los TargetUserName distintos por IpAddress en ventanas cortas para distinguir el spraying de los errores de usuario.
+  - Busque un 4768 con Status `0x0` para las mismas cuentas e IP después de los fallos.
+  - Asocie IpAddress a un host; los fallos desde servidores suelen indicar una cuenta de servicio mal configurada.
+  - Correlacione con el 4740 en el emulador de PDC para las cuentas que quedaron bloqueadas.

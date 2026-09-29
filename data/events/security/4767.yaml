@@ -1,0 +1,54 @@
+id: 4767
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: A user account was unlocked
+shortTitle: Account unlocked
+category: account
+summary: >-
+  Security event 4767 is logged when a locked-out user account is unlocked, recording who
+  unlocked it and which account.
+description: |-
+  Event 4767 is written when a locked-out account is unlocked — on domain controllers for domain accounts and on member servers and workstations for local accounts. `Subject*` identifies who unlocked the account and `Target*` the account that was unlocked.
+
+  It usually closes a lockout story: 4740 (locked), then 4767 (unlocked by the helpdesk), often with a 4724 password reset. Reading these three events together tells you how long the account was unavailable and who restored access.
+
+  Because unlocking re-enables authentication, an unlock by an unexpected account, or right after a burst of failed logons from an unknown source, lets an attacker continue guessing or use a password they have obtained.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Account Management > Audit User Account Management
+    (Success). Enabled for Success in the default Windows audit policy.
+fields:
+  - name: SubjectUserName
+    description: Account that unlocked the target account.
+  - name: SubjectDomainName
+    description: Domain or computer name of the subject.
+  - name: SubjectLogonId
+    description: Logon session of the subject; correlate with 4624.
+  - name: TargetUserName
+    description: Account that was unlocked.
+  - name: TargetDomainName
+    description: Domain of the unlocked account, or the computer name for a local account.
+  - name: TargetSid
+    description: SID of the unlocked account.
+benign:
+  - Helpdesk unlocking a user after a lockout, often together with a password reset (4724).
+  - Self-service password reset tools unlocking accounts on behalf of users.
+attacker:
+  - Unlocking an account locked by password guessing so the attack can continue, or so a compromised password can be used.
+investigation:
+  - Match the unlock with the preceding 4740 for the same TargetSid and review the lockout's caller computer.
+  - Verify that SubjectUserName is a helpdesk or self-service account and that the user requested it.
+  - Look for a logon by the target (4624) soon after the unlock and check its source.
+related:
+  - security/4740
+  - security/4724
+  - security/4625
+  - security/4624
+attack:
+  - T1098
+references:
+  - title: "Microsoft Learn — 4767(S): A user account was unlocked"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4767
+  - title: Microsoft Learn — Audit User Account Management
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-user-account-management

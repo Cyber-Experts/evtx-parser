@@ -31,7 +31,7 @@ export type SessionSnapshot = {
   notes: Record<number, string>;
   sortField: string;
   sortDir: "asc" | "desc";
-  view: "events" | "sessions";
+  view: "events" | "sessions" | "sigma";
   showFacets: boolean;
   // Added later — optional so older saved sessions still load.
   timeMode?: "utc" | "local";

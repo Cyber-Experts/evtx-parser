@@ -1,0 +1,57 @@
+id: 7040
+channel: system
+provider: Service Control Manager
+title: The start type of the service was changed
+shortTitle: Service start type changed
+category: service
+summary: >-
+  System event 7040 records a change to a service start type (auto, demand, disabled). Reveals
+  security tools being disabled and services turned into persistence.
+description: |-
+  Event 7040 is written when a service's start type is changed — via `sc config <svc> start= ...`, `Set-Service -StartupType`, the Services console, Group Policy or the service's own installer. `param1` is the display name, `param2` the old start type, `param3` the new one and `param4` the service key name.
+
+  Most changes are benign: Windows itself toggles services such as BITS, Delivery Optimization or Windows Update between demand and automatic start all the time. The user SID in the record's System section shows the account that made the change, typically a built-in service account for those self-toggling services. The interesting ones are changes to **disabled** for security, backup or logging services, and changes to **auto start** for services the attacker controls.
+
+  Like 7036, the record does not include the command line. Correlate the timestamp with process creation to find who made the change.
+logging:
+  enabledByDefault: true
+  requirement: Always logged to the System log.
+  notes: >-
+    Changes to the service binary path (`sc config binPath=`) do not produce 7040; watch the
+    service's registry key (Sysmon 13, Security 4657) for those.
+fields:
+  - name: param1
+    description: Display name of the service.
+  - name: param2
+    description: Previous start type (`auto start`, `demand start`, `disabled`, `boot start`, `system start`).
+  - name: param3
+    description: New start type. `disabled` on a security service is the pattern to hunt.
+  - name: param4
+    description: Service key name under `HKLM\SYSTEM\CurrentControlSet\Services`, e.g. `DoSvc`, `WinDefend`.
+benign:
+  - Windows Update, BITS and Delivery Optimization toggling their own start type.
+  - Administrators and GPOs hardening a baseline by disabling unused services.
+attacker:
+  - Disabling Defender, EDR agents, Windows Event Log, VSS or backup services before an attack (`sc config ... start= disabled`).
+  - Setting an attacker-controlled or abused service to auto start for persistence.
+  - Re-enabling a disabled remote access service such as Remote Registry or Terminal Services.
+investigation:
+  - Filter out changes by built-in accounts (`S-1-5-18`, `S-1-5-20`) to well-known self-toggling services, then review the rest.
+  - Prioritize `param3` = `disabled` for security and logging services and `auto start` for rare services.
+  - Find the command in 4688 or Sysmon 1 (`sc.exe config`, `Set-Service`) and the user behind it.
+related:
+  - system/7036
+  - system/7045
+  - security/4688
+  - security/4657
+  - sysmon/1
+  - sysmon/13
+attack:
+  - T1685
+  - T1489
+  - T1543.003
+references:
+  - title: MITRE ATT&CK — Disable or Modify Tools (T1685)
+    url: https://attack.mitre.org/techniques/T1685/
+  - title: MITRE ATT&CK — Windows Service (T1543.003)
+    url: https://attack.mitre.org/techniques/T1543/003/

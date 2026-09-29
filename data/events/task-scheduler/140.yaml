@@ -1,0 +1,57 @@
+id: 140
+channel: task-scheduler
+provider: Microsoft-Windows-TaskScheduler
+title: Task registration updated
+shortTitle: Task updated
+category: scheduled-task
+summary: >-
+  Task Scheduler event 140 records that a user updated an existing scheduled task. Watch for
+  built-in or trusted tasks being modified to run a payload.
+description: |-
+  Event 140 is written when an already-registered task is changed and saved again: new action, new trigger, new settings or a new run-as account. The record holds the task path in `TaskName` and the account that made the change in `UserName`.
+
+  As with 106, the event does not say **what** changed. Compare the current task definition (`C:\Windows\System32\Tasks\<TaskName>`, the `TaskCache` registry keys) with a known-good copy, or use Security 4702, which logs the new task XML when object access auditing is enabled.
+
+  Updates are common during software and Windows updates, so volume alone is not suspicious. The interesting cases are changes to tasks that normally never change, made by an interactive or remote user account rather than `SYSTEM` or an installer.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    The Microsoft-Windows-TaskScheduler/Operational channel must be enabled — "Enable All Tasks
+    History" in the Task Scheduler console, or `wevtutil sl Microsoft-Windows-TaskScheduler/Operational /e:true`.
+  notes: >-
+    The default state of this channel is not consistent across Windows versions, editions and
+    builds: on some installs it is already recording, on others task history is off and the log
+    stays empty until someone enables it. Check whether the log holds any records before treating
+    a missing event as evidence. On busy hosts the log rolls over quickly.
+fields:
+  - name: TaskName
+    description: Full path of the modified task in the task library, e.g. `\Microsoft\Windows\...\TaskName`.
+  - name: UserName
+    description: Account that saved the change (`DOMAIN\user` or `NT AUTHORITY\SYSTEM`).
+benign:
+  - Application updaters rewriting their own tasks with new versions or schedules.
+  - Windows servicing refreshing built-in tasks after cumulative or feature updates.
+  - Administrators editing triggers or credentials of an existing task (for example after a password change).
+attacker:
+  - Hijacking an existing, trusted-looking task by replacing its action with a payload, so no new task (106) appears.
+  - Changing the run-as account of a task to `SYSTEM` or a privileged account to gain elevated execution.
+  - Re-enabling or retargeting a disabled vendor task to run attacker code.
+investigation:
+  - Flag 140 events where UserName is a regular user or remote admin account instead of `SYSTEM` or an installer.
+  - Diff the current task XML against a baseline or another host with the same software.
+  - Check the next runs of the task (100, 129, 200) for the image path it now launches.
+  - Correlate with Security 4702 for the new task content if object access auditing is on.
+related:
+  - task-scheduler/106
+  - task-scheduler/100
+  - task-scheduler/129
+  - task-scheduler/200
+  - security/4702
+  - security/4698
+attack:
+  - T1053.005
+references:
+  - title: Microsoft Learn — Task Scheduler
+    url: https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-start-page
+  - title: MITRE ATT&CK — Scheduled Task (T1053.005)
+    url: https://attack.mitre.org/techniques/T1053/005/

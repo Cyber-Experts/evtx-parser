@@ -1,0 +1,66 @@
+id: 8003
+channel: ntlm
+provider: Microsoft-Windows-NTLM
+title: "NTLM server blocked in the domain audit: Audit NTLM authentication in this domain"
+shortTitle: Domain server authentication audit
+category: ntlm
+summary: >-
+  NTLM event 8003 logs NTLM authentication of a domain account received by this server: user,
+  domain, client workstation, logon type and process. Audit only.
+description: |-
+  Event 8003 is written on the server that received NTLM authentication for a domain account, describing a request that would be blocked if NTLM were restricted in the domain. Nothing is blocked; it is an audit record.
+
+  Unlike 8002, it names the authenticating account and its source: `UserName`, `DomainName` and `Workstation` (the client computer name as supplied in the NTLM exchange), along with the server-side `ProcessName`, `CallerPID`, `LogonType` and `InProc`.
+
+  Microsoft's NTLM auditing walkthrough shows 8003 on a member server at the same moment as 8004 on the domain controller and 8001 on the client, which lets you follow one NTLM authentication across all three machines. For SMB access, `CallerPID` is `4` because the server side runs in kernel mode.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    NTLM auditing through Security Options > Network security: Restrict NTLM policies (Audit
+    Incoming NTLM Traffic on servers, Audit NTLM authentication in this domain on domain
+    controllers). Events go to Applications and Services Logs > Microsoft > Windows > NTLM > Operational.
+  notes: >-
+    The message refers to the "Restrict NTLM: NTLM authentication in this domain" policy, which is
+    the blocking policy this audit mirrors.
+fields:
+  - name: UserName
+    description: Account that authenticated with NTLM.
+  - name: DomainName
+    description: Domain of the account.
+  - name: Workstation
+    description: Client computer name supplied in the NTLM exchange. Client-controlled, so it can be spoofed or empty.
+  - name: CallerPID
+    description: PID of the server process that handled the request; `4` for SMB.
+  - name: ProcessName
+    description: Server process that handled the request; empty for kernel-mode SMB.
+  - name: LogonType
+    description: Logon type of the resulting session, typically `3` (network).
+  - name: InProc
+    description: Whether the authentication was processed in-process (`true` / `false`).
+  - name: MechanismOID
+    description: Negotiation mechanism OID, often `(NULL)`.
+benign:
+  - Users accessing file shares by IP address or through aliases without SPNs.
+  - Legacy line-of-business applications that only support NTLM.
+  - Devices outside the domain authenticating with domain credentials.
+attacker:
+  - Pass-the-hash or NTLM relay against this server using a domain account — visible here with the claimed `Workstation`.
+  - A privileged account (Domain Admins, service accounts) authenticating with NTLM from a workstation where it is not normally used.
+investigation:
+  - Group by `UserName` and `Workstation` to find accounts and clients still using NTLM, and flag new or unexpected pairs.
+  - Correlate with 4624 on this server (LogonType 3, NTLM) to get the source IP, and with 8004 and 4776 on the domain controller.
+  - Compare `Workstation` with the source IP's real host name; a mismatch can indicate a tool supplying a fake name.
+related:
+  - ntlm/8001
+  - ntlm/8002
+  - ntlm/8004
+  - security/4624
+  - security/4776
+attack:
+  - T1550.002
+  - T1557.001
+references:
+  - title: "Microsoft Learn — Network security: Restrict NTLM: Audit NTLM authentication in this domain"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/security-policy-settings/network-security-restrict-ntlm-audit-ntlm-authentication-in-this-domain
+  - title: Microsoft Learn (archive) — NTLM Blocking and You, auditing methodologies
+    url: https://learn.microsoft.com/en-us/archive/blogs/askds/ntlm-blocking-and-you-application-analysis-and-auditing-methodologies-in-windows-7

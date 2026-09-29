@@ -1,0 +1,58 @@
+id: 15
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: FileCreateStreamHash
+shortTitle: Alternate data stream created
+category: file
+summary: >-
+  Sysmon event 15 logs a named NTFS stream being created, such as the Zone.Identifier mark of
+  the web on downloads. Reveals download origins and ADS use.
+description: |-
+  Sysmon event 15 fires when a named (alternate) data stream is created on a file. It records the file, a hash, and for small text streams the stream contents.
+
+  The most common case is the `Zone.Identifier` stream that browsers and mail clients attach to downloads — the mark of the web. Its contents (`ZoneId=3` for the Internet zone, and on recent Windows versions `ReferrerUrl` and `HostUrl`) tell you where a file came from, even after the browser history is gone.
+
+  Attackers also hide payloads in alternate streams (`file.txt:payload.exe`) and execute them from there.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon installed; filter with `<FileCreateStreamHash>` rules in the configuration.
+fields:
+  - name: ProcessGuid
+    description: Process that created the stream.
+  - name: Image
+    description: Executable that created the stream, typically a browser or mail client for downloads.
+  - name: TargetFilename
+    description: File and stream name, e.g. `C:\Users\bob\Downloads\invoice.iso:Zone.Identifier`.
+  - name: CreationUtcTime
+    description: Creation time of the file.
+  - name: Hash
+    description: Hashes of the file content, per `HashAlgorithms`.
+  - name: Contents
+    description: >-
+      Text contents of small streams such as Zone.Identifier (ZoneId, ReferrerUrl, HostUrl).
+      Empty for larger or binary streams.
+  - name: User
+    description: Account of the process (newer Sysmon versions).
+benign:
+  - Browsers and Outlook adding Zone.Identifier to every download or saved attachment.
+  - Some backup, sync and security products using named streams for metadata.
+attacker:
+  - Downloads of ISO, ZIP, LNK or script files from unknown hosts, visible in HostUrl.
+  - Payloads hidden in a named stream of an innocuous file and executed from it.
+investigation:
+  - Read Contents for HostUrl and ReferrerUrl to identify the delivery source.
+  - Pivot on TargetFilename to event 1 to see whether the downloaded file was run.
+  - Treat non-Zone.Identifier streams containing executable content as suspicious.
+related:
+  - sysmon/11
+  - sysmon/1
+  - sysmon/29
+attack:
+  - T1564.004
+  - T1105
+  - T1553.005
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — Hide Artifacts, NTFS File Attributes (T1564.004)
+    url: https://attack.mitre.org/techniques/T1564/004/

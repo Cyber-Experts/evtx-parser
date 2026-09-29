@@ -1,0 +1,45 @@
+id: 21
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: WmiEvent (WmiEventConsumerToFilter activity detected)
+shortTitle: WMI consumer bound to filter
+category: wmi
+summary: >-
+  Sysmon event 21 logs a WMI consumer being bound to a filter, the step that activates a permanent
+  WMI subscription. Completes the WMI persistence trio.
+description: |-
+  Sysmon event 21 records a `__FilterToConsumerBinding`: the link that makes a filter (event 19) trigger a consumer (event 20). Once this binding exists, the subscription is live and survives reboots.
+
+  The event carries the WMI paths of both the consumer and the filter, which lets you tie the three events together even when they were created at different times.
+logging:
+  enabledByDefault: false
+  requirement: Sysmon installed; filter with `<WmiEvent>` rules in the configuration.
+fields:
+  - name: EventType
+    description: "`WmiBindingEvent` for this event."
+  - name: Operation
+    description: "`Created` for a new binding; removal is also recorded."
+  - name: User
+    description: Account that created the binding.
+  - name: Consumer
+    description: WMI path of the bound consumer, including its class and name.
+  - name: Filter
+    description: WMI path of the bound filter.
+benign:
+  - Bindings created by legitimate management software, matching known filters and consumers.
+attacker:
+  - Binding created seconds after a new filter and a command-line consumer — WMI persistence being completed.
+investigation:
+  - Resolve Consumer and Filter to the matching events 20 and 19 and review the command and trigger.
+  - Remove the three objects from `root\subscription` during remediation, then confirm with a new event 21 deletion.
+related:
+  - sysmon/19
+  - sysmon/20
+  - wmi-activity/5861
+attack:
+  - T1546.003
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - title: MITRE ATT&CK — WMI Event Subscription (T1546.003)
+    url: https://attack.mitre.org/techniques/T1546/003/

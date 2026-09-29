@@ -1,0 +1,63 @@
+id: 4907
+channel: security
+provider: Microsoft-Windows-Security-Auditing
+title: Auditing settings on object were changed
+shortTitle: Object SACL changed
+category: policy
+summary: >-
+  Security event 4907 logs a change to an object's auditing settings (SACL) on a file or
+  registry key, with the old and new security descriptors.
+description: |-
+  Event 4907 is written when the SACL of an object such as a file, folder or registry key changes — the auditing entries that decide whether access to it produces 4656 and 4663. `OldSd` and `NewSd` contain the security descriptors in SDDL, with the audit ACEs in the `S:` section.
+
+  Removing an audit ACE from a sensitive file or key silently stops its access records without touching the system audit policy (4719). That makes 4907 the place to catch targeted blinding of object auditing. It is not generated for Active Directory objects; directory SACL changes appear in 5136 as `nTSecurityDescriptor` modifications.
+
+  Expect substantial noise: Windows servicing (`TiWorker.exe`, `TrustedInstaller.exe`) rewrites security descriptors on system files during updates.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    Advanced Audit Policy Configuration > Policy Change > Audit Audit Policy Change (Success).
+    Enabled for Success in the default Windows audit policy.
+fields:
+  - name: SubjectUserName
+    description: Account that changed the SACL; often SYSTEM for Windows servicing.
+  - name: SubjectLogonId
+    description: Logon session of the subject.
+  - name: ObjectServer
+    description: Subsystem, normally `Security`.
+  - name: ObjectType
+    description: "`File` or `Key`, for example."
+  - name: ObjectName
+    description: Path of the object whose SACL changed.
+  - name: HandleId
+    description: Handle used for the change.
+  - name: OldSd
+    description: Previous security descriptor in SDDL; the `S:` part holds the audit ACEs.
+  - name: NewSd
+    description: New security descriptor; compare the `S:` part with `OldSd`.
+  - name: ProcessName
+    description: Process that changed the SACL.
+  - name: ProcessId
+    description: Hexadecimal PID of that process.
+benign:
+  - Windows Update and component servicing (`TiWorker.exe`, `TrustedInstaller.exe`) touching system files.
+  - Group Policy applying File System or Registry auditing settings, or Global Object Access Auditing.
+  - Administrators configuring audit entries on folders with Explorer or PowerShell.
+attacker:
+  - Removing audit ACEs from sensitive files, folders or registry keys before accessing them.
+  - Changing SACLs so that only failures, or nothing, is audited on a monitored share.
+investigation:
+  - Exclude Windows servicing processes, then diff the `S:` section of `OldSd` and `NewSd`.
+  - Flag changes where audit ACEs disappear from objects covered by detection use cases.
+  - Pivot `SubjectLogonId` to 4688 to find the tool that made the change.
+related:
+  - security/4719
+  - security/4670
+  - security/4663
+  - security/4656
+  - security/5136
+attack:
+  - T1685.001
+references:
+  - title: "Microsoft Learn — 4907(S): Auditing settings on object were changed"
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4907

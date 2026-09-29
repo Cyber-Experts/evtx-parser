@@ -1,0 +1,83 @@
+title: Se instaló un servicio en el sistema
+shortTitle: Servicio instalado
+summary: >-
+  El evento 4697 registra un nuevo servicio con su nombre, ruta del binario, tipo de inicio y
+  cuenta. Clave para movimiento lateral tipo PsExec y persistencia.
+description: |-
+  El evento 4697 se escribe cuando se registra un servicio en el Administrador de control de servicios. Registra el nombre del servicio (`ServiceName`), el comando que ejecutará (`ServiceFileName`), cómo se inicia (`ServiceStartType`), su tipo (`ServiceType`) y la cuenta con la que se ejecuta (`ServiceAccount`), junto con la cuenta que lo instaló (`Subject*`).
+
+  Es el equivalente en el registro de Seguridad del evento 7045 de System, que el Administrador de control de servicios registra en cualquier sistema sin necesidad de directiva de auditoría. El 4697 requiere la subcategoría Security System Extension, pero añade la cuenta instaladora y su sesión, lo que resulta útil para vincular la instalación con un inicio de sesión remoto concreto.
+
+  Los nuevos servicios son uno de los recursos favoritos tanto para la persistencia como para la ejecución remota: PsExec, `smbexec`/`psexec` de Impacket, `jump psexec` de Cobalt Strike y muchos operadores de ransomware crean un servicio en el destino para ejecutar su payload como SYSTEM. Las instalaciones de controladores (servicios de kernel) también aparecen aquí.
+logging:
+  requirement: >-
+    Advanced Audit Policy Configuration > System > Audit Security System Extension (Success). No
+    está habilitado en la directiva de auditoría predeterminada.
+  notes: >-
+    El evento 7045 de System cubre las mismas instalaciones de forma predeterminada y debe revisarse
+    cuando el 4697 no se audita.
+fields:
+  - name: SubjectUserName
+    description: >-
+      Cuenta que instaló el servicio. En las instalaciones remotas es la cuenta de administrador
+      remota; `HOST$` significa SYSTEM.
+  - name: SubjectLogonId
+    description: Sesión del instalador; pivote hacia su 4624 (a menudo un inicio de sesión de red de tipo 3) para encontrar el origen.
+  - name: ServiceName
+    description: Nombre del nuevo servicio. Los nombres de aspecto aleatorio o muy cortos son una señal de alarma.
+  - name: ServiceFileName
+    description: >-
+      Línea de comandos que ejecuta el servicio. Busque `cmd.exe /c`, `powershell`, rutas bajo
+      `\Temp\`, la raíz de `ADMIN$` / `C:\Windows\` o argumentos codificados.
+  - name: ServiceType
+    description: Tipo de servicio.
+    values:
+      - value: "0x1"
+        meaning: Controlador de kernel.
+      - value: "0x2"
+        meaning: Controlador de sistema de archivos.
+      - value: "0x8"
+        meaning: Controlador reconocedor.
+      - value: "0x10"
+        meaning: Servicio Win32 que se ejecuta en su propio proceso.
+      - value: "0x20"
+        meaning: Servicio Win32 que comparte proceso (alojado en svchost).
+      - value: "0x110"
+        meaning: Servicio de proceso propio autorizado a interactuar con el escritorio.
+      - value: "0x120"
+        meaning: Servicio de proceso compartido autorizado a interactuar con el escritorio.
+  - name: ServiceStartType
+    description: Cuándo se inicia el servicio.
+    values:
+      - value: "0"
+        meaning: Arranque — controlador cargado por el cargador de arranque.
+      - value: "1"
+        meaning: Sistema — controlador iniciado durante la inicialización del kernel.
+      - value: "2"
+        meaning: Automático — iniciado en el arranque por el Administrador de control de servicios.
+      - value: "3"
+        meaning: Manual (inicio a petición).
+      - value: "4"
+        meaning: Deshabilitado.
+  - name: ServiceAccount
+    description: Cuenta con la que se ejecuta el servicio, p. ej. `LocalSystem`, `NT AUTHORITY\LocalService` o una cuenta de dominio.
+benign:
+  - Instalaciones y actualizaciones de software (controladores, agentes, servicios de actualización de navegadores).
+  - Herramientas de administración y soporte remoto que instalan un servicio temporal en el destino.
+  - Instalación de características y roles de Windows.
+attacker:
+  - >-
+    Ejecución remota mediante PsExec o Impacket: un nuevo servicio de inicio manual con un nombre
+    aleatorio o propio de la herramienta, que ejecuta un binario desde `ADMIN$` o una línea de
+    comandos `cmd.exe /c` / `%COMSPEC%`.
+  - Persistencia mediante un servicio de inicio automático que apunta a un payload en una carpeta en la que el usuario puede escribir.
+  - Carga de un controlador de kernel malicioso o vulnerable (ServiceType `0x1`, tipo de inicio 0–3) para desactivar herramientas de seguridad.
+investigation:
+  - >-
+    Revise primero ServiceFileName: cualquier cosa fuera de `Program Files` / `System32` o que
+    contenga un shell, un host de scripts o un blob codificado merece atención.
+  - >-
+    Pivote sobre SubjectLogonId hacia el 4624 del mismo host; un inicio de sesión de tipo 3 segundos
+    antes de la instalación revela la IP de origen de la ejecución remota.
+  - Correlacione con los eventos 7045 y 7036 de System (servicio iniciado/detenido) para ver si se ejecutó y se eliminó.
+  - Busque hijos 4688 de `services.exe` justo después de la instalación para ver qué ejecutó el servicio.

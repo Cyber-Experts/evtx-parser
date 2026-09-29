@@ -1,0 +1,35 @@
+id: 40962
+channel: powershell
+provider: Microsoft-Windows-PowerShell
+title: PowerShell console is ready for user input
+shortTitle: Console ready for input
+category: powershell
+summary: >-
+  PowerShell event 40962 follows 40961 when the PowerShell host is ready for input — another
+  default-logged marker of PowerShell use.
+description: |-
+  Event 40962 is written when a PowerShell host has finished starting and is ready to accept commands. It normally follows 40961 within a second or two.
+
+  Its main value is the pairing: a 40961/40962 pair means a PowerShell host fully started. Non-interactive hosts running a single command may still produce it, so it is not proof of a human at the keyboard.
+logging:
+  enabledByDefault: true
+  requirement: >-
+    None — the Microsoft-Windows-PowerShell/Operational channel is enabled by default.
+fields:
+  - name: Message
+    description: Ready message; use the System section (ProcessID, UserID) for context.
+benign:
+  - Every PowerShell console launch.
+attacker:
+  - Same as 40961 — PowerShell activity on a host or account that does not normally use it.
+investigation:
+  - Pair with 40961 by ProcessID and time; pivot to process creation and 400 for command lines.
+  - Count launches per user and host per day; a sudden rise on a host that rarely runs PowerShell is worth a look.
+related:
+  - powershell/40961
+  - windows-powershell/400
+attack:
+  - T1059.001
+references:
+  - title: Microsoft Learn — about_Logging_Windows
+    url: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_logging_windows

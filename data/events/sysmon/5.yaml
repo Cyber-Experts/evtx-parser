@@ -1,0 +1,45 @@
+id: 5
+channel: sysmon
+provider: Microsoft-Windows-Sysmon
+title: Process terminated
+shortTitle: Process terminated
+category: process
+summary: >-
+  Sysmon event 5 records a process exiting, with ProcessGuid and image path. Pairs with event 1
+  to measure lifetime and close out process timelines.
+description: |-
+  Sysmon event 5 is logged when a process ends. It carries the same `ProcessGuid` as the matching event 1, so the two together give the exact lifetime of a process.
+
+  On its own the event says little. Its value is in timelines: short-lived processes (a few seconds between 1 and 5) are typical of discovery commands and droppers, while a process that never terminates can point to a long-running implant. Many configurations exclude it to save volume.
+logging:
+  enabledByDefault: false
+  requirement: >-
+    Sysmon installed; controlled with a `<ProcessTerminate>` rule in the configuration (many
+    shared configurations disable it).
+fields:
+  - name: UtcTime
+    description: Exit time.
+  - name: ProcessGuid
+    description: Same GUID as in the process's event 1.
+  - name: ProcessId
+    description: PID of the exiting process.
+  - name: Image
+    description: Executable of the exiting process.
+  - name: User
+    description: Account of the process (newer Sysmon versions).
+benign:
+  - Every normal program exit — this event is as frequent as event 1 when enabled.
+  - Short-lived helper processes spawned by installers and updaters.
+attacker:
+  - Burst of very short-lived `whoami`, `net`, `nltest` or `ipconfig` processes during discovery.
+  - Security tools terminating unexpectedly shortly after suspicious activity.
+investigation:
+  - Join with event 1 on ProcessGuid to compute process lifetime.
+  - Check whether a suspicious process is still running (no event 5 yet) before responding.
+related:
+  - sysmon/1
+  - security/4689
+attack: []
+references:
+  - title: Microsoft Learn — Sysmon (Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
