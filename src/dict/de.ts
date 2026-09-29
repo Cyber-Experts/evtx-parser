@@ -2,7 +2,7 @@ import type { Dict } from "./types";
 
 export const de: Dict = {
   meta: {
-    title: "EVTX Viewer & Parser — .evtx-Datei online öffnen, ohne Upload",
+    title: "EVTX Parser & Viewer online — .evtx-Datei öffnen ohne Upload",
     description:
       "Eine .evtx-Datei ist ein Windows-Ereignisprotokoll. Öffnen Sie sie kostenlos im Browser — ohne Upload, ohne Installation — filtern und als CSV, TXT, JSON oder XML exportieren.",
     siteName: "EVTX parser",

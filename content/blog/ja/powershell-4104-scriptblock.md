@@ -1,6 +1,7 @@
 ---
-title: "PowerShell Event ID 4104 を解読する:DFIR のためのスクリプトブロック ロギング"
-description: "スクリプトブロック ロギングは Windows で最も有用な無料の防御コントロール。難読化されたものやインメモリのものも含め、スクリプト本体全体をイベント 4104 として記録する。"
+title: "Event ID 4104: PowerShell スクリプトブロック ログの解説"
+seoTitle: "Event ID 4104: PowerShell スクリプトブロック ログ"
+description: "Event ID 4104 は、難読化されたものやインメモリのものを含め、すべての PowerShell スクリプトブロックの全文を記録します。有効化の方法、フィールドの読み方、ハンティングでの使い方を解説。"
 date: "2026-05-17"
 ---
 

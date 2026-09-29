@@ -1,6 +1,7 @@
 ---
 title: "Event ID 4663: An attempt was made to access an object"
-description: "Event ID 4663 logs file, folder and registry access audited by a SACL: who touched what, with which access mask. Setup, key fields and hunts for ransomware and data theft."
+seoTitle: "Event ID 4663: Object Access Attempt (SACL)"
+description: "Event ID 4663 logs access to a file, folder or registry key audited by a SACL: who touched what, with which access mask. Setup, key fields and hunts."
 date: "2026-05-24"
 ---
 

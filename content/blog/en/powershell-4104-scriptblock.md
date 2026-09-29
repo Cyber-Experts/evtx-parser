@@ -1,6 +1,7 @@
 ---
 title: "Event ID 4104: PowerShell Script Block Logging explained"
-description: "Event ID 4104 (PowerShell/Operational) logs the full text of every PowerShell script block, even obfuscated or in-memory code. How to enable it, read it and hunt with it."
+seoTitle: "Event ID 4104: PowerShell Script Block Logging"
+description: "Event ID 4104 records the full text of every PowerShell script block, even obfuscated or in-memory code. How to enable it, read it and hunt with it."
 date: "2026-05-17"
 ---
 

@@ -1,6 +1,7 @@
 ---
-title: "Event ID 4663 erklärt: Datei- und Registry-Zugriffsauditing mit SACLs"
-description: "4663 ist der Objekt-Audit-Datensatz pro Zugriff. Konfiguriere SACLs auf den richtigen Dateien und Schlüsseln, und du bekommst ein Byte-genaues Log darüber, wer was berührt hat. Nützlich für Ransomware, Exfil und Credential-Store-Diebstahl."
+title: "Event ID 4663: Es wurde versucht, auf ein Objekt zuzugreifen"
+seoTitle: "Event ID 4663: Zugriff auf ein Objekt (SACL)"
+description: "Event ID 4663 protokolliert Zugriffe auf per SACL überwachte Dateien, Ordner und Registry-Schlüssel: wer was mit welcher Maske berührt hat. Setup, Hunts."
 date: "2026-05-24"
 ---
 

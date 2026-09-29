@@ -1,6 +1,7 @@
 ---
-title: "PowerShell Event ID 4104 spiegato: scriptblock logging per DFIR"
-description: "Lo scriptblock logging è il controllo difensivo gratuito più utile di Windows. Registra il corpo completo dello script, inclusi quelli offuscati o in memoria, sotto l'evento 4104."
+title: "Event ID 4104: logging dei blocchi di script PowerShell"
+seoTitle: "Event ID 4104: logging degli script PowerShell"
+description: "L'Event ID 4104 registra il testo completo di ogni blocco di script PowerShell, anche offuscato o in memoria. Come abilitarlo, leggerlo e usarlo."
 date: "2026-05-17"
 ---
 

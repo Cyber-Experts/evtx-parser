@@ -1,6 +1,7 @@
 ---
-title: "PowerShell Event ID 4104 详解:面向 DFIR 的脚本块日志"
-description: "脚本块日志是 Windows 上最有用的免费防御控制。它记录每次执行的脚本完整正文 —— 包括混淆和驻留内存的 —— 事件 ID 是 4104。"
+title: "Event ID 4104：PowerShell 脚本块日志详解"
+seoTitle: "Event ID 4104：PowerShell 脚本块日志"
+description: "Event ID 4104 记录每个 PowerShell 脚本块的完整文本，包括混淆和仅在内存中执行的代码。本文介绍如何启用、如何解读字段以及如何用它进行威胁狩猎。"
 date: "2026-05-17"
 ---
 

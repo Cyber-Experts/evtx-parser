@@ -1,6 +1,7 @@
 ---
-title: "Event ID 1102 erklärt: Security-Audit-Log geleert (und was überlebt)"
-description: "1102 ist das eine Ereignis, das du nicht unterdrücken kannst, ohne mehr Beweise zu hinterlassen. Hier ist, was es dir sagt, was das Löschen überlebt und wo du suchst, wenn du es siehst."
+title: "Event ID 1102: Security-Audit-Log gelöscht (und was bleibt)"
+seoTitle: "Event ID 1102: Security-Audit-Log gelöscht"
+description: "Event ID 1102 bedeutet, dass das Windows-Security-Überwachungsprotokoll gelöscht wurde. Wer es war, welche Felder es belegen und welche Spuren bleiben."
 date: "2026-05-17"
 ---
 
