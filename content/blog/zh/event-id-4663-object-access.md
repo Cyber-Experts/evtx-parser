@@ -66,7 +66,7 @@ Event ID **4663**「尝试访问对象」在被审计的文件、注册表键或
 
 ### SAM 或 SYSTEM 蜂巢读取
 
-任何 `ObjectName` 以 `\config\SAM`、`\config\SECURITY` 或 `\config\SYSTEM` 结尾，且 `ProcessName` 不是 `services.exe`、`lsass.exe`、`wininit.exe`，且 `SubjectUserSid` 不是 `S-1-5-18` 的 4663。这要么是 `reg save HKLM\SAM`、对卷影副本的 `esentutl /y`，要么是具有蜂巢文件级访问的凭据转储工具。交叉检查 [registry](https://www.registryparser.com) 看是否留下了备份蜂巢文件。
+任何 `ObjectName` 以 `\config\SAM`、`\config\SECURITY` 或 `\config\SYSTEM` 结尾，且 `ProcessName` 不是 `services.exe`、`lsass.exe`、`wininit.exe`，且 `SubjectUserSid` 不是 `S-1-5-18` 的 4663。这要么是 `reg save HKLM\SAM`、对卷影副本的 `esentutl /y`，要么是具有蜂巢文件级访问的凭据转储工具。交叉检查 registry 看是否留下了备份蜂巢文件。
 
 ### LSASS 小型转储写入
 
@@ -183,6 +183,7 @@ index=wineventlog EventCode=4663 ObjectName="*\\AppData\\Roaming\\Microsoft\\Pro
 - 关闭的句柄。4663 在句柄 *open* 时触发。关闭事件是 4658，在攻击检测中很少有用。
 - 网络路径不会透明记录。对共享的 SMB 访问在*服务器*上触发 4663，客户端什么都看不到。需要服务器侧的收集。
 - 默认下的失败访问。许多公司只审计 Success。仅在你真的关心被阻挡的尝试时再配置 Failure。
+- SACL 覆盖范围之外的一切。删除一个未配置审核的文件不会留下任何 4663，但[即使对象访问审核处于关闭状态，USN 日志仍会记录这次删除](https://www.usnparser.com/zh/blog/recover-deleted-files-usn-journal)，并保留文件名和时间戳。
 
 ## 4663 在时间线中的位置
 

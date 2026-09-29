@@ -81,11 +81,11 @@ Questo canale è piccolo e si legge in fretta. Aggiungilo alla tua checklist di 
 
 Quando il log Security è sparito o doctored, gli artefatti che sopravvivono sono i soliti sospetti:
 
-- La [Master File Table](https://www.mftparser.com) per il file EVTX stesso. I timestamp `$STANDARD_INFORMATION` e `$FILE_NAME` mostreranno quando il file è stato riscritto per cancellazione.
-- Il [journal USN](https://www.usnparser.com) per eventi `DATA_OVERWRITE` e `DATA_TRUNCATION` su `Security.evtx`. Questi mostrano la cancellazione in termini journal con timestamp ad alta risoluzione.
-- Il [Prefetch](https://www.prefetchparser.com) per l'esecuzione di `wevtutil.exe`, o per esecuzioni di `powershell.exe` che combaciano con la cancellazione sospettata.
-- [Shimcache](https://www.shimcacheparser.com) e [AmCache](https://www.amcacheparser.com) per il tooling che l'operatore ha portato per eseguire la cancellazione, in particolare se ha usato un binario non standard.
-- Artefatti di [dump RAM](https://www.ramparser.com) se ne hai catturato uno. La cache in memoria del servizio event log avrà record che non sono mai stati flushati sul disco.
+- La [Master File Table](https://www.mftparser.com/it/blog/timestamps) per il file EVTX stesso. I timestamp `$STANDARD_INFORMATION` e `$FILE_NAME` mostreranno quando il file è stato riscritto per cancellazione.
+- Il [journal USN](https://www.usnparser.com/it/blog/usn-reason-codes-forensic-analysis) per eventi `DATA_OVERWRITE` e `DATA_TRUNCATION` su `Security.evtx`. Questi mostrano la cancellazione in termini journal con timestamp ad alta risoluzione.
+- Il Prefetch per l'esecuzione di `wevtutil.exe`, o per esecuzioni di `powershell.exe` che combaciano con la cancellazione sospettata.
+- Shimcache e AmCache per il tooling che l'operatore ha portato per eseguire la cancellazione, in particolare se ha usato un binario non standard.
+- Artefatti di dump RAM se ne hai catturato uno. La cache in memoria del servizio event log avrà record che non sono mai stati flushati sul disco.
 
 Il log Security è una fonte. Trattalo come una fonte. L'indagine che dipende solo da esso è a un file manomesso dall'essere inutile. Il [parser di questo sito](https://www.evtxparser.com) segnala mismatch di CRC dei chunk e buchi di RecordID nel suo output, che è il controllo di prima passata più economico per sapere se stai guardando un log manomesso prima di averci investito un'ora di lettura.
 

@@ -146,7 +146,7 @@ index=powershell EventCode=4104
 
 4104 loguea el *cuerpo* del script. No loguea ejecución por sentencia, retornos de función o valores de variable. Para eso necesitas 4103 (Module logging) o un EDR real. 4104 te dice qué corrió. El resto te dice qué hizo.
 
-Si 4104 estaba apagado cuando ocurrió el ataque (el caso más común que veo en incidentes en parques desactualizados), el cuerpo del script se fue. La invocación wrapper podría seguir en [4688](/en/blog/event-id-4688-process-creation), el sello binario en [AmCache](https://www.amcacheparser.com) y el directorio de trabajo en [prefetch](https://www.prefetchparser.com), pero el código real está perdido a menos que puedas tallarlo de [pagefile.sys](https://www.pagefilesysparser.com) o un [volcado de RAM](https://www.ramparser.com). Actívalo ahora para que no tengas esa discusión contigo mismo la próxima vez.
+Si 4104 estaba apagado cuando ocurrió el ataque (el caso más común que veo en incidentes en parques desactualizados), el cuerpo del script se fue. La invocación wrapper podría seguir en [4688](/en/blog/event-id-4688-process-creation), el sello binario en AmCache y el directorio de trabajo en [prefetch](https://www.prefetchparser.com/es/blog/prefetch-proof-of-execution), pero el código real está perdido a menos que puedas tallarlo de [pagefile.sys](https://www.pagefilesysparser.com/es/blog/detecting-malware-command-lines-in-pagefile) o un volcado de RAM. Actívalo ahora para que no tengas esa discusión contigo mismo la próxima vez.
 
 ## Lecturas adicionales
 

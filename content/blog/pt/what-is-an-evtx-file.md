@@ -81,7 +81,7 @@ Para um passo-a-passo completo de cada um com os comandos que iria mesmo correr,
 
 ## Quando se encontra `.evtx` no terreno
 
-- **Resposta a incidentes.** Retirado de um host comprometido como parte da triagem. Os canais de interesse dependem da pista: `Security` para logons e abuso de privilégios, `Sysmon` para árvores de processos, `PowerShell` para conteúdo de scriptblock. Combine com [registry](https://www.registryparser.com), [MFT](https://www.mftparser.com), [USN journal](https://www.usnparser.com), [AmCache](https://www.amcacheparser.com) e [prefetch](https://www.prefetchparser.com) para corroborar execução.
+- **Resposta a incidentes.** Retirado de um host comprometido como parte da triagem. Os canais de interesse dependem da pista: `Security` para logons e abuso de privilégios, `Sysmon` para árvores de processos, `PowerShell` para conteúdo de scriptblock. Combine com registry, MFT, [USN journal](https://www.usnparser.com/pt/blog/understanding-ntfs-usn-journal), AmCache e prefetch para corroborar execução.
 - **Auditorias de conformidade.** Os auditores pedem `Security.evtx` sobre uma janela definida para verificar logon e histórico de alterações de política.
 - **Depuração de aplicações.** `Application.evtx` mais canais por fornecedor frequentemente contêm contexto de crash e erro que os logs da própria aplicação não têm.
 - **Threat hunting.** Regras de cauda longa contra `.evtx` arquivados (ou um SIEM que reencaminha o canal ativo) apanham padrões de combustão lenta como RDP fora de horas ou drift de `LogonType` em contas de serviço.

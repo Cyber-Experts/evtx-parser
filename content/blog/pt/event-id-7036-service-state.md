@@ -164,7 +164,7 @@ index=wineventlog SourceName="Service Control Manager" EventCode=7036
 ## O que o 7036 não lhe diz
 
 - Sem `AccountName`. Puxe-o do 7045 correspondente ou da base de dados SCM.
-- Sem PID. Não consegue mapear um 7036 diretamente para um registo [4688](/pt/blog/event-id-4688-process-creation) ou [Sysmon 1](/pt/blog/sysmon-event-id-1-process-create) sem correlacionar por `ImagePath` e timestamp. A cache [prefetch](https://www.prefetchparser.com) é a corroboração secundária quando o 4688 estava off.
+- Sem PID. Não consegue mapear um 7036 diretamente para um registo [4688](/pt/blog/event-id-4688-process-creation) ou [Sysmon 1](/pt/blog/sysmon-event-id-1-process-create) sem correlacionar por `ImagePath` e timestamp. A cache prefetch é a corroboração secundária quando o 4688 estava off.
 - Sem iniciador. Não vê quem chamou Stop-Service. Para isso precisa do 7035 (muitas vezes desativado por defeito), [4688](/pt/blog/event-id-4688-process-creation) para o `net stop` / `sc stop` / `taskkill` chamador, ou [4104](/pt/blog/powershell-4104-scriptblock) para `Stop-Service`.
 - Mapeamento de nome curto do serviço. Display name está em `param1`. Nome curto está no blob binário e tem de ser descodificado. A maioria dos parsers faz isto automaticamente. Se faz query a `EventData` em bruto, tem de lidar com isto.
 

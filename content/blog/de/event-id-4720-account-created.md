@@ -164,7 +164,7 @@ Solide 4720-Detektionen kombinieren immer den Create mit einem Folge-Signal (Gru
 
 Der Datensatz enthält nicht das Passwort des neuen Kontos (Windows loggt das nirgends). Er enthält auch nicht die SID der Ziel-Domäne explizit. Du liest die Domäne aus `TargetDomainName` oder leitest sie aus dem Domänen-Teil von `TargetSid` ab.
 
-Lokal-Konten-Creates auf Member-Workstations sind für den DC unsichtbar. Wenn du Security nicht von Workstations sammelst (die meisten Shops tun das nicht), verfehlst du jedes lokale Backdoor-Konto. Sysmon und ein echtes EDR füllen einen Teil der Lücke (File-Create- und Registry-Change-Muster, wenn das lokale SAM berührt wird), aber 4720-Weiterleitung ist die billigste Kontrolle. Der [Registry](https://www.registryparser.com)-Hive-Snapshot ist die Bestätigung, wenn das Log-Forwarding aus war.
+Lokal-Konten-Creates auf Member-Workstations sind für den DC unsichtbar. Wenn du Security nicht von Workstations sammelst (die meisten Shops tun das nicht), verfehlst du jedes lokale Backdoor-Konto. Sysmon und ein echtes EDR füllen einen Teil der Lücke (File-Create- und Registry-Change-Muster, wenn das lokale SAM berührt wird), aber 4720-Weiterleitung ist die billigste Kontrolle. Der Registry-Hive-Snapshot ist die Bestätigung, wenn das Log-Forwarding aus war.
 
 ## Wo 4720 in eine Timeline passt
 

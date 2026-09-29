@@ -81,7 +81,7 @@ Para un recorrido completo de cada método con los comandos que realmente ejecut
 
 ## Cuándo te encuentras con .evtx en el mundo real
 
-- **Respuesta a incidentes.** Extraídos de un host comprometido como parte del triaje. Los canales de interés dependen de la pista: `Security` para inicios de sesión y abuso de privilegios, `Sysmon` para árboles de procesos, `PowerShell` para el contenido de scriptblock. Combina con parsers de [registro](https://www.registryparser.com), [MFT](https://www.mftparser.com), [diario USN](https://www.usnparser.com), [AmCache](https://www.amcacheparser.com) y [prefetch](https://www.prefetchparser.com) para corroborar la ejecución.
+- **Respuesta a incidentes.** Extraídos de un host comprometido como parte del triaje. Los canales de interés dependen de la pista: `Security` para inicios de sesión y abuso de privilegios, `Sysmon` para árboles de procesos, `PowerShell` para el contenido de scriptblock. Combina con parsers de registro, MFT, [diario USN](https://www.usnparser.com/es/blog/understanding-ntfs-usn-journal), AmCache y prefetch para corroborar la ejecución.
 - **Auditorías de cumplimiento.** Los auditores piden `Security.evtx` sobre una ventana definida para verificar el historial de inicios de sesión y cambios de política.
 - **Depuración de aplicaciones.** `Application.evtx` más los canales por proveedor a menudo guardan contexto de errores y caídas que los propios registros de la aplicación no tienen.
 - **Threat hunting.** Reglas de cola larga contra `.evtx` archivados (o un SIEM reenviando el canal en vivo) detectan patrones de combustión lenta como RDP fuera de horario o deriva del `LogonType` de una cuenta de servicio.

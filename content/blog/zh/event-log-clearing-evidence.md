@@ -81,11 +81,11 @@ Windows Event Collector（WEC）是把事件转发到中心收集器的标准机
 
 当 Security 日志没了或被动过手脚，能存活的产物就是熟悉的那一拨：
 
-- EVTX 文件自身的 [Master File Table](https://www.mftparser.com)。`$STANDARD_INFORMATION` 与 `$FILE_NAME` 时间戳会显示该文件何时因为清除而被改写。
-- 针对 `Security.evtx` 的 [USN journal](https://www.usnparser.com) 中的 `DATA_OVERWRITE` 与 `DATA_TRUNCATION` 事件。这些以日志术语提供高分辨率时间戳来标记清除。
-- [Prefetch](https://www.prefetchparser.com) 里 `wevtutil.exe` 的执行记录，或与可疑清除时间对齐的 `powershell.exe` 运行。
-- 操作者带进来用以清除的工具的 [Shimcache](https://www.shimcacheparser.com) 与 [AmCache](https://www.amcacheparser.com)，尤其当他们用的是非默认二进制时。
-- 如果你抓了 [RAM dump](https://www.ramparser.com)，相关产物。事件日志服务的内存缓存中会有从未被刷到磁盘的记录。
+- EVTX 文件自身的 [Master File Table](https://www.mftparser.com/zh/blog/timestamps)。`$STANDARD_INFORMATION` 与 `$FILE_NAME` 时间戳会显示该文件何时因为清除而被改写。
+- 针对 `Security.evtx` 的 [USN journal](https://www.usnparser.com/zh/blog/usn-reason-codes-forensic-analysis) 中的 `DATA_OVERWRITE` 与 `DATA_TRUNCATION` 事件。这些以日志术语提供高分辨率时间戳来标记清除。
+- Prefetch 里 `wevtutil.exe` 的执行记录，或与可疑清除时间对齐的 `powershell.exe` 运行。
+- 操作者带进来用以清除的工具的 Shimcache 与 AmCache，尤其当他们用的是非默认二进制时。
+- 如果你抓了 RAM dump，相关产物。事件日志服务的内存缓存中会有从未被刷到磁盘的记录。
 
 Security 日志是一个来源。把它当作一个来源来对待。仅靠它的调查，离"一份被篡改的文件"只有一步之遥。[本站的解析器](https://www.evtxparser.com) 会在输出里标记块 CRC 不匹配与 RecordID 缺口，这是在你花一个小时去读它之前判断是否在看一份被篡改日志的廉价首轮检查。
 

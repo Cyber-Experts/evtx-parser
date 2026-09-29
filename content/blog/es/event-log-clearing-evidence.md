@@ -81,11 +81,11 @@ Este canal es pequeño y se lee rápido. Añádelo a tu checklist de triaje por 
 
 Cuando el log de Security se ha ido o ha sido doctored, los artefactos que sobreviven son los sospechosos habituales:
 
-- La [Master File Table](https://www.mftparser.com) del propio archivo EVTX. Los timestamps `$STANDARD_INFORMATION` y `$FILE_NAME` mostrarán cuándo se reescribió el archivo por borrado.
-- El [diario USN](https://www.usnparser.com) para eventos `DATA_OVERWRITE` y `DATA_TRUNCATION` en `Security.evtx`. Estos muestran el borrado en términos de journal con timestamps de alta resolución.
-- [Prefetch](https://www.prefetchparser.com) para ejecución de `wevtutil.exe`, o para ejecuciones de `powershell.exe` que cuadraran con el borrado sospechoso.
-- [Shimcache](https://www.shimcacheparser.com) y [AmCache](https://www.amcacheparser.com) para el tooling que el operador trajo para realizar el borrado, particularmente si usó un binario no por defecto.
-- Artefactos de [volcado RAM](https://www.ramparser.com) si capturaste uno. La caché en memoria del servicio event log tendrá registros que nunca se flushearon al disco.
+- La [Master File Table](https://www.mftparser.com/es/blog/timestamps) del propio archivo EVTX. Los timestamps `$STANDARD_INFORMATION` y `$FILE_NAME` mostrarán cuándo se reescribió el archivo por borrado.
+- El [diario USN](https://www.usnparser.com/es/blog/usn-reason-codes-forensic-analysis) para eventos `DATA_OVERWRITE` y `DATA_TRUNCATION` en `Security.evtx`. Estos muestran el borrado en términos de journal con timestamps de alta resolución.
+- Prefetch para ejecución de `wevtutil.exe`, o para ejecuciones de `powershell.exe` que cuadraran con el borrado sospechoso.
+- Shimcache y AmCache para el tooling que el operador trajo para realizar el borrado, particularmente si usó un binario no por defecto.
+- Artefactos de volcado RAM si capturaste uno. La caché en memoria del servicio event log tendrá registros que nunca se flushearon al disco.
 
 El log de Security es una fuente. Trátalo como una fuente. La investigación que depende solo de él está a un archivo manipulado de ser inútil. El [parser de este sitio](https://www.evtxparser.com) marca mismatches de CRC de chunk y huecos de RecordID en su salida, que es el chequeo barato de primera pasada para saber si miras un log manipulado antes de haber invertido una hora leyéndolo.
 

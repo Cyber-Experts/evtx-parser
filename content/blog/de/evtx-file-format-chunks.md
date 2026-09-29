@@ -52,7 +52,7 @@ EvtxECmd, hayabusa und python-evtx erholen sich alle mit unterschiedlicher Toler
 ## Praktische Implikationen
 
 - Eine abgeschnittene `.evtx`, häufig, wenn du [von einem Live-Host sammelst](/de/blog/collecting-evtx-from-live-system), ist meist größtenteils wiederherstellbar. Jeder vollständige Chunk ist unabhängig.
-- Aus nicht zugewiesenem Speicher gecarvte Chunks können mit einem synthetischen Datei-Header umhüllt und geparst werden. So erholen sich libevtx und python-evtx aus `pagefile.sys` (siehe [Pagefile-Parser](https://www.pagefilesysparser.com)) und [RAM-Dump](https://www.ramparser.com)-Carving-Durchgängen.
+- Aus nicht zugewiesenem Speicher gecarvte Chunks können mit einem synthetischen Datei-Header umhüllt und geparst werden. So erholen sich libevtx und python-evtx aus `pagefile.sys` (siehe [Pagefile-Parser](https://www.pagefilesysparser.com/de)) und RAM-Dump-Carving-Durchgängen.
 - Ein fehlgeschlagener Parse eines Chunks bedeutet kein Versagen der Datei. Robuste Parser gehen zum nächsten Chunk weiter und melden den schlechten separat.
 - Die Chunk-CRC32 ist das, was Manipulation markiert. Ein modifizierter Datensatz, der die CRC nicht neu berechnet, ist erkennbar. Die meisten Angreifer machen sich nicht die Mühe, weil das Leeren des Logs (Feuern von [1102](/de/blog/event-id-1102-cleared-log)) der leichtere Weg ist. Die vorsichtigen nutzen Phant0m, das die Datei ganz in Ruhe lässt.
 

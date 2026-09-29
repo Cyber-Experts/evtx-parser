@@ -11,7 +11,7 @@ tags:
 author: "Florian Amette"
 ---
 
-O log de Security de um controlador de domínio movimentado roda em horas, não em dias. O tamanho de canal predefinido é 20 MB, o que dá uns milhares de registos num host ruidoso. Quando [faz a imagem do disco](https://www.diskimageparser.com) em resposta a um incidente que começou há três semanas, os eventos que realmente queria já saíram do ficheiro ativo e estão em espaço não alocado, no pagefile e possivelmente em hibernação. Recuperá-los por carving é parte rotineira de qualquer investigação assente em EVTX, e a maioria dos defensores salta-o porque trata o ficheiro ativo como fonte da verdade.
+O log de Security de um controlador de domínio movimentado roda em horas, não em dias. O tamanho de canal predefinido é 20 MB, o que dá uns milhares de registos num host ruidoso. Quando faz a imagem do disco em resposta a um incidente que começou há três semanas, os eventos que realmente queria já saíram do ficheiro ativo e estão em espaço não alocado, no pagefile e possivelmente em hibernação. Recuperá-los por carving é parte rotineira de qualquer investigação assente em EVTX, e a maioria dos defensores salta-o porque trata o ficheiro ativo como fonte da verdade.
 
 Não é. O ficheiro ativo são os últimos 20 MB. O disco tem o resto.
 
@@ -47,9 +47,9 @@ Os sítios que vale a pena varrer, por ordem de rendimento:
 
 - **Clusters não alocados no volume que aloja `%SystemRoot%\System32\winevt\Logs\`**. Quando um ficheiro EVTX roda ou é limpo, o conteúdo antigo fica não alocado. O NTFS não zera clusters não alocados, por isso os bytes são recuperáveis até serem reutilizados. Num servidor com pouca rotatividade de escrita, podem ser semanas.
 - **Espaço slack no ficheiro EVTX ativo**. Os ficheiros EVTX são escritos em chunks de 64 KB. O último chunk fica frequentemente preenchido só parcialmente, com a slack a conter a geração anterior de dados escritos nesses bytes antes do chunk atual ter sido reduzido. Vale uma varredura.
-- **[pagefile.sys](https://www.pagefilesysparser.com)**. O serviço de log de eventos faz cache em memória dos registos e templates recentes. As páginas que suportam essas estruturas são paginadas sob pressão de memória. O pagefile é uma mina de ouro para registos que nunca foram escritos para disco porque o host crashou ou foi morto antes que chegassem lá.
+- **pagefile.sys**. O serviço de log de eventos faz cache em memória dos registos e templates recentes. As páginas que suportam essas estruturas são paginadas sob pressão de memória. O pagefile é uma mina de ouro para registos que nunca foram escritos para disco porque o host crashou ou foi morto antes que chegassem lá.
 - **`hiberfil.sys`**. Snapshot comprimido da memória física no momento da hibernação. Descomprima com `Volatility 3` ou Hibr2Bin e procure as assinaturas de registo na memória bruta resultante.
-- **[RAM dump](https://www.ramparser.com)** capturado durante resposta ao vivo. O working set do serviço de log de eventos vai conter registos recentes e os templates necessários para os renderizar.
+- **RAM dump** capturado durante resposta ao vivo. O working set do serviço de log de eventos vai conter registos recentes e os templates necessários para os renderizar.
 - **Shadow copies (VSS)**. Snapshots antigos do volume contêm versões antigas dos ficheiros EVTX ativos. `vshadow` ou `vssadmin list shadows` seguidos de `mklink /d` para montar a shadow dão-lhe uma cópia de geração anterior do ficheiro, com os registos que estavam ativos no momento da shadow.
 
 VSS é a fonte de maior alavancagem em hosts que o têm ativado e que não foram adulterados na camada VSS. Um servidor Windows moderno tem tipicamente 7-30 dias de shadow copies. Se o incidente foi há três semanas, a shadow do momento do incidente pode ter o log ativo tal como existia então, sem adulteração.
@@ -87,11 +87,11 @@ Os registos carved entram na mesma timeline dos registos ativos. O RecordID e o 
 
 Cruzar com:
 
-- As entradas da [Master File Table](https://www.mftparser.com) para `Security.evtx` para ver quando o ficheiro foi reescrito por limpeza ou rotação.
-- O [USN journal](https://www.usnparser.com) para eventos `DATA_OVERWRITE` no ficheiro EVTX, que dá timestamps de alta resolução para cada rotação.
-- [Prefetch](https://www.prefetchparser.com) para os binários que correram durante a lacuna, já que o `Prefetch` é independente de `Security.evtx` e sobrevive à limpeza do log.
-- [AmCache](https://www.amcacheparser.com) e [Shimcache](https://www.shimcacheparser.com) para evidência de primeira execução.
-- As hives do [registry](https://www.registryparser.com) em shadow copies para o estado no momento do incidente.
+- As entradas da Master File Table para `Security.evtx` para ver quando o ficheiro foi reescrito por limpeza ou rotação.
+- O [USN journal](https://www.usnparser.com/pt/blog/usn-reason-codes-forensic-analysis) para eventos `DATA_OVERWRITE` no ficheiro EVTX, que dá timestamps de alta resolução para cada rotação.
+- Prefetch para os binários que correram durante a lacuna, já que o `Prefetch` é independente de `Security.evtx` e sobrevive à limpeza do log.
+- AmCache e Shimcache para evidência de primeira execução.
+- As hives do registry em shadow copies para o estado no momento do incidente.
 
 Um registo carved que alinha com uma entrada de Prefetch e um timestamp MFT num binário suspeito é uma descoberta. Um registo carved isolado é uma pista que vale a pena seguir.
 

@@ -81,11 +81,11 @@ This channel is small and reads fast. Add it to your default triage checklist.
 
 When the Security log is gone or doctored, the artifacts that survive are the usual suspects:
 
-- The [Master File Table](https://www.mftparser.com) for the EVTX file itself. `$STANDARD_INFORMATION` and `$FILE_NAME` timestamps will show when the file was rewritten by clearing.
-- The [USN journal](https://www.usnparser.com) for `DATA_OVERWRITE` and `DATA_TRUNCATION` events on `Security.evtx`. These show the clearing in journal terms with high-resolution timestamps.
-- [Prefetch](https://www.prefetchparser.com) for `wevtutil.exe` execution, or for `powershell.exe` runs that lined up with the suspected clearing.
-- [Shimcache](https://www.shimcacheparser.com) and [AmCache](https://www.amcacheparser.com) for tooling that the operator brought in to perform the clearing, particularly if they used a non-default binary.
-- [RAM dump](https://www.ramparser.com) artifacts if you captured one. The event log service's in-memory cache will have records that were never flushed to disk.
+- The Master File Table for the EVTX file itself. [`$STANDARD_INFORMATION` and `$FILE_NAME` timestamps](https://www.mftparser.com/en/blog/timestamps) will show when the file was rewritten by clearing.
+- The [USN journal's `DATA_OVERWRITE` and `DATA_TRUNCATION` records](https://www.usnparser.com/en/blog/usn-reason-codes-forensic-analysis) on `Security.evtx`. These show the clearing in journal terms with high-resolution timestamps.
+- Prefetch for `wevtutil.exe` execution, or for `powershell.exe` runs that lined up with the suspected clearing.
+- Shimcache and AmCache for tooling that the operator brought in to perform the clearing, particularly if they used a non-default binary.
+- RAM dump artifacts if you captured one. The event log service's in-memory cache will have records that were never flushed to disk.
 
 The Security log is one source. Treat it as one source. The investigation that depends on it alone is one tampered file away from useless. The [parser on this site](https://www.evtxparser.com) flags chunk CRC mismatches and RecordID gaps in its output, which is the cheap first-pass check for whether you are looking at a tampered log before you have invested an hour reading it.
 

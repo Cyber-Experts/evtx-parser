@@ -239,6 +239,7 @@ export default async function Home({ params }: { params: Promise<Params> }) {
 
         <HomeSeo locale={locale} />
 
+
         <Faq dict={dict} />
 
         <CtaBand dict={dict} />

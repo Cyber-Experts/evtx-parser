@@ -93,7 +93,7 @@ Records run back-to-back from offset 512 until the free-space offset.
 | 24 | … | BinXML | the event payload |
 | end | 4 | Size (copy) | repeat of the size field, so readers can walk backwards |
 
-That `2A 2A 00 00` signature is what makes record-level carving feasible. The `FILETIME` here is the same encoding you'll meet in the [registry](https://www.registryparser.com), [$MFT](https://www.mftparser.com), and [Prefetch](https://www.prefetchparser.com) — worth learning to read in your head.
+That `2A 2A 00 00` signature is what makes record-level carving feasible. The `FILETIME` here is the same encoding you'll meet in the [registry hive format](https://www.registryparser.com/en/blog/regf-hive-format), [$MFT records](https://www.mftparser.com/en/blog/inside-an-mft-record), and [Prefetch file format](https://www.prefetchparser.com/en/blog/prefetch-file-format) — worth learning to read in your head.
 
 ## BinXML token table
 

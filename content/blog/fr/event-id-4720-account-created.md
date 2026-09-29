@@ -164,7 +164,7 @@ Les détections solides de 4720 combinent toujours la création avec un signal d
 
 L'enregistrement n'inclut pas le mot de passe du nouveau compte (Windows ne le journalise jamais, nulle part). Il n'inclut pas non plus le SID du domaine cible explicitement. Vous lisez le domaine depuis `TargetDomainName` ou le déduisez de la portion domaine de `TargetSid`.
 
-Les créations de comptes locaux sur les postes membres sont invisibles pour le DC. Si vous ne collectez pas Security depuis les postes (la plupart des boutiques ne le font pas), vous ratez chaque compte backdoor local. Sysmon et un vrai EDR comblent une partie du manque (motifs de création de fichier et de modification de registre quand le SAM local est touché), mais le transfert de 4720 est le contrôle le moins cher. Le snapshot de la ruche du [registre](https://www.registryparser.com) est la corroboration quand le log forwarding était éteint.
+Les créations de comptes locaux sur les postes membres sont invisibles pour le DC. Si vous ne collectez pas Security depuis les postes (la plupart des boutiques ne le font pas), vous ratez chaque compte backdoor local. Sysmon et un vrai EDR comblent une partie du manque (motifs de création de fichier et de modification de registre quand le SAM local est touché), mais le transfert de 4720 est le contrôle le moins cher. Le snapshot de la ruche du [registre](https://www.registryparser.com/fr) est la corroboration quand le log forwarding était éteint.
 
 ## Où 4720 s'insère dans une timeline
 

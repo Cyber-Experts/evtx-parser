@@ -91,7 +91,7 @@ EID 4、5、6 (Sysmon状態イベント) は運用的で検出ではありませ
 - `%TEMP%` と `%APPDATA%` 内のすべてのファイル作成。
 - 要求プロセスを持つすべてのDNSクエリ。
 
-侵入ストーリーはこのデータから自然に読み取れます。推測する必要はありません。彫り出す必要はありません。上から下まで読み、ストーリーのギャップが追跡する質問です。バイナリ実行証拠のための[AmCache](https://www.amcacheparser.com)と[Prefetch](https://www.prefetchparser.com)、永続性のための[レジストリ](https://www.registryparser.com)、フィルターがオフだった場合にSysmonのEID 11が見逃した可能性のあるファイルシステム変更のための[USN journal](https://www.usnparser.com)と相互参照します。
+侵入ストーリーはこのデータから自然に読み取れます。推測する必要はありません。彫り出す必要はありません。上から下まで読み、ストーリーのギャップが追跡する質問です。バイナリ実行証拠のためのAmCacheとPrefetch、永続性のためのレジストリ、フィルターがオフだった場合にSysmonのEID 11が見逃した可能性のあるファイルシステム変更のための[USN journal](https://www.usnparser.com/ja/blog/usn-reason-codes-forensic-analysis)と相互参照します。
 
 Sysmonなしでは、`Security.evtx` と希望リストがあります。
 

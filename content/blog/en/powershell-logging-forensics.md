@@ -103,7 +103,7 @@ A compromise where script block logging was on tells you, in order:
 3. The C2 framework's runtime cmdlets (Invoke-Beacon, Invoke-Mimi, `Invoke-Kerberoast`, every common offensive cmdlet name and its renamed variants).
 4. The interactive operator's hands-on-keyboard commands. These read like a recorded shell session, because that is what they are.
 
-Cross-reference against [Prefetch](https://www.prefetchparser.com) to find when `powershell.exe` ran, [LNK files](https://www.lnkparser.com) for files the operator opened, [AmCache](https://www.amcacheparser.com) for the hash of the PowerShell binary itself (it gets renamed sometimes), and the [registry](https://www.registryparser.com) for the GPO state to confirm logging really was on at the time of the events you are reading.
+Cross-reference against [Prefetch to find when `powershell.exe` ran](https://www.prefetchparser.com/en/blog/prefetch-proof-of-execution), LNK files for files the operator opened, AmCache for the hash of the PowerShell binary itself (it gets renamed sometimes), and the [PowerShell registry keys](https://www.registryparser.com/en/blog/powershell-registry-forensics) for the GPO state to confirm logging really was on at the time of the events you are reading.
 
 A compromise where script block logging was off tells you almost nothing about PowerShell, and a lot about your detection posture. Fix that first.
 

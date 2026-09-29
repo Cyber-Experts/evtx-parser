@@ -141,7 +141,7 @@ Il segnale è ricorrenza *inattesa* o combinazioni *nuove*, non volume grezzo.
 
 ## Leggere su scala
 
-Il [parser browser su questo sito](/en/blog/how-to-open-an-evtx-file) estrae questi campi direttamente dall'XML del record e li espone nella tabella. Filtrate per `LogonType` tramite i bucket di timeline e il filtro testo, tirate il set filtrato come CSV, poi pivotate su `SubjectUserSid` e `IpAddress` nel vostro tool di scelta. L'XML completo di ogni record è a un click di distanza. Abbinatelo agli [artefatti cache RDP](https://www.jumplistparser.com), al tracking [recent file](https://www.recentfilecacheparser.com), e all'[history del browser](https://www.browserforensics.app) quando l'account utente in questione è un utente reale, non un servizio.
+Il [parser browser su questo sito](/en/blog/how-to-open-an-evtx-file) estrae questi campi direttamente dall'XML del record e li espone nella tabella. Filtrate per `LogonType` tramite i bucket di timeline e il filtro testo, tirate il set filtrato come CSV, poi pivotate su `SubjectUserSid` e `IpAddress` nel vostro tool di scelta. L'XML completo di ogni record è a un click di distanza. Abbinatelo agli artefatti cache RDP, al tracking recent file, e all'history del browser quando l'account utente in questione è un utente reale, non un servizio.
 
 ## Per approfondire
 

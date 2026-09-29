@@ -74,7 +74,7 @@ O `5140` regista que uma share foi acedida; o `5145` regista o nome do ficheiro 
 
 Para movimento lateral, os eventos `5145` que importam são acessos a `ADMIN$`, `C$`, `IPC$` e quaisquer caminhos `SYSVOL`/`NETLOGON` a partir de origens invulgares. O `psexec.py` escreve o seu binário de serviço escrevendo para `\\target\ADMIN$\<random>.exe`. O `secretsdump.py` lê `\\target\C$\Windows\System32\config\SAM` (e SYSTEM, e SECURITY). Cada um deles é um `5145` com um `RelativeTargetName` que deve saltar à vista.
 
-Combine `5145` com o [USN journal](https://www.usnparser.com) no alvo. O journal terá um `FILE_CREATE` para o mesmo ficheiro com o mesmo timestamp, o que dá uma confirmação de segunda fonte de que o ficheiro realmente aterrou, e uma referência de registo [MFT](https://www.mftparser.com) para perseguir.
+Combine `5145` com o [USN journal](https://www.usnparser.com/pt/blog/usn-reason-codes-forensic-analysis) no alvo. O journal terá um `FILE_CREATE` para o mesmo ficheiro com o mesmo timestamp, o que dá uma confirmação de segunda fonte de que o ficheiro realmente aterrou, e uma referência de registo MFT para perseguir.
 
 ## WMI como vetor de movimento lateral
 
@@ -99,7 +99,7 @@ Na prática quer tudo:
 
 Ligue-os por `LogonId` dentro de um host e por timestamp + conta + IP entre hosts. O paper clássico do JPCERT/CC apresenta isto em detalhe e é o melhor documento gratuito sobre o tópico.
 
-Para os artefactos do lado do host que sobrevivem à limpeza do log, apoie-se em [Prefetch](https://www.prefetchparser.com) para evidência de execução de ferramentas do atacante, na chave `Services` do [registry](https://www.registryparser.com) para o rasto de um binário de serviço instalado-e-removido, e em [LNK files](https://www.lnkparser.com) e [jump lists](https://www.jumplistparser.com) para evidência de ficheiros que um operador abriu durante uma sessão hands-on.
+Para os artefactos do lado do host que sobrevivem à limpeza do log, apoie-se em Prefetch para evidência de execução de ferramentas do atacante, na chave `Services` do registry para o rasto de um binário de serviço instalado-e-removido, e em LNK files e jump lists para evidência de ficheiros que um operador abriu durante uma sessão hands-on.
 
 ## Leitura adicional
 

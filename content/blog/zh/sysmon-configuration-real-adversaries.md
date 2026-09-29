@@ -91,7 +91,7 @@ EID 4、5、6（Sysmon 状态事件）是运行的，不是检测。记录它们
 - 在 `%TEMP%` 和 `%APPDATA%` 中的每个文件创建。
 - 每个带请求进程的 DNS 查询。
 
-入侵故事从这些数据中自然读出。你不需要猜测。你不需要 carve。你从上到下读它，故事中的空白就是要追的问题。与 [AmCache](https://www.amcacheparser.com) 和 [Prefetch](https://www.prefetchparser.com) 交叉引用以获取二进制执行证据，与[注册表](https://www.registryparser.com)获取持久化，与 [USN journal](https://www.usnparser.com) 获取 Sysmon 的 EID 11 如果其过滤器关闭可能遗漏的文件系统变更。本站点上的 parser 以与 Security.evtx 相同的保真度读取 Sysmon 通道。
+入侵故事从这些数据中自然读出。你不需要猜测。你不需要 carve。你从上到下读它，故事中的空白就是要追的问题。与 AmCache 和 Prefetch 交叉引用以获取二进制执行证据，与注册表获取持久化，与 [USN journal](https://www.usnparser.com/zh/blog/usn-reason-codes-forensic-analysis) 获取 Sysmon 的 EID 11 如果其过滤器关闭可能遗漏的文件系统变更。本站点上的 parser 以与 Security.evtx 相同的保真度读取 Sysmon 通道。
 
 没有 Sysmon，你有 `Security.evtx` 和一个愿望清单。
 

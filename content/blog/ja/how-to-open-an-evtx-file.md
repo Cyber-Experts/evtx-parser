@@ -98,7 +98,7 @@ with Evtx("Security.evtx") as log:
         ...
 ```
 
-Rust クレートより遅い (バイナリ チャンクに対する解釈 Python) が、すでに Python ツール チェーン内にいるときの正解: Jupyter フォレンジック ノートブック、脅威ハンティング ジョブ、カスタム エンリッチメント、同じケースからの EVTX データを [registry](https://www.registryparser.com)、[MFT](https://www.mftparser.com)、[USN](https://www.usnparser.com)、または [prefetch](https://www.prefetchparser.com) アーティファクトに結合。
+Rust クレートより遅い (バイナリ チャンクに対する解釈 Python) が、すでに Python ツール チェーン内にいるときの正解: Jupyter フォレンジック ノートブック、脅威ハンティング ジョブ、カスタム エンリッチメント、同じケースからの EVTX データを registry、[MFT](https://www.mftparser.com/ja/blog/parse-mft-python)、[USN](https://www.usnparser.com/ja/blog/parsing-usn-in-the-browser)、または prefetch アーティファクトに結合。
 
 ## どの方法をいつ使うか
 

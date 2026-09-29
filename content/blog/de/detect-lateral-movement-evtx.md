@@ -74,7 +74,7 @@ Dienstnamen, auf die man in `7045` achten sollte: zufällige 8-Zeichen-Kleinbuch
 
 Für Lateral Movement sind die `5145`-Ereignisse, die zählen, Zugriffe auf `ADMIN$`, `C$`, `IPC$` und alle `SYSVOL`/`NETLOGON`-Pfade von ungewöhnlichen Quellen. `psexec.py` schreibt seine Dienst-Binary, indem es nach `\\target\ADMIN$\<random>.exe` schreibt. `secretsdump.py` liest `\\target\C$\Windows\System32\config\SAM` (und SYSTEM und SECURITY). Jeder davon ist ein `5145` mit einem `RelativeTargetName`, das auffallen sollte.
 
-Paare `5145` mit dem [USN-Journal](https://www.usnparser.com) auf dem Ziel. Das Journal hat ein `FILE_CREATE` für dieselbe Datei mit demselben Zeitstempel, was dir eine Zweitquellen-Bestätigung gibt, dass die Datei tatsächlich gelandet ist, und einen [MFT](https://www.mftparser.com)-Datensatzverweis zum Verfolgen.
+Paare `5145` mit dem [USN-Journal](https://www.usnparser.com/de/blog/usn-reason-codes-forensic-analysis) auf dem Ziel. Das Journal hat ein `FILE_CREATE` für dieselbe Datei mit demselben Zeitstempel, was dir eine Zweitquellen-Bestätigung gibt, dass die Datei tatsächlich gelandet ist, und einen MFT-Datensatzverweis zum Verfolgen.
 
 ## WMI als Lateral-Movement-Vektor
 
@@ -99,7 +99,7 @@ In der Praxis willst du alles von:
 
 Verknüpfe sie per `LogonId` innerhalb eines Hosts und per Zeitstempel + Konto + IP über Hosts hinweg. Das klassische JPCERT/CC-Paper legt das im Detail dar und ist das einzige beste kostenlose Dokument zu dem Thema.
 
-Für die hostseitigen Artefakte, die das Log-Löschen überleben, stütze dich auf [Prefetch](https://www.prefetchparser.com) für den Nachweis der Ausführung von Angreifer-Tooling, den `Services`-Schlüssel der [Registry](https://www.registryparser.com) für die Spur einer installierten und entfernten Dienst-Binary und [LNK-Dateien](https://www.lnkparser.com) sowie [Jump Lists](https://www.jumplistparser.com) für den Nachweis von Dateien, die ein Operator in einer Hands-on-Sitzung geöffnet hat.
+Für die hostseitigen Artefakte, die das Log-Löschen überleben, stütze dich auf [Prefetch](https://www.prefetchparser.com/de/blog/prefetch-proof-of-execution) für den Nachweis der Ausführung von Angreifer-Tooling, den `Services`-Schlüssel der Registry für die Spur einer installierten und entfernten Dienst-Binary und LNK-Dateien sowie Jump Lists für den Nachweis von Dateien, die ein Operator in einer Hands-on-Sitzung geöffnet hat.
 
 ## Weiterführende Lektüre
 

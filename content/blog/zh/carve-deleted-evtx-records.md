@@ -11,7 +11,7 @@ tags:
 author: "Florian Amette"
 ---
 
-一台繁忙的域控上的 Security 日志，是以小时而不是天为单位轮转的。默认通道大小是 20 MB，在嘈杂的主机上也就几千条记录。当你为响应三周前开始的事件而[对磁盘做镜像](https://www.diskimageparser.com)时，你真正想看的事件早就从实时文件里滚出去，躺在未分配空间、pagefile，乃至休眠文件里。把它们雕刻回来，是任何 EVTX 主导调查的常规步骤，而大多数防御方跳过这一步，因为他们把实时文件当成事实的唯一来源。
+一台繁忙的域控上的 Security 日志，是以小时而不是天为单位轮转的。默认通道大小是 20 MB，在嘈杂的主机上也就几千条记录。当你为响应三周前开始的事件而对磁盘做镜像时，你真正想看的事件早就从实时文件里滚出去，躺在未分配空间、pagefile，乃至休眠文件里。把它们雕刻回来，是任何 EVTX 主导调查的常规步骤，而大多数防御方跳过这一步，因为他们把实时文件当成事实的唯一来源。
 
 它不是。实时文件只是最近的 20 MB。其余都在磁盘里。
 
@@ -47,9 +47,9 @@ EVTX 记录会引用每个块中只存一次的模板和字符串。被孤立雕
 
 - **承载 `%SystemRoot%\System32\winevt\Logs\` 的卷上的未分配簇**。当 EVTX 文件轮转或被清除时，旧内容会被释放为未分配。NTFS 不会清零未分配簇，因此在被复用之前，这些字节仍可恢复。在写入扰动较小的服务器上，这能持续数周。
 - **实时 EVTX 文件中的 slack 空间**。EVTX 文件以 64 KB 块为单位写入。文件中的最后一个块往往只填了一部分，slack 中保留着此前写到这些字节、又被当前块缩小覆盖之前的数据。值得一扫。
-- **[pagefile.sys](https://www.pagefilesysparser.com)**。事件日志服务在内存中缓存最近的记录和模板。承载这些结构的页面在内存压力下会被换出。pagefile 是那些从未被刷入磁盘的记录的金矿，因为主机崩溃或被杀掉，记录还没来得及落盘。
+- **pagefile.sys**。事件日志服务在内存中缓存最近的记录和模板。承载这些结构的页面在内存压力下会被换出。pagefile 是那些从未被刷入磁盘的记录的金矿，因为主机崩溃或被杀掉，记录还没来得及落盘。
 - **`hiberfil.sys`**。休眠时物理内存的压缩快照。用 `Volatility 3` 或 Hibr2Bin 解压，再在得到的原始内存里搜索记录签名。
-- **实况响应中采集的 [RAM dump](https://www.ramparser.com)**。事件日志服务的工作集会包含最近的记录及渲染所需的模板。
+- **实况响应中采集的 RAM dump**。事件日志服务的工作集会包含最近的记录及渲染所需的模板。
 - **卷影副本（VSS）**。卷的旧快照中包含实时 EVTX 文件的旧版本。`vshadow` 或 `vssadmin list shadows` 之后 `mklink /d` 挂载卷影，你就能得到一份上一代的文件副本，里面保留了卷影时刻处于实时状态的记录。
 
 在启用且未在 VSS 层被篡改的主机上，VSS 是杠杆最高的来源。现代 Windows 服务器通常保留 7-30 天的卷影副本。如果事件发生在三周前，事件时刻的卷影可能保留着当时未被篡改的实时日志。
@@ -87,11 +87,11 @@ EVTX 记录会引用每个块中只存一次的模板和字符串。被孤立雕
 
 交叉参考：
 
-- `Security.evtx` 的 [Master File Table](https://www.mftparser.com) 项，看文件何时因为清除或轮转被改写。
-- EVTX 文件上的 [USN journal](https://www.usnparser.com) `DATA_OVERWRITE` 事件，给出每次轮转的高分辨率时间戳。
-- 缺口期间运行过的二进制的 [Prefetch](https://www.prefetchparser.com)，因为 `Prefetch` 独立于 `Security.evtx`，能在日志清除中存活。
-- [AmCache](https://www.amcacheparser.com) 与 [Shimcache](https://www.shimcacheparser.com)，作为首次执行的证据。
-- 卷影副本中的 [registry](https://www.registryparser.com) 蜂巢，反映事件发生时的状态。
+- `Security.evtx` 的 Master File Table 项，看文件何时因为清除或轮转被改写。
+- EVTX 文件上的 [USN journal](https://www.usnparser.com/zh/blog/usn-reason-codes-forensic-analysis) `DATA_OVERWRITE` 事件，给出每次轮转的高分辨率时间戳。
+- 缺口期间运行过的二进制的 Prefetch，因为 `Prefetch` 独立于 `Security.evtx`，能在日志清除中存活。
+- AmCache 与 Shimcache，作为首次执行的证据。
+- 卷影副本中的 registry 蜂巢，反映事件发生时的状态。
 
 雕刻出的记录如果能与一条 Prefetch 项以及一个可疑二进制的 MFT 时间戳对齐，那就是一项发现。孤立的雕刻记录则是值得追下去的线索。
 

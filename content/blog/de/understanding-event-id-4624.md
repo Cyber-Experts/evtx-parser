@@ -141,7 +141,7 @@ Das Signal ist *unerwartete* Wiederholung oder *neue* Kombinationen, nicht rohes
 
 ## Im Maßstab lesen
 
-Der Browser-Parser auf dieser Seite extrahiert diese Felder direkt aus dem XML des Records und exponiert sie in der Tabelle. Filtern Sie nach `LogonType` über die Timeline-Buckets und den Text-Filter, ziehen Sie das gefilterte Set als CSV, dann pivotieren Sie auf `SubjectUserSid` und `IpAddress` in Ihrem Tool der Wahl. Das volle XML für jeden Record ist einen Klick entfernt. Paaren Sie es mit [RDP-Cache-Artefakten](https://www.jumplistparser.com), [Recent-File](https://www.recentfilecacheparser.com)-Tracking und [Browser-History](https://www.browserforensics.app), wenn das fragliche Benutzerkonto ein echter Benutzer ist, kein Service.
+Der Browser-Parser auf dieser Seite extrahiert diese Felder direkt aus dem XML des Records und exponiert sie in der Tabelle. Filtern Sie nach `LogonType` über die Timeline-Buckets und den Text-Filter, ziehen Sie das gefilterte Set als CSV, dann pivotieren Sie auf `SubjectUserSid` und `IpAddress` in Ihrem Tool der Wahl. Das volle XML für jeden Record ist einen Klick entfernt. Paaren Sie es mit RDP-Cache-Artefakten, [Recent-File](https://www.recentfilecacheparser.com/de)-Tracking und [Browser-History](https://www.browserforensics.app/de), wenn das fragliche Benutzerkonto ein echter Benutzer ist, kein Service.
 
 ## Weiterführende Literatur
 

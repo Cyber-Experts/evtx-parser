@@ -66,7 +66,7 @@ The SACLs that earn their keep on every server:
 
 ### SAM or SYSTEM hive read
 
-Any 4663 with `ObjectName` ending in `\config\SAM`, `\config\SECURITY`, or `\config\SYSTEM`, where `ProcessName` is not `services.exe`, `lsass.exe`, or `wininit.exe`, and `SubjectUserSid` is not `S-1-5-18`. This is `reg save HKLM\SAM`, `esentutl /y` against a shadow copy, or any credential-dumping tool with file-level hive access. Cross-check the [registry](https://www.registryparser.com) for any backup hive files left behind.
+Any 4663 with `ObjectName` ending in `\config\SAM`, `\config\SECURITY`, or `\config\SYSTEM`, where `ProcessName` is not `services.exe`, `lsass.exe`, or `wininit.exe`, and `SubjectUserSid` is not `S-1-5-18`. This is `reg save HKLM\SAM`, `esentutl /y` against a shadow copy, or any credential-dumping tool with file-level hive access. Cross-check the [registry hives](https://www.registryparser.com/en) for any backup hive files left behind.
 
 ### LSASS minidump written
 
@@ -183,6 +183,7 @@ A well-tuned SACL on five high-value objects produces 50 to 200 records a day pe
 - Closed handles. 4663 fires on handle *open*. Close events are 4658, rarely useful for attack detection.
 - Network paths transparently. SMB access to a share fires 4663 on the *server*. The client sees nothing. You need server-side collection.
 - Failed access by default. Many shops only audit Success. Configure Failure only if you genuinely care about thwarted attempts.
+- Anything outside a SACL. A delete on a file nobody configured auditing for leaves no 4663 at all, but [the USN journal still records the delete when object auditing was off](https://www.usnparser.com/en/blog/recover-deleted-files-usn-journal), with the filename and timestamp.
 
 ## Where 4663 fits in a timeline
 

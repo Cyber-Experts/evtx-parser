@@ -81,11 +81,11 @@ Dieser Kanal ist klein und liest schnell. Füge ihn deiner Standard-Triage-Check
 
 Wenn das Security-Log weg oder manipuliert ist, sind die überlebenden Artefakte die üblichen Verdächtigen:
 
-- Die [Master File Table](https://www.mftparser.com) für die EVTX-Datei selbst. `$STANDARD_INFORMATION`- und `$FILE_NAME`-Zeitstempel zeigen, wann die Datei durch Löschen neu geschrieben wurde.
-- Das [USN-Journal](https://www.usnparser.com) für `DATA_OVERWRITE`- und `DATA_TRUNCATION`-Ereignisse auf `Security.evtx`. Diese zeigen das Löschen in Journal-Begriffen mit hochauflösenden Zeitstempeln.
-- [Prefetch](https://www.prefetchparser.com) für `wevtutil.exe`-Ausführung oder für `powershell.exe`-Läufe, die mit dem vermuteten Löschen übereinstimmen.
-- [Shimcache](https://www.shimcacheparser.com) und [AmCache](https://www.amcacheparser.com) für Tooling, das der Operator mitgebracht hat, um das Löschen durchzuführen, besonders wenn sie ein Nicht-Standard-Binary benutzt haben.
-- [RAM-Dump](https://www.ramparser.com)-Artefakte, wenn du einen erfasst hast. Der In-Memory-Cache des Event-Log-Dienstes wird Datensätze haben, die nie auf die Festplatte geflusht wurden.
+- Die [Master File Table](https://www.mftparser.com/de/blog/timestamps) für die EVTX-Datei selbst. `$STANDARD_INFORMATION`- und `$FILE_NAME`-Zeitstempel zeigen, wann die Datei durch Löschen neu geschrieben wurde.
+- Das [USN-Journal](https://www.usnparser.com/de/blog/usn-reason-codes-forensic-analysis) für `DATA_OVERWRITE`- und `DATA_TRUNCATION`-Ereignisse auf `Security.evtx`. Diese zeigen das Löschen in Journal-Begriffen mit hochauflösenden Zeitstempeln.
+- Prefetch für `wevtutil.exe`-Ausführung oder für `powershell.exe`-Läufe, die mit dem vermuteten Löschen übereinstimmen.
+- Shimcache und AmCache für Tooling, das der Operator mitgebracht hat, um das Löschen durchzuführen, besonders wenn sie ein Nicht-Standard-Binary benutzt haben.
+- RAM-Dump-Artefakte, wenn du einen erfasst hast. Der In-Memory-Cache des Event-Log-Dienstes wird Datensätze haben, die nie auf die Festplatte geflusht wurden.
 
 Das Security-Log ist eine Quelle. Behandle es als eine Quelle. Die Untersuchung, die allein darauf angewiesen ist, ist eine manipulierte Datei davon entfernt, nutzlos zu sein. Der [Parser auf dieser Seite](https://www.evtxparser.com) markiert Chunk-CRC-Mismatches und RecordID-Lücken in seiner Ausgabe, was die billige Erst-Prüfung dafür ist, ob du ein manipuliertes Log anschaust, bevor du eine Stunde investiert hast, es zu lesen.
 

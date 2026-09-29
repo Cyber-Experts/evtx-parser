@@ -164,7 +164,7 @@ Las detecciones sólidas de 4720 siempre combinan la creación con una señal de
 
 El registro no incluye la contraseña de la nueva cuenta (Windows nunca logea eso, en ningún lado). Tampoco incluye el SID del dominio destino explícitamente. Lees el dominio de `TargetDomainName` o lo derivas de la porción de dominio de `TargetSid`.
 
-Las creaciones de cuentas locales en estaciones miembro son invisibles para el DC. Si no estás recolectando Security de estaciones de trabajo (la mayoría de shops no lo hacen), pierdes toda cuenta backdoor local. Sysmon y un EDR real llenan parte del hueco (patrones de creación de archivo y cambio de registro cuando se toca el SAM local), pero el reenvío de 4720 es el control más barato. El snapshot de hive del [registro](https://www.registryparser.com) es la corroboración cuando el reenvío de log estaba apagado.
+Las creaciones de cuentas locales en estaciones miembro son invisibles para el DC. Si no estás recolectando Security de estaciones de trabajo (la mayoría de shops no lo hacen), pierdes toda cuenta backdoor local. Sysmon y un EDR real llenan parte del hueco (patrones de creación de archivo y cambio de registro cuando se toca el SAM local), pero el reenvío de 4720 es el control más barato. El snapshot de hive del registro es la corroboración cuando el reenvío de log estaba apagado.
 
 ## Dónde encaja 4720 en una timeline
 

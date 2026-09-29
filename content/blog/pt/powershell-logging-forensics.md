@@ -103,7 +103,7 @@ Um comprometimento onde script block logging estava ligado diz-vos, por ordem:
 3. Os cmdlets de runtime do framework C2 (Invoke-Beacon, Invoke-Mimi, `Invoke-Kerberoast`, todos os nomes de cmdlets ofensivos comuns e as suas variantes renomeadas).
 4. Os comandos hands-on-keyboard do operador interactivo. Lêem-se como uma sessão de shell gravada, porque é o que são.
 
-Cruzem com [Prefetch](https://www.prefetchparser.com) para encontrar quando `powershell.exe` correu, [ficheiros LNK](https://www.lnkparser.com) para ficheiros que o operador abriu, [AmCache](https://www.amcacheparser.com) para o hash do próprio binário PowerShell (às vezes é renomeado), e o [registo](https://www.registryparser.com) para o estado da GPO para confirmar que o logging estava de facto ligado na altura dos eventos que estão a ler.
+Cruzem com Prefetch para encontrar quando `powershell.exe` correu, ficheiros LNK para ficheiros que o operador abriu, AmCache para o hash do próprio binário PowerShell (às vezes é renomeado), e o registo para o estado da GPO para confirmar que o logging estava de facto ligado na altura dos eventos que estão a ler.
 
 Um comprometimento onde script block logging estava desligado diz-vos quase nada sobre PowerShell, e muito sobre a vossa postura de detecção. Corrijam isso primeiro.
 

@@ -164,7 +164,7 @@ Solid 4720 detections always combine the create with a follow-up signal (group a
 
 The record does not include the password of the new account (Windows never logs that, anywhere). It also does not include the SID of the target domain explicitly. You read the domain from `TargetDomainName` or derive it from `TargetSid`'s domain portion.
 
-Local-account creates on member workstations are invisible to the DC. If you are not collecting Security from workstations (most shops are not), you miss every local backdoor account. Sysmon and a real EDR fill some of the gap (file create and registry-change patterns when local SAM is touched), but 4720 forwarding is the cheapest control. The [registry](https://www.registryparser.com) hive snapshot is the corroboration when log forwarding was off.
+Local-account creates on member workstations are invisible to the DC. If you are not collecting Security from workstations (most shops are not), you miss every local backdoor account. Sysmon and a real EDR fill some of the gap (file create and registry-change patterns when local SAM is touched), but 4720 forwarding is the cheapest control. The [SAM registry hive snapshot](https://www.registryparser.com/en) is the corroboration when log forwarding was off.
 
 ## Where 4720 fits in a timeline
 

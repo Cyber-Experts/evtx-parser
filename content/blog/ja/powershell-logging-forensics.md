@@ -103,7 +103,7 @@ HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription
 3. C2フレームワークのランタイムcmdlet (Invoke-Beacon、Invoke-Mimi、`Invoke-Kerberoast`、すべての一般的な攻撃用cmdlet名とその改名バリアント)。
 4. 対話的オペレーターのキーボード操作コマンド。これらは記録されたシェルセッションのように読めます。それがまさに彼らです。
 
-[Prefetch](https://www.prefetchparser.com) と相互参照して `powershell.exe` がいつ実行されたかを見つけ、オペレーターが開いたファイルの[LNKファイル](https://www.lnkparser.com)、PowerShellバイナリ自体のハッシュ ([AmCache](https://www.amcacheparser.com) を見る、時々名前が変更されます)、そして読んでいるイベントの時刻にロギングが本当にオンだったことを確認するためのGPO状態の[レジストリ](https://www.registryparser.com)を確認します。
+Prefetch と相互参照して `powershell.exe` がいつ実行されたかを見つけ、オペレーターが開いたファイルのLNKファイル、PowerShellバイナリ自体のハッシュ (AmCache を見る、時々名前が変更されます)、そして読んでいるイベントの時刻にロギングが本当にオンだったことを確認するためのGPO状態のレジストリを確認します。
 
 スクリプトブロックロギングがオフだった侵害は、PowerShellについてはほとんど何も教えてくれず、検出体制について多くのことを教えてくれます。まずそれを修正してください。
 

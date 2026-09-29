@@ -74,7 +74,7 @@ PsExec、Impacket の `psexec.py`、`smbexec.py` は、ターゲットの `ADMIN
 
 ラテラル ムーブメントでは、重要な `5145` イベントは異常なソースからの `ADMIN$`、`C$`、`IPC$`、そしてあらゆる `SYSVOL`/`NETLOGON` パスへのアクセスです。`psexec.py` は `\\target\ADMIN$\<random>.exe` に書き込むことでサービス バイナリを置きます。`secretsdump.py` は `\\target\C$\Windows\System32\config\SAM` (そして SYSTEM、SECURITY) を読みます。それぞれが目立つはずの `RelativeTargetName` を持つ `5145` です。
 
-`5145` をターゲット上の [USN journal](https://www.usnparser.com) とペアにしてください。ジャーナルには同じタイムスタンプで同じファイルの `FILE_CREATE` があり、ファイルが実際に到着したことのセカンド ソース確認と、追跡できる [MFT](https://www.mftparser.com) レコード参照が得られます。
+`5145` をターゲット上の [USN journal](https://www.usnparser.com/ja/blog/usn-reason-codes-forensic-analysis) とペアにしてください。ジャーナルには同じタイムスタンプで同じファイルの `FILE_CREATE` があり、ファイルが実際に到着したことのセカンド ソース確認と、追跡できる MFT レコード参照が得られます。
 
 ## ラテラル ムーブメント ベクトルとしての WMI
 
@@ -99,7 +99,7 @@ Sysmon がない場合、WMI ベースのラテラル ムーブメントはデ�
 
 ホスト内では `LogonId` で、ホスト間では時刻 + アカウント + IP でつなげます。古典的な JPCERT/CC の論文がこれを詳細に示しており、このトピックに関する最良の無料文書です。
 
-ログ クリアを生き残るホスト側アーティファクトについては、攻撃者ツール実行の証拠としての [Prefetch](https://www.prefetchparser.com)、設置されて削除されたサービス バイナリの痕跡としての [registry](https://www.registryparser.com) の `Services` キー、そしてオペレーターがハンズオン セッションで開いたファイルの証拠としての [LNK files](https://www.lnkparser.com) と [jump lists](https://www.jumplistparser.com) に頼ってください。
+ログ クリアを生き残るホスト側アーティファクトについては、攻撃者ツール実行の証拠としての Prefetch、設置されて削除されたサービス バイナリの痕跡としての registry の `Services` キー、そしてオペレーターがハンズオン セッションで開いたファイルの証拠としての LNK files と jump lists に頼ってください。
 
 ## 参考資料
 

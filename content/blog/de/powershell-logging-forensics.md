@@ -103,7 +103,7 @@ Eine Kompromittierung, bei der Script Block Logging an war, sagt Ihnen in der Re
 3. Die Runtime-Cmdlets des C2-Frameworks (Invoke-Beacon, Invoke-Mimi, `Invoke-Kerberoast`, jeder gängige offensive Cmdlet-Name und seine umbenannten Varianten).
 4. Die Hands-on-Keyboard-Befehle des interaktiven Operators. Diese lesen sich wie eine aufgezeichnete Shell-Session, weil sie das sind.
 
-Cross-referenzieren Sie gegen [Prefetch](https://www.prefetchparser.com), um zu finden, wann `powershell.exe` lief, [LNK-Dateien](https://www.lnkparser.com) für Dateien, die der Operator geöffnet hat, [AmCache](https://www.amcacheparser.com) für den Hash der PowerShell-Binärdatei selbst (sie wird manchmal umbenannt), und die [Registry](https://www.registryparser.com) für den GPO-Zustand, um zu bestätigen, dass Logging zur Zeit der Events, die Sie lesen, wirklich an war.
+Cross-referenzieren Sie gegen [Prefetch](https://www.prefetchparser.com/de/blog/prefetch-proof-of-execution), um zu finden, wann `powershell.exe` lief, LNK-Dateien für Dateien, die der Operator geöffnet hat, AmCache für den Hash der PowerShell-Binärdatei selbst (sie wird manchmal umbenannt), und die Registry für den GPO-Zustand, um zu bestätigen, dass Logging zur Zeit der Events, die Sie lesen, wirklich an war.
 
 Eine Kompromittierung, bei der Script Block Logging aus war, sagt Ihnen fast nichts über PowerShell und viel über Ihre Detection-Haltung. Beheben Sie das zuerst.
 

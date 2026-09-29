@@ -40,8 +40,9 @@ Borrar el event log en memoria no toca:
 - Otros canales. `System`, `Application`, `PowerShell/Operational`, `Sysmon/Operational`, `TaskScheduler/Operational`, canales de eventos reenviados. Ninguno se borra con un wipe de Security.
 - Eventos reenviados. Si Windows Event Forwarding está enviando Security a un recolector, los registros borrados ya están en otro host. Los RecordIDs y timestamps originales se preservan.
 - El propio archivo en disco. Una `Security.evtx` borrada se reemplaza por un archivo fresco. Los clusters del archivo anterior a menudo persisten en espacio no asignado. Los registros EVTX [carvan limpiamente](/es/blog/carve-deleted-evtx-records) de esos clusters.
-- Entradas del [diario USN](https://www.usnparser.com) para el reemplazo del archivo. Incluso el acto de borrar deja artefactos a nivel de sistema de archivos.
-- La entrada [MFT](https://www.mftparser.com) para el archivo nuevo, que lleva un timestamp de creación que debería coincidir con el 1102 con un segundo de margen.
+- Entradas del [diario USN](https://www.usnparser.com/es/blog/understanding-ntfs-usn-journal) para el reemplazo del archivo. Incluso el acto de borrar deja artefactos a nivel de sistema de archivos.
+- La entrada MFT para el archivo nuevo, que lleva un timestamp de creación que debería coincidir con el 1102 con un segundo de margen.
+- [Lo que Shimcache conserva tras borrar los registros](https://www.shimcacheparser.com/es/blog/shimcache-anti-forensics): la ruta del binario que hizo el borrado suele sobrevivir en el AppCompatCache de la colmena SYSTEM.
 
 Un borrado de log "exitoso" raramente es tan limpio como el atacante espera.
 
@@ -121,7 +122,7 @@ No hay una razón segura para un 1102 en operaciones normales. Incluso los legí
 
 ## Cuando encuentras uno en el paquete
 
-Cuando cargas un [archivo .evtx en una herramienta forense](/es/blog/how-to-open-an-evtx-file), las primeras dos búsquedas que vale la pena ejecutar son `EventID:1102` y `EventID:104`. Si alguno está presente, el log que tienes tiene huecos conocidos. Cualquier timeline construida con él está incompleta. Anótalo en alto en el informe. Luego ve a ver qué sobrevivió: el [registro](https://www.registryparser.com), el [diario USN](https://www.usnparser.com), la [MFT](https://www.mftparser.com), [prefetch](https://www.prefetchparser.com) y [AmCache](https://www.amcacheparser.com). Juntos reconstruyen la mayoría de lo que 1102 intentó borrar.
+Cuando cargas un [archivo .evtx en una herramienta forense](/es/blog/how-to-open-an-evtx-file), las primeras dos búsquedas que vale la pena ejecutar son `EventID:1102` y `EventID:104`. Si alguno está presente, el log que tienes tiene huecos conocidos. Cualquier timeline construida con él está incompleta. Anótalo en alto en el informe. Luego ve a ver qué sobrevivió: el registro, el diario USN, la MFT, prefetch y AmCache. Juntos reconstruyen la mayoría de lo que 1102 intentó borrar.
 
 Herramientas como `Invoke-Phant0m` saltan el 1102 por completo suspendiendo los hilos del servicio de eventos en lugar de borrar. Si ves un silencio de varias horas en Security sin 1102 y sin apagado del sistema, esa es la otra forma del mismo problema.
 

@@ -66,7 +66,7 @@ Le SACL che si guadagnano lo stipendio su ogni server:
 
 ### Lettura dell'hive SAM o SYSTEM
 
-Ogni 4663 con `ObjectName` che termina in `\config\SAM`, `\config\SECURITY` o `\config\SYSTEM`, dove `ProcessName` non sia `services.exe`, `lsass.exe` o `wininit.exe`, e `SubjectUserSid` non sia `S-1-5-18`. Questo è `reg save HKLM\SAM`, `esentutl /y` contro una shadow copy, o qualsiasi strumento di credential dumping con accesso a hive a livello file. Incrocia col [registro](https://www.registryparser.com) per eventuali file di hive di backup lasciati dietro.
+Ogni 4663 con `ObjectName` che termina in `\config\SAM`, `\config\SECURITY` o `\config\SYSTEM`, dove `ProcessName` non sia `services.exe`, `lsass.exe` o `wininit.exe`, e `SubjectUserSid` non sia `S-1-5-18`. Questo è `reg save HKLM\SAM`, `esentutl /y` contro una shadow copy, o qualsiasi strumento di credential dumping con accesso a hive a livello file. Incrocia col registro per eventuali file di hive di backup lasciati dietro.
 
 ### Minidump di LSASS scritto
 
@@ -183,6 +183,7 @@ Una SACL ben sintonizzata su cinque oggetti ad alto valore produce 50-200 record
 - Handle chiusi. 4663 scatta all'*apertura* dell'handle. Gli eventi di chiusura sono 4658, raramente utili per il rilevamento di attacchi.
 - Path di rete in modo trasparente. L'accesso SMB a uno share scatta 4663 sul *server*. Il client non vede niente. Hai bisogno della raccolta lato server.
 - Accesso fallito per default. Molti shop auditano solo Success. Configura Failure solo se ti interessano davvero i tentativi sventati.
+- Tutto ciò che non è coperto da una SACL. L'eliminazione di un file senza auditing configurato non lascia alcun 4663, ma [il journal USN registra comunque l'eliminazione anche con l'auditing dell'accesso agli oggetti disattivato](https://www.usnparser.com/it/blog/recover-deleted-files-usn-journal), con nome del file e timestamp.
 
 ## Dove si inserisce 4663 in una timeline
 

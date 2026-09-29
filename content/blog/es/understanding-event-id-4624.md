@@ -141,7 +141,7 @@ La señal es recurrencia *inesperada* o combinaciones *novel*, no volumen crudo.
 
 ## Leer a escala
 
-El [parser de navegador en este sitio](/en/blog/how-to-open-an-evtx-file) extrae estos campos directamente del XML del registro y los expone en la tabla. Filtra por `LogonType` vía los buckets de timeline y el filtro de texto, tira el conjunto filtrado como CSV, luego pivota en `SubjectUserSid` e `IpAddress` en tu herramienta de elección. El XML completo de cada registro está a un clic. Empareja con [artefactos de caché RDP](https://www.jumplistparser.com), tracking de [archivo reciente](https://www.recentfilecacheparser.com), e [historial de navegador](https://www.browserforensics.app) cuando la cuenta de usuario en cuestión es un usuario real, no un servicio.
+El [parser de navegador en este sitio](/en/blog/how-to-open-an-evtx-file) extrae estos campos directamente del XML del registro y los expone en la tabla. Filtra por `LogonType` vía los buckets de timeline y el filtro de texto, tira el conjunto filtrado como CSV, luego pivota en `SubjectUserSid` e `IpAddress` en tu herramienta de elección. El XML completo de cada registro está a un clic. Empareja con artefactos de caché RDP, tracking de [archivo reciente](https://www.recentfilecacheparser.com/es), e historial de navegador cuando la cuenta de usuario en cuestión es un usuario real, no un servicio.
 
 ## Lecturas adicionales
 

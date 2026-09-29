@@ -164,7 +164,7 @@ Deteções sólidas de 4720 combinam sempre a criação com um sinal de follow-u
 
 O registo não inclui a password da nova conta (o Windows nunca a regista, em lado nenhum). Também não inclui explicitamente o SID do domínio alvo. Lê o domínio a partir de `TargetDomainName` ou deriva-o da porção de domínio do `TargetSid`.
 
-Criações de contas locais em workstations membro são invisíveis para o DC. Se não está a recolher Security das workstations (a maioria das lojas não está), perde cada conta backdoor local. O Sysmon e um EDR real preenchem parte da lacuna (padrões de criação de ficheiro e alteração de registo quando o SAM local é tocado), mas o reencaminhamento de 4720 é o controlo mais barato. A snapshot da hive [registry](https://www.registryparser.com) é a corroboração quando o reencaminhamento de logs estava off.
+Criações de contas locais em workstations membro são invisíveis para o DC. Se não está a recolher Security das workstations (a maioria das lojas não está), perde cada conta backdoor local. O Sysmon e um EDR real preenchem parte da lacuna (padrões de criação de ficheiro e alteração de registo quando o SAM local é tocado), mas o reencaminhamento de 4720 é o controlo mais barato. A snapshot da hive registry é a corroboração quando o reencaminhamento de logs estava off.
 
 ## Onde o 4720 encaixa numa timeline
 

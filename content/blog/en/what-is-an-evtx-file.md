@@ -48,7 +48,7 @@ Rotated channels produce timestamped archive files in the same folder (`Security
 
 ## What is inside an .evtx file
 
-The file is a binary container, not plain text. A 4 KB header (magic `ElfFile\0`) is followed by a sequence of 64 KB **chunks**. Each chunk has its own header (`ElfChnk`), a table of the XML **templates** that appear inside it, and a stream of records that reference those templates by ID. A parser reconstructs each event by substituting record-level values into the template's placeholders. This is what makes `.evtx` more compact than literal XML on disk.
+The file is a binary container, not plain text. A 4 KB header (magic `ElfFile\0`) is followed by a sequence of 64 KB **chunks** ([how the EventLog service lays out chunks on disk](https://www.windowsinternals.app/explore/diagnostics/event-log/evtx)). Each chunk has its own header (`ElfChnk`), a table of the XML **templates** that appear inside it, and a stream of records that reference those templates by ID. A parser reconstructs each event by substituting record-level values into the template's placeholders. This is what makes `.evtx` more compact than literal XML on disk.
 
 Once decoded, every record is an XML document with two halves:
 
@@ -81,7 +81,7 @@ For a full walkthrough of each with the commands you would actually run, see [Ho
 
 ## When you encounter .evtx in the wild
 
-- **Incident response.** Pulled from a compromised host as part of triage. Channels of interest depend on the lead: `Security` for logons and privilege abuse, `Sysmon` for process trees, `PowerShell` for scriptblock content. Pair with [registry](https://www.registryparser.com), [MFT](https://www.mftparser.com), [USN journal](https://www.usnparser.com), [AmCache](https://www.amcacheparser.com), and [prefetch](https://www.prefetchparser.com) for execution corroboration.
+- **Incident response.** Pulled from a compromised host as part of triage. Channels of interest depend on the lead: `Security` for logons and privilege abuse, `Sysmon` for process trees, `PowerShell` for scriptblock content. Pair with the [Windows registry](https://www.registryparser.com/en/blog/what-is-the-windows-registry), MFT, [USN change journal](https://www.usnparser.com/en/blog/understanding-ntfs-usn-journal), AmCache, and prefetch for execution corroboration.
 - **Compliance audits.** Auditors request `Security.evtx` over a defined window to verify logon and policy-change history.
 - **Application debugging.** `Application.evtx` plus per-vendor channels often hold crash and error context the application's own logs do not.
 - **Threat hunting.** Long-tail rules against archived `.evtx` (or a SIEM forwarding the live channel) catch slow-burn patterns like off-hours RDP or service-account `LogonType` drift.
