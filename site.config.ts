@@ -57,7 +57,7 @@ export const siteConfig = {
       addressCountry: undefined as string | undefined,
     },
     contactPoint: {
-      email: "contact@cyberexperts.io" as string | undefined,
+      email: "contact@evtxparser.com" as string | undefined,
       telephone: undefined as string | undefined,
       contactType: "customer support",
       areaServed: [] as string[],
