@@ -63,7 +63,7 @@ Event ID **4688**「新しいプロセスが作成されました」は、プロ
 | Integrity level | Yes | Yes |
 | インストール不要で利用可能 | Yes | Sysmon 必要 |
 
-両方が存在する場合、[Sysmon 1](/ja/blog/sysmon-event-id-1-process-create) の方が豊富です。`ParentCommandLine`、image ハッシュ、安定した親子チェーンのための `ProcessGuid`。4688 だけの場合、PID でチェーンを構築します。Windows は PID を再利用するため、長いタイムラインには誤マッチが含まれることがあります。常に親子リンクをタイムスタンプで相互チェックしてください。両方ない場合 (Sysmon なし、コマンドライン監査なし)、[AmCache](https://www.amcacheparser.com)、[prefetch](https://www.prefetchparser.com)、[USN journal](https://www.usnparser.com) が次善の実行証拠です。
+両方が存在する場合、[Sysmon 1](/ja/blog/sysmon-event-id-1-process-create) の方が豊富です。`ParentCommandLine`、image ハッシュ、安定した親子チェーンのための `ProcessGuid`。4688 だけの場合、PID でチェーンを構築します。Windows は PID を再利用するため、長いタイムラインには誤マッチが含まれることがあります。常に親子リンクをタイムスタンプで相互チェックしてください。両方ない場合 (Sysmon なし、コマンドライン監査なし)、AmCache、prefetch、[USN journal](https://www.usnparser.com/ja/blog/reconstruct-user-activity-timeline-usn-journal) が次善の実行証拠です。
 
 ## 本領を発揮するパターン
 

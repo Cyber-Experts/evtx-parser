@@ -64,5 +64,6 @@ The deeper lesson: **absence of events is itself evidence.** If you expect [proc
 - Correlate the actor (`SubjectLogonId`) to their [logon](/en/blog/windows-logon-events-explained) and to any [1102](/en/blog/event-id-1102-cleared-log) clears.
 - Compare against the **forwarded/SIEM** copy and sibling hosts.
 - When events are missing, look for a 4719 that explains the gap.
+- After the incident, push back [an audit-policy baseline worth restoring](https://www.windowshardening.org/en/blog/audit-policy-sysmon-baseline) so the same subcategories cannot silently go dark again.
 
 Load the Security log in the [browser parser](/en/blog/how-to-open-an-evtx-file), filter to 4719, and read the subcategory + change direction. See also the [event ID cheat sheet](/en/blog/windows-event-id-cheat-sheet-dfir).

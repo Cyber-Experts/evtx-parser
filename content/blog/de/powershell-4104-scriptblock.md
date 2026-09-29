@@ -146,7 +146,7 @@ index=powershell EventCode=4104
 
 4104 loggt den *Body* des Skripts. Es loggt keine Pro-Statement-Ausführung, Funktionsrückgaben oder Variablenwerte. Dafür brauchen Sie 4103 (Module Logging) oder ein echtes EDR. 4104 sagt Ihnen, was lief. Der Rest sagt Ihnen, was es tat.
 
-Wenn 4104 zum Zeitpunkt des Angriffs aus war (der häufigste Fall, den ich in Vorfällen auf veralteten Beständen sehe), ist der Skript-Body weg. Der Wrapper-Aufruf könnte noch in [4688](/en/blog/event-id-4688-process-creation) sein, der Binär-Stempel in [AmCache](https://www.amcacheparser.com) und das Arbeitsverzeichnis in [Prefetch](https://www.prefetchparser.com), aber der tatsächliche Code ist verloren, es sei denn, Sie können ihn aus [pagefile.sys](https://www.pagefilesysparser.com) oder einem [RAM-Dump](https://www.ramparser.com) carven. Schalten Sie es jetzt ein, damit Sie sich das nächste Mal nicht selbst diesen Streit liefern müssen.
+Wenn 4104 zum Zeitpunkt des Angriffs aus war (der häufigste Fall, den ich in Vorfällen auf veralteten Beständen sehe), ist der Skript-Body weg. Der Wrapper-Aufruf könnte noch in [4688](/en/blog/event-id-4688-process-creation) sein, der Binär-Stempel in AmCache und das Arbeitsverzeichnis in [Prefetch](https://www.prefetchparser.com/de/blog/prefetch-proof-of-execution), aber der tatsächliche Code ist verloren, es sei denn, Sie können ihn aus [pagefile.sys](https://www.pagefilesysparser.com/de/blog/detecting-malware-command-lines-in-pagefile) oder einem RAM-Dump carven. Schalten Sie es jetzt ein, damit Sie sich das nächste Mal nicht selbst diesen Streit liefern müssen.
 
 ## Weiterführende Literatur
 

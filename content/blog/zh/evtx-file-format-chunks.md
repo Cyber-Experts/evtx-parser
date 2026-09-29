@@ -52,7 +52,7 @@ EvtxECmd、hayabusa 与 python-evtx 都能以不同的容忍度恢复脏块。�
 ## 实用启示
 
 - 截断的 `.evtx`，在[从活动主机收集](/zh/blog/collecting-evtx-from-live-system) 时常见，多数情况下基本可恢复。每一个完整的块都是独立的。
-- 从未分配空间雕出的块，可以用一个合成的文件头包装并解析。这是 libevtx 与 python-evtx 从 `pagefile.sys`（见 [pagefile 解析器](https://www.pagefilesysparser.com)）与 [RAM dump](https://www.ramparser.com) 雕刻扫描中恢复数据的方式。
+- 从未分配空间雕出的块，可以用一个合成的文件头包装并解析。这是 libevtx 与 python-evtx 从 `pagefile.sys`（见 pagefile 解析器）与 RAM dump 雕刻扫描中恢复数据的方式。
 - 一个块解析失败不代表整个文件失败。健壮的解析器会跳到下一个块，并把坏的那一个单独报告出来。
 - 块的 CRC32 是标记篡改的依据。被修改后没有重新计算 CRC 的记录会被检出。多数攻击者不会费这个事，因为清日志（触发 [1102](/zh/blog/event-id-1102-cleared-log)）更容易。谨慎些的会用 Phant0m，根本不动文件。
 

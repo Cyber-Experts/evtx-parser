@@ -74,7 +74,7 @@ Nomi di servizio da tenere d'occhio in `7045`: stringhe casuali di 8 caratteri m
 
 Per il movimento laterale, gli eventi `5145` che contano sono accessi ad `ADMIN$`, `C$`, `IPC$` e qualunque path `SYSVOL`/`NETLOGON` da sorgenti inusuali. `psexec.py` scrive il suo binario di servizio scrivendo in `\\target\ADMIN$\<random>.exe`. `secretsdump.py` legge `\\target\C$\Windows\System32\config\SAM` (e SYSTEM e SECURITY). Ciascuno di questi è un `5145` con un `RelativeTargetName` che dovrebbe spiccare.
 
-Abbina `5145` al [journal USN](https://www.usnparser.com) sul target. Il journal avrà un `FILE_CREATE` per lo stesso file con lo stesso timestamp, il che ti dà una conferma da seconda fonte che il file è effettivamente arrivato, e un riferimento di record [MFT](https://www.mftparser.com) da inseguire.
+Abbina `5145` al [journal USN](https://www.usnparser.com/it/blog/usn-reason-codes-forensic-analysis) sul target. Il journal avrà un `FILE_CREATE` per lo stesso file con lo stesso timestamp, il che ti dà una conferma da seconda fonte che il file è effettivamente arrivato, e un riferimento di record MFT da inseguire.
 
 ## WMI come vettore di movimento laterale
 
@@ -99,7 +99,7 @@ In pratica vuoi tutto di:
 
 Legali tramite `LogonId` all'interno di un host e tramite timestamp + account + IP tra host. Il classico paper di JPCERT/CC lo espone nel dettaglio ed è il singolo migliore documento gratuito sul tema.
 
-Per gli artefatti host-side che sopravvivono alla cancellazione del log, appoggiati a [Prefetch](https://www.prefetchparser.com) come prova di esecuzione del tooling dell'attaccante, alla chiave `Services` del [registro](https://www.registryparser.com) per la traccia di un binario di servizio installato e rimosso, e ai [file LNK](https://www.lnkparser.com) e alle [jump list](https://www.jumplistparser.com) come prova di file che un operatore ha aperto in una sessione hands-on.
+Per gli artefatti host-side che sopravvivono alla cancellazione del log, appoggiati a Prefetch come prova di esecuzione del tooling dell'attaccante, alla chiave `Services` del registro per la traccia di un binario di servizio installato e rimosso, e ai file LNK e alle jump list come prova di file che un operatore ha aperto in una sessione hands-on.
 
 ## Per approfondire
 

@@ -102,7 +102,7 @@ EVTX はページ化、書き込み最適化、自己重複排除形式です。
 
 ゼロからパーサーを書くなら (やめてください、しかしどうしても必要なら)、検証する公開テスト コーパスは、[SANS DFIR poster](https://github.com/forensicmatt/EVTX-ETW-Resources) repo と Yamato Security の `hayabusa` サンプル ログからの公開 EVTX サンプルです。最初のパスでコードが間違える不正形式チャンクと部分レコードのケースをカバーしています。
 
-もう 1 つ言う価値: 形式は他の Windows アーティファクトと共有されます。同じ FILETIME エンコーディングが [registry](https://www.registryparser.com)、[MFT](https://www.mftparser.com) `$STANDARD_INFORMATION` タイムスタンプ、[Prefetch](https://www.prefetchparser.com) ヘッダーに現れます。頭で FILETIME を読めるようになると、多くの Windows フォレンジックが静かになります。
+もう 1 つ言う価値: 形式は他の Windows アーティファクトと共有されます。同じ FILETIME エンコーディングが registry、[MFT](https://www.mftparser.com/ja/blog/inside-an-mft-record) `$STANDARD_INFORMATION` タイムスタンプ、Prefetch ヘッダーに現れます。頭で FILETIME を読めるようになると、多くの Windows フォレンジックが静かになります。
 
 ## 参考資料
 

@@ -74,7 +74,7 @@ Noms de services à surveiller dans `7045` : chaînes aléatoires de 8 caractèr
 
 Pour le mouvement latéral, les événements `5145` qui comptent sont les accès à `ADMIN$`, `C$`, `IPC$` et toute voie `SYSVOL`/`NETLOGON` depuis des sources inhabituelles. `psexec.py` écrit son binaire de service en écrivant vers `\\target\ADMIN$\<random>.exe`. `secretsdump.py` lit `\\target\C$\Windows\System32\config\SAM` (et SYSTEM et SECURITY). Chacun d'eux est un `5145` avec un `RelativeTargetName` qui devrait sortir du lot.
 
-Associez `5145` au [journal USN](https://www.usnparser.com) sur la cible. Le journal aura un `FILE_CREATE` pour le même fichier au même horodatage, ce qui vous donne une confirmation de seconde source que le fichier a réellement atterri, et une référence d'enregistrement [MFT](https://www.mftparser.com) à poursuivre.
+Associez `5145` au [journal USN](https://www.usnparser.com/fr/blog/usn-reason-codes-forensic-analysis) sur la cible. Le journal aura un `FILE_CREATE` pour le même fichier au même horodatage, ce qui vous donne une confirmation de seconde source que le fichier a réellement atterri, et une référence d'enregistrement MFT à poursuivre.
 
 ## WMI comme vecteur de mouvement latéral
 
@@ -99,7 +99,7 @@ En pratique, vous voulez tout de :
 
 Liez-les par `LogonId` à l'intérieur d'un hôte et par horodatage + compte + IP à travers les hôtes. Le papier classique de JPCERT/CC expose tout cela en détail et est le meilleur document gratuit sur le sujet.
 
-Pour les artefacts côté hôte qui survivent à l'effacement du journal, appuyez-vous sur le [Prefetch](https://www.prefetchparser.com) comme preuve d'exécution du tooling attaquant, la clé `Services` du [registre](https://www.registryparser.com) pour la trace d'un binaire de service installé puis retiré, et les [fichiers LNK](https://www.lnkparser.com) ainsi que les [jump lists](https://www.jumplistparser.com) comme preuves de fichiers ouverts par un opérateur lors d'une session hands-on.
+Pour les artefacts côté hôte qui survivent à l'effacement du journal, appuyez-vous sur le [Prefetch](https://www.prefetchparser.com/fr/blog/prefetch-proof-of-execution) comme preuve d'exécution du tooling attaquant, la clé `Services` du [registre](https://www.registryparser.com/fr) pour la trace d'un binaire de service installé puis retiré, et les fichiers LNK ainsi que les jump lists comme preuves de fichiers ouverts par un opérateur lors d'une session hands-on.
 
 ## Pour aller plus loin
 

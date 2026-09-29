@@ -164,7 +164,7 @@ Le detection solide di 4720 combinano sempre la creazione con un segnale success
 
 Il record non include la password del nuovo account (Windows non la logga mai, da nessuna parte). Non include neanche il SID del dominio target esplicitamente. Leggi il dominio da `TargetDomainName` o lo derivi dalla porzione di dominio di `TargetSid`.
 
-Le creazioni di account locali sulle workstation membro sono invisibili al DC. Se non stai raccogliendo Security dalle workstation (la maggior parte degli shop non lo fa), perdi ogni account backdoor locale. Sysmon e un EDR reale colmano parte del divario (pattern di creazione file e modifica registro quando il SAM locale viene toccato), ma il forwarding di 4720 è il controllo più economico. Lo snapshot dell'hive del [registro](https://www.registryparser.com) è la conferma quando il log forwarding era spento.
+Le creazioni di account locali sulle workstation membro sono invisibili al DC. Se non stai raccogliendo Security dalle workstation (la maggior parte degli shop non lo fa), perdi ogni account backdoor locale. Sysmon e un EDR reale colmano parte del divario (pattern di creazione file e modifica registro quando il SAM locale viene toccato), ma il forwarding di 4720 è il controllo più economico. Lo snapshot dell'hive del registro è la conferma quando il log forwarding era spento.
 
 ## Dove si inserisce 4720 in una timeline
 

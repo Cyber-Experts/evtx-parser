@@ -36,7 +36,7 @@ A 7045 with `ImagePath` ending `.exe` followed seconds later by [4624 LogonType 
 
 7045 fires on *installation*, not on each subsequent start. To see the service actually running you need [7036](/en/blog/event-id-7036-service-state) ("service entered the running state"). To see the underlying process you need [Sysmon event 1](/en/blog/sysmon-event-id-1-process-create) or [4688](/en/blog/event-id-4688-process-creation) with the matching `Image` path.
 
-For services installed *before* the audit log starts (e.g. during OS install), there is no 7045. They exist in the [registry](https://www.registryparser.com) under `HKLM\SYSTEM\CurrentControlSet\Services\` and have to be enumerated there, not from event logs. The [AmCache](https://www.amcacheparser.com) hive and [prefetch](https://www.prefetchparser.com) cache often corroborate execution that did not produce a 4688.
+For services installed *before* the audit log starts (e.g. during OS install), there is no 7045. They exist in the [registry Services key](https://www.registryparser.com/en/blog/services-plugin) under `HKLM\SYSTEM\CurrentControlSet\Services\` and have to be enumerated there, not from event logs. The AmCache hive and [Prefetch cache often corroborate execution](https://www.prefetchparser.com/en/blog/prefetch-proof-of-execution) that did not produce a 4688.
 
 ## Triage workflow
 

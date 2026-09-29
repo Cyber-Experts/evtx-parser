@@ -40,7 +40,7 @@ Eso te da un CSV, no un `.evtx`. Conveniente para triaje ad-hoc en la máquina. 
 
 Cuando quieres el archivo, no los registros, FTK Imager es el caballo de batalla. Añade la unidad viva como evidencia (Physical Drive o Logical Drive), navega hasta `\Windows\System32\winevt\Logs\`, clic derecho sobre los archivos de canal y Export Files. FTK lee directamente las estructuras NTFS subyacentes, lo que esquiva el bloqueo del sistema de archivos que el servicio EventLog mantiene. También captura los archivos `Archive-*.evtx` archivados que `wevtutil epl` se salta.
 
-Compromiso: FTK lee archivos que pueden estar a mitad de escritura. El chunk final del canal activo puede estar sucio. La mayoría de parsers manejan eso con elegancia (incluyendo el [parser de navegador de este sitio](/es/blog/how-to-open-an-evtx-file)) pero verifica en el banco antes de escribirlo en un informe. Las entradas correspondientes del [diario USN](https://www.usnparser.com) son corroboración útil cuando sospechas que el servicio EventLog hizo algo no estándar durante la adquisición.
+Compromiso: FTK lee archivos que pueden estar a mitad de escritura. El chunk final del canal activo puede estar sucio. La mayoría de parsers manejan eso con elegancia (incluyendo el [parser de navegador de este sitio](/es/blog/how-to-open-an-evtx-file)) pero verifica en el banco antes de escribirlo en un informe. Las entradas correspondientes del diario USN son corroboración útil cuando sospechas que el servicio EventLog hizo algo no estándar durante la adquisición.
 
 ## KAPE: recolección masiva a velocidad IR
 
@@ -50,7 +50,7 @@ Cuando el engagement tiene más de un host, el Kroll Artifact Parser and Extract
 kape.exe --tsource C: --target EventLogs --tdest C:\triage
 ```
 
-El target `EventLogs` barre todos los `.evtx` bajo `winevt\Logs\` (más los `.evt` heredados y las copias en `Windows.old`). Combínalo con el módulo `!EZParser` o `EvtxECmd` y KAPE también ejecutará EvtxECmd contra la colección al salir, dándote CSVs parseadas junto a la evidencia cruda. Ya que estás, los targets `RegistryHives`, `FileSystem` y `Prefetch` recogen los datos de [registro](https://www.registryparser.com), [MFT](https://www.mftparser.com), [diario USN](https://www.usnparser.com) y [prefetch](https://www.prefetchparser.com) que querrás de todos modos.
+El target `EventLogs` barre todos los `.evtx` bajo `winevt\Logs\` (más los `.evt` heredados y las copias en `Windows.old`). Combínalo con el módulo `!EZParser` o `EvtxECmd` y KAPE también ejecutará EvtxECmd contra la colección al salir, dándote CSVs parseadas junto a la evidencia cruda. Ya que estás, los targets `RegistryHives`, `FileSystem` y `Prefetch` recogen los datos de registro, MFT, diario USN y prefetch que querrás de todos modos.
 
 La salida de KAPE viene con metadatos de copy log. Eso importa para la cadena de custodia más de lo que la gente le reconoce.
 
@@ -58,7 +58,7 @@ La salida de KAPE viene con metadatos de copy log. Eso importa para la cadena de
 
 Para máxima fidelidad, baja por debajo de la capa del sistema de archivos. `tsk_recover` e `icat` del Sleuth Kit, o `RawCopy.exe` de Joakim Schicht, abren el volumen vía `\\.\PhysicalDriveN` o `\\.\C:`, recorren la MFT y emiten el contenido del archivo byte a byte. El servicio EventLog no puede bloquear esto porque la lectura no pasa por la API de archivos Win32.
 
-Usa esto cuando un rootkit esté en juego, cuando tengas razón para pensar que un driver filtro de kernel está interceptando lecturas de `\winevt\Logs\`, o cuando simplemente no confíes en el SO en marcha. Combina el resultado con un [volcado RAM](https://www.ramparser.com) tomado en el mismo momento. El servicio event log cachea registros recientes en memoria, y un snapshot tomado minutos antes de la manipulación a veces contiene registros que nunca llegaron al disco.
+Usa esto cuando un rootkit esté en juego, cuando tengas razón para pensar que un driver filtro de kernel está interceptando lecturas de `\winevt\Logs\`, o cuando simplemente no confíes en el SO en marcha. Combina el resultado con un volcado RAM tomado en el mismo momento. El servicio event log cachea registros recientes en memoria, y un snapshot tomado minutos antes de la manipulación a veces contiene registros que nunca llegaron al disco.
 
 ## Cuál cuándo
 

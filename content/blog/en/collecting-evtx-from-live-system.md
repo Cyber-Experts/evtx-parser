@@ -40,7 +40,7 @@ That gives you a CSV, not a `.evtx`. Convenient for ad-hoc triage on the box. Us
 
 When you want the file, not the records, FTK Imager is the workhorse. Add the live drive as evidence (Physical Drive or Logical Drive), navigate to `\Windows\System32\winevt\Logs\`, right-click the channel files and Export Files. FTK reads the underlying NTFS structures directly, which sidesteps the file-system lock the EventLog service is holding. It also captures the archived `Archive-*.evtx` files that `wevtutil epl` skips.
 
-Trade-off: FTK reads files that may be mid-write. The trailing chunk on the active channel can be dirty. Most parsers handle that gracefully (including the [browser parser on this site](/en/blog/how-to-open-an-evtx-file)) but verify on the bench before you write it into a report. The corresponding [USN journal](https://www.usnparser.com) entries are useful corroboration when you suspect the EventLog service did something nonstandard during acquisition.
+Trade-off: FTK reads files that may be mid-write. The trailing chunk on the active channel can be dirty. Most parsers handle that gracefully (including the [browser parser on this site](/en/blog/how-to-open-an-evtx-file)) but verify on the bench before you write it into a report. The corresponding USN journal entries are useful corroboration when you suspect the EventLog service did something nonstandard during acquisition.
 
 ## KAPE: bulk collection at IR speed
 
@@ -50,7 +50,7 @@ When the engagement has more than one host, the Kroll Artifact Parser and Extrac
 kape.exe --tsource C: --target EventLogs --tdest C:\triage
 ```
 
-The `EventLogs` target sweeps every `.evtx` under `winevt\Logs\` (plus legacy `.evt` files and any `Windows.old` copies). Pair it with the `!EZParser` or `EvtxECmd` module and KAPE will also run EvtxECmd against the collection on the way out, giving you parsed CSVs alongside the raw evidence. While you are at it, the `RegistryHives`, `FileSystem` and `Prefetch` targets pick up the [registry](https://www.registryparser.com), [MFT](https://www.mftparser.com), [USN journal](https://www.usnparser.com), and [prefetch](https://www.prefetchparser.com) data you will want anyway.
+The `EventLogs` target sweeps every `.evtx` under `winevt\Logs\` (plus legacy `.evt` files and any `Windows.old` copies). Pair it with the `!EZParser` or `EvtxECmd` module and KAPE will also run EvtxECmd against the collection on the way out, giving you parsed CSVs alongside the raw evidence. While you are at it, the `RegistryHives`, `FileSystem` and `Prefetch` targets pick up the registry, MFT, USN journal, and prefetch data you will want anyway.
 
 KAPE's output ships with copy log metadata. That matters for chain of custody more than people give it credit for.
 
@@ -58,12 +58,12 @@ KAPE's output ships with copy log metadata. That matters for chain of custody mo
 
 For maximum fidelity, drop below the filesystem layer. The Sleuth Kit's `tsk_recover` and `icat`, or Joakim Schicht's `RawCopy.exe`, open the volume via `\\.\PhysicalDriveN` or `\\.\C:`, walk the MFT, and emit the file content byte for byte. The EventLog service cannot block this because the read does not go through the Win32 file API.
 
-Use this when a rootkit is in scope, when you have reason to think a kernel filter driver is intercepting `\winevt\Logs\` reads, or when you simply do not trust the running OS. Pair the result with a [RAM dump](https://www.ramparser.com) taken at the same moment. The event log service caches recent records in memory, and a snapshot taken minutes before tampering sometimes contains records that never made it to disk.
+Use this when a rootkit is in scope, when you have reason to think a kernel filter driver is intercepting `\winevt\Logs\` reads, or when you simply do not trust the running OS. Pair the result with a [RAM capture taken at the same moment](https://www.ramparser.com/en/blog/magnet-ram-capture-guide). The event log service caches recent records in memory, and a snapshot taken minutes before tampering sometimes contains records that never made it to disk.
 
 ## Which one when
 
 - One host, you have admin, you have an hour: `wevtutil epl` for every channel that matters, zip the directory, done.
-- [Disk image already in hand](https://www.diskimageparser.com): FTK Imager or `tsk_recover` against the image. Faster than the live host, and you do not have to coordinate with the SOC.
+- [Disk image already in hand](https://www.diskimageparser.com/en): FTK Imager or `tsk_recover` against the image. Faster than the live host, and you do not have to coordinate with the SOC.
 - Multiple hosts, real IR engagement: KAPE. Nothing else comes close on throughput.
 - Suspected live tampering or rootkit: RawCopy or TSK against the volume, with the host network isolated.
 

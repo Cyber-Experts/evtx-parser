@@ -66,7 +66,7 @@ Die SACLs, die sich auf jedem Server lohnen:
 
 ### Lesen des SAM- oder SYSTEM-Hives
 
-Jedes 4663 mit `ObjectName`, der mit `\config\SAM`, `\config\SECURITY` oder `\config\SYSTEM` endet, wo `ProcessName` nicht `services.exe`, `lsass.exe` oder `wininit.exe` ist und `SubjectUserSid` nicht `S-1-5-18` ist. Das ist `reg save HKLM\SAM`, `esentutl /y` gegen eine Shadow Copy oder jedes Credential-Dumping-Tool mit dateiebenem Hive-Zugriff. Vergleiche mit der [Registry](https://www.registryparser.com) für etwaige hinterlassene Backup-Hive-Dateien.
+Jedes 4663 mit `ObjectName`, der mit `\config\SAM`, `\config\SECURITY` oder `\config\SYSTEM` endet, wo `ProcessName` nicht `services.exe`, `lsass.exe` oder `wininit.exe` ist und `SubjectUserSid` nicht `S-1-5-18` ist. Das ist `reg save HKLM\SAM`, `esentutl /y` gegen eine Shadow Copy oder jedes Credential-Dumping-Tool mit dateiebenem Hive-Zugriff. Vergleiche mit der Registry für etwaige hinterlassene Backup-Hive-Dateien.
 
 ### LSASS-Minidump geschrieben
 
@@ -183,6 +183,7 @@ Eine gut abgestimmte SACL auf fünf hochwertige Objekte produziert 50 bis 200 Da
 - Geschlossene Handles. 4663 feuert beim *Öffnen* des Handles. Close-Events sind 4658, selten nützlich für Angriffserkennung.
 - Netzwerkpfade transparent. SMB-Zugriff auf einen Share feuert 4663 auf dem *Server*. Der Client sieht nichts. Du brauchst serverseitige Sammlung.
 - Fehlgeschlagenen Zugriff standardmäßig. Viele Shops auditieren nur Success. Konfiguriere Failure nur, wenn dich vereitelte Versuche wirklich interessieren.
+- Alles ohne SACL. Das Löschen einer Datei ohne konfigurierte Überwachung hinterlässt kein 4663, aber [das USN-Journal zeichnet die Löschung auch bei deaktivierter Objektzugriffsüberwachung auf](https://www.usnparser.com/de/blog/recover-deleted-files-usn-journal), mit Dateiname und Zeitstempel.
 
 ## Wo 4663 in eine Timeline passt
 

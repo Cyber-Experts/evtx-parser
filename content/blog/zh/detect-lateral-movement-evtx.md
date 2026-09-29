@@ -74,7 +74,7 @@ PsExec、Impacket 的 `psexec.py` 与 `smbexec.py` 的工作方式，是把一�
 
 对横向移动而言，值得关注的 `5145` 是来自异常来源、对 `ADMIN$`、`C$`、`IPC$`，以及任何 `SYSVOL`/`NETLOGON` 路径的访问。`psexec.py` 通过写入 `\\target\ADMIN$\<random>.exe` 放置服务二进制。`secretsdump.py` 读取 `\\target\C$\Windows\System32\config\SAM`（以及 SYSTEM、SECURITY）。每一条都是一个 `5145`，其 `RelativeTargetName` 应当醒目。
 
-把 `5145` 与目标上的 [USN journal](https://www.usnparser.com) 搭配。日志中会有同一时间戳同一文件的 `FILE_CREATE`，给出文件确实落地的第二来源确认，以及一个可追查的 [MFT](https://www.mftparser.com) 记录引用。
+把 `5145` 与目标上的 [USN journal](https://www.usnparser.com/zh/blog/usn-reason-codes-forensic-analysis) 搭配。日志中会有同一时间戳同一文件的 `FILE_CREATE`，给出文件确实落地的第二来源确认，以及一个可追查的 MFT 记录引用。
 
 ## WMI 作为横向移动载体
 
@@ -99,7 +99,7 @@ PsExec、Impacket 的 `psexec.py` 与 `smbexec.py` 的工作方式，是把一�
 
 主机内部按 `LogonId` 串起，主机之间按时间戳 + 账户 + IP 串起。经典的 JPCERT/CC 论文对此有详细论述，是这一话题上最好的免费文档。
 
-对能熬过日志清除的主机端工件，依靠 [Prefetch](https://www.prefetchparser.com) 提供攻击者工具执行的证据，依靠 [registry](https://www.registryparser.com) 的 `Services` 键追踪曾经安装又被移除的服务二进制，并依靠 [LNK files](https://www.lnkparser.com) 与 [jump lists](https://www.jumplistparser.com) 找操作者在动手会话里打开过的文件的证据。
+对能熬过日志清除的主机端工件，依靠 Prefetch 提供攻击者工具执行的证据，依靠 registry 的 `Services` 键追踪曾经安装又被移除的服务二进制，并依靠 LNK files 与 jump lists 找操作者在动手会话里打开过的文件的证据。
 
 ## 延伸阅读
 

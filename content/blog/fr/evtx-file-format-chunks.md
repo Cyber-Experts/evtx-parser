@@ -52,7 +52,7 @@ EvtxECmd, hayabusa, et python-evtx récupèrent tous des chunks dirty avec une t
 ## Implications pratiques
 
 - Un `.evtx` tronqué, courant quand vous [collectez depuis un hôte vivant](/en/blog/collecting-evtx-from-live-system), est souvent largement récupérable. Chaque chunk complet est indépendant.
-- Les chunks carvés depuis du non alloué peuvent être enveloppés avec un en-tête de fichier synthétique et parsés. C'est comme ça que libevtx et python-evtx récupèrent depuis `pagefile.sys` (voir [parser pagefile](https://www.pagefilesysparser.com)) et les sweeps de carving de [dump RAM](https://www.ramparser.com).
+- Les chunks carvés depuis du non alloué peuvent être enveloppés avec un en-tête de fichier synthétique et parsés. C'est comme ça que libevtx et python-evtx récupèrent depuis `pagefile.sys` (voir [parser pagefile](https://www.pagefilesysparser.com/fr)) et les sweeps de carving de [dump RAM](https://www.ramparser.com/fr).
 - Un échec de parse d'un chunk ne signifie pas l'échec du fichier. Les parsers robustes passent au chunk suivant et signalent le mauvais séparément.
 - Le CRC32 du chunk est ce qui signale la falsification. Un enregistrement modifié qui ne recalcule pas le CRC est détectable. La plupart des attaquants ne s'embêtent pas parce qu'effacer le log (déclencher [1102](/en/blog/event-id-1102-cleared-log)) est le chemin plus facile. Les soigneux utilisent Phant0m, qui laisse le fichier complètement tranquille.
 

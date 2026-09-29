@@ -46,4 +46,4 @@ updated: "2026-05-24"
 
 如果你在[从一台运行中的主机收集 `.evtx`](/zh/blog/collecting-evtx-from-live-system)（KAPE、FTK Imager、`wevtutil`），那篇文章覆盖了四种标准方法以及各自的证据链取舍。
 
-EVTX 几乎从不是你唯一需要的产物。把它与 [registry](https://www.registryparser.com)、[MFT](https://www.mftparser.com)、[USN journal](https://www.usnparser.com)、[AmCache](https://www.amcacheparser.com)、[Shimcache](https://www.shimcacheparser.com)、[prefetch](https://www.prefetchparser.com)、[LNK](https://www.lnkparser.com) 解析器搭配使用。当你需要挖得更深时，[pagefile](https://www.pagefilesysparser.com) 与 [RAM dump](https://www.ramparser.com) 解析可以恢复磁盘日志已经丢失的内容。对于用户活动时间线，[SRUM](https://www.srumparser.com)、[jump lists](https://www.jumplistparser.com)、[recycle bin](https://www.recyclebinparser.com)、[recent file cache](https://www.recentfilecacheparser.com)、[browser history](https://www.browserforensics.app) 可以填补 EVTX 无法填补的空白。
+EVTX 几乎从不是你唯一需要的产物。[USN journal 记录的文件变更](https://www.usnparser.com/zh/blog/understanding-ntfs-usn-journal)是任何事件日志都看不到的；注册表、Prefetch、AmCache、LNK、SRUM 和内存转储可以填补 EVTX 无法填补的其余空白。

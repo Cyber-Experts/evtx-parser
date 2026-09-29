@@ -63,7 +63,7 @@ Si sovrappongono. Non sono la stessa cosa.
 | Livello di integrità | Sì | Sì |
 | Disponibile senza installazione | Sì | Richiede Sysmon |
 
-Quando entrambi sono presenti, [Sysmon 1](/it/blog/sysmon-event-id-1-process-create) è il record più ricco. `ParentCommandLine`, hash dell'immagine, `ProcessGuid` per catene parent-child stabili. Quando solo 4688 è presente, costruisci le catene con i PID, che Windows riusa, quindi una lunga timeline può contenere match falsi. Verifica sempre i link parent-child contro i timestamp. Quando non hai nessuno dei due (no Sysmon, no auditing della command-line), [AmCache](https://www.amcacheparser.com), [prefetch](https://www.prefetchparser.com) e il [journal USN](https://www.usnparser.com) sono la migliore prova di esecuzione successiva.
+Quando entrambi sono presenti, [Sysmon 1](/it/blog/sysmon-event-id-1-process-create) è il record più ricco. `ParentCommandLine`, hash dell'immagine, `ProcessGuid` per catene parent-child stabili. Quando solo 4688 è presente, costruisci le catene con i PID, che Windows riusa, quindi una lunga timeline può contenere match falsi. Verifica sempre i link parent-child contro i timestamp. Quando non hai nessuno dei due (no Sysmon, no auditing della command-line), AmCache, prefetch e il [journal USN](https://www.usnparser.com/it/blog/reconstruct-user-activity-timeline-usn-journal) sono la migliore prova di esecuzione successiva.
 
 ## I pattern che si guadagnano lo stipendio
 

@@ -81,11 +81,11 @@ Este canal é pequeno e lê-se depressa. Adicione-o à sua checklist de triagem 
 
 Quando o log de Security desapareceu ou foi adulterado, os artefactos que sobrevivem são os suspeitos do costume:
 
-- A [Master File Table](https://www.mftparser.com) para o próprio ficheiro EVTX. Os timestamps `$STANDARD_INFORMATION` e `$FILE_NAME` vão mostrar quando o ficheiro foi reescrito por limpeza.
-- O [USN journal](https://www.usnparser.com) para eventos `DATA_OVERWRITE` e `DATA_TRUNCATION` em `Security.evtx`. Estes mostram a limpeza em termos de journal com timestamps de alta resolução.
-- [Prefetch](https://www.prefetchparser.com) para execução de `wevtutil.exe`, ou para runs de `powershell.exe` que alinharam com a suposta limpeza.
-- [Shimcache](https://www.shimcacheparser.com) e [AmCache](https://www.amcacheparser.com) para ferramentas que o operador trouxe para fazer a limpeza, particularmente se usaram um binário não-padrão.
-- Artefactos de [RAM dump](https://www.ramparser.com) se capturou um. A cache em memória do serviço de event log vai ter registos que nunca foram flushed para disco.
+- A [Master File Table](https://www.mftparser.com/pt/blog/timestamps) para o próprio ficheiro EVTX. Os timestamps `$STANDARD_INFORMATION` e `$FILE_NAME` vão mostrar quando o ficheiro foi reescrito por limpeza.
+- O [USN journal](https://www.usnparser.com/pt/blog/usn-reason-codes-forensic-analysis) para eventos `DATA_OVERWRITE` e `DATA_TRUNCATION` em `Security.evtx`. Estes mostram a limpeza em termos de journal com timestamps de alta resolução.
+- Prefetch para execução de `wevtutil.exe`, ou para runs de `powershell.exe` que alinharam com a suposta limpeza.
+- Shimcache e AmCache para ferramentas que o operador trouxe para fazer a limpeza, particularmente se usaram um binário não-padrão.
+- Artefactos de RAM dump se capturou um. A cache em memória do serviço de event log vai ter registos que nunca foram flushed para disco.
 
 O log de Security é uma fonte. Trate-o como uma fonte. A investigação que depende só dele está a um ficheiro adulterado de ser inútil. O [parser neste site](https://www.evtxparser.com) sinaliza mismatches de CRC de chunk e lacunas de RecordID na sua saída, que é a verificação barata de primeira passagem para saber se está a olhar para um log adulterado antes de investir uma hora a lê-lo.
 

@@ -91,7 +91,7 @@ Ein Host mit deployedem `sysmon-modular`, allen fünf Core-EIDs loggend, EID 7 a
 - Jede Datei-Erstellung in `%TEMP%` und `%APPDATA%`.
 - Jede DNS-Abfrage mit dem anfragenden Prozess.
 
-Die Eindringungs-Story liest sich selbst aus diesen Daten. Sie müssen nicht raten. Sie müssen nicht carven. Sie lesen sie von oben nach unten, und die Lücken in der Story sind die Fragen, die zu jagen sind. Cross-referenzieren Sie mit [AmCache](https://www.amcacheparser.com) und [Prefetch](https://www.prefetchparser.com) für Binär-Ausführungsbeweise, der [Registry](https://www.registryparser.com) für Persistenz und dem [USN-Journal](https://www.usnparser.com) für die Dateisystem-Mutationen, die Sysmons EID 11 verpasst haben könnte, wenn sein Filter aus war. Der Parser auf dieser Seite liest Sysmon-Channels mit derselben Treue wie Security.evtx.
+Die Eindringungs-Story liest sich selbst aus diesen Daten. Sie müssen nicht raten. Sie müssen nicht carven. Sie lesen sie von oben nach unten, und die Lücken in der Story sind die Fragen, die zu jagen sind. Cross-referenzieren Sie mit AmCache und [Prefetch](https://www.prefetchparser.com/de/blog/prefetch-proof-of-execution) für Binär-Ausführungsbeweise, der Registry für Persistenz und dem [USN-Journal](https://www.usnparser.com/de/blog/usn-reason-codes-forensic-analysis) für die Dateisystem-Mutationen, die Sysmons EID 11 verpasst haben könnte, wenn sein Filter aus war. Der Parser auf dieser Seite liest Sysmon-Channels mit derselben Treue wie Security.evtx.
 
 Ohne Sysmon haben Sie `Security.evtx` und eine Wunschliste.
 

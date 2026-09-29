@@ -81,11 +81,11 @@ Ce canal est petit et se lit vite. Ajoutez-le à votre checklist de triage par d
 
 Quand le journal Security est parti ou trafiqué, les artefacts qui survivent sont les suspects habituels :
 
-- La [Master File Table](https://www.mftparser.com) pour le fichier EVTX lui-même. Les horodatages `$STANDARD_INFORMATION` et `$FILE_NAME` montreront quand le fichier a été réécrit par effacement.
-- Le [journal USN](https://www.usnparser.com) pour les événements `DATA_OVERWRITE` et `DATA_TRUNCATION` sur `Security.evtx`. Ceux-ci montrent l'effacement en termes journal avec des horodatages haute résolution.
-- Le [Prefetch](https://www.prefetchparser.com) pour l'exécution de `wevtutil.exe`, ou pour les exécutions de `powershell.exe` qui s'alignent avec l'effacement suspecté.
-- [Shimcache](https://www.shimcacheparser.com) et [AmCache](https://www.amcacheparser.com) pour l'outillage que l'opérateur a apporté pour effectuer l'effacement, en particulier s'il a utilisé un binaire non par défaut.
-- Les artefacts de [dump RAM](https://www.ramparser.com) si vous en avez capturé un. Le cache en mémoire du service event log aura des enregistrements qui n'ont jamais été flushés sur disque.
+- La [Master File Table](https://www.mftparser.com/fr/blog/timestamps) pour le fichier EVTX lui-même. Les horodatages `$STANDARD_INFORMATION` et `$FILE_NAME` montreront quand le fichier a été réécrit par effacement.
+- Le [journal USN](https://www.usnparser.com/fr/blog/usn-reason-codes-forensic-analysis) pour les événements `DATA_OVERWRITE` et `DATA_TRUNCATION` sur `Security.evtx`. Ceux-ci montrent l'effacement en termes journal avec des horodatages haute résolution.
+- Le Prefetch pour l'exécution de `wevtutil.exe`, ou pour les exécutions de `powershell.exe` qui s'alignent avec l'effacement suspecté.
+- Shimcache et AmCache pour l'outillage que l'opérateur a apporté pour effectuer l'effacement, en particulier s'il a utilisé un binaire non par défaut.
+- Les artefacts de dump RAM si vous en avez capturé un. Le cache en mémoire du service event log aura des enregistrements qui n'ont jamais été flushés sur disque.
 
 Le journal Security est une source. Traitez-le comme une source. L'enquête qui dépend de lui seul est à un fichier altéré d'être inutile. Le [parser de ce site](https://www.evtxparser.com) signale les mismatches CRC de chunk et les trous de RecordID dans sa sortie, ce qui est la vérification de premier passage la moins chère pour savoir si vous regardez un journal altéré avant d'y avoir investi une heure de lecture.
 

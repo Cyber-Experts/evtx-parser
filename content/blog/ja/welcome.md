@@ -46,4 +46,4 @@ updated: "2026-05-24"
 
 [ライブ ホストから `.evtx` を収集する](/ja/blog/collecting-evtx-from-live-system)(KAPE、FTK Imager、`wevtutil`)場合は、その記事で 4 つの標準的な手法と、それぞれの証拠保全上のトレードオフを扱っています。
 
-EVTX が必要な唯一のアーティファクトであることは稀です。[registry](https://www.registryparser.com)、[MFT](https://www.mftparser.com)、[USN journal](https://www.usnparser.com)、[AmCache](https://www.amcacheparser.com)、[Shimcache](https://www.shimcacheparser.com)、[prefetch](https://www.prefetchparser.com)、[LNK](https://www.lnkparser.com) のパーサーと組み合わせてください。さらに深く掘る必要があるときは、[pagefile](https://www.pagefilesysparser.com) と [RAM dump](https://www.ramparser.com) の解析が、ディスク常駐ログでは失われたものを復元します。ユーザー活動のタイムラインには、[SRUM](https://www.srumparser.com)、[jump lists](https://www.jumplistparser.com)、[recycle bin](https://www.recyclebinparser.com)、[recent file cache](https://www.recentfilecacheparser.com)、[browser history](https://www.browserforensics.app) が、EVTX では埋められない空白を埋めます。
+EVTX が必要な唯一のアーティファクトであることは稀です。[USN ジャーナルが記録するファイル変更](https://www.usnparser.com/ja/blog/understanding-ntfs-usn-journal)は、どのイベントログにも残りません。レジストリ、Prefetch、AmCache、LNK、SRUM、メモリダンプが、EVTX では埋められない残りの空白を埋めます。

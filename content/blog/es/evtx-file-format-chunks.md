@@ -52,7 +52,7 @@ EvtxECmd, hayabusa y python-evtx recuperan chunks dirty con tolerancia variable.
 ## Implicaciones prácticas
 
 - Un `.evtx` truncado, común cuando [recoges desde un host vivo](/es/blog/collecting-evtx-from-live-system), suele ser mayormente recuperable. Cada chunk completo es independiente.
-- Los chunks carvados desde no asignado pueden envolverse con una cabecera de archivo sintética y parsearse. Así libevtx y python-evtx recuperan de `pagefile.sys` (ver [parser de pagefile](https://www.pagefilesysparser.com)) y de pasadas de carving de [volcado RAM](https://www.ramparser.com).
+- Los chunks carvados desde no asignado pueden envolverse con una cabecera de archivo sintética y parsearse. Así libevtx y python-evtx recuperan de `pagefile.sys` (ver [parser de pagefile](https://www.pagefilesysparser.com/es)) y de pasadas de carving de volcado RAM.
 - Un parseo fallido de un chunk no significa fallo del archivo. Los parsers robustos siguen al siguiente chunk y reportan el malo por separado.
 - El CRC32 del chunk es lo que marca manipulación. Un registro modificado que no recompute el CRC es detectable. La mayoría de atacantes no se molestan porque borrar el log (disparando [1102](/es/blog/event-id-1102-cleared-log)) es el camino más fácil. Los cuidadosos usan Phant0m, que deja el archivo en paz por completo.
 

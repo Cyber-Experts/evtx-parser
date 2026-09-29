@@ -91,7 +91,7 @@ Un hôte avec `sysmon-modular` déployé, tous les cinq EIDs core loggant, EID 7
 - Chaque création de fichier dans `%TEMP%` et `%APPDATA%`.
 - Chaque requête DNS avec le processus demandeur.
 
-L'histoire de l'intrusion se lit toute seule à partir de ces données. Vous n'avez pas besoin de deviner. Vous n'avez pas besoin de carver. Vous la lisez, de haut en bas, et les lacunes dans l'histoire sont les questions à poursuivre. Croisez les références avec [AmCache](https://www.amcacheparser.com) et [Prefetch](https://www.prefetchparser.com) pour les preuves d'exécution binaire, le [registre](https://www.registryparser.com) pour la persistance, et le [journal USN](https://www.usnparser.com) pour les mutations de système de fichiers que l'EID 11 de Sysmon a peut-être manquées si son filtre était désactivé. Le parser sur ce site lit les canaux Sysmon avec la même fidélité que Security.evtx.
+L'histoire de l'intrusion se lit toute seule à partir de ces données. Vous n'avez pas besoin de deviner. Vous n'avez pas besoin de carver. Vous la lisez, de haut en bas, et les lacunes dans l'histoire sont les questions à poursuivre. Croisez les références avec AmCache et [Prefetch](https://www.prefetchparser.com/fr/blog/prefetch-proof-of-execution) pour les preuves d'exécution binaire, le registre pour la persistance, et le [journal USN](https://www.usnparser.com/fr/blog/usn-reason-codes-forensic-analysis) pour les mutations de système de fichiers que l'EID 11 de Sysmon a peut-être manquées si son filtre était désactivé. Le parser sur ce site lit les canaux Sysmon avec la même fidélité que Security.evtx.
 
 Sans Sysmon, vous avez `Security.evtx` et une wishlist.
 

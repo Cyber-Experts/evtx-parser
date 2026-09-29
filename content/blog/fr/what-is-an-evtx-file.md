@@ -81,7 +81,7 @@ Pour un parcours complet de chaque méthode avec les commandes réellement à ex
 
 ## Quand vous rencontrez du .evtx sur le terrain
 
-- **Réponse à incident.** Extrait d'un hôte compromis dans le cadre du triage. Les canaux d'intérêt dépendent de la piste : `Security` pour les connexions et l'abus de privilèges, `Sysmon` pour les arborescences de processus, `PowerShell` pour le contenu des scriptblocks. Combinez avec les parsers [registre](https://www.registryparser.com), [MFT](https://www.mftparser.com), [journal USN](https://www.usnparser.com), [AmCache](https://www.amcacheparser.com) et [prefetch](https://www.prefetchparser.com) pour la corroboration d'exécution.
+- **Réponse à incident.** Extrait d'un hôte compromis dans le cadre du triage. Les canaux d'intérêt dépendent de la piste : `Security` pour les connexions et l'abus de privilèges, `Sysmon` pour les arborescences de processus, `PowerShell` pour le contenu des scriptblocks. Combinez avec les parsers registre, MFT, [journal USN](https://www.usnparser.com/fr/blog/understanding-ntfs-usn-journal), AmCache et prefetch pour la corroboration d'exécution.
 - **Audits de conformité.** Les auditeurs demandent `Security.evtx` sur une fenêtre définie pour vérifier l'historique des connexions et des changements de politique.
 - **Débogage applicatif.** `Application.evtx` ainsi que les canaux par éditeur contiennent souvent un contexte de crash et d'erreur que les propres journaux de l'application n'ont pas.
 - **Threat hunting.** Des règles long-tail contre des `.evtx` archivés (ou un SIEM transférant le canal en direct) capturent des patterns à combustion lente comme du RDP hors heures ou des dérives de `LogonType` sur des comptes de service.

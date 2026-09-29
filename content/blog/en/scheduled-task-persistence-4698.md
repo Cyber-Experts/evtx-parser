@@ -67,7 +67,7 @@ A created task is intent; a fired task is action. Chain:
 4688              the process the task spawned (with command line)
 ```
 
-The Security **4688** process-creation event for the spawned process closes the loop, showing the actual command line that executed — see [4688 process creation](/en/blog/event-id-4688-process-creation).
+The Security **4688** process-creation event for the spawned process closes the loop, showing the actual command line that executed — see [4688 process creation](/en/blog/event-id-4688-process-creation). If the operator later deletes the task, the SOFTWARE hive often still has [the TaskCache keys that outlive a deleted task](https://www.registryparser.com/en/blog/taskcache-plugin), with the task's GUID and its last-run timestamps.
 
 ## Hunt checklist
 

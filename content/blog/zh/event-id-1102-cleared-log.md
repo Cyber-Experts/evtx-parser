@@ -40,8 +40,9 @@ Event ID **1102** 是 Windows 在有人清除审计日志时写入 [`Security` �
 - 其他通道。`System`、`Application`、`PowerShell/Operational`、`Sysmon/Operational`、`TaskScheduler/Operational`、转发事件通道。这些都不会因 Security 的清除而被清。
 - 转发事件。如果 Windows Event Forwarding 把 Security 发到收集器，被清除的记录早已在另一台主机上。原始的 RecordID 与时间戳得以保留。
 - 磁盘上的文件本身。被清除的 `Security.evtx` 会被替换为新文件。旧文件的簇通常仍残留在未分配空间中。EVTX 记录可从这些簇中[干净地雕刻出来](/zh/blog/carve-deleted-evtx-records)。
-- 文件替换对应的 [USN journal](https://www.usnparser.com) 条目。清除这一行为本身就留下文件系统级的工件。
-- 新文件的 [MFT](https://www.mftparser.com) 项，其创建时间戳应当与 1102 在秒级吻合。
+- 文件替换对应的 [USN journal](https://www.usnparser.com/zh/blog/understanding-ntfs-usn-journal) 条目。清除这一行为本身就留下文件系统级的工件。
+- 新文件的 MFT 项，其创建时间戳应当与 1102 在秒级吻合。
+- [日志被清除后 Shimcache 还保留什么](https://www.shimcacheparser.com/zh/blog/shimcache-anti-forensics)：执行清除操作的二进制文件路径通常仍保留在 SYSTEM hive 的 AppCompatCache 中。
 
 一次"成功"的日志清除，远不像攻击者期望的那么干净。
 
@@ -121,7 +122,7 @@ index=wineventlog ( EventCode=1102 OR EventCode=104 OR EventCode=4719 OR EventCo
 
 ## 在文件包中发现它时
 
-当你把一个 [.evtx 文件加载到取证工具](/zh/blog/how-to-open-an-evtx-file) 中，最值得跑的前两个搜索是 `EventID:1102` 与 `EventID:104`。任一存在，你手上的日志就有已知缺口。基于它构建的任何时间线都不完整。在报告中大声写明这一点。然后去看那些幸存的：[registry](https://www.registryparser.com)、[USN journal](https://www.usnparser.com)、[MFT](https://www.mftparser.com)、[prefetch](https://www.prefetchparser.com)、[AmCache](https://www.amcacheparser.com)。它们合在一起，能重建 1102 试图抹去的大部分内容。
+当你把一个 [.evtx 文件加载到取证工具](/zh/blog/how-to-open-an-evtx-file) 中，最值得跑的前两个搜索是 `EventID:1102` 与 `EventID:104`。任一存在，你手上的日志就有已知缺口。基于它构建的任何时间线都不完整。在报告中大声写明这一点。然后去看那些幸存的：registry、USN journal、MFT、prefetch、AmCache。它们合在一起，能重建 1102 试图抹去的大部分内容。
 
 像 `Invoke-Phant0m` 这种工具通过挂起事件服务的线程而不是清日志来彻底绕过 1102。如果你看到 Security 出现长达数小时的沉默却没有 1102，也没有系统关机，那就是同一个问题的另一种形态。
 

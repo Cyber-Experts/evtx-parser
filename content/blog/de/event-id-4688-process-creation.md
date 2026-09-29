@@ -63,7 +63,7 @@ Sie überlappen. Sie sind nicht dasselbe.
 | Integritätslevel | Ja | Ja |
 | Ohne Installation verfügbar | Ja | Benötigt Sysmon |
 
-Wenn beide vorhanden sind, ist [Sysmon 1](/de/blog/sysmon-event-id-1-process-create) der reichere Datensatz. `ParentCommandLine`, Image-Hashes, `ProcessGuid` für stabile Parent-Child-Ketten. Wenn nur 4688 da ist, baust du Ketten mit PIDs, die Windows wiederverwendet, also kann eine lange Timeline falsche Treffer enthalten. Querprüfe Parent-Child-Links immer gegen Zeitstempel. Wenn du keins von beiden hast (kein Sysmon, kein Command-Line-Auditing), sind [AmCache](https://www.amcacheparser.com), [Prefetch](https://www.prefetchparser.com) und das [USN-Journal](https://www.usnparser.com) die nächstbesten Ausführungsbeweise.
+Wenn beide vorhanden sind, ist [Sysmon 1](/de/blog/sysmon-event-id-1-process-create) der reichere Datensatz. `ParentCommandLine`, Image-Hashes, `ProcessGuid` für stabile Parent-Child-Ketten. Wenn nur 4688 da ist, baust du Ketten mit PIDs, die Windows wiederverwendet, also kann eine lange Timeline falsche Treffer enthalten. Querprüfe Parent-Child-Links immer gegen Zeitstempel. Wenn du keins von beiden hast (kein Sysmon, kein Command-Line-Auditing), sind [AmCache](https://www.amcacheparser.com/de), [Prefetch](https://www.prefetchparser.com/de/blog/prefetch-proof-of-execution) und das [USN-Journal](https://www.usnparser.com/de/blog/reconstruct-user-activity-timeline-usn-journal) die nächstbesten Ausführungsbeweise.
 
 ## Die Muster, die sich lohnen
 

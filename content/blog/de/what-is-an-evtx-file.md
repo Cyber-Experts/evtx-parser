@@ -81,7 +81,7 @@ Eine ausführliche Erklärung jeder Methode mit den Befehlen, die du tatsächlic
 
 ## Wann dir .evtx in der Praxis begegnet
 
-- **Incident Response.** Im Rahmen der Triage von einem kompromittierten Host gezogen. Welche Kanäle relevant sind, hängt vom Ansatzpunkt ab: `Security` für Anmeldungen und Rechtemissbrauch, `Sysmon` für Prozessbäume, `PowerShell` für Scriptblock-Inhalte. Kombiniere mit [Registry](https://www.registryparser.com), [MFT](https://www.mftparser.com), [USN-Journal](https://www.usnparser.com), [AmCache](https://www.amcacheparser.com) und [Prefetch](https://www.prefetchparser.com) zur Ausführungs-Korroboration.
+- **Incident Response.** Im Rahmen der Triage von einem kompromittierten Host gezogen. Welche Kanäle relevant sind, hängt vom Ansatzpunkt ab: `Security` für Anmeldungen und Rechtemissbrauch, `Sysmon` für Prozessbäume, `PowerShell` für Scriptblock-Inhalte. Kombiniere mit Registry, MFT, [USN-Journal](https://www.usnparser.com/de/blog/understanding-ntfs-usn-journal), AmCache und Prefetch zur Ausführungs-Korroboration.
 - **Compliance-Audits.** Auditoren fordern `Security.evtx` über einen definierten Zeitraum an, um Anmelde- und Richtlinienänderungs-Historie zu prüfen.
 - **Anwendungs-Debugging.** `Application.evtx` plus herstellerspezifische Kanäle enthalten oft Crash- und Fehler-Kontext, den die eigenen Logs der Anwendung nicht haben.
 - **Threat Hunting.** Langfristige Regeln gegen archivierte `.evtx` (oder ein SIEM, das den Live-Kanal weiterleitet) finden langsam brennende Muster wie RDP außerhalb der Arbeitszeit oder Drift im `LogonType` von Dienstkonten.

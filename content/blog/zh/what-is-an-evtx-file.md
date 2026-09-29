@@ -81,7 +81,7 @@ Windows 在 XP 与 Server 2003 时代使用的旧 `.evt` 格式存在三大新�
 
 ## 在野外遇到 .evtx 的场合
 
-- **应急响应。** 作为分诊的一部分从被入侵的主机上提取。感兴趣的通道取决于线索：登录与特权滥用看 `Security`，进程树看 `Sysmon`，scriptblock 内容看 `PowerShell`。配合 [registry](https://www.registryparser.com)、[MFT](https://www.mftparser.com)、[USN journal](https://www.usnparser.com)、[AmCache](https://www.amcacheparser.com) 与 [prefetch](https://www.prefetchparser.com) 来印证执行。
+- **应急响应。** 作为分诊的一部分从被入侵的主机上提取。感兴趣的通道取决于线索：登录与特权滥用看 `Security`，进程树看 `Sysmon`，scriptblock 内容看 `PowerShell`。配合 registry、MFT、[USN journal](https://www.usnparser.com/zh/blog/understanding-ntfs-usn-journal)、AmCache 与 prefetch 来印证执行。
 - **合规审计。** 审计员请求特定时间窗的 `Security.evtx` 来核验登录与策略变更历史。
 - **应用调试。** `Application.evtx` 以及按厂商划分的通道，往往包含应用自身日志中没有的崩溃与错误上下文。
 - **威胁狩猎。** 针对归档的 `.evtx`（或转发实时通道的 SIEM）的长期规则，可以捕获缓慢推进的模式，比如深夜 RDP，或服务账户的 `LogonType` 漂移。

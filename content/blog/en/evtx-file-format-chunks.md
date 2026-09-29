@@ -52,7 +52,7 @@ EvtxECmd, hayabusa, and python-evtx all recover dirty chunks with varying tolera
 ## Practical implications
 
 - A truncated `.evtx`, common when you [collect from a live host](/en/blog/collecting-evtx-from-live-system), is often mostly recoverable. Every complete chunk is independent.
-- Carved-from-unallocated chunks can be wrapped with a synthetic file header and parsed. This is how libevtx and python-evtx recover from `pagefile.sys` (see [pagefile parser](https://www.pagefilesysparser.com)) and [RAM dump](https://www.ramparser.com) carving sweeps.
+- Carved-from-unallocated chunks can be wrapped with a synthetic file header and parsed. This is how libevtx and python-evtx recover from `pagefile.sys` (see the [pagefile.sys parser](https://www.pagefilesysparser.com/en)) and [RAM dump carving](https://www.ramparser.com/en) sweeps.
 - A failed parse of one chunk does not mean failure of the file. Robust parsers move on to the next chunk and report the bad one separately.
 - The chunk CRC32 is what flags tampering. A modified record that does not recompute the CRC is detectable. Most attackers do not bother because clearing the log (firing [1102](/en/blog/event-id-1102-cleared-log)) is the easier path. The careful ones use Phant0m, which leaves the file alone entirely.
 

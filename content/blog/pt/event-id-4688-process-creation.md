@@ -63,7 +63,7 @@ Sobrepõem-se. Não são iguais.
 | Integrity level | Sim | Sim |
 | Disponível sem instalar | Sim | Requer Sysmon |
 
-Quando ambos estão presentes, o [Sysmon 1](/pt/blog/sysmon-event-id-1-process-create) é o registo mais rico. `ParentCommandLine`, hashes de imagem, `ProcessGuid` para cadeias parent-child estáveis. Quando só o 4688 está presente, constrói cadeias com PIDs, que o Windows reutiliza, portanto uma timeline longa pode conter ligações falsas. Cruze sempre ligações parent-child com timestamps. Quando não tem nenhum (sem Sysmon, sem auditoria de linha de comandos), [AmCache](https://www.amcacheparser.com), [prefetch](https://www.prefetchparser.com) e o [USN journal](https://www.usnparser.com) são a melhor evidência de execução a seguir.
+Quando ambos estão presentes, o [Sysmon 1](/pt/blog/sysmon-event-id-1-process-create) é o registo mais rico. `ParentCommandLine`, hashes de imagem, `ProcessGuid` para cadeias parent-child estáveis. Quando só o 4688 está presente, constrói cadeias com PIDs, que o Windows reutiliza, portanto uma timeline longa pode conter ligações falsas. Cruze sempre ligações parent-child com timestamps. Quando não tem nenhum (sem Sysmon, sem auditoria de linha de comandos), AmCache, prefetch e o [USN journal](https://www.usnparser.com/pt/blog/reconstruct-user-activity-timeline-usn-journal) são a melhor evidência de execução a seguir.
 
 ## Os padrões que valem o seu lugar
 

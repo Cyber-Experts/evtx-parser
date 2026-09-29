@@ -103,7 +103,7 @@ Una compromissione dove script block logging era acceso vi dice, in ordine:
 3. Le cmdlet runtime del framework C2 (Invoke-Beacon, Invoke-Mimi, `Invoke-Kerberoast`, ogni nome di cmdlet offensivo comune e le sue varianti rinominate).
 4. I comandi hands-on-keyboard dell'operatore interattivo. Si leggono come una sessione shell registrata, perché è quello che sono.
 
-Cross-referenziate contro [Prefetch](https://www.prefetchparser.com) per trovare quando `powershell.exe` è girato, [file LNK](https://www.lnkparser.com) per i file che l'operatore ha aperto, [AmCache](https://www.amcacheparser.com) per l'hash del binario PowerShell stesso (viene rinominato a volte), e il [registry](https://www.registryparser.com) per lo stato GPO per confermare che il logging era davvero acceso al momento degli eventi che state leggendo.
+Cross-referenziate contro Prefetch per trovare quando `powershell.exe` è girato, file LNK per i file che l'operatore ha aperto, AmCache per l'hash del binario PowerShell stesso (viene rinominato a volte), e il registry per lo stato GPO per confermare che il logging era davvero acceso al momento degli eventi che state leggendo.
 
 Una compromissione dove script block logging era spento vi dice quasi niente su PowerShell, e molto sulla vostra postura di rilevamento. Sistemate quello prima.
 

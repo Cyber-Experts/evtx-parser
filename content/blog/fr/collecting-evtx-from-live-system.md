@@ -40,7 +40,7 @@ Cela vous donne un CSV, pas un `.evtx`. Pratique pour un triage ad hoc sur la ma
 
 Quand vous voulez le fichier, pas les enregistrements, FTK Imager est le cheval de trait. Ajoutez le disque vivant comme preuve (Physical Drive ou Logical Drive), naviguez jusqu'à `\Windows\System32\winevt\Logs\`, clic droit sur les fichiers de canal et Export Files. FTK lit les structures NTFS sous-jacentes directement, ce qui esquive le verrou du système de fichiers que tient le service EventLog. Il capture aussi les fichiers `Archive-*.evtx` archivés que `wevtutil epl` saute.
 
-Compromis : FTK lit des fichiers qui peuvent être en cours d'écriture. Le chunk de queue sur le canal actif peut être dirty. La plupart des parsers gèrent ça gracieusement (y compris le [parser navigateur de ce site](/fr/blog/how-to-open-an-evtx-file)) mais vérifiez sur l'établi avant de l'écrire dans un rapport. Les entrées correspondantes du [journal USN](https://www.usnparser.com) sont une corroboration utile quand vous soupçonnez le service EventLog d'avoir fait quelque chose de non standard durant l'acquisition.
+Compromis : FTK lit des fichiers qui peuvent être en cours d'écriture. Le chunk de queue sur le canal actif peut être dirty. La plupart des parsers gèrent ça gracieusement (y compris le [parser navigateur de ce site](/fr/blog/how-to-open-an-evtx-file)) mais vérifiez sur l'établi avant de l'écrire dans un rapport. Les entrées correspondantes du journal USN sont une corroboration utile quand vous soupçonnez le service EventLog d'avoir fait quelque chose de non standard durant l'acquisition.
 
 ## KAPE : collecte en masse à vitesse IR
 
@@ -50,7 +50,7 @@ Quand la mission a plus d'un hôte, le Kroll Artifact Parser and Extractor se re
 kape.exe --tsource C: --target EventLogs --tdest C:\triage
 ```
 
-Le target `EventLogs` balaie tous les `.evtx` sous `winevt\Logs\` (plus les anciens `.evt` et les copies sous `Windows.old`). Associez avec le module `!EZParser` ou `EvtxECmd` et KAPE lancera aussi EvtxECmd contre la collecte en sortant, vous donnant des CSV parsés à côté de la preuve brute. Tant que vous y êtes, les targets `RegistryHives`, `FileSystem` et `Prefetch` ramassent les données [registre](https://www.registryparser.com), [MFT](https://www.mftparser.com), [journal USN](https://www.usnparser.com) et [prefetch](https://www.prefetchparser.com) que vous voudrez de toute façon.
+Le target `EventLogs` balaie tous les `.evtx` sous `winevt\Logs\` (plus les anciens `.evt` et les copies sous `Windows.old`). Associez avec le module `!EZParser` ou `EvtxECmd` et KAPE lancera aussi EvtxECmd contre la collecte en sortant, vous donnant des CSV parsés à côté de la preuve brute. Tant que vous y êtes, les targets `RegistryHives`, `FileSystem` et `Prefetch` ramassent les données registre, MFT, journal USN et prefetch que vous voudrez de toute façon.
 
 La sortie de KAPE arrive avec des métadonnées de copy log. Cela compte pour la chaîne de garde plus que les gens ne lui en accordent.
 
@@ -58,7 +58,7 @@ La sortie de KAPE arrive avec des métadonnées de copy log. Cela compte pour la
 
 Pour une fidélité maximale, plongez sous la couche système de fichiers. Les `tsk_recover` et `icat` du Sleuth Kit, ou le `RawCopy.exe` de Joakim Schicht, ouvrent le volume via `\\.\PhysicalDriveN` ou `\\.\C:`, parcourent la MFT et émettent le contenu du fichier octet par octet. Le service EventLog ne peut pas bloquer ça parce que la lecture ne passe pas par l'API fichier Win32.
 
-Utilisez ceci quand un rootkit est dans le périmètre, quand vous avez de bonnes raisons de penser qu'un pilote filtre noyau intercepte les lectures de `\winevt\Logs\`, ou quand simplement vous ne faites pas confiance à l'OS en marche. Associez le résultat à un [dump RAM](https://www.ramparser.com) pris au même moment. Le service event log cache les enregistrements récents en mémoire, et un snapshot pris quelques minutes avant l'altération contient parfois des enregistrements qui ne sont jamais arrivés sur le disque.
+Utilisez ceci quand un rootkit est dans le périmètre, quand vous avez de bonnes raisons de penser qu'un pilote filtre noyau intercepte les lectures de `\winevt\Logs\`, ou quand simplement vous ne faites pas confiance à l'OS en marche. Associez le résultat à un [dump RAM](https://www.ramparser.com/fr/blog/magnet-ram-capture-guide) pris au même moment. Le service event log cache les enregistrements récents en mémoire, et un snapshot pris quelques minutes avant l'altération contient parfois des enregistrements qui ne sont jamais arrivés sur le disque.
 
 ## Lequel quand
 

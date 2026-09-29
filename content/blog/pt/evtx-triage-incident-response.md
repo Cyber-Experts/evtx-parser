@@ -37,7 +37,7 @@ O reflexo predefinido é fazer grep ao `Security.evtx` por `4624`. Deixei de faz
 
 O que abro primeiro, quando existe, é o `Sysmon%4Operational.evtx` filtrado a `EventID=1` (criação de processo) na janela suspeita. O Sysmon dá-lhe o processo parent, a linha de comando tal como invocada, o utilizador, o integrity level, e os hashes do parent e do filho. Isso é suficiente para ler uma história a partir do ecrã.
 
-Se o Sysmon não está presente (e num número deprimente de parques Windows corporativos ainda não está), o meu movimento seguinte é o `Security.evtx` filtrado a `4688` *com auditoria de linha de comandos ativada*. Se as linhas de comando não estão auditadas obtém o nome do programa nu, o que é mal útil — nesse ponto salto para AmCache, Prefetch e o [USN journal](https://www.usnparser.com) para reconstruir o que correu.
+Se o Sysmon não está presente (e num número deprimente de parques Windows corporativos ainda não está), o meu movimento seguinte é o `Security.evtx` filtrado a `4688` *com auditoria de linha de comandos ativada*. Se as linhas de comando não estão auditadas obtém o nome do programa nu, o que é mal útil — nesse ponto salto para AmCache, Prefetch e o USN journal para reconstruir o que correu.
 
 O corolário que vale a pena dizer alto: uma investigação EVTX sem Sysmon e sem linhas de comando `4688` é maioritariamente um jogo de adivinha. Se está a ler isto antes de um incidente, corrija isso primeiro.
 
@@ -76,20 +76,20 @@ A limpeza de event log (`1102`) é geralmente barulhenta, mas o apagamento selet
 
 Eventos reencaminhados (`Microsoft-Windows-EventLog%4ForwardedEvents`) preservam o RecordID do host de origem e os timestamps originais. Se tiver um subscriber WEC que sobreviveu ao incidente, essas cópias são por vezes o único registo intacto que resta.
 
-Se o log de Security mostra `1100` (shutdown do serviço de eventos) seguido por uma lacuna inexplicada, está a olhar para uma das tentativas mais limpas de limpar evidência. Cross-valide contra [hives do registry](https://www.registryparser.com), a [Master File Table](https://www.mftparser.com) e Prefetch.
+Se o log de Security mostra `1100` (shutdown do serviço de eventos) seguido por uma lacuna inexplicada, está a olhar para uma das tentativas mais limpas de limpar evidência. Cross-valide contra hives do registry, a Master File Table e Prefetch.
 
 ## Carving e recuperação, quando faltam registos
 
-Os registos EVTX podem ser recuperados por carving de disco não alocado e de [pagefile.sys](https://www.pagefilesysparser.com) quando o ficheiro ativo foi limpo ou rodado. O cabeçalho do registo (magic `2a 2a 00 00`) é distintivo o suficiente para o carving por assinatura funcionar razoavelmente bem. O `hayabusa` da Yamato Security e o `evtx_dump` ambos lidam com ficheiros malformados com streams de registo remendados.
+Os registos EVTX podem ser recuperados por carving de disco não alocado e de pagefile.sys quando o ficheiro ativo foi limpo ou rodado. O cabeçalho do registo (magic `2a 2a 00 00`) é distintivo o suficiente para o carving por assinatura funcionar razoavelmente bem. O `hayabusa` da Yamato Security e o `evtx_dump` ambos lidam com ficheiros malformados com streams de registo remendados.
 
-Se está a lidar com um host onde suspeita que o log foi adulterado, tente também recuperar registos EVTX a partir de um [RAM dump](https://www.ramparser.com). O serviço de event log faz cache em memória de registos recentes; um snapshot tirado perto do incidente por vezes contém registos que nunca chegaram a disco.
+Se está a lidar com um host onde suspeita que o log foi adulterado, tente também recuperar registos EVTX a partir de um RAM dump. O serviço de event log faz cache em memória de registos recentes; um snapshot tirado perto do incidente por vezes contém registos que nunca chegaram a disco.
 
 ## Para onde ir a partir de um hit
 
 Um único evento raramente fecha um caso. Os pontos de pivot a que recorro, por ordem:
 
 - Um `4624` suspeito → procure o `4672` correspondente, as falhas `4625` precedentes, e que processo foi criado com esse token depois (Sysmon 1 com `LogonId` correspondente).
-- Uma instalação de serviço `7045` ou `4697` → verifique `Microsoft-Windows-TaskScheduler%4Operational.evtx` para tarefas de seguimento, e o [registry](https://www.registryparser.com) em `HKLM\SYSTEM\CurrentControlSet\Services\` para o caminho do binário.
+- Uma instalação de serviço `7045` ou `4697` → verifique `Microsoft-Windows-TaskScheduler%4Operational.evtx` para tarefas de seguimento, e o registry em `HKLM\SYSTEM\CurrentControlSet\Services\` para o caminho do binário.
 - Um Sysmon 10 contra `lsass.exe` → árvore de processos do processo requisitante, drops de ficheiros no diretório de trabalho, ligações de rede para destinos não corporativos.
 - Um PowerShell 4104 com conteúdo ofuscado → descodifique numa sandbox, depois procure o mesmo payload a aterrar noutros hosts (a maioria dos atores enterprise reutiliza).
 

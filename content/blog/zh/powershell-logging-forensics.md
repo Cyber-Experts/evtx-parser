@@ -103,7 +103,7 @@ script block logging 开启的入侵按顺序告诉你：
 3. C2 框架的 runtime cmdlet（Invoke-Beacon、Invoke-Mimi、`Invoke-Kerberoast`，所有常见的攻击性 cmdlet 名称及其重命名变体）。
 4. 交互式操作员的 hands-on-keyboard 命令。它们读起来像录制的 shell 会话，因为它们就是。
 
-与 [Prefetch](https://www.prefetchparser.com) 交叉引用以查找 `powershell.exe` 何时运行，[LNK 文件](https://www.lnkparser.com)查找操作员打开的文件，[AmCache](https://www.amcacheparser.com)查找 PowerShell 二进制文件本身的 hash（它有时被重命名），以及[注册表](https://www.registryparser.com)查看 GPO 状态以确认在你正在阅读的事件时间日志记录确实开启。
+与 Prefetch 交叉引用以查找 `powershell.exe` 何时运行，LNK 文件查找操作员打开的文件，AmCache查找 PowerShell 二进制文件本身的 hash（它有时被重命名），以及注册表查看 GPO 状态以确认在你正在阅读的事件时间日志记录确实开启。
 
 script block logging 关闭的入侵几乎不告诉你关于 PowerShell 的任何信息，但告诉你很多关于你的检测态势的信息。先修复那个。
 

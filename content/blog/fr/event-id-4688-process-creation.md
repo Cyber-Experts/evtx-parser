@@ -63,7 +63,7 @@ Ils se recoupent. Ils ne sont pas identiques.
 | Niveau d'intégrité | Oui | Oui |
 | Disponible sans installation | Oui | Nécessite Sysmon |
 
-Quand les deux sont présents, [Sysmon 1](/fr/blog/sysmon-event-id-1-process-create) est l'enregistrement le plus riche. `ParentCommandLine`, hashes d'image, `ProcessGuid` pour des chaînes parent-enfant stables. Quand seul 4688 est présent, vous construisez des chaînes avec des PIDs, que Windows réutilise, donc une longue timeline peut contenir de faux appariements. Vérifiez toujours les liens parent-enfant par horodatage. Quand vous n'avez ni l'un ni l'autre (pas de Sysmon, pas d'audit de ligne de commande), [AmCache](https://www.amcacheparser.com), le [prefetch](https://www.prefetchparser.com) et le [journal USN](https://www.usnparser.com) sont la meilleure preuve d'exécution suivante.
+Quand les deux sont présents, [Sysmon 1](/fr/blog/sysmon-event-id-1-process-create) est l'enregistrement le plus riche. `ParentCommandLine`, hashes d'image, `ProcessGuid` pour des chaînes parent-enfant stables. Quand seul 4688 est présent, vous construisez des chaînes avec des PIDs, que Windows réutilise, donc une longue timeline peut contenir de faux appariements. Vérifiez toujours les liens parent-enfant par horodatage. Quand vous n'avez ni l'un ni l'autre (pas de Sysmon, pas d'audit de ligne de commande), [AmCache](https://www.amcacheparser.com/fr), le [prefetch](https://www.prefetchparser.com/fr/blog/prefetch-proof-of-execution) et le [journal USN](https://www.usnparser.com/fr/blog/reconstruct-user-activity-timeline-usn-journal) sont la meilleure preuve d'exécution suivante.
 
 ## Les motifs qui gagnent leur place
 

@@ -33,7 +33,7 @@ The next tier worth turning on:
 - **EID 13 — Registry value set**. Persistence via registry. Tune to the run keys, services, image file execution options, and the COM hijack paths.
 - **EID 17/18 — Named pipe created/connected**. Cobalt Strike beacons and many post-exploitation frameworks use named pipes for SMB and inter-process comms. The pipe names are often defaults that survive engagement-to-engagement.
 - **EID 22 — DNS query**. Outbound DNS with the requesting process. Catches DNS-based C2 (DGA, DNS tunnel) when EID 3 missed the connection because it never opened a TCP/UDP socket.
-- **EID 25 — Process tampering**. Image manipulation events ([process hollowing](https://www.reverseengineering.app/en/techniques/process-hollowing), [doppelganging](https://www.reverseengineering.app/en/techniques/process-doppelganging)). Sysmon 13+.
+- **EID 25 — Process tampering**. Image manipulation events ([process hollowing](https://www.reverseengineering.app/en/techniques/process-hollowing), doppelganging). Sysmon 13+.
 
 EID 12 (registry key/value create), 14 (registry key/value renamed), 15 (file stream created with FileCreateStreamHash) and 23 (file delete with archive) are useful in specific investigations but produce too much volume to log everywhere by default. Turn them on for a host you are watching closely or for specific paths.
 
@@ -91,7 +91,7 @@ A host with `sysmon-modular` deployed, all five core EIDs logging, EID 7 filtere
 - Every file creation in `%TEMP%` and `%APPDATA%`.
 - Every DNS query with the requesting process.
 
-The intrusion story reads itself off this data. You do not need to guess. You do not need to carve. You read it, top to bottom, and the gaps in the story are the questions to chase. Cross-reference with [AmCache](https://www.amcacheparser.com) and [Prefetch](https://www.prefetchparser.com) for binary execution evidence, the [registry](https://www.registryparser.com) for persistence, and the [USN journal](https://www.usnparser.com) for the file-system mutations that Sysmon's EID 11 may have missed if its filter was off. The [parser on this site](https://www.evtxparser.com) reads Sysmon channels with the same fidelity as Security.evtx.
+The intrusion story reads itself off this data. You do not need to guess. You do not need to carve. You read it, top to bottom, and the gaps in the story are the questions to chase. Cross-reference with AmCache and [Prefetch for binary execution evidence](https://www.prefetchparser.com/en/blog/prefetch-proof-of-execution), the registry for persistence, and the [USN journal for the file-system mutations](https://www.usnparser.com/en/blog/usn-reason-codes-forensic-analysis) that Sysmon's EID 11 may have missed if its filter was off. The [parser on this site](https://www.evtxparser.com) reads Sysmon channels with the same fidelity as Security.evtx.
 
 Without Sysmon, you have `Security.evtx` and a wishlist.
 

@@ -66,7 +66,7 @@ Les SACL qui gagnent leur place sur tout serveur :
 
 ### Lecture du hive SAM ou SYSTEM
 
-Tout 4663 avec `ObjectName` finissant par `\config\SAM`, `\config\SECURITY` ou `\config\SYSTEM`, où `ProcessName` n'est pas `services.exe`, `lsass.exe` ou `wininit.exe`, et `SubjectUserSid` n'est pas `S-1-5-18`. C'est `reg save HKLM\SAM`, `esentutl /y` contre une shadow copy, ou tout outil de credential dumping avec accès au hive niveau fichier. Recoupez avec le [registre](https://www.registryparser.com) pour tout fichier de hive de sauvegarde laissé derrière.
+Tout 4663 avec `ObjectName` finissant par `\config\SAM`, `\config\SECURITY` ou `\config\SYSTEM`, où `ProcessName` n'est pas `services.exe`, `lsass.exe` ou `wininit.exe`, et `SubjectUserSid` n'est pas `S-1-5-18`. C'est `reg save HKLM\SAM`, `esentutl /y` contre une shadow copy, ou tout outil de credential dumping avec accès au hive niveau fichier. Recoupez avec le [registre](https://www.registryparser.com/fr) pour tout fichier de hive de sauvegarde laissé derrière.
 
 ### Minidump LSASS écrit
 
@@ -183,6 +183,7 @@ Une SACL bien réglée sur cinq objets à haute valeur produit 50 à 200 enregis
 - Les handles fermés. 4663 se déclenche à l'*ouverture* du handle. Les événements de fermeture sont 4658, rarement utiles pour la détection d'attaques.
 - Les chemins réseau de façon transparente. L'accès SMB à un partage déclenche 4663 sur le *serveur*. Le client ne voit rien. Vous avez besoin de la collecte côté serveur.
 - L'accès échoué par défaut. Beaucoup de boutiques n'auditent que Success. Configurez Failure seulement si vous vous souciez vraiment des tentatives déjouées.
+- Tout ce qui n'est pas couvert par une SACL. La suppression d'un fichier sans audit configuré ne laisse aucun 4663, mais [le journal USN consigne quand même la suppression quand l'audit d'accès aux objets était désactivé](https://www.usnparser.com/fr/blog/recover-deleted-files-usn-journal), avec le nom du fichier et l'horodatage.
 
 ## Où 4663 s'insère dans une timeline
 

@@ -40,7 +40,7 @@ Ti dà un CSV, non un `.evtx`. Comodo per triage ad-hoc sulla macchina. Inutile 
 
 Quando vuoi il file, non i record, FTK Imager è il cavallo da tiro. Aggiungi il disco vivo come evidenza (Physical Drive o Logical Drive), naviga fino a `\Windows\System32\winevt\Logs\`, tasto destro sui file di canale ed Export Files. FTK legge le strutture NTFS sottostanti direttamente, scavalcando il lock del filesystem che il servizio EventLog tiene. Cattura anche i file `Archive-*.evtx` archiviati che `wevtutil epl` salta.
 
-Trade-off: FTK legge file che possono essere a metà scrittura. Il chunk di coda sul canale attivo può essere dirty. La maggior parte dei parser lo gestisce con eleganza (incluso il [parser browser di questo sito](/it/blog/how-to-open-an-evtx-file)) ma verifica sul banco prima di scriverlo in un report. Le voci corrispondenti del [journal USN](https://www.usnparser.com) sono una conferma utile quando sospetti che il servizio EventLog abbia fatto qualcosa di non standard durante l'acquisizione.
+Trade-off: FTK legge file che possono essere a metà scrittura. Il chunk di coda sul canale attivo può essere dirty. La maggior parte dei parser lo gestisce con eleganza (incluso il [parser browser di questo sito](/it/blog/how-to-open-an-evtx-file)) ma verifica sul banco prima di scriverlo in un report. Le voci corrispondenti del journal USN sono una conferma utile quando sospetti che il servizio EventLog abbia fatto qualcosa di non standard durante l'acquisizione.
 
 ## KAPE: raccolta massiva a velocità IR
 
@@ -50,7 +50,7 @@ Quando l'ingaggio ha più di un host, il Kroll Artifact Parser and Extractor si 
 kape.exe --tsource C: --target EventLogs --tdest C:\triage
 ```
 
-Il target `EventLogs` spazza ogni `.evtx` sotto `winevt\Logs\` (più i vecchi `.evt` e le copie in `Windows.old`). Abbinalo al modulo `!EZParser` o `EvtxECmd` e KAPE eseguirà anche EvtxECmd sulla raccolta in uscita, dandoti CSV parsati accanto alla prova grezza. Già che ci sei, i target `RegistryHives`, `FileSystem` e `Prefetch` raccolgono i dati di [registro](https://www.registryparser.com), [MFT](https://www.mftparser.com), [journal USN](https://www.usnparser.com) e [prefetch](https://www.prefetchparser.com) che vorrai comunque.
+Il target `EventLogs` spazza ogni `.evtx` sotto `winevt\Logs\` (più i vecchi `.evt` e le copie in `Windows.old`). Abbinalo al modulo `!EZParser` o `EvtxECmd` e KAPE eseguirà anche EvtxECmd sulla raccolta in uscita, dandoti CSV parsati accanto alla prova grezza. Già che ci sei, i target `RegistryHives`, `FileSystem` e `Prefetch` raccolgono i dati di registro, MFT, journal USN e prefetch che vorrai comunque.
 
 L'output di KAPE arriva con metadati di copy log. Conta per la catena di custodia più di quanto la gente gli riconosca.
 
@@ -58,7 +58,7 @@ L'output di KAPE arriva con metadati di copy log. Conta per la catena di custodi
 
 Per massima fedeltà, scendi sotto il livello del filesystem. I `tsk_recover` e `icat` del Sleuth Kit, o `RawCopy.exe` di Joakim Schicht, aprono il volume tramite `\\.\PhysicalDriveN` o `\\.\C:`, percorrono la MFT ed emettono il contenuto del file byte per byte. Il servizio EventLog non può bloccarlo perché la lettura non passa per l'API file Win32.
 
-Usa questo quando un rootkit è nel perimetro, quando hai motivo di pensare che un kernel filter driver stia intercettando letture di `\winevt\Logs\`, o quando semplicemente non ti fidi dell'OS in esecuzione. Abbina il risultato a un [dump RAM](https://www.ramparser.com) preso nello stesso momento. Il servizio event log mette in cache record recenti in memoria, e uno snapshot preso minuti prima della manomissione contiene a volte record che non sono mai arrivati sul disco.
+Usa questo quando un rootkit è nel perimetro, quando hai motivo di pensare che un kernel filter driver stia intercettando letture di `\winevt\Logs\`, o quando semplicemente non ti fidi dell'OS in esecuzione. Abbina il risultato a un dump RAM preso nello stesso momento. Il servizio event log mette in cache record recenti in memoria, e uno snapshot preso minuti prima della manomissione contiene a volte record che non sono mai arrivati sul disco.
 
 ## Quale quando
 

@@ -52,7 +52,7 @@ EvtxECmd、hayabusa、python-evtx はすべて、寛容度に違いはありま�
 ## 実用的な含意
 
 - 切り詰められた `.evtx` (多くの場合[ライブ ホストから収集](/ja/blog/collecting-evtx-from-live-system) するときに発生する) は、たいてい大部分が復元可能です。完全な各チャンクは独立しています。
-- 未割り当てからカービングされたチャンクは、合成ファイル ヘッダーでラップしてパースできます。これは libevtx と python-evtx が `pagefile.sys` ([pagefile parser](https://www.pagefilesysparser.com) 参照) と [RAM dump](https://www.ramparser.com) カービング スイープから復旧する方法です。
+- 未割り当てからカービングされたチャンクは、合成ファイル ヘッダーでラップしてパースできます。これは libevtx と python-evtx が `pagefile.sys` (pagefile parser 参照) と RAM dump カービング スイープから復旧する方法です。
 - 1 つのチャンクのパース失敗はファイルの失敗を意味しません。堅牢なパーサーは次のチャンクに進み、不良なものは別途報告します。
 - チャンク CRC32 が改ざんにフラグを立てます。CRC を再計算しない修正レコードは検知可能です。ほとんどの攻撃者はそうしません。ログをクリアする ([1102](/ja/blog/event-id-1102-cleared-log) を発火) 方が簡単な経路だからです。慎重な人は Phant0m を使い、ファイル自体には触れません。
 

@@ -141,7 +141,7 @@ The signal is *unexpected* recurrence or *novel* combinations, not raw volume.
 
 ## Reading at scale
 
-The [browser parser on this site](/en/blog/how-to-open-an-evtx-file) extracts these fields directly from the record's XML and exposes them in the table. Filter by `LogonType` via the timeline buckets and the text filter, pull the filtered set as CSV, then pivot on `SubjectUserSid` and `IpAddress` in your tool of choice. The full XML for each record is one click away. Pair it with [RDP cache artifacts](https://www.jumplistparser.com), [recent file](https://www.recentfilecacheparser.com) tracking, and [browser history](https://www.browserforensics.app) when the user account in question is a real user, not a service.
+The [browser parser on this site](/en/blog/how-to-open-an-evtx-file) extracts these fields directly from the record's XML and exposes them in the table. Filter by `LogonType` via the timeline buckets and the text filter, pull the filtered set as CSV, then pivot on `SubjectUserSid` and `IpAddress` in your tool of choice. The full XML for each record is one click away. Pair it with RDP cache artifacts, [RecentFileCache tracking](https://www.recentfilecacheparser.com/en), and [browser history](https://www.browserforensics.app/en) when the user account in question is a real user, not a service.
 
 ## Further reading
 

@@ -134,7 +134,7 @@ sourcetype=xmlwineventlog source="*Sysmon/Operational"
 
 Sysmon cattura solo ciò che la sua config gli dice. La config di default logga quasi niente. I riferimenti canonici sono `sysmon-config` di SwiftOnSecurity e `sysmon-modular` di Olaf Hartong. Senza una config vera in posto, i vostri record event 1 saranno scarsi, `CommandLine` può essere redatto da una regola `<CommandLine onmatch="exclude">`, e `Hashes` può mancare. Leggete la config Sysmon dell'host accanto ai suoi log. Il disallineamento tra ciò che un analista pensa che Sysmon stia loggando e ciò che logga davvero mi è costato ore più di una volta.
 
-Quando Sysmon non è installato affatto, ripiegate su [4688](/en/blog/event-id-4688-process-creation) con auditing di command line, poi [prefetch](https://www.prefetchparser.com), [AmCache](https://www.amcacheparser.com), e l'[USN journal](https://www.usnparser.com) per evidenza di esecuzione.
+Quando Sysmon non è installato affatto, ripiegate su [4688](/en/blog/event-id-4688-process-creation) con auditing di command line, poi prefetch, AmCache, e l'[USN journal](https://www.usnparser.com/it/blog/reconstruct-user-activity-timeline-usn-journal) per evidenza di esecuzione.
 
 ## Per approfondire
 

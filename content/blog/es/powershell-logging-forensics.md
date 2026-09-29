@@ -103,7 +103,7 @@ Un compromiso donde script block logging estaba activado te dice, en orden:
 3. Los cmdlets de runtime del framework C2 (Invoke-Beacon, Invoke-Mimi, `Invoke-Kerberoast`, cada nombre de cmdlet ofensivo común y sus variantes renombradas).
 4. Los comandos hands-on-keyboard del operador interactivo. Se leen como una sesión de shell grabada, porque eso es lo que son.
 
-Cruza-referencia contra [Prefetch](https://www.prefetchparser.com) para encontrar cuándo corrió `powershell.exe`, [archivos LNK](https://www.lnkparser.com) para archivos que el operador abrió, [AmCache](https://www.amcacheparser.com) para el hash del propio binario PowerShell (se renombra a veces), y el [registro](https://www.registryparser.com) para el estado de GPO para confirmar que el logging realmente estaba activado en el momento de los eventos que estás leyendo.
+Cruza-referencia contra [Prefetch](https://www.prefetchparser.com/es/blog/prefetch-proof-of-execution) para encontrar cuándo corrió `powershell.exe`, archivos LNK para archivos que el operador abrió, AmCache para el hash del propio binario PowerShell (se renombra a veces), y el registro para el estado de GPO para confirmar que el logging realmente estaba activado en el momento de los eventos que estás leyendo.
 
 Un compromiso donde script block logging estaba apagado te dice casi nada sobre PowerShell, y mucho sobre tu postura de detección. Arregla eso primero.
 

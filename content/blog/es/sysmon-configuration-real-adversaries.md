@@ -91,7 +91,7 @@ Un host con `sysmon-modular` desplegado, todos los cinco EIDs core logueando, EI
 - Cada creación de archivo en `%TEMP%` y `%APPDATA%`.
 - Cada consulta DNS con el proceso solicitante.
 
-La historia de la intrusión se lee sola de estos datos. No necesitas adivinar. No necesitas tallar. La lees, de arriba a abajo, y las brechas en la historia son las preguntas a perseguir. Cruza-referencia con [AmCache](https://www.amcacheparser.com) y [Prefetch](https://www.prefetchparser.com) para evidencia de ejecución de binarios, el [registro](https://www.registryparser.com) para persistencia, y el [USN journal](https://www.usnparser.com) para las mutaciones de sistema de archivos que el EID 11 de Sysmon puede haber perdido si su filtro estaba apagado. El parser en este sitio lee canales Sysmon con la misma fidelidad que Security.evtx.
+La historia de la intrusión se lee sola de estos datos. No necesitas adivinar. No necesitas tallar. La lees, de arriba a abajo, y las brechas en la historia son las preguntas a perseguir. Cruza-referencia con AmCache y [Prefetch](https://www.prefetchparser.com/es/blog/prefetch-proof-of-execution) para evidencia de ejecución de binarios, el registro para persistencia, y el [USN journal](https://www.usnparser.com/es/blog/usn-reason-codes-forensic-analysis) para las mutaciones de sistema de archivos que el EID 11 de Sysmon puede haber perdido si su filtro estaba apagado. El parser en este sitio lee canales Sysmon con la misma fidelidad que Security.evtx.
 
 Sin Sysmon, tienes `Security.evtx` y una lista de deseos.
 

@@ -11,7 +11,7 @@ tags:
 author: "Florian Amette"
 ---
 
-Das Security-Log eines belasteten Domain Controllers rollt in Stunden, nicht in Tagen. Die Standard-Kanalgröße ist 20 MB, was auf einem lauten Host ein paar tausend Datensätze sind. Wenn du [die Festplatte](https://www.diskimageparser.com) als Reaktion auf einen Vorfall sicherst, der vor drei Wochen begann, sind die Ereignisse, die du eigentlich wolltest, längst aus der Live-Datei gerollt und liegen in nicht zugewiesenem Speicher, im Pagefile und möglicherweise im Hibernation-File. Sie zurückzucarven gehört zur Routine jeder EVTX-getriebenen Untersuchung, und die meisten Verteidiger lassen es weg, weil sie die Live-Datei als Quelle der Wahrheit behandeln.
+Das Security-Log eines belasteten Domain Controllers rollt in Stunden, nicht in Tagen. Die Standard-Kanalgröße ist 20 MB, was auf einem lauten Host ein paar tausend Datensätze sind. Wenn du [die Festplatte](https://www.diskimageparser.com/de) als Reaktion auf einen Vorfall sicherst, der vor drei Wochen begann, sind die Ereignisse, die du eigentlich wolltest, längst aus der Live-Datei gerollt und liegen in nicht zugewiesenem Speicher, im Pagefile und möglicherweise im Hibernation-File. Sie zurückzucarven gehört zur Routine jeder EVTX-getriebenen Untersuchung, und die meisten Verteidiger lassen es weg, weil sie die Live-Datei als Quelle der Wahrheit behandeln.
 
 Das ist sie nicht. Die Live-Datei sind die letzten 20 MB. Die Festplatte hat den Rest.
 
@@ -47,9 +47,9 @@ Die Stellen, die einen Scan lohnen, nach Ertrag sortiert:
 
 - **Nicht zugewiesene Cluster auf dem Volume, das `%SystemRoot%\System32\winevt\Logs\` hostet**. Wenn eine EVTX-Datei rollt oder geleert wird, ist der alte Inhalt nicht zugewiesen. NTFS nullt nicht zugewiesene Cluster nicht, also sind die Bytes wiederherstellbar, bis sie wiederverwendet werden. Auf einem Server mit geringer Schreib-Churn kann das Wochen sein.
 - **Slack-Space in der Live-EVTX-Datei**. EVTX-Dateien werden in 64-KB-Chunks geschrieben. Der letzte Chunk der Datei ist oft teilweise gefüllt, und der Slack enthält die vorherige Generation von Daten, die in diese Bytes geschrieben wurden, bevor der aktuelle Chunk verkleinert wurde. Einen Scan wert.
-- **[pagefile.sys](https://www.pagefilesysparser.com)**. Der Event-Log-Dienst cacht aktuelle Datensätze und Templates im Speicher. Seiten, die diese Strukturen halten, werden bei Speicherdruck ausgelagert. Das Pagefile ist eine Goldmine für Datensätze, die nie auf Disk geflusht wurden, weil der Host abgestürzt oder beendet wurde, bevor sie es geschafft haben.
+- **[pagefile.sys](https://www.pagefilesysparser.com/de/blog/pagefile-forensics-techniques)**. Der Event-Log-Dienst cacht aktuelle Datensätze und Templates im Speicher. Seiten, die diese Strukturen halten, werden bei Speicherdruck ausgelagert. Das Pagefile ist eine Goldmine für Datensätze, die nie auf Disk geflusht wurden, weil der Host abgestürzt oder beendet wurde, bevor sie es geschafft haben.
 - **`hiberfil.sys`**. Komprimierter Snapshot des physischen Speichers zum Hibernation-Zeitpunkt. Mit `Volatility 3` oder Hibr2Bin dekomprimieren und den resultierenden Roh-RAM nach den Datensatz-Signaturen durchsuchen.
-- **[RAM-Dump](https://www.ramparser.com)**, der während der Live Response erfasst wurde. Das Working Set des Event-Log-Dienstes enthält aktuelle Datensätze und die Templates, die zum Rendern nötig sind.
+- **RAM-Dump**, der während der Live Response erfasst wurde. Das Working Set des Event-Log-Dienstes enthält aktuelle Datensätze und die Templates, die zum Rendern nötig sind.
 - **Shadow Copies (VSS)**. Alte Snapshots des Volumes enthalten alte Versionen der Live-EVTX-Dateien. `vshadow` oder `vssadmin list shadows` gefolgt von `mklink /d` zum Mounten des Shadows gibt dir eine Vorgenerationskopie der Datei mit den Datensätzen, die zum Shadow-Zeitpunkt live waren.
 
 VSS ist die hebelstärkste Quelle auf Hosts, die es aktiviert haben und auf VSS-Ebene nicht manipuliert wurden. Ein moderner Windows-Server hat typischerweise 7-30 Tage an Shadow Copies. Wenn der Vorfall vor drei Wochen war, hat der Shadow vom Vorfallszeitpunkt möglicherweise das Live-Log so, wie es damals existierte, unangetastet.
@@ -87,11 +87,11 @@ Gecarvte Datensätze gehen in dieselbe Timeline wie Live-Datensätze. Die Record
 
 Querverweise mit:
 
-- Den [Master File Table](https://www.mftparser.com)-Einträgen für `Security.evtx`, um zu sehen, wann die Datei durch Löschen oder Rollover neu geschrieben wurde.
-- Dem [USN-Journal](https://www.usnparser.com) für `DATA_OVERWRITE`-Ereignisse auf der EVTX-Datei, was hochauflösende Zeitstempel für jeden Rollover liefert.
-- [Prefetch](https://www.prefetchparser.com) für die Binaries, die während der Lücke liefen, da `Prefetch` unabhängig von `Security.evtx` ist und das Log-Löschen überlebt.
-- [AmCache](https://www.amcacheparser.com) und [Shimcache](https://www.shimcacheparser.com) für Erst-Ausführungs-Beweise.
-- Den [Registry](https://www.registryparser.com)-Hives in Shadow Copies für den Zustand zum Vorfallszeitpunkt.
+- Den Master File Table-Einträgen für `Security.evtx`, um zu sehen, wann die Datei durch Löschen oder Rollover neu geschrieben wurde.
+- Dem [USN-Journal](https://www.usnparser.com/de/blog/usn-reason-codes-forensic-analysis) für `DATA_OVERWRITE`-Ereignisse auf der EVTX-Datei, was hochauflösende Zeitstempel für jeden Rollover liefert.
+- Prefetch für die Binaries, die während der Lücke liefen, da `Prefetch` unabhängig von `Security.evtx` ist und das Log-Löschen überlebt.
+- AmCache und Shimcache für Erst-Ausführungs-Beweise.
+- Den Registry-Hives in Shadow Copies für den Zustand zum Vorfallszeitpunkt.
 
 Ein gecarvter Datensatz, der mit einem Prefetch-Eintrag und einem MFT-Zeitstempel auf einer verdächtigen Binary übereinstimmt, ist ein Befund. Ein einsam stehender gecarvter Datensatz ist ein Hinweis, dem man nachgehen sollte.
 

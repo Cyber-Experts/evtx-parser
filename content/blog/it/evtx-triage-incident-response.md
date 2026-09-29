@@ -37,7 +37,7 @@ Il riflesso di default è grepare `Security.evtx` per `4624`. Ho smesso di farlo
 
 Quello che apro per primo, quando esiste, è `Sysmon%4Operational.evtx` filtrato a `EventID=1` (process create) dentro la finestra sospetta. Sysmon vi dà il processo padre, la command line come invocata effettivamente, l'utente, l'integrity level, e gli hash sia del padre che del figlio. È abbastanza per leggere una storia dallo schermo.
 
-Se Sysmon non c'è (e su un numero deprimente di parchi Windows aziendali ancora non c'è), la mia mossa successiva è `Security.evtx` filtrato a `4688` *con auditing di command line abilitato*. Se le command line non sono auditate ottenete solo il nome del programma, che è appena utile, a quel punto salto ad AmCache, Prefetch e l'[USN journal](https://www.usnparser.com) per ricostruire cosa è girato.
+Se Sysmon non c'è (e su un numero deprimente di parchi Windows aziendali ancora non c'è), la mia mossa successiva è `Security.evtx` filtrato a `4688` *con auditing di command line abilitato*. Se le command line non sono auditate ottenete solo il nome del programma, che è appena utile, a quel punto salto ad AmCache, Prefetch e l'USN journal per ricostruire cosa è girato.
 
 Il corollario che vale la pena dire ad alta voce: un'indagine EVTX senza Sysmon e senza command line `4688` è in gran parte un gioco di indovinello. Se state leggendo questo prima di un incidente, sistemate quello prima.
 
@@ -76,20 +76,20 @@ Il clearing dell'event log (`1102`) è di solito rumoroso, ma la cancellazione s
 
 I forwarded events (`Microsoft-Windows-EventLog%4ForwardedEvents`) preservano il RecordID originale dell'host di origine e i timestamp originali. Se avete un subscriber WEC che è sopravvissuto all'incidente, quelle copie sono a volte l'unico record intatto rimasto.
 
-Se il Security log mostra `1100` (shutdown del servizio eventi) seguito da un gap inspiegato, state guardando uno dei tentativi più puliti di cancellare evidenze. Cross-validate contro [hive del registro](https://www.registryparser.com), la [Master File Table](https://www.mftparser.com), e Prefetch.
+Se il Security log mostra `1100` (shutdown del servizio eventi) seguito da un gap inspiegato, state guardando uno dei tentativi più puliti di cancellare evidenze. Cross-validate contro hive del registro, la Master File Table, e Prefetch.
 
 ## Carving e recupero, quando mancano record
 
-I record EVTX possono essere carvati da disco non allocato e da [pagefile.sys](https://www.pagefilesysparser.com) quando il file vivo è stato cancellato o ruotato. L'header del record (magic `2a 2a 00 00`) è abbastanza distintivo da rendere il signature carving ragionevolmente funzionante. `hayabusa` di Yamato Security ed `evtx_dump` gestiscono entrambi file malformati con stream di record rappezzati.
+I record EVTX possono essere carvati da disco non allocato e da pagefile.sys quando il file vivo è stato cancellato o ruotato. L'header del record (magic `2a 2a 00 00`) è abbastanza distintivo da rendere il signature carving ragionevolmente funzionante. `hayabusa` di Yamato Security ed `evtx_dump` gestiscono entrambi file malformati con stream di record rappezzati.
 
-Se avete a che fare con un host dove sospettate che il log sia stato manomesso, provate anche a recuperare record EVTX da un [dump RAM](https://www.ramparser.com). Il servizio event log cacha record recenti in memoria; uno snapshot preso vicino all'incidente a volte contiene record che non sono mai arrivati sul disco.
+Se avete a che fare con un host dove sospettate che il log sia stato manomesso, provate anche a recuperare record EVTX da un dump RAM. Il servizio event log cacha record recenti in memoria; uno snapshot preso vicino all'incidente a volte contiene record che non sono mai arrivati sul disco.
 
 ## Dove andare da un hit
 
 Un singolo evento raramente chiude un caso. I pivot a cui mi rivolgo, in ordine:
 
 - Un `4624` sospetto cercate il `4672` corrispondente, i fallimenti `4625` precedenti, e quale processo è stato creato con quel token successivamente (Sysmon 1 con `LogonId` corrispondente).
-- Un'installazione di servizio `7045` o `4697` controllate `Microsoft-Windows-TaskScheduler%4Operational.evtx` per task successivi, e il [registry](https://www.registryparser.com) `HKLM\SYSTEM\CurrentControlSet\Services\` per il path del binario.
+- Un'installazione di servizio `7045` o `4697` controllate `Microsoft-Windows-TaskScheduler%4Operational.evtx` per task successivi, e il registry `HKLM\SYSTEM\CurrentControlSet\Services\` per il path del binario.
 - Un Sysmon 10 contro `lsass.exe` albero dei processi del processo richiedente, drop di file nella working directory, connessioni di rete a destinazioni non-aziendali.
 - Un PowerShell 4104 con contenuto offuscato decodate in una sandbox, poi cercate lo stesso payload che atterra su altri host (la maggior parte degli attori enterprise riutilizza).
 

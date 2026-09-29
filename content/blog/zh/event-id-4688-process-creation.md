@@ -63,7 +63,7 @@ Event ID **4688**「已创建一个新进程」在每次进程被启动时触发
 | 完整性级别 | 是 | 是 |
 | 无需安装即可获得 | 是 | 需要 Sysmon |
 
-两者都在时，[Sysmon 1](/zh/blog/sysmon-event-id-1-process-create) 是更丰富的记录。`ParentCommandLine`、镜像哈希、用于稳定父子链的 `ProcessGuid`。只有 4688 时，你用 PID 串链，而 Windows 会复用 PID，因此长时间线里可能有错误匹配。务必用时间戳交叉核对父子关系。两个都没有时（无 Sysmon、无命令行审计），[AmCache](https://www.amcacheparser.com)、[prefetch](https://www.prefetchparser.com)、[USN journal](https://www.usnparser.com) 是次优的执行证据。
+两者都在时，[Sysmon 1](/zh/blog/sysmon-event-id-1-process-create) 是更丰富的记录。`ParentCommandLine`、镜像哈希、用于稳定父子链的 `ProcessGuid`。只有 4688 时，你用 PID 串链，而 Windows 会复用 PID，因此长时间线里可能有错误匹配。务必用时间戳交叉核对父子关系。两个都没有时（无 Sysmon、无命令行审计），AmCache、prefetch、[USN journal](https://www.usnparser.com/zh/blog/reconstruct-user-activity-timeline-usn-journal) 是次优的执行证据。
 
 ## 物有所值的模式
 

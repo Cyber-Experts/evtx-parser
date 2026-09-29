@@ -81,11 +81,11 @@ Event Log サービスが再起動されたとき (オペレーターが `Stop-S
 
 Security ログがなくなったり改ざんされたりしたとき、生き残るアーティファクトはおなじみの容疑者です:
 
-- EVTX ファイル自体の [Master File Table](https://www.mftparser.com)。`$STANDARD_INFORMATION` と `$FILE_NAME` のタイムスタンプは、ファイルがクリアで書き換えられた時刻を示します。
-- `Security.evtx` の `DATA_OVERWRITE` と `DATA_TRUNCATION` イベントの [USN journal](https://www.usnparser.com)。これらはクリアをジャーナル用語で高解像度タイムスタンプ付きで示します。
-- `wevtutil.exe` の実行、または疑わしいクリアと並んだ `powershell.exe` 実行の [Prefetch](https://www.prefetchparser.com)。
-- 攻撃者がクリアを実行するために持ち込んだツール、特にデフォルト以外のバイナリを使った場合の [Shimcache](https://www.shimcacheparser.com) と [AmCache](https://www.amcacheparser.com)。
-- 取得したなら、[RAM dump](https://www.ramparser.com) のアーティファクト。イベント ログ サービスのインメモリ キャッシュには、ディスクにフラッシュされなかったレコードが含まれます。
+- EVTX ファイル自体の [Master File Table](https://www.mftparser.com/ja/blog/timestamps)。`$STANDARD_INFORMATION` と `$FILE_NAME` のタイムスタンプは、ファイルがクリアで書き換えられた時刻を示します。
+- `Security.evtx` の `DATA_OVERWRITE` と `DATA_TRUNCATION` イベントの [USN journal](https://www.usnparser.com/ja/blog/usn-reason-codes-forensic-analysis)。これらはクリアをジャーナル用語で高解像度タイムスタンプ付きで示します。
+- `wevtutil.exe` の実行、または疑わしいクリアと並んだ `powershell.exe` 実行の Prefetch。
+- 攻撃者がクリアを実行するために持ち込んだツール、特にデフォルト以外のバイナリを使った場合の Shimcache と AmCache。
+- 取得したなら、RAM dump のアーティファクト。イベント ログ サービスのインメモリ キャッシュには、ディスクにフラッシュされなかったレコードが含まれます。
 
 Security ログは 1 つのソースです。1 つのソースとして扱ってください。それだけに依存する調査は、1 つの改ざんファイルで無用になります。[本サイトのパーサー](https://www.evtxparser.com) は出力でチャンク CRC ミスマッチと RecordID ギャップにフラグを立てます。これが、1 時間読む前に改ざんされたログを見ているかどうかの安価な一次チェックです。
 

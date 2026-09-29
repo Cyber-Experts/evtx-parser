@@ -40,8 +40,9 @@ Limpar o log de eventos em memória não toca em:
 - Outros canais. `System`, `Application`, `PowerShell/Operational`, `Sysmon/Operational`, `TaskScheduler/Operational`, canais de eventos reencaminhados. Nenhum destes é limpo por uma limpeza do Security.
 - Eventos reencaminhados. Se o Windows Event Forwarding está a enviar Security para um coletor, os registos limpos já estão noutro host. Os RecordIDs e timestamps originais são preservados.
 - O próprio ficheiro em disco. Um `Security.evtx` limpo é substituído por um ficheiro novo. Os clusters do ficheiro anterior frequentemente persistem em espaço não alocado. Os registos EVTX [recuperam-se limpamente](/pt/blog/carve-deleted-evtx-records) a partir desses clusters.
-- Entradas do [USN journal](https://www.usnparser.com) para a substituição do ficheiro. Mesmo o ato de limpar deixa artefactos ao nível do filesystem.
-- A entrada [MFT](https://www.mftparser.com) para o novo ficheiro, que carrega um timestamp de criação que deve coincidir com o 1102 ao segundo.
+- Entradas do [USN journal](https://www.usnparser.com/pt/blog/understanding-ntfs-usn-journal) para a substituição do ficheiro. Mesmo o ato de limpar deixa artefactos ao nível do filesystem.
+- A entrada MFT para o novo ficheiro, que carrega um timestamp de criação que deve coincidir com o 1102 ao segundo.
+- [O que o Shimcache guarda depois de os logs serem apagados](https://www.shimcacheparser.com/pt/blog/shimcache-anti-forensics): o caminho do binário que fez a limpeza sobrevive muitas vezes no AppCompatCache da hive SYSTEM.
 
 Uma "limpeza bem-sucedida" de log raramente é tão limpa como o atacante espera.
 
@@ -121,7 +122,7 @@ Não há razão segura para um 1102 em operação normal. Mesmo os legítimos de
 
 ## Quando encontra um no bundle
 
-Quando carrega um [ficheiro .evtx numa ferramenta forense](/pt/blog/how-to-open-an-evtx-file), as duas primeiras pesquisas que vale a pena correr são `EventID:1102` e `EventID:104`. Se alguma estiver presente, o log que tem em mãos tem lacunas conhecidas. Qualquer timeline construída a partir dele está incompleta. Anote-o de forma bem visível no relatório. Depois vá ver o que sobreviveu: o [registry](https://www.registryparser.com), [USN journal](https://www.usnparser.com), [MFT](https://www.mftparser.com), [prefetch](https://www.prefetchparser.com) e [AmCache](https://www.amcacheparser.com). Juntos reconstroem a maior parte do que o 1102 tentou apagar.
+Quando carrega um [ficheiro .evtx numa ferramenta forense](/pt/blog/how-to-open-an-evtx-file), as duas primeiras pesquisas que vale a pena correr são `EventID:1102` e `EventID:104`. Se alguma estiver presente, o log que tem em mãos tem lacunas conhecidas. Qualquer timeline construída a partir dele está incompleta. Anote-o de forma bem visível no relatório. Depois vá ver o que sobreviveu: o registry, USN journal, MFT, prefetch e AmCache. Juntos reconstroem a maior parte do que o 1102 tentou apagar.
 
 Ferramentas como o `Invoke-Phant0m` ignoram o 1102 por completo, suspendendo as threads do serviço de eventos em vez de limpar. Se vir um silêncio de várias horas no Security sem 1102 e sem shutdown do sistema, é a outra forma do mesmo problema.
 

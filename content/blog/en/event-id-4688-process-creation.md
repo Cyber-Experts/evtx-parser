@@ -63,7 +63,7 @@ They overlap. They are not the same.
 | Integrity level | Yes | Yes |
 | Available without install | Yes | Requires Sysmon |
 
-When both are present, [Sysmon 1](/en/blog/sysmon-event-id-1-process-create) is the richer record. `ParentCommandLine`, image hashes, `ProcessGuid` for stable parent-child chains. When only 4688 is present, you build chains with PIDs, which Windows reuses, so a long timeline can contain false matches. Always cross-check parent-child links against timestamps. When you have neither (no Sysmon, no command-line auditing), [AmCache](https://www.amcacheparser.com), [prefetch](https://www.prefetchparser.com), and the [USN journal](https://www.usnparser.com) are the next-best execution evidence.
+When both are present, [Sysmon 1](/en/blog/sysmon-event-id-1-process-create) is the richer record. `ParentCommandLine`, image hashes, `ProcessGuid` for stable parent-child chains. When only 4688 is present, you build chains with PIDs, which Windows reuses, so a long timeline can contain false matches. Always cross-check parent-child links against timestamps. When you have neither (no Sysmon, no command-line auditing), [AmCache](https://www.amcacheparser.com/en), [Prefetch execution records](https://www.prefetchparser.com/en/blog/prefetch-proof-of-execution), and the [USN journal's file-activity timeline](https://www.usnparser.com/en/blog/reconstruct-user-activity-timeline-usn-journal) are the next-best execution evidence.
 
 ## The patterns that earn their keep
 

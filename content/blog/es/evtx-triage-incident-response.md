@@ -37,7 +37,7 @@ El reflejo por defecto es grepear `Security.evtx` por `4624`. He dejado de hacer
 
 Lo que abro primero, cuando existe, es `Sysmon%4Operational.evtx` filtrado a `EventID=1` (process create) dentro de la ventana sospechada. Sysmon te da el proceso padre, la línea de comandos tal como se invocó realmente, el usuario, el integrity level, y los hashes tanto del padre como del hijo. Eso es suficiente para leer una historia de la pantalla.
 
-Si Sysmon no está presente (y en un número deprimente de estados Windows corporativos todavía no lo está), mi siguiente movimiento es `Security.evtx` filtrado a `4688` *con auditoría de línea de comandos habilitada*. Si las líneas de comando no están auditadas obtienes el nombre del programa solo, que es apenas útil, en ese punto salto a AmCache, Prefetch y el [USN journal](https://www.usnparser.com) para reconstruir qué se ejecutó.
+Si Sysmon no está presente (y en un número deprimente de estados Windows corporativos todavía no lo está), mi siguiente movimiento es `Security.evtx` filtrado a `4688` *con auditoría de línea de comandos habilitada*. Si las líneas de comando no están auditadas obtienes el nombre del programa solo, que es apenas útil, en ese punto salto a AmCache, Prefetch y el USN journal para reconstruir qué se ejecutó.
 
 El corolario que vale la pena decir en voz alta: una investigación EVTX sin Sysmon y sin líneas de comando `4688` es en gran parte un juego de adivinanzas. Si estás leyendo esto antes de un incidente, arregla eso primero.
 
@@ -76,20 +76,20 @@ El borrado del event log (`1102`) usualmente es ruidoso, pero la eliminación se
 
 Los forwarded events (`Microsoft-Windows-EventLog%4ForwardedEvents`) preservan el RecordID original del host de origen y las marcas de tiempo originales. Si tienes un suscriptor WEC que sobrevivió al incidente, esas copias son a veces el único registro intacto que queda.
 
-Si el Security log muestra `1100` (shutdown del servicio de eventos) seguido de un hueco inexplicado, estás mirando uno de los intentos más limpios de borrar evidencia. Cross-valida contra [hives de registro](https://www.registryparser.com), la [Master File Table](https://www.mftparser.com) y Prefetch.
+Si el Security log muestra `1100` (shutdown del servicio de eventos) seguido de un hueco inexplicado, estás mirando uno de los intentos más limpios de borrar evidencia. Cross-valida contra hives de registro, la Master File Table y Prefetch.
 
 ## Tallado y recuperación, cuando faltan registros
 
-Los registros EVTX pueden ser tallados de disco no asignado y de [pagefile.sys](https://www.pagefilesysparser.com) cuando el archivo vivo ha sido limpiado o rotado. La cabecera de registro (magia `2a 2a 00 00`) es distintiva suficiente para que el tallado por firma funcione razonablemente bien. `hayabusa` de Yamato Security y `evtx_dump` manejan ambos archivos malformados con streams de registros parcheados.
+Los registros EVTX pueden ser tallados de disco no asignado y de [pagefile.sys](https://www.pagefilesysparser.com/es/blog/pagefile-forensics-techniques) cuando el archivo vivo ha sido limpiado o rotado. La cabecera de registro (magia `2a 2a 00 00`) es distintiva suficiente para que el tallado por firma funcione razonablemente bien. `hayabusa` de Yamato Security y `evtx_dump` manejan ambos archivos malformados con streams de registros parcheados.
 
-Si estás lidiando con un host donde sospechas que el log ha sido manipulado, también intenta recuperar registros EVTX de un [volcado de RAM](https://www.ramparser.com). El servicio de event log cachea registros recientes en memoria; una instantánea tomada cerca del incidente a veces contiene registros que nunca llegaron al disco.
+Si estás lidiando con un host donde sospechas que el log ha sido manipulado, también intenta recuperar registros EVTX de un volcado de RAM. El servicio de event log cachea registros recientes en memoria; una instantánea tomada cerca del incidente a veces contiene registros que nunca llegaron al disco.
 
 ## A dónde ir desde un hit
 
 Un solo evento rara vez cierra un caso. Los puntos de pivote a los que echo mano, en orden:
 
 - Un `4624` sospechoso busca el `4672` correspondiente, los fallos `4625` precedentes, y qué proceso se creó con ese token después (Sysmon 1 con `LogonId` coincidente).
-- Una instalación de servicio `7045` o `4697` verifica `Microsoft-Windows-TaskScheduler%4Operational.evtx` para tareas posteriores, y el [registro](https://www.registryparser.com) `HKLM\SYSTEM\CurrentControlSet\Services\` para la ruta del binario.
+- Una instalación de servicio `7045` o `4697` verifica `Microsoft-Windows-TaskScheduler%4Operational.evtx` para tareas posteriores, y el registro `HKLM\SYSTEM\CurrentControlSet\Services\` para la ruta del binario.
 - Un Sysmon 10 contra `lsass.exe` árbol de procesos del proceso solicitante, drops de archivo en el directorio de trabajo, conexiones de red a destinos no corporativos.
 - Un PowerShell 4104 con contenido ofuscado descodifica en un sandbox, luego busca el mismo payload aterrizando en otros hosts (la mayoría de los actores empresariales reutilizan).
 

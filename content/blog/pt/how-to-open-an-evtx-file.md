@@ -98,7 +98,7 @@ with Evtx("Security.evtx") as log:
         ...
 ```
 
-Mais lento do que o crate Rust (Python interpretado em chunks binários), mas a escolha certa quando já está dentro de uma cadeia de ferramentas Python: notebooks forenses Jupyter, jobs de threat-hunting, enriquecimento personalizado, juntar dados EVTX a artefactos de [registry](https://www.registryparser.com), [MFT](https://www.mftparser.com), [USN](https://www.usnparser.com) ou [prefetch](https://www.prefetchparser.com) do mesmo caso.
+Mais lento do que o crate Rust (Python interpretado em chunks binários), mas a escolha certa quando já está dentro de uma cadeia de ferramentas Python: notebooks forenses Jupyter, jobs de threat-hunting, enriquecimento personalizado, juntar dados EVTX a artefactos de registry, [MFT](https://www.mftparser.com/pt/blog/parse-mft-python), [USN](https://www.usnparser.com/pt/blog/parsing-usn-in-the-browser) ou prefetch do mesmo caso.
 
 ## Que método usar quando
 

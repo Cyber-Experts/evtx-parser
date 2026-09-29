@@ -40,7 +40,7 @@ Get-WinEvent -Path C:\Windows\System32\winevt\Logs\Security.evtx |
 
 当你要的是文件而不是记录时，FTK Imager 是首选。把活动驱动器作为证据添加（物理驱动器或逻辑驱动器），定位到 `\Windows\System32\winevt\Logs\`，右键点击通道文件并 Export Files。FTK 直接读取底层 NTFS 结构，绕过 EventLog 服务持有的文件系统锁。它还会捕获 `wevtutil epl` 跳过的 `Archive-*.evtx`。
 
-取舍：FTK 读取的文件可能正在被写入。活动通道的尾部块可能是脏的。多数解析器能优雅处理（包括[本站的浏览器解析器](/zh/blog/how-to-open-an-evtx-file)），但在写进报告之前请先在工作台上验证。对应的 [USN journal](https://www.usnparser.com) 项在你怀疑获取期间 EventLog 服务做了不标准的事情时，是一份有用的佐证。
+取舍：FTK 读取的文件可能正在被写入。活动通道的尾部块可能是脏的。多数解析器能优雅处理（包括[本站的浏览器解析器](/zh/blog/how-to-open-an-evtx-file)），但在写进报告之前请先在工作台上验证。对应的 USN journal 项在你怀疑获取期间 EventLog 服务做了不标准的事情时，是一份有用的佐证。
 
 ## KAPE：以 IR 速度做批量收集
 
@@ -50,7 +50,7 @@ Get-WinEvent -Path C:\Windows\System32\winevt\Logs\Security.evtx |
 kape.exe --tsource C: --target EventLogs --tdest C:\triage
 ```
 
-`EventLogs` target 会扫掉 `winevt\Logs\` 下的所有 `.evtx`（以及旧版 `.evt` 和 `Windows.old` 中的副本）。配合 `!EZParser` 或 `EvtxECmd` 模块，KAPE 在收集结束时还会对收集内容跑一遍 EvtxECmd，在原始证据旁边再给你一份解析后的 CSV。顺手用 `RegistryHives`、`FileSystem` 与 `Prefetch` target 也能把你反正都想要的 [registry](https://www.registryparser.com)、[MFT](https://www.mftparser.com)、[USN journal](https://www.usnparser.com)、[prefetch](https://www.prefetchparser.com) 数据一并拿走。
+`EventLogs` target 会扫掉 `winevt\Logs\` 下的所有 `.evtx`（以及旧版 `.evt` 和 `Windows.old` 中的副本）。配合 `!EZParser` 或 `EvtxECmd` 模块，KAPE 在收集结束时还会对收集内容跑一遍 EvtxECmd，在原始证据旁边再给你一份解析后的 CSV。顺手用 `RegistryHives`、`FileSystem` 与 `Prefetch` target 也能把你反正都想要的 registry、MFT、USN journal、prefetch 数据一并拿走。
 
 KAPE 的输出附带 copy log 元数据。这对证据链的重要性，比人们普遍认知的要高。
 
@@ -58,7 +58,7 @@ KAPE 的输出附带 copy log 元数据。这对证据链的重要性，比人�
 
 要最大保真度，就降到文件系统层之下。Sleuth Kit 的 `tsk_recover` 与 `icat`，或者 Joakim Schicht 的 `RawCopy.exe`，通过 `\\.\PhysicalDriveN` 或 `\\.\C:` 打开卷，沿 MFT 行走，按字节输出文件内容。EventLog 服务无法阻拦，因为读取不走 Win32 文件 API。
 
-当 rootkit 在范围内、当你有理由认为内核过滤驱动正在拦截 `\winevt\Logs\` 的读取，或者你就是不信任运行中的操作系统时，使用这种方式。结果应与同一时刻采集的 [RAM dump](https://www.ramparser.com) 搭配。事件日志服务会在内存中缓存近期记录，篡改发生前几分钟拍下的快照，有时还包含从未落到磁盘的记录。
+当 rootkit 在范围内、当你有理由认为内核过滤驱动正在拦截 `\winevt\Logs\` 的读取，或者你就是不信任运行中的操作系统时，使用这种方式。结果应与同一时刻采集的 RAM dump 搭配。事件日志服务会在内存中缓存近期记录，篡改发生前几分钟拍下的快照，有时还包含从未落到磁盘的记录。
 
 ## 何时选哪种
 

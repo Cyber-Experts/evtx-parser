@@ -141,7 +141,7 @@ Le signal est la récurrence *inattendue* ou les combinaisons *nouvelles*, pas l
 
 ## Lire à grande échelle
 
-Le [parser navigateur sur ce site](/en/blog/how-to-open-an-evtx-file) extrait ces champs directement du XML de l'enregistrement et les expose dans la table. Filtrez par `LogonType` via les buckets de timeline et le filtre texte, tirez le set filtré en CSV, puis pivotez sur `SubjectUserSid` et `IpAddress` dans votre outil de choix. Le XML complet de chaque enregistrement est à un clic. Appariez avec les [artefacts de cache RDP](https://www.jumplistparser.com), le tracking de [fichiers récents](https://www.recentfilecacheparser.com), et l'[historique du navigateur](https://www.browserforensics.app) quand le compte utilisateur en question est un vrai utilisateur, pas un service.
+Le [parser navigateur sur ce site](/en/blog/how-to-open-an-evtx-file) extrait ces champs directement du XML de l'enregistrement et les expose dans la table. Filtrez par `LogonType` via les buckets de timeline et le filtre texte, tirez le set filtré en CSV, puis pivotez sur `SubjectUserSid` et `IpAddress` dans votre outil de choix. Le XML complet de chaque enregistrement est à un clic. Appariez avec les artefacts de cache RDP, le tracking de [fichiers récents](https://www.recentfilecacheparser.com/fr), et l'[historique du navigateur](https://www.browserforensics.app/fr) quand le compte utilisateur en question est un vrai utilisateur, pas un service.
 
 ## Pour aller plus loin
 

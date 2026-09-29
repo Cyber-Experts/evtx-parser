@@ -98,7 +98,7 @@ with Evtx("Security.evtx") as log:
         ...
 ```
 
-比 Rust crate 慢（在二进制块上跑解释执行的 Python），但在你已经身处 Python 工具链时是正解：Jupyter 取证笔记本、威胁狩猎作业、自定义富化，以及把同一案件中的 EVTX 数据与 [registry](https://www.registryparser.com)、[MFT](https://www.mftparser.com)、[USN](https://www.usnparser.com)、[prefetch](https://www.prefetchparser.com) 工件联表。
+比 Rust crate 慢（在二进制块上跑解释执行的 Python），但在你已经身处 Python 工具链时是正解：Jupyter 取证笔记本、威胁狩猎作业、自定义富化，以及把同一案件中的 EVTX 数据与 registry、[MFT](https://www.mftparser.com/zh/blog/parse-mft-python)、[USN](https://www.usnparser.com/zh/blog/parsing-usn-in-the-browser)、prefetch 工件联表。
 
 ## 何时用哪种
 

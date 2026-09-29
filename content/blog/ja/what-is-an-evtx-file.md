@@ -81,7 +81,7 @@ XP と Server 2003 まで Windows が使っていたレガシーな `.evt` 形�
 
 ## .evtx に出会う場面
 
-- **インシデント対応。** トリアージの一環として侵害されたホストから取り出します。関心のあるチャネルは追跡対象によって異なります。ログオンと特権濫用なら `Security`、プロセス ツリーなら `Sysmon`、scriptblock 内容なら `PowerShell`。実行の裏付けには [registry](https://www.registryparser.com)、[MFT](https://www.mftparser.com)、[USN journal](https://www.usnparser.com)、[AmCache](https://www.amcacheparser.com)、[prefetch](https://www.prefetchparser.com) と組み合わせてください。
+- **インシデント対応。** トリアージの一環として侵害されたホストから取り出します。関心のあるチャネルは追跡対象によって異なります。ログオンと特権濫用なら `Security`、プロセス ツリーなら `Sysmon`、scriptblock 内容なら `PowerShell`。実行の裏付けには registry、MFT、[USN journal](https://www.usnparser.com/ja/blog/understanding-ntfs-usn-journal)、AmCache、prefetch と組み合わせてください。
 - **コンプライアンス監査。** 監査人はログオンとポリシー変更の履歴を確認するため、定義された期間の `Security.evtx` を要求します。
 - **アプリケーション デバッグ。** `Application.evtx` とベンダー別チャネルには、アプリ自体のログには現れないクラッシュやエラー コンテキストが含まれていることが多いです。
 - **脅威ハンティング。** アーカイブされた `.evtx` (またはライブ チャネルを転送する SIEM) に対する長期傾向のルールが、深夜帯の RDP やサービス アカウントの `LogonType` ドリフトのような長期的なパターンを捉えます。

@@ -40,7 +40,7 @@ Isto dá-lhe um CSV, não um `.evtx`. Conveniente para triagem ad-hoc na máquin
 
 Quando quer o ficheiro, não os registos, o FTK Imager é o cavalo de batalha. Adicione a drive ativa como evidência (Physical Drive ou Logical Drive), navegue para `\Windows\System32\winevt\Logs\`, clique com o botão direito nos ficheiros de canal e Export Files. O FTK lê as estruturas NTFS subjacentes diretamente, contornando o lock do sistema de ficheiros que o serviço EventLog mantém. Também captura os ficheiros `Archive-*.evtx` que `wevtutil epl` salta.
 
-Compromisso: o FTK lê ficheiros que podem estar a meio de uma escrita. O chunk final no canal ativo pode estar dirty. A maioria dos parsers lida com isto graciosamente (incluindo o [parser no browser deste site](/pt/blog/how-to-open-an-evtx-file)), mas verifique na bancada antes de o escrever num relatório. As entradas correspondentes no [USN journal](https://www.usnparser.com) são uma corroboração útil quando se suspeita que o serviço EventLog fez algo fora do padrão durante a aquisição.
+Compromisso: o FTK lê ficheiros que podem estar a meio de uma escrita. O chunk final no canal ativo pode estar dirty. A maioria dos parsers lida com isto graciosamente (incluindo o [parser no browser deste site](/pt/blog/how-to-open-an-evtx-file)), mas verifique na bancada antes de o escrever num relatório. As entradas correspondentes no USN journal são uma corroboração útil quando se suspeita que o serviço EventLog fez algo fora do padrão durante a aquisição.
 
 ## KAPE: recolha em massa à velocidade do IR
 
@@ -50,7 +50,7 @@ Quando a missão envolve mais do que um host, o Kroll Artifact Parser and Extrac
 kape.exe --tsource C: --target EventLogs --tdest C:\triage
 ```
 
-O target `EventLogs` apanha todos os `.evtx` sob `winevt\Logs\` (mais os `.evt` antigos e as cópias em `Windows.old`). Combine com o módulo `!EZParser` ou `EvtxECmd` e o KAPE também corre o EvtxECmd sobre a recolha à saída, dando-lhe CSVs já parsed lado a lado com a evidência em bruto. Já que está, os targets `RegistryHives`, `FileSystem` e `Prefetch` apanham os dados do [registry](https://www.registryparser.com), [MFT](https://www.mftparser.com), [USN journal](https://www.usnparser.com) e [prefetch](https://www.prefetchparser.com) que vai querer de qualquer maneira.
+O target `EventLogs` apanha todos os `.evtx` sob `winevt\Logs\` (mais os `.evt` antigos e as cópias em `Windows.old`). Combine com o módulo `!EZParser` ou `EvtxECmd` e o KAPE também corre o EvtxECmd sobre a recolha à saída, dando-lhe CSVs já parsed lado a lado com a evidência em bruto. Já que está, os targets `RegistryHives`, `FileSystem` e `Prefetch` apanham os dados do registry, MFT, USN journal e prefetch que vai querer de qualquer maneira.
 
 A saída do KAPE vem com metadados de copy log. Isso conta para a cadeia de custódia mais do que se reconhece.
 
@@ -58,7 +58,7 @@ A saída do KAPE vem com metadados de copy log. Isso conta para a cadeia de cust
 
 Para máxima fidelidade, desça abaixo da camada do filesystem. O `tsk_recover` e `icat` do Sleuth Kit, ou o `RawCopy.exe` de Joakim Schicht, abrem o volume via `\\.\PhysicalDriveN` ou `\\.\C:`, percorrem o MFT e emitem o conteúdo do ficheiro byte a byte. O serviço EventLog não consegue bloquear isto porque a leitura não passa pela API de ficheiros Win32.
 
-Use isto quando há um rootkit no horizonte, quando tem razão para pensar que um filter driver de kernel está a intercetar as leituras de `\winevt\Logs\`, ou quando simplesmente não confia no SO em execução. Combine o resultado com um [RAM dump](https://www.ramparser.com) tirado no mesmo momento. O serviço de log de eventos faz cache em memória dos registos recentes, e um snapshot tirado minutos antes da adulteração contém por vezes registos que nunca chegaram a disco.
+Use isto quando há um rootkit no horizonte, quando tem razão para pensar que um filter driver de kernel está a intercetar as leituras de `\winevt\Logs\`, ou quando simplesmente não confia no SO em execução. Combine o resultado com um RAM dump tirado no mesmo momento. O serviço de log de eventos faz cache em memória dos registos recentes, e um snapshot tirado minutos antes da adulteração contém por vezes registos que nunca chegaram a disco.
 
 ## Qual usar quando
 

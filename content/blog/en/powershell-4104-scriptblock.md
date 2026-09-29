@@ -31,7 +31,7 @@ While you are in there, enable Module Logging and transcription as well. Module 
 
 The PowerShell engine logs the script *after* any encoding, compression, or in-memory reflection. That means:
 
-- A [`-EncodedCommand`](https://www.reverseengineering.app/en/techniques/powershell-encoded-command) invocation logs both the encoded launcher (in the corresponding [4688](/en/blog/event-id-4688-process-creation) or [Sysmon 1](/en/blog/sysmon-event-id-1-process-create)) and the decoded body (in 4104).
+- An `-EncodedCommand` invocation logs both the encoded launcher (in the corresponding [4688](/en/blog/event-id-4688-process-creation) or [Sysmon 1](/en/blog/sysmon-event-id-1-process-create)) and the decoded body (in 4104), so you rarely need to do the [decoding of an `-EncodedCommand` payload](https://www.reverseengineering.app/en/techniques/powershell-encoded-command) by hand.
 - A script that downloads and `Invoke-Expression`s a remote payload logs the *executed* body, not the wrapper.
 - An attacker using AMSI bypasses still leaves the 4104 record. The bypass affects scanning, not logging. The bypass itself often shows up as 4104 lines containing `amsiInitFailed` or `amsiScanBuffer`.
 
@@ -146,7 +146,7 @@ index=powershell EventCode=4104
 
 4104 logs the script *body*. It does not log per-statement execution, function returns, or variable values. For that you need 4103 (Module logging) or a real EDR. 4104 tells you what ran. The rest tells you what it did.
 
-If 4104 was off when the attack happened (the most common case I see in incidents on dated estates), the script body is gone. The wrapper invocation might still be in [4688](/en/blog/event-id-4688-process-creation), the binary stamp in [AmCache](https://www.amcacheparser.com), and the working directory in [prefetch](https://www.prefetchparser.com), but the actual code is lost unless you can carve it out of [pagefile.sys](https://www.pagefilesysparser.com) or a [RAM dump](https://www.ramparser.com). Turn it on now so you do not have that argument with yourself next time.
+If 4104 was off when the attack happened (the most common case I see in incidents on dated estates), the script body is gone. The wrapper invocation might still be in [4688](/en/blog/event-id-4688-process-creation), the binary stamp in AmCache, and the working directory in [Prefetch](https://www.prefetchparser.com/en/blog/prefetch-proof-of-execution), but the actual code is lost unless you can carve it out of [command lines left in pagefile.sys](https://www.pagefilesysparser.com/en/blog/detecting-malware-command-lines-in-pagefile) or a RAM dump. Turn it on now so you do not have that argument with yourself next time.
 
 ## Further reading
 

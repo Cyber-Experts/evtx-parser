@@ -37,7 +37,7 @@ Le réflexe par défaut est de greper `Security.evtx` pour `4624`. J'ai arrêté
 
 Ce que j'ouvre en premier, quand il existe, est `Sysmon%4Operational.evtx` filtré sur `EventID=1` (process create) dans la fenêtre suspectée. Sysmon vous donne le processus parent, la ligne de commande telle qu'invoquée réellement, l'utilisateur, le niveau d'intégrité, et les hashes du parent et de l'enfant. C'est assez pour lire une histoire à l'écran.
 
-Si Sysmon n'est pas présent (et sur un nombre déprimant de parcs Windows d'entreprise il ne l'est toujours pas), mon mouvement suivant est `Security.evtx` filtré sur `4688` *avec l'audit de ligne de commande activé*. Si les lignes de commande ne sont pas auditées vous obtenez le nom de programme seul, ce qui est à peine utile, à ce point je saute à AmCache, Prefetch et le [journal USN](https://www.usnparser.com) pour reconstruire ce qui a tourné.
+Si Sysmon n'est pas présent (et sur un nombre déprimant de parcs Windows d'entreprise il ne l'est toujours pas), mon mouvement suivant est `Security.evtx` filtré sur `4688` *avec l'audit de ligne de commande activé*. Si les lignes de commande ne sont pas auditées vous obtenez le nom de programme seul, ce qui est à peine utile, à ce point je saute à AmCache, Prefetch et le journal USN pour reconstruire ce qui a tourné.
 
 Le corollaire qui mérite d'être dit à voix haute : une investigation EVTX sans Sysmon et sans lignes de commande `4688` est en grande partie un jeu de devinettes. Si vous lisez ceci avant un incident, corrigez ça d'abord.
 
@@ -76,20 +76,20 @@ L'effacement d'event log (`1102`) est généralement bruyant, mais la suppressio
 
 Les forwarded events (`Microsoft-Windows-EventLog%4ForwardedEvents`) préservent le RecordID original de l'hôte d'origine et les horodatages originaux. Si vous avez un abonné WEC qui a survécu à l'incident, ces copies sont parfois le seul enregistrement intact qui reste.
 
-Si le Security log montre `1100` (arrêt du service d'événements) suivi d'un trou inexpliqué, vous regardez une des tentatives les plus propres d'effacer des preuves. Cross-validez contre [les hives du registre](https://www.registryparser.com), la [Master File Table](https://www.mftparser.com), et Prefetch.
+Si le Security log montre `1100` (arrêt du service d'événements) suivi d'un trou inexpliqué, vous regardez une des tentatives les plus propres d'effacer des preuves. Cross-validez contre les hives du registre, la Master File Table, et Prefetch.
 
 ## Carving et récupération, quand les enregistrements manquent
 
-Les enregistrements EVTX peuvent être carvés depuis le disque non alloué et depuis [pagefile.sys](https://www.pagefilesysparser.com) quand le fichier vivant a été effacé ou a tourné. L'en-tête d'enregistrement (magie `2a 2a 00 00`) est suffisamment distinctif pour que le carving par signature fonctionne raisonnablement bien. `hayabusa` de Yamato Security et `evtx_dump` gèrent tous deux les fichiers malformés avec des flux d'enregistrements rapiécés.
+Les enregistrements EVTX peuvent être carvés depuis le disque non alloué et depuis [pagefile.sys](https://www.pagefilesysparser.com/fr/blog/pagefile-forensics-techniques) quand le fichier vivant a été effacé ou a tourné. L'en-tête d'enregistrement (magie `2a 2a 00 00`) est suffisamment distinctif pour que le carving par signature fonctionne raisonnablement bien. `hayabusa` de Yamato Security et `evtx_dump` gèrent tous deux les fichiers malformés avec des flux d'enregistrements rapiécés.
 
-Si vous traitez un hôte où vous suspectez que le log a été altéré, essayez aussi de récupérer des enregistrements EVTX d'un [dump RAM](https://www.ramparser.com). Le service d'event log met en cache les enregistrements récents en mémoire ; un snapshot pris près de l'incident contient parfois des enregistrements qui ne sont jamais arrivés sur le disque.
+Si vous traitez un hôte où vous suspectez que le log a été altéré, essayez aussi de récupérer des enregistrements EVTX d'un [dump RAM](https://www.ramparser.com/fr). Le service d'event log met en cache les enregistrements récents en mémoire ; un snapshot pris près de l'incident contient parfois des enregistrements qui ne sont jamais arrivés sur le disque.
 
 ## Où aller depuis un hit
 
 Un seul événement ferme rarement un cas. Les points de pivot que je cherche, dans l'ordre :
 
 - Un `4624` suspect cherchez le `4672` correspondant, les échecs `4625` précédents, et quel processus a été créé avec ce token ensuite (Sysmon 1 avec `LogonId` correspondant).
-- Une installation de service `7045` ou `4697` vérifiez `Microsoft-Windows-TaskScheduler%4Operational.evtx` pour des tâches consécutives, et le [registre](https://www.registryparser.com) `HKLM\SYSTEM\CurrentControlSet\Services\` pour le chemin du binaire.
+- Une installation de service `7045` ou `4697` vérifiez `Microsoft-Windows-TaskScheduler%4Operational.evtx` pour des tâches consécutives, et le registre `HKLM\SYSTEM\CurrentControlSet\Services\` pour le chemin du binaire.
 - Un Sysmon 10 contre `lsass.exe` arbre de processus du processus demandeur, drops de fichier dans le répertoire de travail, connexions réseau vers des destinations non-corporate.
 - Un PowerShell 4104 avec contenu obfusqué décodez dans une sandbox, puis cherchez le même payload atterrissant sur d'autres hôtes (la plupart des acteurs d'entreprise réutilisent).
 

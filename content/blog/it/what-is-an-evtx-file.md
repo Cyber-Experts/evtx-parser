@@ -81,7 +81,7 @@ Per una guida completa di ciascun metodo con i comandi che useresti davvero, ved
 
 ## Quando incontri .evtx sul campo
 
-- **Incident response.** Estratto da un host compromesso come parte del triage. I canali di interesse dipendono dal lead: `Security` per accessi e abuso di privilegi, `Sysmon` per gli alberi di processo, `PowerShell` per il contenuto degli scriptblock. Abbina con i parser per [registro](https://www.registryparser.com), [MFT](https://www.mftparser.com), [journal USN](https://www.usnparser.com), [AmCache](https://www.amcacheparser.com) e [prefetch](https://www.prefetchparser.com) per la conferma di esecuzione.
+- **Incident response.** Estratto da un host compromesso come parte del triage. I canali di interesse dipendono dal lead: `Security` per accessi e abuso di privilegi, `Sysmon` per gli alberi di processo, `PowerShell` per il contenuto degli scriptblock. Abbina con i parser per registro, MFT, [journal USN](https://www.usnparser.com/it/blog/understanding-ntfs-usn-journal), AmCache e prefetch per la conferma di esecuzione.
 - **Audit di compliance.** Gli auditor richiedono `Security.evtx` su una finestra definita per verificare la storia di logon e modifiche di policy.
 - **Debug applicativo.** `Application.evtx` insieme ai canali per vendor spesso contengono contesto di crash ed errori che i log propri dell'applicazione non hanno.
 - **Threat hunting.** Regole long-tail su `.evtx` archiviati (o un SIEM che inoltra il canale live) catturano pattern lenti come RDP fuori orario o drift del `LogonType` su un service account.

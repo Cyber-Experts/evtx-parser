@@ -66,7 +66,7 @@ Event ID **4663**「オブジェクトへのアクセスが試行されました
 
 ### SAM または SYSTEM ハイブの読み取り
 
-`ObjectName` が `\config\SAM`、`\config\SECURITY`、または `\config\SYSTEM` で終わり、`ProcessName` が `services.exe`、`lsass.exe`、`wininit.exe` 以外で、`SubjectUserSid` が `S-1-5-18` でない 4663。これは `reg save HKLM\SAM`、シャドウ コピーに対する `esentutl /y`、またはハイブにファイル レベルでアクセスする任意の credential dumping ツールです。残されたバックアップ ハイブ ファイルがないか [registry](https://www.registryparser.com) を相互チェックしてください。
+`ObjectName` が `\config\SAM`、`\config\SECURITY`、または `\config\SYSTEM` で終わり、`ProcessName` が `services.exe`、`lsass.exe`、`wininit.exe` 以外で、`SubjectUserSid` が `S-1-5-18` でない 4663。これは `reg save HKLM\SAM`、シャドウ コピーに対する `esentutl /y`、またはハイブにファイル レベルでアクセスする任意の credential dumping ツールです。残されたバックアップ ハイブ ファイルがないか registry を相互チェックしてください。
 
 ### LSASS minidump の書き込み
 
@@ -183,6 +183,7 @@ index=wineventlog EventCode=4663 ObjectName="*\\AppData\\Roaming\\Microsoft\\Pro
 - 閉じられたハンドル。4663 はハンドル *open* で発火します。close イベントは 4658 で、攻撃検知に有用なことはまれです。
 - ネットワーク パスを透過的には。共有への SMB アクセスは*サーバー*で 4663 を発火します。クライアントには何も見えません。サーバー側の収集が必要です。
 - 既定で失敗アクセス。多くのショップは Success のみ監査します。阻止された試行を本当に気にする場合のみ Failure を構成してください。
+- SACL の対象外のもの。監査が設定されていないファイルの削除では 4663 はまったく残りませんが、[オブジェクトアクセス監査が無効でも USN ジャーナルは削除を記録します](https://www.usnparser.com/ja/blog/recover-deleted-files-usn-journal)。ファイル名とタイムスタンプも残ります。
 
 ## タイムラインでの 4663 の位置
 

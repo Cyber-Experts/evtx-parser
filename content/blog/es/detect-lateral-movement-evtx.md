@@ -74,7 +74,7 @@ Nombres de servicio a vigilar en `7045`: cadenas aleatorias de 8 caracteres min�
 
 Para movimiento lateral, los eventos `5145` que importan son accesos a `ADMIN$`, `C$`, `IPC$` y cualquier ruta `SYSVOL`/`NETLOGON` desde orígenes inusuales. `psexec.py` escribe su binario de servicio escribiendo a `\\target\ADMIN$\<random>.exe`. `secretsdump.py` lee `\\target\C$\Windows\System32\config\SAM` (y SYSTEM y SECURITY). Cada uno de esos es un `5145` con un `RelativeTargetName` que debería destacar.
 
-Empareja `5145` con el [diario USN](https://www.usnparser.com) en el objetivo. El diario tendrá un `FILE_CREATE` para el mismo archivo con el mismo timestamp, lo que te da una confirmación de segunda fuente de que el archivo realmente aterrizó, y una referencia de registro [MFT](https://www.mftparser.com) que perseguir.
+Empareja `5145` con el [diario USN](https://www.usnparser.com/es/blog/usn-reason-codes-forensic-analysis) en el objetivo. El diario tendrá un `FILE_CREATE` para el mismo archivo con el mismo timestamp, lo que te da una confirmación de segunda fuente de que el archivo realmente aterrizó, y una referencia de registro MFT que perseguir.
 
 ## WMI como vector de movimiento lateral
 
@@ -99,7 +99,7 @@ En la práctica quieres todo de:
 
 Átalos por `LogonId` dentro de un host y por timestamp + cuenta + IP entre hosts. El paper clásico de JPCERT/CC lo expone en detalle y es el mejor documento gratuito sobre el tema.
 
-Para los artefactos del lado del host que sobreviven al borrado del log, apóyate en [Prefetch](https://www.prefetchparser.com) como evidencia de ejecución de tooling de atacante, la clave `Services` del [registro](https://www.registryparser.com) para el rastro de un binario de servicio instalado y removido, y los [archivos LNK](https://www.lnkparser.com) y [jump lists](https://www.jumplistparser.com) como evidencia de archivos que un operador abrió durante una sesión hands-on.
+Para los artefactos del lado del host que sobreviven al borrado del log, apóyate en [Prefetch](https://www.prefetchparser.com/es/blog/prefetch-proof-of-execution) como evidencia de ejecución de tooling de atacante, la clave `Services` del registro para el rastro de un binario de servicio instalado y removido, y los archivos LNK y jump lists como evidencia de archivos que un operador abrió durante una sesión hands-on.
 
 ## Lectura adicional
 

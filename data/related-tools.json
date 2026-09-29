@@ -1,0 +1,66 @@
+{
+  "heading": {
+    "en": "Related tools",
+    "fr": "Outils connexes",
+    "de": "Verwandte Tools",
+    "es": "Herramientas relacionadas",
+    "it": "Strumenti correlati",
+    "pt": "Ferramentas relacionadas",
+    "ja": "関連ツール",
+    "zh": "相关工具"
+  },
+  "items": [
+    {
+      "name": "Registry Parser",
+      "url": "https://www.registryparser.com",
+      "locales": [
+        "en",
+        "fr"
+      ],
+      "reason": {
+        "en": "Services, Run keys and TaskCache in the registry confirm the persistence the event logs announce.",
+        "fr": "Les services, clés Run et TaskCache du registre confirment la persistance annoncée par les journaux d'événements."
+      }
+    },
+    {
+      "name": "Prefetch Parser",
+      "url": "https://www.prefetchparser.com",
+      "locales": [
+        "en",
+        "fr",
+        "de",
+        "es"
+      ],
+      "reason": {
+        "en": "Prefetch confirms that a process seen in 4688 or Sysmon 1 actually ran, even after the logs are cleared.",
+        "fr": "Prefetch confirme qu'un processus vu en 4688 ou Sysmon 1 s'est bien exécuté, même après l'effacement des journaux.",
+        "de": "Prefetch bestätigt, dass ein in 4688 oder Sysmon 1 gesehener Prozess wirklich lief, auch nach dem Löschen der Logs.",
+        "es": "Prefetch confirma que un proceso visto en 4688 o Sysmon 1 se ejecutó de verdad, incluso tras borrar los registros."
+      }
+    },
+    {
+      "name": "USN Parser",
+      "url": "https://www.usnparser.com",
+      "locales": [
+        "en",
+        "fr",
+        "de",
+        "es",
+        "it",
+        "pt",
+        "ja",
+        "zh"
+      ],
+      "reason": {
+        "en": "The USN journal records file creates and deletes even when object-access auditing was off.",
+        "fr": "Le journal USN consigne créations et suppressions de fichiers même sans audit d'accès aux objets.",
+        "de": "Das USN-Journal protokolliert Dateierstellungen und -löschungen auch ohne Objektzugriffsüberwachung.",
+        "es": "El diario USN registra creaciones y borrados de archivos incluso sin auditoría de acceso a objetos.",
+        "it": "Il journal USN registra creazioni ed eliminazioni di file anche senza auditing dell'accesso agli oggetti.",
+        "pt": "O journal USN regista criações e eliminações de ficheiros mesmo sem auditoria de acesso a objetos.",
+        "ja": "オブジェクトアクセス監査が無効でも、USN ジャーナルはファイルの作成と削除を記録します。",
+        "zh": "即使未启用对象访问审核，USN 日志也会记录文件的创建和删除。"
+      }
+    }
+  ]
+}

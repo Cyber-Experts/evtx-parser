@@ -15,6 +15,7 @@ import {
   WorksWith,
 } from "@/components/home/HomeSections";
 import { ProductPreview } from "@/components/ProductPreview";
+import { RelatedTools } from "@/components/RelatedTools";
 import { HomeSeo } from "@/components/HomeSeo";
 import { JsonLd } from "@/components/seo/json-ld";
 import { blog, site } from "@/next-md-blog.config";
@@ -238,6 +239,8 @@ export default async function Home({ params }: { params: Promise<Params> }) {
         )}
 
         <HomeSeo locale={locale} />
+
+        <RelatedTools locale={locale} />
 
         <Faq dict={dict} />
 

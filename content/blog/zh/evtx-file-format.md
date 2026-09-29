@@ -102,7 +102,7 @@ EVTX 是按页面、为写入优化、自我去重的格式。同一个字符串
 
 如果你要从零写解析器（别这么做，但如果非要），用来验证的公共测试语料是 [SANS DFIR poster](https://github.com/forensicmatt/EVTX-ETW-Resources) 仓库与 Yamato Security `hayabusa` 的示例日志的公开 EVTX 样本。它们覆盖了你代码在第一次跑时会错的畸形块与部分记录情况。
 
-还有一点值得说：该格式与其他 Windows 工件共享。同一种 FILETIME 编码出现在 [registry](https://www.registryparser.com)、[MFT](https://www.mftparser.com) 的 `$STANDARD_INFORMATION` 时间戳、[Prefetch](https://www.prefetchparser.com) 头里。把心算 FILETIME 练熟，许多 Windows 取证立刻安静下来。
+还有一点值得说：该格式与其他 Windows 工件共享。同一种 FILETIME 编码出现在 registry、[MFT](https://www.mftparser.com/zh/blog/inside-an-mft-record) 的 `$STANDARD_INFORMATION` 时间戳、Prefetch 头里。把心算 FILETIME 练熟，许多 Windows 取证立刻安静下来。
 
 ## 延伸阅读
 

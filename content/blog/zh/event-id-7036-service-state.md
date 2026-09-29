@@ -164,7 +164,7 @@ index=wineventlog SourceName="Service Control Manager" EventCode=7036
 ## 7036 没告诉你的事
 
 - 没有 `AccountName`。从对应的 7045 或 SCM 数据库里取。
-- 没有 PID。不能直接把一条 7036 映射到 [4688](/zh/blog/event-id-4688-process-creation) 或 [Sysmon 1](/zh/blog/sysmon-event-id-1-process-create) 记录，需要按 `ImagePath` 与时间戳相关联。4688 关闭时，[prefetch](https://www.prefetchparser.com) 缓存是次级佐证。
+- 没有 PID。不能直接把一条 7036 映射到 [4688](/zh/blog/event-id-4688-process-creation) 或 [Sysmon 1](/zh/blog/sysmon-event-id-1-process-create) 记录，需要按 `ImagePath` 与时间戳相关联。4688 关闭时，prefetch 缓存是次级佐证。
 - 没有发起者。你看不到是谁调用了 Stop-Service。要知道，你需要 7035（常默认禁用），或者调用 `net stop` / `sc stop` / `taskkill` 的 [4688](/zh/blog/event-id-4688-process-creation)，又或者 `Stop-Service` 的 [4104](/zh/blog/powershell-4104-scriptblock)。
 - 服务短名映射。显示名在 `param1`。短名在二进制 blob 里，必须解码。多数解析器自动处理。如果你查的是原始 `EventData`，得自己来。
 

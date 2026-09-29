@@ -40,8 +40,9 @@ Effacer le journal d'événements en mémoire ne touche pas :
 - D'autres canaux. `System`, `Application`, `PowerShell/Operational`, `Sysmon/Operational`, `TaskScheduler/Operational`, canaux d'événements transférés. Aucun n'est effacé par un wipe de Security.
 - Les événements transférés. Si Windows Event Forwarding envoie Security vers un collecteur, les enregistrements effacés sont déjà sur un autre hôte. Les RecordIDs et horodatages d'origine sont préservés.
 - Le fichier sur disque lui-même. Une `Security.evtx` effacée est remplacée par un fichier frais. Les clusters du fichier précédent persistent souvent dans l'espace non alloué. Les enregistrements EVTX [se carvent proprement](/fr/blog/carve-deleted-evtx-records) depuis ces clusters.
-- Les entrées du [journal USN](https://www.usnparser.com) pour le remplacement du fichier. Même l'acte d'effacer laisse des artefacts niveau système de fichiers.
-- L'entrée [MFT](https://www.mftparser.com) pour le nouveau fichier, qui porte un horodatage de création qui devrait correspondre au 1102 à la seconde près.
+- Les entrées du [journal USN](https://www.usnparser.com/fr/blog/understanding-ntfs-usn-journal) pour le remplacement du fichier. Même l'acte d'effacer laisse des artefacts niveau système de fichiers.
+- L'entrée MFT pour le nouveau fichier, qui porte un horodatage de création qui devrait correspondre au 1102 à la seconde près.
+- [Ce que Shimcache conserve après l'effacement des journaux](https://www.shimcacheparser.com/fr/blog/shimcache-anti-forensics) : le chemin du binaire qui a effacé survit souvent dans l'AppCompatCache de la ruche SYSTEM.
 
 Un effacement de journal « réussi » est rarement aussi propre que l'attaquant l'espère.
 
@@ -121,7 +122,7 @@ Il n'y a pas de raison sûre pour un 1102 en opérations normales. Même les lé
 
 ## Quand vous en trouvez un dans le bundle
 
-Quand vous chargez un [fichier .evtx dans un outil forensique](/fr/blog/how-to-open-an-evtx-file), les deux premières recherches qui valent la peine sont `EventID:1102` et `EventID:104`. Si l'un est présent, le journal que vous avez en main a des trous connus. Toute timeline construite dessus est incomplète. Notez-le bruyamment dans le rapport. Puis allez voir ce qui a survécu : le [registre](https://www.registryparser.com), le [journal USN](https://www.usnparser.com), la [MFT](https://www.mftparser.com), le [prefetch](https://www.prefetchparser.com) et l'[AmCache](https://www.amcacheparser.com). Ensemble, ils reconstruisent l'essentiel de ce que 1102 a tenté d'effacer.
+Quand vous chargez un [fichier .evtx dans un outil forensique](/fr/blog/how-to-open-an-evtx-file), les deux premières recherches qui valent la peine sont `EventID:1102` et `EventID:104`. Si l'un est présent, le journal que vous avez en main a des trous connus. Toute timeline construite dessus est incomplète. Notez-le bruyamment dans le rapport. Puis allez voir ce qui a survécu : le registre, le journal USN, la MFT, le prefetch et l'AmCache. Ensemble, ils reconstruisent l'essentiel de ce que 1102 a tenté d'effacer.
 
 Des outils comme `Invoke-Phant0m` sautent 1102 entièrement en suspendant les threads du service d'événements au lieu d'effacer. Si vous voyez un silence de plusieurs heures dans Security sans 1102 et sans arrêt système, c'est l'autre forme du même problème.
 

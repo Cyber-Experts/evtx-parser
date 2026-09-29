@@ -40,8 +40,9 @@ Event ID **1102** は、誰かが監査ログをクリアしたときに Windows
 - 他のチャネル。`System`、`Application`、`PowerShell/Operational`、`Sysmon/Operational`、`TaskScheduler/Operational`、転送イベント チャネル。これらは Security のワイプではクリアされません。
 - 転送されたイベント。Windows Event Forwarding が Security をコレクターに送っているなら、クリアされたレコードは既に別ホスト上にあります。元の RecordID とタイムスタンプは保持されます。
 - ディスク上のファイル自体。クリアされた `Security.evtx` は新しいファイルに置き換えられます。前のファイルのクラスタはしばしば未割り当てに残ります。EVTX レコードはそこから[綺麗にカービング](/ja/blog/carve-deleted-evtx-records) できます。
-- ファイル置き換えの [USN journal](https://www.usnparser.com) エントリ。クリアという行為自体がファイルシステム レベルのアーティファクトを残します。
-- 新ファイルの [MFT](https://www.mftparser.com) エントリ。作成タイムスタンプは 1102 と秒単位で一致するはずです。
+- ファイル置き換えの [USN journal](https://www.usnparser.com/ja/blog/understanding-ntfs-usn-journal) エントリ。クリアという行為自体がファイルシステム レベルのアーティファクトを残します。
+- 新ファイルの MFT エントリ。作成タイムスタンプは 1102 と秒単位で一致するはずです。
+- [ログ消去後も Shimcache に残るもの](https://www.shimcacheparser.com/ja/blog/shimcache-anti-forensics): 消去を実行したバイナリのパスは、SYSTEM ハイブの AppCompatCache に残っていることがよくあります。
 
 「成功した」ログ クリアは、攻撃者が期待するほど綺麗ではないことがほとんどです。
 
@@ -121,7 +122,7 @@ index=wineventlog ( EventCode=1102 OR EventCode=104 OR EventCode=4719 OR EventCo
 
 ## バンドルで 1 つ見つけたとき
 
-[フォレンジック ツールに .evtx ファイルをロード](/ja/blog/how-to-open-an-evtx-file) したら、最初に走らせる価値のある 2 つの検索は `EventID:1102` と `EventID:104` です。どちらかでも存在すれば、手元のログには既知のギャップがあります。そこから組み立てるタイムラインはすべて不完全です。報告書に大きく書いてください。それから生き残ったものを見に行きます: [registry](https://www.registryparser.com)、[USN journal](https://www.usnparser.com)、[MFT](https://www.mftparser.com)、[prefetch](https://www.prefetchparser.com)、[AmCache](https://www.amcacheparser.com)。これらが、1102 が消そうとしたものの大半を再構築します。
+[フォレンジック ツールに .evtx ファイルをロード](/ja/blog/how-to-open-an-evtx-file) したら、最初に走らせる価値のある 2 つの検索は `EventID:1102` と `EventID:104` です。どちらかでも存在すれば、手元のログには既知のギャップがあります。そこから組み立てるタイムラインはすべて不完全です。報告書に大きく書いてください。それから生き残ったものを見に行きます: registry、USN journal、MFT、prefetch、AmCache。これらが、1102 が消そうとしたものの大半を再構築します。
 
 `Invoke-Phant0m` のようなツールはクリアではなくイベント サービスのスレッドを停止するため、1102 を完全にスキップします。Security に数時間の沈黙があり、1102 もシステム シャットダウンもないなら、同じ問題の別の形です。
 

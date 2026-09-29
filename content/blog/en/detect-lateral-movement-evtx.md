@@ -74,7 +74,7 @@ Service names worth watching for in `7045`: random 8-character lowercase strings
 
 For lateral movement, the `5145` events that matter are accesses to `ADMIN$`, `C$`, `IPC$`, and any `SYSVOL`/`NETLOGON` paths from unusual sources. `psexec.py` writes its service binary by writing to `\\target\ADMIN$\<random>.exe`. `secretsdump.py` reads `\\target\C$\Windows\System32\config\SAM` (and SYSTEM, and SECURITY). Each of those is a `5145` with a `RelativeTargetName` that should stand out.
 
-Pair `5145` with the [USN journal](https://www.usnparser.com) on the target. The journal will have a `FILE_CREATE` for the same file with the same timestamp, which gives you a second-source confirmation that the file actually landed, and a [MFT](https://www.mftparser.com) record reference to chase.
+Pair `5145` with the [USN journal's `FILE_CREATE` records](https://www.usnparser.com/en/blog/usn-reason-codes-forensic-analysis) on the target. The journal will have a `FILE_CREATE` for the same file with the same timestamp, which gives you a second-source confirmation that the file actually landed, and a MFT record reference to chase.
 
 ## WMI as a lateral movement vector
 
@@ -99,7 +99,7 @@ In practice you want all of:
 
 Tie them together by `LogonId` within a host and by timestamp + account + IP across hosts. The classic JPCERT/CC paper lays this out in detail and is the single best free document on the topic.
 
-For the host-side artifacts that survive log clearing, lean on [Prefetch](https://www.prefetchparser.com) for evidence of attacker-tooling execution, the [registry](https://www.registryparser.com) `Services` key for the trace of an installed-and-removed service binary, and [LNK files](https://www.lnkparser.com) and [jump lists](https://www.jumplistparser.com) for evidence of files an operator opened over a hands-on session.
+For the host-side artifacts that survive log clearing, lean on [Prefetch for evidence of attacker-tooling execution](https://www.prefetchparser.com/en/blog/prefetch-proof-of-execution), the [registry `Services` key for the trace of an installed-and-removed service binary](https://www.registryparser.com/en/blog/registry-artifacts-lateral-movement), and LNK files and jump lists for evidence of files an operator opened over a hands-on session.
 
 ## Further reading
 

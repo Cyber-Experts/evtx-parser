@@ -11,7 +11,7 @@ tags:
 author: "Florian Amette"
 ---
 
-The Security log on a busy domain controller wraps in hours, not days. The default channel size is 20 MB, which is a few thousand records on a noisy host. By the time you [image the disk](https://www.diskimageparser.com) in response to an incident that started three weeks ago, the events you actually wanted have rolled off the live file and are sitting in unallocated space, pagefile, and possibly hibernation. Carving them back is a routine part of any EVTX-driven investigation, and most defenders skip it because they treat the live file as the source of truth.
+The Security log on a busy domain controller wraps in hours, not days. The default channel size is 20 MB, which is a few thousand records on a noisy host. By the time you [image the disk](https://www.diskimageparser.com/en/blog/carve-unallocated-space) in response to an incident that started three weeks ago, the events you actually wanted have rolled off the live file and are sitting in unallocated space, pagefile, and possibly hibernation. Carving them back is a routine part of any EVTX-driven investigation, and most defenders skip it because they treat the live file as the source of truth.
 
 It is not. The live file is the last 20 MB. The disk has the rest.
 
@@ -47,9 +47,9 @@ The places worth scanning, in order of yield:
 
 - **Unallocated clusters on the volume hosting `%SystemRoot%\System32\winevt\Logs\`**. When an EVTX file rolls or is cleared, the old contents are unallocated. NTFS does not zero unallocated clusters, so the bytes are recoverable until they are reused. On a server with low write churn, this can be weeks.
 - **Slack space in the live EVTX file**. EVTX files are written in 64 KB chunks. The last chunk in the file is often partially filled, with the slack containing the previous generation of data that was written to those bytes before the current chunk was sized down. Worth a scan.
-- **[pagefile.sys](https://www.pagefilesysparser.com)**. The event log service caches recent records and templates in memory. Pages backing those structures get swapped out under memory pressure. The pagefile is a goldmine for records that were never flushed to disk because the host crashed or was killed before they made it.
+- [pagefile.sys carving](https://www.pagefilesysparser.com/en/blog/pagefile-forensics-techniques). The event log service caches recent records and templates in memory. Pages backing those structures get swapped out under memory pressure. The pagefile is a goldmine for records that were never flushed to disk because the host crashed or was killed before they made it.
 - **`hiberfil.sys`**. Compressed snapshot of physical memory at hibernation time. Decompress with `Volatility 3` or Hibr2Bin and search the resulting raw memory for the record signatures.
-- **[RAM dump](https://www.ramparser.com)** captured during live response. The event log service's working set will contain recent records and the templates needed to render them.
+- **RAM dump** captured during live response. The event log service's working set will contain recent records and the templates needed to render them.
 - **Shadow copies (VSS)**. Old snapshots of the volume contain old versions of the live EVTX files. `vshadow` or `vssadmin list shadows` followed by `mklink /d` to mount the shadow gives you a previous-generation copy of the file with whatever records were live at the shadow time.
 
 VSS is the highest-leverage source on hosts that have it enabled and have not been tampered with at the VSS layer. A modern Windows server typically has 7-30 days of shadow copies. If the incident happened three weeks ago, the shadow from the time of the incident may have the live log as it existed then, untampered.
@@ -87,11 +87,11 @@ Carved records go into the same timeline as live records. The RecordID and Write
 
 Cross-reference against:
 
-- The [Master File Table](https://www.mftparser.com) entries for `Security.evtx` to see when the file was rewritten by clearing or rollover.
-- The [USN journal](https://www.usnparser.com) for `DATA_OVERWRITE` events on the EVTX file, which gives high-resolution timestamps for each rollover.
-- [Prefetch](https://www.prefetchparser.com) for the binaries that ran during the gap, since `Prefetch` is independent of `Security.evtx` and survives log clearing.
-- [AmCache](https://www.amcacheparser.com) and [Shimcache](https://www.shimcacheparser.com) for first-execution evidence.
-- The [registry](https://www.registryparser.com) hives in shadow copies for state at the time of the incident.
+- The Master File Table entries for `Security.evtx` to see when the file was rewritten by clearing or rollover.
+- The [USN journal's `DATA_OVERWRITE` reason code](https://www.usnparser.com/en/blog/usn-reason-codes-forensic-analysis) on the EVTX file on the EVTX file, which gives high-resolution timestamps for each rollover.
+- Prefetch for the binaries that ran during the gap, since `Prefetch` is independent of `Security.evtx` and survives log clearing.
+- AmCache and Shimcache for first-execution evidence.
+- The registry hives in shadow copies for state at the time of the incident.
 
 A carved record that lines up with a Prefetch entry and an MFT timestamp on a suspicious binary is a finding. A carved record sitting alone is a clue worth chasing.
 

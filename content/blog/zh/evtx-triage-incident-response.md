@@ -37,7 +37,7 @@ author: "Florian Amette"
 
 我第一个打开的，是过滤到怀疑时窗内 `EventID=1`（进程创建）的 `Sysmon%4Operational.evtx`，前提是它存在。Sysmon 给你父进程、按实际调用的命令行、用户、完整性级别，以及父子两端的哈希。这足以让你直接从屏幕上读出故事。
 
-如果没有 Sysmon（在数量令人沮丧的企业 Windows 资产中仍然没有），我的下一步是过滤到 `4688` 的 `Security.evtx`，*前提是命令行审计已启用*。如果没审计命令行，你只能拿到光秃秃的程序名，几乎没用——那时我会跳到 AmCache、Prefetch 与 [USN journal](https://www.usnparser.com) 去重建运行过什么。
+如果没有 Sysmon（在数量令人沮丧的企业 Windows 资产中仍然没有），我的下一步是过滤到 `4688` 的 `Security.evtx`，*前提是命令行审计已启用*。如果没审计命令行，你只能拿到光秃秃的程序名，几乎没用——那时我会跳到 AmCache、Prefetch 与 USN journal 去重建运行过什么。
 
 要大声说出来的推论：没有 Sysmon、也没有 `4688` 命令行的 EVTX 调查，基本就是在猜谜。如果你在事件发生前读到这段，先把这两个修好。
 
@@ -76,20 +76,20 @@ author: "Florian Amette"
 
 转发事件（`Microsoft-Windows-EventLog%4ForwardedEvents`）保留来源主机的 RecordID 与原始时间戳。如果你有从事件中存活下来的 WEC 订阅者，那些副本有时是仅存的完整记录。
 
-如果 Security 日志显示 `1100`（事件服务关闭）之后跟着无法解释的缺口，那你看到的是更干净的抹证据手法之一。请与[注册表蜂巢](https://www.registryparser.com)、[Master File Table](https://www.mftparser.com)、Prefetch 做交叉验证。
+如果 Security 日志显示 `1100`（事件服务关闭）之后跟着无法解释的缺口，那你看到的是更干净的抹证据手法之一。请与注册表蜂巢、Master File Table、Prefetch 做交叉验证。
 
 ## 缺记录时的雕刻与恢复
 
-当活动文件被清或轮转时，EVTX 记录可以从未分配磁盘空间与 [pagefile.sys](https://www.pagefilesysparser.com) 中雕出。记录头（`2a 2a 00 00` 魔数）具有足够辨识度，按签名雕刻效果还可以。Yamato Security 的 `hayabusa` 与 `evtx_dump` 都能在记录流被打过补丁的畸形文件上工作。
+当活动文件被清或轮转时，EVTX 记录可以从未分配磁盘空间与 pagefile.sys 中雕出。记录头（`2a 2a 00 00` 魔数）具有足够辨识度，按签名雕刻效果还可以。Yamato Security 的 `hayabusa` 与 `evtx_dump` 都能在记录流被打过补丁的畸形文件上工作。
 
-如果你怀疑某台主机的日志被篡改了，也试试从 [RAM dump](https://www.ramparser.com) 恢复 EVTX 记录。事件日志服务会在内存里缓存近期记录；事件附近时间点的快照，有时含有从未落到磁盘的记录。
+如果你怀疑某台主机的日志被篡改了，也试试从 RAM dump 恢复 EVTX 记录。事件日志服务会在内存里缓存近期记录；事件附近时间点的快照，有时含有从未落到磁盘的记录。
 
 ## 一条命中之后往哪里走
 
 单一事件几乎不会结案。我顺手用的几个枢纽点，按顺序：
 
 - 一条可疑的 `4624` → 找对应的 `4672`、之前的 `4625` 失败，以及随后用那个令牌创建了什么进程（按对应 `LogonId` 的 Sysmon 1）。
-- 一条 `7045` 或 `4697` 服务安装 → 看 `Microsoft-Windows-TaskScheduler%4Operational.evtx` 里的后续任务，以及 [registry](https://www.registryparser.com) 里 `HKLM\SYSTEM\CurrentControlSet\Services\` 中的二进制路径。
+- 一条 `7045` 或 `4697` 服务安装 → 看 `Microsoft-Windows-TaskScheduler%4Operational.evtx` 里的后续任务，以及 registry 里 `HKLM\SYSTEM\CurrentControlSet\Services\` 中的二进制路径。
 - 针对 `lsass.exe` 的 Sysmon 10 → 请求进程的进程树、工作目录中的文件投放、对非企业目的地的网络连接。
 - 带混淆内容的 PowerShell 4104 → 在沙箱里解码，然后到其他主机上找同一载荷落地的痕迹（多数企业攻击者会复用）。
 

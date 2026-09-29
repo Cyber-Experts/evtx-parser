@@ -11,7 +11,7 @@ tags:
 author: "Florian Amette"
 ---
 
-Il log Security su un domain controller carico si avvolge in ore, non in giorni. La dimensione di canale predefinita è 20 MB, che su un host rumoroso fanno qualche migliaio di record. Quando [immagini il disco](https://www.diskimageparser.com) in risposta a un incidente iniziato tre settimane fa, gli eventi che volevi davvero sono già usciti dal file vivo e si trovano nello spazio non allocato, nel pagefile e possibilmente nell'hibernation. Recuperarli con carving fa parte della routine di ogni indagine guidata da EVTX, e la maggior parte dei difensori salta questo passaggio perché tratta il file vivo come fonte di verità.
+Il log Security su un domain controller carico si avvolge in ore, non in giorni. La dimensione di canale predefinita è 20 MB, che su un host rumoroso fanno qualche migliaio di record. Quando immagini il disco in risposta a un incidente iniziato tre settimane fa, gli eventi che volevi davvero sono già usciti dal file vivo e si trovano nello spazio non allocato, nel pagefile e possibilmente nell'hibernation. Recuperarli con carving fa parte della routine di ogni indagine guidata da EVTX, e la maggior parte dei difensori salta questo passaggio perché tratta il file vivo come fonte di verità.
 
 Non lo è. Il file vivo sono gli ultimi 20 MB. Il disco ha il resto.
 
@@ -47,9 +47,9 @@ I posti che vale la pena scansionare, per resa:
 
 - **Cluster non allocati sul volume che ospita `%SystemRoot%\System32\winevt\Logs\`**. Quando un file EVTX si avvolge o viene svuotato, i contenuti vecchi diventano non allocati. NTFS non azzera i cluster non allocati, quindi i byte sono recuperabili finché non vengono riutilizzati. Su un server con poco churn in scrittura, possono essere settimane.
 - **Slack space nel file EVTX vivo**. I file EVTX sono scritti in chunk da 64 KB. L'ultimo chunk del file è spesso parzialmente riempito, con lo slack che contiene la generazione precedente di dati scritti in quei byte prima che il chunk corrente venisse ridimensionato. Vale la pena scansionarlo.
-- **[pagefile.sys](https://www.pagefilesysparser.com)**. Il servizio event log mette in cache record e template recenti in memoria. Le pagine che supportano quelle strutture vengono swappate sotto pressione di memoria. Il pagefile è una miniera d'oro per record mai scritti su disco perché l'host è crashato o è stato ucciso prima che ci arrivassero.
+- **pagefile.sys**. Il servizio event log mette in cache record e template recenti in memoria. Le pagine che supportano quelle strutture vengono swappate sotto pressione di memoria. Il pagefile è una miniera d'oro per record mai scritti su disco perché l'host è crashato o è stato ucciso prima che ci arrivassero.
 - **`hiberfil.sys`**. Snapshot compresso della memoria fisica al momento dell'hibernation. Decomprimi con `Volatility 3` o Hibr2Bin e cerca le firme dei record nella memoria grezza risultante.
-- **[Dump RAM](https://www.ramparser.com)** catturato durante la risposta dal vivo. Il working set del servizio event log conterrà record recenti e i template necessari a renderizzarli.
+- **Dump RAM** catturato durante la risposta dal vivo. Il working set del servizio event log conterrà record recenti e i template necessari a renderizzarli.
 - **Shadow copy (VSS)**. Vecchi snapshot del volume contengono vecchie versioni dei file EVTX vivi. `vshadow` o `vssadmin list shadows` seguito da `mklink /d` per montare lo shadow ti dà una copia di generazione precedente del file con i record che erano vivi al momento dello shadow.
 
 VSS è la fonte a maggior leva sugli host che lo hanno abilitato e che non sono stati manipolati a livello VSS. Un server Windows moderno ha tipicamente 7-30 giorni di shadow copy. Se l'incidente è successo tre settimane fa, lo shadow del momento dell'incidente potrebbe avere il log vivo così come esisteva allora, non manomesso.
@@ -87,11 +87,11 @@ I record carvati vanno nella stessa timeline dei record vivi. Il RecordID e il W
 
 Incrocia con:
 
-- Le voci della [Master File Table](https://www.mftparser.com) per `Security.evtx` per vedere quando il file è stato riscritto per cancellazione o rollover.
-- Il [journal USN](https://www.usnparser.com) per eventi `DATA_OVERWRITE` sul file EVTX, che dà timestamp ad alta risoluzione per ogni rollover.
-- Il [Prefetch](https://www.prefetchparser.com) per i binari che sono girati durante il buco, dato che `Prefetch` è indipendente da `Security.evtx` e sopravvive alla cancellazione del log.
-- [AmCache](https://www.amcacheparser.com) e [Shimcache](https://www.shimcacheparser.com) per le prove di prima esecuzione.
-- Gli hive del [registro](https://www.registryparser.com) negli shadow per lo stato al momento dell'incidente.
+- Le voci della Master File Table per `Security.evtx` per vedere quando il file è stato riscritto per cancellazione o rollover.
+- Il [journal USN](https://www.usnparser.com/it/blog/usn-reason-codes-forensic-analysis) per eventi `DATA_OVERWRITE` sul file EVTX, che dà timestamp ad alta risoluzione per ogni rollover.
+- Il Prefetch per i binari che sono girati durante il buco, dato che `Prefetch` è indipendente da `Security.evtx` e sopravvive alla cancellazione del log.
+- AmCache e Shimcache per le prove di prima esecuzione.
+- Gli hive del registro negli shadow per lo stato al momento dell'incidente.
 
 Un record carvato che si allinea con una voce di Prefetch e un timestamp MFT su un binario sospetto è una scoperta. Un record carvato da solo è un indizio che vale la pena inseguire.
 
