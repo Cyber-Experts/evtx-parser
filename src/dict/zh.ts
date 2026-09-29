@@ -2,7 +2,7 @@ import type { Dict } from "./types";
 
 export const zh: Dict = {
   meta: {
-    title: "EVTX 在线查看器和解析器 — 无需上传即可打开 .evtx 文件",
+    title: "EVTX 解析器和在线查看器 — 无需上传即可打开 .evtx 文件",
     description:
       ".evtx 文件是 Windows 事件日志。在浏览器中免费打开 — 无需上传、无需安装 — 筛选事件并导出为 CSV、TXT、JSON 或 XML。",
     siteName: "EVTX parser",

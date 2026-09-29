@@ -1,6 +1,7 @@
 ---
-title: "Event ID 1102 expliqué : journal d'audit Security effacé (et ce qui survit)"
-description: "1102 est le seul événement que vous ne pouvez pas supprimer sans laisser plus de preuves derrière. Voici ce qu'il vous dit, ce qui survit à l'effacement et où chercher quand vous le voyez."
+title: "Event ID 1102 : journal d'audit effacé (et ce qui survit)"
+seoTitle: "Event ID 1102 : journal d'audit effacé"
+description: "L'Event ID 1102 signifie que le journal d'audit Security de Windows a été effacé. Qui l'a fait, quels champs le prouvent, ce qui survit et où chercher."
 date: "2026-05-17"
 ---
 

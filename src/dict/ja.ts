@@ -2,7 +2,7 @@ import type { Dict } from "./types";
 
 export const ja: Dict = {
   meta: {
-    title: "EVTX ビューアー＆パーサー — .evtx ファイルをオンラインで開く（アップロード不要）",
+    title: "EVTX パーサー＆オンラインビューアー — .evtx ファイルをアップロード不要で開く",
     description:
       ".evtx ファイルは Windows のイベントログです。ブラウザで無料で開けます — アップロード・インストール不要。フィルターして CSV・TXT・JSON・XML にエクスポート。",
     siteName: "EVTX parser",

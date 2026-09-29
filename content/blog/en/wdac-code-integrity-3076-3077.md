@@ -1,6 +1,7 @@
 ---
 title: "Event ID 3076 & 3077: WDAC Code Integrity blocks explained"
-description: "Event ID 3076 is a WDAC / Smart App Control audit-mode block, 3077 an enforced block, both in CodeIntegrity/Operational. What they mean, the fields that matter and how to triage them."
+seoTitle: "Event ID 3076/3077: WDAC Code Integrity Block"
+description: "Event ID 3076 is a WDAC or Smart App Control audit-mode block and 3077 an enforced block, both in CodeIntegrity/Operational. Key fields and how to triage."
 date: "2026-06-21"
 tags:
   - evtx

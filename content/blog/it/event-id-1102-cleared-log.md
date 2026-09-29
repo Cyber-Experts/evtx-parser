@@ -1,6 +1,7 @@
 ---
-title: "Event ID 1102 spiegato: log di audit Security cancellato (e cosa sopravvive)"
-description: "1102 è l'unico evento che non puoi sopprimere senza lasciare più prove. Ecco cosa ti dice, cosa sopravvive alla cancellazione e dove guardare quando lo vedi."
+title: "Event ID 1102: log di audit cancellato (e cosa sopravvive)"
+seoTitle: "Event ID 1102: log di audit cancellato"
+description: "L'Event ID 1102 indica che il log di audit Security di Windows è stato cancellato. Chi l'ha fatto, quali campi lo provano, cosa sopravvive e dove cercare."
 date: "2026-05-17"
 ---
 

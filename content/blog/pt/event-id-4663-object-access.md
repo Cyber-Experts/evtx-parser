@@ -1,6 +1,7 @@
 ---
-title: "Event ID 4663 explicado: auditoria de acesso a ficheiros e registo com SACLs"
-description: "O 4663 é o registo de auditoria de objeto por acesso. Configure SACLs nos ficheiros e chaves certas e tem um log por byte de quem tocou em quê. Útil para ransomware, exfil e roubo de credential-store."
+title: "Event ID 4663: tentativa de acesso a um objeto"
+seoTitle: "Event ID 4663: tentativa de acesso a objeto"
+description: "O Event ID 4663 regista o acesso a ficheiros, pastas e chaves de registo auditados por uma SACL: quem tocou em quê e com que máscara. Configuração."
 date: "2026-05-24"
 ---
 

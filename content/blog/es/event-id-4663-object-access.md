@@ -1,6 +1,7 @@
 ---
-title: "Event ID 4663 explicado: auditoría de acceso a archivos y registro con SACLs"
-description: "4663 es el registro de auditoría de objeto por acceso. Configura SACLs en los archivos y claves correctos y obtienes un log por byte de quién tocó qué. Útil para ransomware, exfiltración y robo de credential stores."
+title: "Event ID 4663: se intentó acceder a un objeto"
+seoTitle: "Event ID 4663: intento de acceso a un objeto"
+description: "El Event ID 4663 registra el acceso a archivos, carpetas y claves de registro auditados por una SACL: quién tocó qué y con qué máscara. Setup y caza."
 date: "2026-05-24"
 ---
 

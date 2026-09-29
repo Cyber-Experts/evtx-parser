@@ -1,6 +1,7 @@
 ---
-title: "Event ID 1102 explicado: log de auditoria de segurança limpo (e o que sobrevive)"
-description: "O 1102 é o único evento que não consegue suprimir sem deixar mais evidência atrás de si. Eis o que diz, o que sobrevive à limpeza e onde procurar quando o vir."
+title: "Event ID 1102: log de auditoria limpo (e o que sobrevive)"
+seoTitle: "Event ID 1102: log de auditoria limpo"
+description: "O Event ID 1102 significa que o log de auditoria Security do Windows foi limpo. Quem o fez, que campos o provam, o que sobrevive e onde procurar."
 date: "2026-05-17"
 ---
 

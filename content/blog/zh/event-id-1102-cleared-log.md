@@ -1,6 +1,7 @@
 ---
-title: "Event ID 1102 解读：Security 审计日志被清除（与什么得以幸存）"
-description: "1102 是你无法抑制而不留下更多证据的唯一事件。它告诉了你什么，清除后什么得以保留，看到它后该去哪儿查。"
+title: "Event ID 1102：审计日志已被清除（以及留下了什么）"
+seoTitle: "Event ID 1102：Security 审计日志被清除"
+description: "Event ID 1102 表示 Windows Security 审计日志已被清除。本文说明是谁执行的、哪些字段可以证明、清除后仍保留哪些证据，以及接下来该查哪里。"
 date: "2026-05-17"
 ---
 

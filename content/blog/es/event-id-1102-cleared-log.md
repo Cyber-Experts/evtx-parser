@@ -1,6 +1,7 @@
 ---
-title: "Event ID 1102 explicado: registro de auditoría de Security borrado (y lo que sobrevive)"
-description: "1102 es el único evento que no puedes suprimir sin dejar más pruebas. Esto es lo que te dice, lo que sobrevive al borrado y dónde mirar cuando lo veas."
+title: "Event ID 1102: registro de auditoría borrado (y lo que sobrevive)"
+seoTitle: "Event ID 1102: registro de auditoría borrado"
+description: "El Event ID 1102 indica que se borró el registro de auditoría Security de Windows. Quién lo hizo, qué campos lo prueban, qué sobrevive y dónde mirar."
 date: "2026-05-17"
 ---
 
