@@ -7,6 +7,7 @@ import { CollectionJsonLd } from "@/components/seo/collection-jsonld";
 import { glossary } from "@/next-md-blog.config";
 import { siteConfig } from "@/site.config";
 import { LOCALES, hreflangFor, type Locale } from "@/lib/i18n";
+import { getDict } from "@/src/dict";
 import { getDictionary, hasLocale } from "../dictionaries";
 
 type Params = { lang: string };
@@ -22,10 +23,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { lang } = await params;
   if (!hasLocale(lang)) return {};
+  const t = getDict(lang as Locale).glossary;
   return {
     metadataBase: new URL(siteConfig.url),
-    title: "Glossary",
-    description: "Plain-language definitions of SEO terms.",
+    title: t.title,
+    description: t.description,
     alternates: {
       canonical: `${siteConfig.url}/${lang}/glossary`,
       languages: hreflangFor(siteConfig.url, "/glossary"),
@@ -42,6 +44,7 @@ export default async function GlossaryIndex({
   if (!hasLocale(lang)) notFound();
   const locale = lang as Locale;
   const dict = await getDictionary(locale);
+  const t = getDict(locale).glossary;
   const terms = await glossary.getAll({ locale });
   const url = `${siteConfig.url}/${lang}/glossary`;
 
@@ -49,8 +52,8 @@ export default async function GlossaryIndex({
     <>
       <CollectionJsonLd
         url={url}
-        name="Glossary"
-        description="Plain-language definitions of SEO terms."
+        name={t.title}
+        description={t.description}
         inLanguage={locale}
         items={terms.map((t) => ({
           name: (t.frontmatter.title as string) ?? t.slug,
@@ -66,13 +69,13 @@ export default async function GlossaryIndex({
             <Breadcrumbs
               items={[
                 { name: dict.nav.home, href: `/${locale}` },
-                { name: "Glossary" },
+                { name: t.title },
               ]}
             />
           }
           eyebrow="DFIR"
-          title="Glossary"
-          intro="Plain-language definitions of SEO terms used across the blog."
+          title={t.title}
+          intro={t.intro}
         />
         <dl className="grid gap-4 sm:grid-cols-2">
           {terms.map((term) => (
