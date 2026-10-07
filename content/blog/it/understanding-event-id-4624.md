@@ -1,6 +1,8 @@
 ---
 title: "Event ID 4624 spiegato: logon Windows riuscito e riferimento LogonType"
 description: "Cosa contiene davvero un record 4624, perché il campo LogonType conta più dell'evento stesso, e come leggerli su scala."
+seoTitle: "Event ID 4624: logon riuscito e tipi di logon"
+seoDescription: "L'Event ID 4624 viene scritto a ogni logon Windows riuscito. Cosa significa ogni LogonType (2, 3, 10 e gli altri), quali campi analizzare e come cacciare."
 date: "2026-05-17"
 ---
 

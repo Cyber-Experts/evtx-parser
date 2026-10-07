@@ -1,6 +1,8 @@
 ---
 title: "Event ID 7036 explicado: cambios de estado de servicio para triaje DFIR"
 description: "7036 se dispara cada vez que un servicio arranca o se detiene. Emparejado con 7045 confirma si la persistencia realmente se ejecutó. Por sí solo revela abuso de servicios, evasión de defensa y anomalías de arranque."
+seoTitle: "Event ID 7036: servicio iniciado o detenido"
+seoDescription: "El Event ID 7036 se registra cada vez que un servicio de Windows arranca o se detiene. Con 7045 confirma que la persistencia se ejecutó y revela abusos."
 date: "2026-05-24"
 ---
 
