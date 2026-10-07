@@ -102,7 +102,7 @@ Cette déduplication est ce qui rend EVTX assez petit pour rester sur des hôtes
 
 Si vous écrivez un parser à partir de zéro (ne le faites pas, mais si vous le devez), le corpus de test contre lequel valider sont les échantillons EVTX publics du repo [poster SANS DFIR](https://github.com/forensicmatt/EVTX-ETW-Resources) et les logs d'échantillon `hayabusa` de Yamato Security. Ils couvrent les cas de chunk malformé et d'enregistrement partiel sur lesquels votre code se trompera à la première passe.
 
-L'autre chose à dire : le format est partagé avec d'autres artefacts Windows. Le même encodage FILETIME apparaît dans le [registre](https://www.registryparser.com/fr/blog/regf-hive-format), dans les horodatages `$STANDARD_INFORMATION` de [MFT](https://www.mftparser.com/fr/blog/inside-an-mft-record), dans les en-têtes [Prefetch](https://www.prefetchparser.com/fr/blog/prefetch-file-format). Devenez bon à lire FILETIME de tête et beaucoup de forensique Windows devient plus silencieuse.
+L'autre chose à dire : le format est partagé avec d'autres artefacts Windows. Le même encodage FILETIME apparaît dans le [registre](https://www.registryparser.com/fr/blog/regf-hive-format), dans les horodatages `$STANDARD_INFORMATION` de [MFT](https://www.mftparser.com/fr/blog/inside-an-mft-record), dans les en-têtes Prefetch. Devenez bon à lire FILETIME de tête et beaucoup de forensique Windows devient plus silencieuse.
 
 ## Pour aller plus loin
 

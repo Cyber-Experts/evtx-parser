@@ -99,7 +99,7 @@ En pratique, vous voulez tout de :
 
 Liez-les par `LogonId` à l'intérieur d'un hôte et par horodatage + compte + IP à travers les hôtes. Le papier classique de JPCERT/CC expose tout cela en détail et est le meilleur document gratuit sur le sujet.
 
-Pour les artefacts côté hôte qui survivent à l'effacement du journal, appuyez-vous sur le [Prefetch](https://www.prefetchparser.com/fr/blog/prefetch-proof-of-execution) comme preuve d'exécution du tooling attaquant, la clé `Services` du [registre](https://www.registryparser.com/fr) pour la trace d'un binaire de service installé puis retiré, et les fichiers LNK ainsi que les jump lists comme preuves de fichiers ouverts par un opérateur lors d'une session hands-on.
+Pour les artefacts côté hôte qui survivent à l'effacement du journal, appuyez-vous sur le [Prefetch](https://www.prefetchparser.com/fr/blog/prefetch-proof-of-execution) comme preuve d'exécution du tooling attaquant, la clé `Services` du registre pour la trace d'un binaire de service installé puis retiré, et les fichiers LNK ainsi que les jump lists comme preuves de fichiers ouverts par un opérateur lors d'une session hands-on.
 
 ## Pour aller plus loin
 
