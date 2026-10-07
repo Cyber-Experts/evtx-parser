@@ -99,7 +99,7 @@ In practice you want all of:
 
 Tie them together by `LogonId` within a host and by timestamp + account + IP across hosts. The classic JPCERT/CC paper lays this out in detail and is the single best free document on the topic.
 
-For the host-side artifacts that survive log clearing, lean on [Prefetch for evidence of attacker-tooling execution](https://www.prefetchparser.com/en/blog/prefetch-proof-of-execution), the [registry `Services` key for the trace of an installed-and-removed service binary](https://www.registryparser.com/en/blog/registry-artifacts-lateral-movement), and LNK files and jump lists for evidence of files an operator opened over a hands-on session.
+For the host-side artifacts that survive log clearing, lean on Prefetch for evidence of attacker-tooling execution, the [registry `Services` key for the trace of an installed-and-removed service binary](https://www.registryparser.com/en/blog/registry-artifacts-lateral-movement), and LNK files and jump lists for evidence of files an operator opened over a hands-on session.
 
 ## Further reading
 
