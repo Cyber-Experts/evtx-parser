@@ -1,6 +1,8 @@
 ---
 title: "File share access: Event IDs 5140 and 5145"
 description: "Tracking network share and file access in the Security log — 5140 (share accessed) vs 5145 (detailed file share), spotting ADMIN$/C$ lateral movement and data staging, and managing 5145's volume."
+seoTitle: "Event IDs 5140 & 5145: File Share Access"
+seoDescription: "Event 5140 logs each network share connection and 5145 each file access check in it. Spot ADMIN$ and C$ lateral movement and data staging, and tame 5145."
 date: "2026-06-21"
 tags:
   - evtx

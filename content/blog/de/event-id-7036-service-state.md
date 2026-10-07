@@ -1,6 +1,8 @@
 ---
 title: "Event ID 7036 erklärt: Dienstzustandsänderungen für die DFIR-Triage"
 description: "7036 feuert jedes Mal, wenn ein Dienst startet oder stoppt. Gepaart mit 7045 bestätigt es, ob die Persistenz tatsächlich gelaufen ist. Allein offenbart es Dienstmissbrauch, Defense Evasion und Boot-Anomalien."
+seoTitle: "Event ID 7036: Dienst gestartet oder beendet"
+seoDescription: "Event ID 7036 wird bei jedem Start oder Stopp eines Windows-Dienstes protokolliert. Mit 7045 belegt es, dass Persistenz lief, und zeigt Missbrauch."
 date: "2026-05-24"
 ---
 

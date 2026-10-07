@@ -1,6 +1,8 @@
 ---
 title: "Event ID 7036 explained: service state changes for DFIR triage"
 description: "7036 fires every time a service starts or stops. Paired with 7045 it confirms whether persistence actually ran. On its own it reveals service abuse, defense evasion, and boot anomalies."
+seoTitle: "Event ID 7036: Service Started or Stopped"
+seoDescription: "Event ID 7036 is logged each time a Windows service starts or stops. Pair it with 7045 to confirm persistence ran and to spot service abuse and evasion."
 date: "2026-05-24"
 ---
 
