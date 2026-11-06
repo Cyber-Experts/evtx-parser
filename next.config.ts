@@ -23,7 +23,7 @@ const csp = [
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
   "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://va.vercel-scripts.com https://analytics.ahrefs.com",
-  "connect-src 'self' https://va.vercel-scripts.com https://*.vercel-insights.com https://analytics.ahrefs.com",
+  `connect-src${process.env.NEXT_PUBLIC_TRAILIC_ENDPOINT ? ` ${new URL(process.env.NEXT_PUBLIC_TRAILIC_ENDPOINT).origin}` : ""} 'self' https://va.vercel-scripts.com https://*.vercel-insights.com https://analytics.ahrefs.com`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "upgrade-insecure-requests",
