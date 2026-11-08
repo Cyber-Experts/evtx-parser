@@ -19,7 +19,8 @@
 
 import { useEffect } from "react";
 import { track } from "@vercel/analytics";
-import { Trailic, track as trailicTrack, type Traits } from "trailic";
+import { Analytics as BorromicAnalytics } from "@borromic/analytics/next";
+import { track as borromicTrack, type EventData } from "@borromic/analytics";
 
 type Props = Record<string, string | number | boolean | null>;
 
@@ -49,7 +50,7 @@ export function AutoEvents() {
       last.set(key, now);
       sent++;
       try {
-        trailicTrack(name, props as Traits);
+        borromicTrack(name, props as EventData);
         track(name, props);
       } catch {
         /* analytics must never break the page */
@@ -150,10 +151,8 @@ export function AutoEvents() {
       window.removeEventListener("drop", onDrop, { capture: true });
     };
   }, []);
-  // Trailic counts its own page views. Only where a deployment names both, so previews and local runs send nothing.
-  const siteKey = process.env.NEXT_PUBLIC_TRAILIC_KEY;
-  const endpoint = process.env.NEXT_PUBLIC_TRAILIC_ENDPOINT;
-  return siteKey && endpoint ? <Trailic siteKey={siteKey} endpoint={endpoint} /> : null;
+  // Borromic counts its own page views. Only where a deployment has a site key, so previews and local runs send nothing.
+  return <BorromicAnalytics />;
 }
 
 export default AutoEvents;

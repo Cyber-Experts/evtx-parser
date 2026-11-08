@@ -6,7 +6,7 @@ import { PageHero } from "@/components/PageHero";
 import { siteConfig } from "@/site.config";
 import { LOCALES, hreflangFor, type Locale } from "@/lib/i18n";
 import { getDictionary, hasLocale } from "../dictionaries";
-import { TrailicOptOut } from "trailic/opt-out";
+import { OptOut } from "@borromic/analytics/opt-out";
 
 type Params = { lang: string };
 
@@ -158,8 +158,8 @@ export default async function PrivacyPage({
           </p>
         </article>
         <p>
-          Pages visited and a few actions on them, with country, device and browser type, are also measured by a self-hosted Trailic, with no cookies and no identification of visitors.{" "}
-          <TrailicOptOut stop="Stop measuring my visits" resume="Measure my visits again" />
+          Pages visited and a few actions on them, with the country, are also measured by Borromic web analytics, with no cookies and no identification of visitors.{" "}
+          <OptOut stop="Stop measuring my visits" resume="Measure my visits again" />
         </p>
       </main>
     </>
