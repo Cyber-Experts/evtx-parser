@@ -68,6 +68,27 @@ fields:
     description: >-
       Message string for the failure (stored as a `%%` insertion such as `%%2313`, rendered by
       Event Viewer as "Unknown user name or bad password").
+    values:
+      - value: "%%2304"
+        meaning: "An error occurred during logon."
+      - value: "%%2305"
+        meaning: "The user account has expired."
+      - value: "%%2306"
+        meaning: "The Netlogon component is not active (domain controller unreachable or Netlogon stopped)."
+      - value: "%%2307"
+        meaning: "Account locked out."
+      - value: "%%2308"
+        meaning: "The user has not been granted the requested logon type on this machine."
+      - value: "%%2309"
+        meaning: "The account's password has expired."
+      - value: "%%2310"
+        meaning: "Account currently disabled."
+      - value: "%%2311"
+        meaning: "Logon outside the account's allowed hours."
+      - value: "%%2312"
+        meaning: "User not allowed to log on at this computer."
+      - value: "%%2313"
+        meaning: "Unknown user name or bad password."
   - name: LogonType
     description: >-
       Type of logon that failed (same values as 4624): 2 console, 3 network (SMB, NTLM over

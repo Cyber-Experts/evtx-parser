@@ -64,6 +64,27 @@ fields:
     description: >-
       Texto del motivo del fallo (almacenado como una inserción `%%` como `%%2313`, que el Visor de
       eventos muestra como "Nombre de usuario desconocido o contraseña incorrecta").
+    values:
+      - value: "%%2304"
+        meaning: "Se produjo un error durante el inicio de sesión."
+      - value: "%%2305"
+        meaning: "La cuenta de usuario ha caducado."
+      - value: "%%2306"
+        meaning: "El componente Netlogon no está activo (controlador de dominio inaccesible o servicio Netlogon detenido)."
+      - value: "%%2307"
+        meaning: "Cuenta bloqueada."
+      - value: "%%2308"
+        meaning: "Al usuario no se le ha concedido el tipo de inicio de sesión solicitado en este equipo."
+      - value: "%%2309"
+        meaning: "La contraseña de la cuenta ha caducado."
+      - value: "%%2310"
+        meaning: "Cuenta deshabilitada actualmente."
+      - value: "%%2311"
+        meaning: "Inicio de sesión fuera del horario permitido de la cuenta."
+      - value: "%%2312"
+        meaning: "El usuario no tiene permitido iniciar sesión en este equipo."
+      - value: "%%2313"
+        meaning: "Nombre de usuario desconocido o contraseña incorrecta."
   - name: LogonType
     description: >-
       Tipo de inicio de sesión que falló (mismos valores que en 4624): 2 consola, 3 red (SMB, NTLM
