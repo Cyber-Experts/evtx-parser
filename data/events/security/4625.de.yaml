@@ -63,6 +63,27 @@ fields:
     description: >-
       Meldungstext zum Fehlschlag (gespeichert als `%%`-Einfügung wie `%%2313`, von der
       Ereignisanzeige als „Unbekannter Benutzername oder falsches Kennwort“ dargestellt).
+    values:
+      - value: "%%2304"
+        meaning: "Bei der Anmeldung ist ein Fehler aufgetreten."
+      - value: "%%2305"
+        meaning: "Das Benutzerkonto ist abgelaufen."
+      - value: "%%2306"
+        meaning: "Die Netlogon-Komponente ist nicht aktiv (Domänencontroller nicht erreichbar oder Netlogon-Dienst beendet)."
+      - value: "%%2307"
+        meaning: "Konto gesperrt."
+      - value: "%%2308"
+        meaning: "Dem Benutzer wurde der angeforderte Anmeldetyp auf diesem Computer nicht gewährt."
+      - value: "%%2309"
+        meaning: "Das Kennwort des Kontos ist abgelaufen."
+      - value: "%%2310"
+        meaning: "Konto ist derzeit deaktiviert."
+      - value: "%%2311"
+        meaning: "Anmeldung außerhalb der zulässigen Anmeldezeiten des Kontos."
+      - value: "%%2312"
+        meaning: "Der Benutzer darf sich an diesem Computer nicht anmelden."
+      - value: "%%2313"
+        meaning: "Unbekannter Benutzername oder falsches Kennwort."
   - name: LogonType
     description: >-
       Art der fehlgeschlagenen Anmeldung (gleiche Werte wie bei 4624): 2 Konsole, 3 Netzwerk (SMB,

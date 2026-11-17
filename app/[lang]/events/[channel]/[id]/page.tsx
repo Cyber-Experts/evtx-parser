@@ -101,6 +101,11 @@ const LEVEL_STYLE: Record<SigmaLevel, string> = {
 
 const SIGMA_SHOWN = 25;
 
+/** Stable fragment for a documented value: "substatus-0xc000006a", "failurereason-2313". */
+function valueAnchor(field: string, value: string): string {
+  return `${field}-${value}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 function Section({
   id,
   title,
@@ -328,9 +333,15 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                           </thead>
                           <tbody>
                             {f.values.map((v) => (
-                              <tr key={v.value} className="border-t border-ink-100 dark:border-ink-800">
+                              <tr
+                                key={v.value}
+                                id={valueAnchor(f.name, v.value)}
+                                className="scroll-mt-20 border-t border-ink-100 target:bg-uv-50 dark:border-ink-800 dark:target:bg-uv-500/10"
+                              >
                                 <td className="py-1.5 pr-3 align-top font-mono whitespace-nowrap text-ink-900 dark:text-ink-100">
-                                  {v.value}
+                                  <a href={`#${valueAnchor(f.name, v.value)}`} className="hover:underline">
+                                    {v.value}
+                                  </a>
                                 </td>
                                 <td className="py-1.5 align-top">
                                   <Inline text={v.meaning} />

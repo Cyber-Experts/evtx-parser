@@ -64,6 +64,27 @@ fields:
       Message décrivant l'échec (stocké sous forme d'insertion `%%` telle que `%%2313`, que
       l'Observateur d'événements affiche comme « Nom d'utilisateur inconnu ou mot de passe
       incorrect »).
+    values:
+      - value: "%%2304"
+        meaning: "Une erreur s'est produite lors de l'ouverture de session."
+      - value: "%%2305"
+        meaning: "Le compte utilisateur a expiré."
+      - value: "%%2306"
+        meaning: "Le composant Netlogon n'est pas actif (contrôleur de domaine injoignable ou service Netlogon arrêté)."
+      - value: "%%2307"
+        meaning: "Compte verrouillé."
+      - value: "%%2308"
+        meaning: "L'utilisateur ne dispose pas du type d'ouverture de session demandé sur cette machine."
+      - value: "%%2309"
+        meaning: "Le mot de passe du compte a expiré."
+      - value: "%%2310"
+        meaning: "Compte actuellement désactivé."
+      - value: "%%2311"
+        meaning: "Ouverture de session en dehors des heures autorisées du compte."
+      - value: "%%2312"
+        meaning: "L'utilisateur n'est pas autorisé à ouvrir une session sur cet ordinateur."
+      - value: "%%2313"
+        meaning: "Nom d'utilisateur inconnu ou mot de passe incorrect."
   - name: LogonType
     description: >-
       Type d'ouverture de session en échec (mêmes valeurs que pour le 4624) : 2 console, 3 réseau
