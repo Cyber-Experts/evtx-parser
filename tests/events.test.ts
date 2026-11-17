@@ -14,7 +14,7 @@ import {
 import { isPlaceholder, parseEventKey, validateEntry, validateTranslation } from "@/lib/events/schema";
 import { encyclopediaLink } from "@/lib/events/link";
 import { LEGACY_EVENT_IDS, legacyEventRedirects } from "@/lib/events/legacy";
-import { EVENT_BLOG_POSTS } from "@/lib/events/blog-links";
+import { EVENT_BLOG_POSTS, eventsForPost } from "@/lib/events/blog-links";
 import { eventMetaTitle, renderedTitle, TITLE_MAX } from "@/lib/events/seo";
 import { sigmaLinksFor } from "@/lib/events/sigma-links";
 import { EVENTS_DICT } from "@/src/dict/events";
@@ -106,6 +106,12 @@ describe("event dataset", () => {
     for (const k of Object.values(LEGACY_EVENT_IDS)) expect(keys.has(k), k).toBe(true);
     for (const slug of new Set(Object.values(EVENT_BLOG_POSTS)))
       expect(fs.existsSync(path.join(process.cwd(), "content/blog/en", `${slug}.md`)), slug).toBe(true);
+  });
+
+  it("maps each post back to the entries it covers", () => {
+    expect(eventsForPost("file-share-access-5140-5145")).toEqual(["security/5140", "security/5145"]);
+    expect(eventsForPost("event-id-1102-cleared-log")).toEqual(["security/1102"]);
+    expect(eventsForPost("how-to-open-an-evtx-file")).toEqual([]);
   });
 });
 

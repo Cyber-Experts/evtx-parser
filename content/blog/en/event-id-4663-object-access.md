@@ -1,6 +1,6 @@
 ---
-title: "Event ID 4663: An attempt was made to access an object"
-seoTitle: "Event ID 4663: Object Access Attempt (SACL)"
+title: "Hunting with event 4663: SACL setup, access masks and detections"
+seoTitle: "Event 4663 Hunting: SACL Setup, Access Masks & Detections"
 description: "Event ID 4663 logs access to a file, folder or registry key audited by a SACL: who touched what, with which access mask. Setup, key fields and hunts."
 date: "2026-05-24"
 ---

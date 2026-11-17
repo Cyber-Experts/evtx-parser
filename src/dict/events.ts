@@ -73,6 +73,8 @@ export type EventsDict = {
   sectionRelated: string;
   sectionReferences: string;
   inDepth: string;
+  /** Eyebrow on blog posts, linking to the entries they go deeper on. */
+  eventReference: string;
   levels: Record<SigmaLevel, string>;
   categories: Record<EventCategory, string>;
 };
@@ -136,6 +138,7 @@ const en: EventsDict = {
   sectionRelated: "Related events",
   sectionReferences: "Sources and further reading",
   inDepth: "In-depth guide",
+  eventReference: "Event reference",
   levels: {
     critical: "Critical",
     high: "High",
@@ -230,6 +233,7 @@ const fr: EventsDict = {
   sectionRelated: "Événements liés",
   sectionReferences: "Sources et pour aller plus loin",
   inDepth: "Guide détaillé",
+  eventReference: "Fiche de l'événement",
   levels: {
     critical: "Critique",
     high: "Élevé",
@@ -324,6 +328,7 @@ const es: EventsDict = {
   sectionRelated: "Eventos relacionados",
   sectionReferences: "Fuentes y lecturas adicionales",
   inDepth: "Guía detallada",
+  eventReference: "Ficha del evento",
   levels: {
     critical: "Crítica",
     high: "Alta",
@@ -418,6 +423,7 @@ const de: EventsDict = {
   sectionRelated: "Verwandte Ereignisse",
   sectionReferences: "Quellen und weiterführende Links",
   inDepth: "Ausführlicher Leitfaden",
+  eventReference: "Ereignisreferenz",
   levels: {
     critical: "Kritisch",
     high: "Hoch",
@@ -512,6 +518,7 @@ const it: EventsDict = {
   sectionRelated: "Eventi correlati",
   sectionReferences: "Fonti e approfondimenti",
   inDepth: "Guida approfondita",
+  eventReference: "Scheda dell'evento",
   levels: {
     critical: "Critica",
     high: "Alta",
@@ -606,6 +613,7 @@ const pt: EventsDict = {
   sectionRelated: "Eventos relacionados",
   sectionReferences: "Fontes e leitura adicional",
   inDepth: "Guia detalhado",
+  eventReference: "Ficha do evento",
   levels: {
     critical: "Crítica",
     high: "Alta",
@@ -700,6 +708,7 @@ const ja: EventsDict = {
   sectionRelated: "関連イベント",
   sectionReferences: "出典と参考資料",
   inDepth: "詳細ガイド",
+  eventReference: "イベントリファレンス",
   levels: {
     critical: "緊急",
     high: "高",
@@ -791,6 +800,7 @@ const zh: EventsDict = {
   sectionRelated: "相关事件",
   sectionReferences: "来源与延伸阅读",
   inDepth: "深入指南",
+  eventReference: "事件参考",
   levels: {
     critical: "严重",
     high: "高",
