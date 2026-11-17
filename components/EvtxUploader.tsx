@@ -433,6 +433,27 @@ const SEV_DOT: Record<Severity, string> = {
   low: "bg-ink-400",
 };
 
+// One-click demo logs (public/samples, gzipped): real Security, System and
+// Sysmon logs from test machines, from the evtx crate's sample set
+// (github.com/omerbenamram/evtx, Apache-2.0). Same host for System + Sysmon.
+const SAMPLE_LOGS = [
+  { url: "/samples/Security.evtx.gz", name: "Security.evtx" },
+  { url: "/samples/System.evtx.gz", name: "System.evtx" },
+  { url: "/samples/Sysmon.evtx.gz", name: "Microsoft-Windows-Sysmon%4Operational.evtx" },
+] as const;
+
+async function fetchSample(url: string, name: string): Promise<File> {
+  const res = await fetch(url);
+  if (!res.ok || !res.body) throw new Error(`${url}: HTTP ${res.status}`);
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  // Gzip magic: decompress here unless the CDN already did (Content-Encoding).
+  const gz = bytes[0] === 0x1f && bytes[1] === 0x8b;
+  const blob = gz
+    ? await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).blob()
+    : new Blob([bytes]);
+  return new File([blob], name, { type: "application/octet-stream" });
+}
+
 // "Scanning" indicator shown while a file parses — animated brand bars plus an
 // indeterminate sweep, so large files never look like a hung tab.
 function ScanningIndicator() {
@@ -556,7 +577,7 @@ export function EvtxUploader({
   // sequentially (the worker holds one WASM instance) and each becomes its own
   // handle so later XML lookups stay lazy and per-file.
   const handleFiles = useCallback(
-    async (incoming: File[]) => {
+    async (incoming: File[], source: "upload" | "sample" = "upload") => {
       const evtxFiles = incoming.filter((f) => /\.evtx$/i.test(f.name));
       if (evtxFiles.length === 0) return;
       setError(null);
@@ -603,11 +624,25 @@ export function EvtxUploader({
         setLoading(null);
         // High-intent event: the visitor actually parsed logs. Once per user
         // action (a multi-file drop is one event), never the file name/bytes.
-        if (parsedAny) track("parse_file", { artifact: "evtx", source: "upload" });
+        if (parsedAny) track("parse_file", { artifact: "evtx", source });
       }
     },
     [t.home.statusReading, t.home.statusParsing],
   );
+
+  const loadSamples = useCallback(async () => {
+    setError(null);
+    setLoading(t.home.statusLoadingSample);
+    let picked: File[];
+    try {
+      picked = await Promise.all(SAMPLE_LOGS.map((x) => fetchSample(x.url, x.name)));
+    } catch (err) {
+      setLoading(null);
+      setError(err instanceof Error ? err.message : String(err));
+      return;
+    }
+    await handleFiles(picked, "sample");
+  }, [handleFiles, t.home.statusLoadingSample]);
 
   const removeFile = useCallback((id: number) => {
     setFiles((prev) => prev.filter((f) => f.id !== id));
@@ -2620,6 +2655,21 @@ export function EvtxUploader({
             }}
           />
         </label>
+      )}
+
+      {!ready && (
+        <div className="flex flex-col items-center justify-center gap-x-3 gap-y-2 text-center text-sm sm:flex-row">
+          <button
+            type="button"
+            onClick={loadSamples}
+            disabled={loading != null || restoring}
+            className="inline-flex items-center gap-2 rounded-xl border border-uv-300 bg-card px-4 py-2 font-semibold text-uv-700 transition hover:border-uv-500 hover:bg-uv-50 disabled:opacity-50 dark:border-uv-400/40 dark:text-uv-300 dark:hover:bg-uv-500/10"
+          >
+            <span aria-hidden="true">▶</span>
+            {t.home.sampleCta}
+          </button>
+          <span className="text-ink-500 dark:text-ink-400">{t.home.sampleNote}</span>
+        </div>
       )}
 
       {!ready && (

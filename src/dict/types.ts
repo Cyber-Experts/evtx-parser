@@ -28,6 +28,10 @@ export type Dict = {
     features: { title: string; body: string }[];
     statusReading: string;
     statusParsing: string;
+    /** One-click demo: loads the bundled sample logs. */
+    sampleCta: string;
+    sampleNote: string;
+    statusLoadingSample: string;
     eventsLabel: string;
     filterPlaceholder: string;
     clearFilter: string;
