@@ -38,3 +38,10 @@ export const EVENT_BLOG_POSTS: Record<string, string> = {
   "rdp-remote-connection-manager/1149": "rdp-forensics-event-logs",
   "rdp-local-session-manager/21": "rdp-forensics-event-logs",
 };
+
+/** Entry keys ("channel/id") a post goes deeper on — the reverse of EVENT_BLOG_POSTS. */
+export function eventsForPost(slug: string): string[] {
+  return Object.entries(EVENT_BLOG_POSTS)
+    .filter(([, s]) => s === slug)
+    .map(([key]) => key);
+}

@@ -19,6 +19,10 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { Separator } from "@/components/ui/separator";
 import { markdownComponents } from "@/components/markdown/components";
 import { extractHeadings } from "@/lib/toc";
+import { eventsForPost } from "@/lib/events/blog-links";
+import { entryHref, getEntry, viewEntry } from "@/lib/events";
+import { eventHeadingText } from "@/lib/events/seo";
+import { getEventsDict } from "@/src/dict/events";
 import { getDictionary, hasLocale } from "../../dictionaries";
 
 type Params = { lang: string; slug: string };
@@ -88,6 +92,17 @@ export default async function BlogPostPage({
   const updated = typeof fm.updated === "string" ? fm.updated : undefined;
   const tags = (fm.tags as string[] | undefined) ?? [];
   const headings = extractHeadings(post.content);
+
+  // Encyclopedia entries this post goes deeper on: linked up top so the entry
+  // reads as the reference for "event id N" and the post as its companion.
+  const eventRefs = eventsForPost(slug).flatMap((key) => {
+    const [channel, id] = key.split("/");
+    const entry = getEntry(channel, Number(id));
+    if (!entry) return [];
+    const link = entryHref(entry, locale);
+    const target = link.locale as Locale;
+    return [{ key, ...link, label: eventHeadingText(viewEntry(entry, target), getEventsDict(target)) }];
+  });
 
   // Related: same locale, sharing ≥1 tag, top 3 by overlap.
   const all = await fetchAll(locale);
@@ -272,6 +287,25 @@ export default async function BlogPostPage({
               )}
             </PageHero>
             <Separator className="my-8 bg-ink-200 dark:bg-ink-800" />
+            {eventRefs.length > 0 && (
+              <nav
+                aria-label={getEventsDict(locale).eventReference}
+                className="surface mb-8 flex flex-wrap items-baseline gap-x-4 gap-y-1.5 px-4 py-3 text-sm"
+              >
+                <span className="eyebrow">{getEventsDict(locale).eventReference}</span>
+                {eventRefs.map((r) => (
+                  <Link
+                    key={r.key}
+                    href={r.href}
+                    hrefLang={r.fallback ? r.locale : undefined}
+                    lang={r.fallback ? r.locale : undefined}
+                    className="font-medium text-uv-700 underline decoration-uv-300 underline-offset-4 hover:decoration-uv-500 dark:text-uv-300 dark:decoration-uv-700"
+                  >
+                    {r.label}
+                  </Link>
+                ))}
+              </nav>
+            )}
             <div className="prose dark:prose-invert max-w-none prose-headings:scroll-mt-20">
               {/*
                 rehype-slug — heading anchors so in-page #links work.
