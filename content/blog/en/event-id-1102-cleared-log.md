@@ -1,6 +1,6 @@
 ---
 title: "Event ID 1102: The audit log was cleared (what survives)"
-seoTitle: "Event ID 1102: Security Audit Log Cleared"
+seoTitle: "Event ID 1102 (Log Cleared): Who Did It, What Survives"
 description: "Event ID 1102 means the Windows Security audit log was cleared. See who cleared it, which fields prove it, what evidence survives and where to look next."
 date: "2026-05-17"
 ---
