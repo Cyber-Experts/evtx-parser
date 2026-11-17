@@ -77,7 +77,10 @@ describe("event dataset", () => {
       expect(t.length, t).toBeLessThanOrEqual(TITLE_MAX);
       for (const [l, tr] of ds.translations.get(`${e.channel}/${e.id}`) ?? []) {
         const lt = renderedTitle(
-          eventMetaTitle({ ...e, shortTitle: tr.shortTitle, channelInfo: ch(e) }, EVENTS_DICT[l as "fr"]),
+          eventMetaTitle(
+            { ...e, title: tr.title, shortTitle: tr.shortTitle, channelInfo: ch(e) },
+            EVENTS_DICT[l as "fr"],
+          ),
         );
         expect(lt.length, lt).toBeLessThanOrEqual(TITLE_MAX);
       }
