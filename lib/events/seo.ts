@@ -21,13 +21,29 @@ export function eventHeadingText(
 }
 
 /**
+ * Channels whose <title> leads with the official event message ("An account
+ * failed to log on") instead of our short label ("Failed logon"). People search
+ * Security events by that message, and it is how other references name them.
+ * Limited to Security for now so the other channels serve as a CTR control.
+ */
+const OFFICIAL_TITLE_CHANNELS = new Set(["security"]);
+
+/**
  * Metadata title: the layout template appends " | EVTX parser" when the
  * result still fits in 60 characters; otherwise the heading goes out alone.
+ * On OFFICIAL_TITLE_CHANNELS the official message is used when the heading
+ * fits in 60 characters, else the short label.
  */
 export function eventMetaTitle(
-  view: Pick<EventView, "id" | "shortTitle" | "channelInfo">,
+  view: Pick<EventView, "id" | "title" | "shortTitle" | "channel" | "channelInfo">,
   d: Pick<EventsDict, "heading">,
 ): string | { absolute: string } {
+  if (OFFICIAL_TITLE_CHANNELS.has(view.channel)) {
+    const official = eventHeadingText({ ...view, shortTitle: view.title }, d);
+    if (official.length <= TITLE_MAX) {
+      return official.length + SUFFIX.length <= TITLE_MAX ? official : { absolute: official };
+    }
+  }
   const base = eventHeadingText(view, d);
   return base.length + SUFFIX.length <= TITLE_MAX ? base : { absolute: base };
 }
