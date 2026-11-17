@@ -508,13 +508,6 @@ export const en: Dict = {
     resourcesHeading: "External resources",
     byLine: "By",
   },
-  glossary: {
-    title: "Windows Event Log glossary",
-    intro:
-      "The terms that appear in .evtx records and DFIR write-ups, explained in a sentence or two. If you can read these, you can read the records.",
-    description:
-      "Plain-language definitions for the Windows Event Log terms an analyst hits daily: LogonType, BinXML, channel, provider, chunk, template, SID, EventData, RecordID and more.",
-  },
   tools: {
     title: "EVTX tools compared: KAPE, FTK Imager, wevtutil, evtx_dump",
     intro:

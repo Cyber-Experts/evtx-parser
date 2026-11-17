@@ -19,11 +19,9 @@ const ROOT = process.cwd();
 const REQUIRED_FRONTMATTER = ["title", "description", "date"] as const;
 
 /**
- * Minimum word count per collection (path prefix). Glossary entries are short
- * by design — definitions, not articles — so they get a lower floor.
+ * Minimum word count per collection (path prefix).
  */
 const MIN_WORD_COUNT: { match: RegExp; minimum: number; label: string }[] = [
-  { match: /\/content\/glossary\//, minimum: 40, label: "glossary" },
   { match: /\/content\/blog\//, minimum: 300, label: "blog" },
 ];
 const DEFAULT_MIN_WORDS = 300;

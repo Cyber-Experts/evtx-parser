@@ -5,8 +5,6 @@ import { cache } from "react";
 import rehypeSlug from "rehype-slug";
 import { MarkdownContent, slugifySeries } from "@next-md-blog/core";
 
-import { rehypeGlossaryLinker } from "@/lib/rehype-glossary-linker";
-
 import { blog } from "@/next-md-blog.config";
 import { siteConfig } from "@/site.config";
 import { LOCALES, type Locale } from "@/lib/i18n";
@@ -309,8 +307,6 @@ export default async function BlogPostPage({
             <div className="prose dark:prose-invert max-w-none prose-headings:scroll-mt-20">
               {/*
                 rehype-slug — heading anchors so in-page #links work.
-                glossary linker — first-occurrence-only anchor inserter;
-                  skips code/pre/headings.
                 TODO: Shiki highlighting. `MarkdownContent` runs its rehype
                 pipeline synchronously (react-markdown sync mode), and
                 Shiki is async. To re-enable, either swap the renderer for
@@ -320,10 +316,7 @@ export default async function BlogPostPage({
               <MarkdownContent
                 content={post.content}
                 components={markdownComponents}
-                rehypePlugins={[
-                  rehypeSlug,
-                  [rehypeGlossaryLinker, { locale, selfSlug: slug }],
-                ]}
+                rehypePlugins={[rehypeSlug]}
               />
             </div>
           </article>

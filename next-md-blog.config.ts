@@ -44,20 +44,7 @@ export const blog = defineCollection({
   defaults: { speakable: true },
 });
 
-/**
- * Glossary collection — DefinedTerm schema (Schema.org), no RSS.
- */
-export const glossary = defineCollection({
-  id: "glossary",
-  contentDir: "content/glossary",
-  pathSegment: "glossary",
-  indexPath: "/glossary",
-  schemaType: "DefinedTerm",
-  rss: false,
-  site,
-});
-
-export const collections = [blog, glossary] as const;
+export const collections = [blog] as const;
 export { LOCALES };
 
 export default site;

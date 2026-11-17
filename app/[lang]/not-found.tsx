@@ -22,7 +22,6 @@ export default function LocaleNotFound() {
   const dict = getDict(locale);
   const links = [
     { href: `/${locale}/blog`, label: dict.footer.blog },
-    { href: `/${locale}/glossary`, label: dict.glossary.title },
     { href: `/${locale}/events`, label: getEventsDict(locale).navTitle },
     { href: `/${locale}/tools`, label: dict.tools.title },
   ];
