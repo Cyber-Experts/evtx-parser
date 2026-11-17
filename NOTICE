@@ -18,3 +18,8 @@ under the Detection Rule License (DRL) 1.1 — see LICENSE-SIGMA. Each rule
 keeps its author(s), id, references and a link to the original rule; the
 viewer and its exports attribute every match as
 "Rule by <author>, SigmaHQ, DRL 1.1".
+
+The one-click sample logs in public/samples/ (Security, System and Sysmon
+.evtx files, gzipped) come from the `evtx` crate's sample set
+(https://github.com/omerbenamram/evtx/tree/master/samples), licensed under
+Apache-2.0.
