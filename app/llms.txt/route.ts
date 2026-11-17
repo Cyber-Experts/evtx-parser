@@ -3,7 +3,7 @@
  * Pairs with /llms-full.txt. Walks every collection on the site.
  */
 import { composeLlmsTxt } from "@next-md-blog/core";
-import { blog, glossary, site } from "@/next-md-blog.config";
+import { blog, site } from "@/next-md-blog.config";
 import { LOCALES, DEFAULT_LOCALE } from "@/lib/i18n";
 
 export const dynamic = "force-static";
@@ -12,7 +12,7 @@ export const revalidate = 3600;
 export async function GET() {
   const body = await composeLlmsTxt({
     site,
-    collections: [blog, glossary],
+    collections: [blog],
     locales: LOCALES,
     defaultLocale: DEFAULT_LOCALE,
   });

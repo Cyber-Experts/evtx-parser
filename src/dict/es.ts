@@ -484,13 +484,6 @@ export const es: Dict = {
     resourcesHeading: "Recursos externos",
     byLine: "Por",
   },
-  glossary: {
-    title: "Glosario del registro de eventos de Windows",
-    intro:
-      "Los términos que aparecen en los registros .evtx y los informes DFIR, explicados en una o dos frases.",
-    description:
-      "Definiciones claras de los términos del registro de eventos de Windows: LogonType, BinXML, canal, provider, chunk, template, SID, EventData, RecordID, etc.",
-  },
   tools: {
     title: "Herramientas EVTX comparadas: KAPE, FTK Imager, wevtutil, evtx_dump",
     intro:

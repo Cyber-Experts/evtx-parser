@@ -1,6 +1,6 @@
 # Site content and operations
 
-How to add content to the evtxparser.com website (blog, glossary, Event ID
+How to add content to the evtxparser.com website (blog, Event ID
 encyclopedia) and how the hosted site is operated. For the tool itself, see the
 [README](../README.md).
 
@@ -43,15 +43,6 @@ howto: { steps: [ … ] }        # optional, emits HowTo JSON-LD
 
 Link to other posts with locale-prefixed paths (`/en/blog/<slug>`); in a
 translation, only link to posts that exist in that locale.
-
-### Glossary term
-
-One `.md` per term under `content/glossary/{locale}/`. The source list is in
-`lib/glossary-data.ts`; regenerate the files from it with:
-
-```bash
-npx tsx scripts/extract-glossary.ts
-```
 
 ### Event ID encyclopedia
 

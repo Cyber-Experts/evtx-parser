@@ -10,7 +10,7 @@
  *   4. `npm run indexnow` from CI.
  *
  * The script enumerates URLs from the filesystem (content/blog,
- * content/glossary, data/events, the static page list). It
+ * data/events, the static page list). It
  * intentionally avoids importing next-md-blog.config because that pulls in
  * an ESM-only dependency tsx can't always resolve.
  */
@@ -109,7 +109,6 @@ async function main() {
     // Static lang routes.
     urls.add(`${siteConfig.url}/${lang}`);
     urls.add(`${siteConfig.url}/${lang}/blog`);
-    urls.add(`${siteConfig.url}/${lang}/glossary`);
     urls.add(`${siteConfig.url}/${lang}/events`);
     urls.add(`${siteConfig.url}/${lang}/tools`);
     urls.add(`${siteConfig.url}/${lang}/authors`);
@@ -126,14 +125,6 @@ async function main() {
       urls.add(`${siteConfig.url}/${lang}/blog/${slug}`);
       const tags = await tagsInPost(join(blogDir, `${slug}.md`));
       for (const t of tags) tagsAcross.add(t.toLowerCase());
-    }
-
-    // Glossary terms.
-    const glossarySlugs = await slugsIn(
-      join(process.cwd(), "content/glossary", lang),
-    );
-    for (const slug of glossarySlugs) {
-      urls.add(`${siteConfig.url}/${lang}/glossary/${slug}`);
     }
 
     // Event ID encyclopedia entries that exist in this locale.

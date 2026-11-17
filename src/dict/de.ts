@@ -484,13 +484,6 @@ export const de: Dict = {
     resourcesHeading: "Externe Ressourcen",
     byLine: "Von",
   },
-  glossary: {
-    title: "Glossar zum Windows-Ereignisprotokoll",
-    intro:
-      "Begriffe, die in .evtx-Datensätzen und DFIR-Reports auftauchen, in ein bis zwei Sätzen erklärt.",
-    description:
-      "Klare Definitionen zentraler Windows-Ereignisprotokoll-Begriffe: LogonType, BinXML, Kanal, Provider, Chunk, Template, SID, EventData, RecordID usw.",
-  },
   tools: {
     title: "EVTX-Tools im Vergleich: KAPE, FTK Imager, wevtutil, evtx_dump",
     intro:

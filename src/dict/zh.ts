@@ -482,13 +482,6 @@ export const zh: Dict = {
     resourcesHeading: "外部资源",
     byLine: "作者",
   },
-  glossary: {
-    title: "Windows 事件日志术语表",
-    intro:
-      "出现在 .evtx 记录和 DFIR 报告中的术语，用一两句话简要解释。",
-    description:
-      "Windows 事件日志关键术语的简明定义：LogonType、BinXML、通道、提供程序、分块、模板、SID、EventData、RecordID 等。",
-  },
   tools: {
     title: "EVTX 工具对比：KAPE / FTK Imager / wevtutil / evtx_dump",
     intro:

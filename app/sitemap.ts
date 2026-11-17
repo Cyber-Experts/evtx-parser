@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { composeSitemap } from "@next-md-blog/core";
-import { blog, glossary } from "@/next-md-blog.config";
+import { blog } from "@/next-md-blog.config";
 import { siteConfig } from "@/site.config";
 import { LOCALES, DEFAULT_LOCALE, hreflangFor } from "@/lib/i18n";
 import { allEntries, entryLocales } from "@/lib/events";
@@ -8,7 +8,6 @@ import { allEntries, entryLocales } from "@/lib/events";
 const STATIC_PATHS = [
   "",
   "/blog",
-  "/glossary",
   "/events",
   "/tools",
   "/evtx-to-xml",
@@ -74,7 +73,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...eventEntries(),
   ];
   return composeSitemap({
-    collections: [blog, glossary],
+    collections: [blog],
     locales: LOCALES,
     staticEntries,
   });

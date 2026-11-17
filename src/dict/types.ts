@@ -434,11 +434,6 @@ export type Dict = {
     resourcesHeading: string;
     byLine: string;
   };
-  glossary: {
-    title: string;
-    intro: string;
-    description: string;
-  };
   tools: {
     title: string;
     intro: string;

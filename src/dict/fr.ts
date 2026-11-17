@@ -484,13 +484,6 @@ export const fr: Dict = {
     resourcesHeading: "Ressources externes",
     byLine: "Par",
   },
-  glossary: {
-    title: "Glossaire du journal d'événements Windows",
-    intro:
-      "Les termes qui reviennent dans les enregistrements .evtx et les rapports DFIR, expliqués en une ou deux phrases.",
-    description:
-      "Définitions claires des termes du journal d'événements Windows : LogonType, BinXML, canal, provider, chunk, template, SID, EventData, RecordID, etc.",
-  },
   tools: {
     title: "Outils EVTX comparés : KAPE, FTK Imager, wevtutil, evtx_dump",
     intro:

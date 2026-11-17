@@ -482,13 +482,6 @@ export const ja: Dict = {
     resourcesHeading: "外部リソース",
     byLine: "著者",
   },
-  glossary: {
-    title: "Windows イベントログ用語集",
-    intro:
-      ".evtx レコードや DFIR レポートに出てくる用語を、1〜2 文で簡潔に解説します。",
-    description:
-      "Windows イベントログの主要用語の平易な定義集: LogonType、BinXML、チャネル、プロバイダ、チャンク、テンプレート、SID、EventData、RecordID など。",
-  },
   tools: {
     title: "EVTX ツール比較: KAPE / FTK Imager / wevtutil / evtx_dump",
     intro:

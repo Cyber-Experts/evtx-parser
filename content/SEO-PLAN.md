@@ -4,7 +4,7 @@ description: "Keyword, URL, title and internal-linking plan for the evtxparser.c
 date: "2026-09-29"
 ---
 
-Internal planning document. It lives in `content/` but outside `content/blog` and `content/glossary`, so it is never rendered on the site. It carries frontmatter only so `npm run lint:content` stays green.
+Internal planning document. It lives in `content/` but outside `content/blog`, so it is never rendered on the site. It carries frontmatter only so `npm run lint:content` stays green.
 
 ## Why an encyclopedia
 

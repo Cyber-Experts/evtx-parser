@@ -203,7 +203,7 @@ over the loaded events, inside the same web worker that parses them.
 - `components/EvtxUploader.tsx`, `components/viewer/` — the viewer UI.
 
 The repository also contains the evtxparser.com website around the tool
-(Next.js 16, 8 locales, blog, glossary and Event ID reference in `content/`
+(Next.js 16, 8 locales, blog and Event ID reference in `content/`
 and `app/[lang]/`).
 
 ## Development
@@ -213,7 +213,7 @@ npm install
 npm run dev            # http://localhost:3000
 npm test               # Vitest
 npm run lint           # ESLint
-npm run lint:content   # Markdown content lint (blog, glossary)
+npm run lint:content   # Markdown content lint (blog)
 npm run sigma:update   # re-bundle SigmaHQ rules (pinned release)
 npm run build          # production build
 ```
@@ -235,7 +235,7 @@ cargo install wasm-pack
 npm run wasm:build     # → lib/evtx-wasm/ and public/evtx_wasm_bg.wasm
 ```
 
-**Website content** (blog posts, glossary, Event ID pages, landing pages) and
+**Website content** (blog posts, Event ID pages, landing pages) and
 the hosted site's configuration are documented in
 [`docs/CONTENT.md`](docs/CONTENT.md).
 

@@ -1,1 +1,47 @@
-[]
+[
+  {
+    "source": "/:lang(en|de|es|fr|it|ja|pt|zh)/glossary",
+    "destination": "/:lang/blog",
+    "permanent": true
+  },
+  {
+    "source": "/:lang(en|de|es|fr|it|ja|pt|zh)/glossary/evtx",
+    "destination": "/:lang/blog/what-is-an-evtx-file",
+    "permanent": true
+  },
+  {
+    "source": "/:lang(en|de|es|fr|it|ja|pt|zh)/glossary/chunk",
+    "destination": "/:lang/blog/evtx-file-format-chunks",
+    "permanent": true
+  },
+  {
+    "source": "/:lang(en|de|es|fr|it|ja|pt|zh)/glossary/scriptblock-logging",
+    "destination": "/:lang/blog/powershell-4104-scriptblock",
+    "permanent": true
+  },
+  {
+    "source": "/:lang(en|de|es|fr|it|ja|pt|zh)/glossary/sysmon",
+    "destination": "/:lang/blog/sysmon-configuration-real-adversaries",
+    "permanent": true
+  },
+  {
+    "source": "/en/glossary/binxml",
+    "destination": "/en/blog/binxml-format-explained",
+    "permanent": true
+  },
+  {
+    "source": "/en/glossary/template",
+    "destination": "/en/blog/binxml-format-explained",
+    "permanent": true
+  },
+  {
+    "source": "/en/glossary/logontype",
+    "destination": "/en/blog/windows-logon-events-explained",
+    "permanent": true
+  },
+  {
+    "source": "/en/glossary/logonid",
+    "destination": "/en/blog/windows-logon-events-explained",
+    "permanent": true
+  }
+]

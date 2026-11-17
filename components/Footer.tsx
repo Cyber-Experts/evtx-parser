@@ -36,12 +36,6 @@ export function Footer({
             {dict.tools.title}
           </Link>
           <Link
-            href={`/${locale}/glossary`}
-            className="font-medium text-ink-700 underline-offset-2 hover:underline dark:text-ink-300"
-          >
-            {dict.glossary.title}
-          </Link>
-          <Link
             href={`/${locale}/blog`}
             className="font-medium text-ink-700 underline-offset-2 hover:underline dark:text-ink-300"
           >

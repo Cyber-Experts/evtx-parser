@@ -273,19 +273,6 @@
 }
 
 /*
- * Glossary auto-linker output. Distinguishable but quiet — a dotted
- * underline that doesn't compete with editorial in-text links.
- */
-.glossary-link {
-  text-decoration: underline dotted;
-  text-decoration-color: rgb(139 144 170 / 0.6);
-  text-underline-offset: 3px;
-}
-.glossary-link:hover {
-  text-decoration-style: solid;
-}
-
-/*
  * Premium finish — shared surfaces. Hairline borders, a soft inner top
  * highlight and layered shadows give depth without adding colour; the
  * ultraviolet accent only appears on interaction and on the luminous edge.
