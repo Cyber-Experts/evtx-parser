@@ -41,7 +41,7 @@ The fields that drive every investigation:
 - `CommandLine`. Full argv (when the GPO is on).
 - `NewProcessName`. The binary path. Combined with `CommandLine` this is the full execution.
 - `ParentProcessName`. The calling process. Office to cmd, browser to powershell, services to unsigned.exe are the textbook chains.
-- `SubjectUserName` and `SubjectLogonId`. Who launched it, under which session. `SubjectLogonId` pivots back to the [4624](/en/blog/understanding-event-id-4624) that created the session.
+- `SubjectUserName` and `SubjectLogonId`. Who launched it, under which session. `SubjectLogonId` pivots back to the [4624](/en/events/security/4624) that created the session.
 - `TokenElevationType`. `%%1936` Default (no elevation), `%%1937` Full (UAC consent), `%%1938` Limited (filtered). A `1937` in a non-admin session is a privilege transition worth a closer look.
 - `MandatoryLabel`. Integrity level SID. `S-1-16-12288` is High (elevated), `8192` Medium, `16384` System.
 
@@ -153,7 +153,7 @@ No file hash. No `ParentCommandLine`. No `ImageLoaded` (DLL injection is not a p
 
 For a typical post-exploitation chain on a Sysmon-less host:
 
-1. [4624](/en/blog/understanding-event-id-4624). Initial logon, LogonType 3 from an external IP.
+1. [4624](/en/events/security/4624). Initial logon, LogonType 3 from an external IP.
 2. 4624 again. LogonType 9 (`runas /netonly`) under the same `SubjectLogonId`. Credential pivot.
 3. **4688**. `powershell.exe -enc ...` under that session.
 4. [4104](/en/blog/powershell-4104-scriptblock). Decoded script body, fetching a second-stage payload.

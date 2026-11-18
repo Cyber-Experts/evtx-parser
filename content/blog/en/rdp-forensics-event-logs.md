@@ -29,7 +29,7 @@ The first three live on the **destination** (the box someone RDP'd *into*). The 
 A clean interactive RDP logon fires, roughly in this sequence:
 
 1. **1149** — *RemoteConnectionManager/Operational*, "User authentication succeeded." The earliest useful event. It carries `User`, `Domain`, and **`Source Network Address`** (the client IP). Caveat worth knowing: 1149 means network-level authentication passed — it can appear even when the subsequent logon fails, so it is "someone reached the RDP service and authenticated at the NLA layer," not "someone got a desktop."
-2. **4624** — *Security*, `LogonType 10` (RemoteInteractive). The actual session. Read `TargetUserName`, `IpAddress`, and `AuthenticationPackageName` exactly as in any [logon analysis](/en/blog/understanding-event-id-4624). `LogonType 7` here instead means a **reconnect/unlock** of an existing session, not a fresh logon.
+2. **4624** — *Security*, `LogonType 10` (RemoteInteractive). The actual session. Read `TargetUserName`, `IpAddress`, and `AuthenticationPackageName` exactly as in any [logon analysis](/en/events/security/4624). `LogonType 7` here instead means a **reconnect/unlock** of an existing session, not a fresh logon.
 3. **21** — *LocalSessionManager/Operational*, "Session logon succeeded." Carries `User` and `Session ID` and the source address.
 4. **22** — *LocalSessionManager/Operational*, "Shell start notification received." The desktop/shell actually came up.
 5. **4778 / 4779** — *Security*, session **reconnected / disconnected** to/from a window station, with client name and address.

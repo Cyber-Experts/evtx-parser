@@ -12,7 +12,8 @@ export type LandingContent = {
   ctaLabel: string;
   /** Section of name/body blocks (formats, options, comparisons…). */
   formatsHeading: string;
-  formats: { name: string; body: string; code?: string }[];
+  /** `href` (a locale-less path such as "/evtx-to-csv") links the card's name. */
+  formats: { name: string; body: string; code?: string; href?: string }[];
   stepsHeading: string;
   steps: { title: string; body: string }[];
   faqHeading: string;

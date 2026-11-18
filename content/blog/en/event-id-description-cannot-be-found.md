@@ -105,7 +105,7 @@ On your workstation the same command returns an empty `Message`, but `.Propertie
 
 ## Fix 4: you usually don't need the message
 
-For DFIR, the rendered sentence is a convenience. Every value it would display is in `<EventData>`: `TargetUserName`, `LogonType`, `IpAddress`, `Status`, `SubStatus`. Event Viewer's **Details** tab (XML View) shows them even when the General tab shows the error. Analysts working at scale read the fields directly anyway, which is how you should approach [4624](/en/blog/understanding-event-id-4624) and the rest of the [logon event family](/en/blog/windows-logon-events-explained): the field names are stable across Windows versions and languages, while the rendered text is not.
+For DFIR, the rendered sentence is a convenience. Every value it would display is in `<EventData>`: `TargetUserName`, `LogonType`, `IpAddress`, `Status`, `SubStatus`. Event Viewer's **Details** tab (XML View) shows them even when the General tab shows the error. Analysts working at scale read the fields directly anyway, which is how you should approach [4624](/en/events/security/4624) and the rest of the [logon event family](/en/blog/windows-logon-events-explained): the field names are stable across Windows versions and languages, while the rendered text is not.
 
 ## Reading events offline in the browser
 

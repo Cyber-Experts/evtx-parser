@@ -19,7 +19,7 @@ A note on prerequisites: many Security events require the relevant **audit subca
 
 | ID | Channel | Meaning |
 |---:|---------|---------|
-| **4624** | Security | An account [successfully logged on](/en/blog/understanding-event-id-4624) — read the **logon type** |
+| **4624** | Security | An account [successfully logged on](/en/events/security/4624) — read the **logon type** |
 | **4625** | Security | A [logon failed](/en/blog/detecting-4625-brute-force) — read the **sub-status** code |
 | 4634 / 4647 | Security | Logoff / user-initiated logoff (join by `LogonId`) |
 | 4648 | Security | Logon with **explicit credentials** (`runas`) |

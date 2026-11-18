@@ -34,7 +34,7 @@ The fields that drive triage:
 - `ServiceName`. The SPN being requested. A user account here (rather than `host/...` or a service class) is suspicious.
 - `TicketEncryptionType`. The field that decides whether this record matters. Modern domains run `0x12` (AES-256-CTS-HMAC-SHA1-96) or `0x11` (AES-128). **`0x17` is RC4-HMAC**: legacy, weak, and the *only* encryption type Mimikatz and Rubeus' `kerberoast` mode requests. A 4769 for a service account ticket with `0x17` is a textbook kerberoasting fingerprint.
 - `Status`. `0x0` is success. Anything else is denied (codes documented in `[MS-KILE]`).
-- `IpAddress`. Requesting host. Pair with [4624](/en/blog/understanding-event-id-4624) on that host to see the logon that produced the session.
+- `IpAddress`. Requesting host. Pair with [4624](/en/events/security/4624) on that host to see the logon that produced the session.
 
 ## TicketEncryptionType: the field that decides
 
@@ -84,7 +84,7 @@ These are detection-by-absence patterns. They require complete log coverage acro
 1. Filter all 4769 across the DC corpus for `TicketEncryptionType == 0x17`.
 2. Group by `IpAddress` and `TargetUserName` over 30-minute windows. Count distinct `ServiceName` per source.
 3. More than 3 distinct SPNs requested as 0x17 from one source within 30 minutes is kerberoasting almost everywhere.
-4. Pivot the source IP to its [4624](/en/blog/understanding-event-id-4624) to find the credential that initiated the attack.
+4. Pivot the source IP to its [4624](/en/events/security/4624) to find the credential that initiated the attack.
 5. Pivot the requested SPNs to the owning service accounts. Rotate those passwords. Reset cracked hashes within hours, not days.
 
 ## Sigma
@@ -149,7 +149,7 @@ index=wineventlog EventCode=4769 TicketEncryptionType="0x17"
 - T1558.001 Golden Ticket. 4769 without 4768 from the same `LogonGuid`.
 - T1558.002 Silver Ticket. 4769 absent for an observed service-auth on the target.
 - T1078 Valid Accounts. 4769 from an unexpected IP for a known service account.
-- T1550.003 Pass the Ticket. 4769 followed by [4624](/en/blog/understanding-event-id-4624) LogonType 3 with `LogonProcessName: Kerberos`.
+- T1550.003 Pass the Ticket. 4769 followed by [4624](/en/events/security/4624) LogonType 3 with `LogonProcessName: Kerberos`.
 
 ## False positives you will see
 
@@ -162,13 +162,13 @@ The signal is the *burst* pattern, not the individual record. Steady 0x17 from o
 
 ## What 4769 does not tell you
 
-The record does not include the encrypted ticket itself. The cracking happens on whatever the attacker exfiltrated, not on the wire from the DC. You cannot, from 4769 alone, distinguish "ticket was issued and never used" from "ticket was cracked, credentials reused". For the second half of the chain you need the resulting [4624](/en/blog/understanding-event-id-4624) on the target service (LogonType 3, AuthenticationPackage Kerberos), and ideally [4688](/en/blog/event-id-4688-process-creation) or [Sysmon 1](/en/blog/sysmon-event-id-1-process-create) showing what ran after the credential was reused. Treat 4769 as the canary, not the alarm.
+The record does not include the encrypted ticket itself. The cracking happens on whatever the attacker exfiltrated, not on the wire from the DC. You cannot, from 4769 alone, distinguish "ticket was issued and never used" from "ticket was cracked, credentials reused". For the second half of the chain you need the resulting [4624](/en/events/security/4624) on the target service (LogonType 3, AuthenticationPackage Kerberos), and ideally [4688](/en/blog/event-id-4688-process-creation) or [Sysmon 1](/en/blog/sysmon-event-id-1-process-create) showing what ran after the credential was reused. Treat 4769 as the canary, not the alarm.
 
 ## Where 4769 fits in a timeline
 
 Classic post-exploitation kerberoasting chain:
 
-1. [4624](/en/blog/understanding-event-id-4624) on a workstation. Initial access via phished user credentials.
+1. [4624](/en/events/security/4624) on a workstation. Initial access via phished user credentials.
 2. **4769** ×N from that workstation to one DC, all `etype=0x17`, all targeting user-SPN service accounts within 5 minutes. Kerberoasting.
 3. *(Offline, invisible)*. Attacker cracks the weakest service account's hash in Hashcat.
 4. [4768](/en/blog/event-id-4768-kerberos-tgt). TGT request as the compromised service account, from a different host.

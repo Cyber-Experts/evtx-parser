@@ -30,7 +30,7 @@ Cinq champs. Trois comptent pour l'IR.
 
 Quand un attaquant lance PsExec ou tout outil utilisant le SCM pour exécuter à distance sur un autre hôte, vous obtenez un 7045 sur l'hôte *cible* avec un `ImagePath` comme `%SystemRoot%\PSEXESVC.exe` (par défaut) ou un équivalent renommé. Le service apparaît, tourne, et est souvent supprimé en secondes. Le 7045 est l'empreinte survivante longtemps après que le service lui-même soit parti.
 
-Un 7045 avec `ImagePath` se terminant par `.exe` suivi secondes plus tard par un [4624 LogonType **3**](/en/blog/understanding-event-id-4624) depuis un hôte source spécifique est la signature de manuel PsExec. Les variantes comme Impacket `psexec.py`, `smbexec.py`, `wmiexec.py` produisent des valeurs `ImagePath` légèrement différentes mais le même pattern global. La variante Impacket renommée est généralement le traître : un nom de service comme `wfDsaQbA` (huit lettres aléatoires) ne vient pas d'un sysadmin.
+Un 7045 avec `ImagePath` se terminant par `.exe` suivi secondes plus tard par un [4624 LogonType **3**](/fr/blog/understanding-event-id-4624) depuis un hôte source spécifique est la signature de manuel PsExec. Les variantes comme Impacket `psexec.py`, `smbexec.py`, `wmiexec.py` produisent des valeurs `ImagePath` légèrement différentes mais le même pattern global. La variante Impacket renommée est généralement le traître : un nom de service comme `wfDsaQbA` (huit lettres aléatoires) ne vient pas d'un sysadmin.
 
 ## Ce que 7045 ne vous dit pas
 

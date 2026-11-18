@@ -42,7 +42,7 @@ A burst of `0xC0000064` across mixed valid and invalid usernames is reconnaissan
 
 ## The "after" decides the response
 
-A 4625 burst followed by a [4624](/en/blog/understanding-event-id-4624) from the same `IpAddress` is the actionable case. The attacker found a working credential. The progression in the timeline is unmistakable: dense failures, sudden silence, single success.
+A 4625 burst followed by a [4624](/en/events/security/4624) from the same `IpAddress` is the actionable case. The attacker found a working credential. The progression in the timeline is unmistakable: dense failures, sudden silence, single success.
 
 ## Sigma: password spray
 
@@ -100,7 +100,7 @@ The signal is the *progression*: enumeration to find valid usernames first, then
 - T1110.001 Brute Force: Password Guessing. Single account, many `0xC000006A` failures.
 - T1110.003 Brute Force: Password Spraying. Many accounts, one source, few failures each.
 - T1110.004 Credential Stuffing. Many accounts, one source, mixed `0xC0000064` (account does not exist, leaked-list miss) and `0xC000006A` (hit).
-- T1078 Valid Accounts. 4625 burst followed by [4624](/en/blog/understanding-event-id-4624) success from the same source. Compromise.
+- T1078 Valid Accounts. 4625 burst followed by [4624](/en/events/security/4624) success from the same source. Compromise.
 - T1556 Modify Authentication Process. Anomalous `LogonProcessName` (anything other than `User32`, `NtLmSsp`, `Kerberos`, `Advapi`, `Schannel`) suggests tampering.
 
 ## False positives that wear the costume

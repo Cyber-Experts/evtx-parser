@@ -43,5 +43,10 @@
     "source": "/en/glossary/logonid",
     "destination": "/en/blog/windows-logon-events-explained",
     "permanent": true
+  },
+  {
+    "source": "/en/blog/understanding-event-id-4624",
+    "destination": "/en/events/security/4624",
+    "permanent": true
   }
 ]

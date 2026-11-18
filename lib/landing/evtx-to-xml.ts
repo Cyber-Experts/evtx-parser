@@ -5,56 +5,79 @@ export type EvtxToXml = LandingContent;
 
 export const EVTX_TO_XML: LocaleContent<EvtxToXml> = {
   en: {
-    metaTitle: "Convert EVTX to XML, JSON or CSV — free online, no upload",
+    metaTitle: "EVTX to XML Converter — free online, no upload",
     metaDescription:
-      "Convert a Windows .evtx event log to XML, JSON or CSV in your browser. Free online EVTX converter — no upload, no install. Each record's raw XML is rebuilt locally.",
-    h1: "Convert EVTX to XML, JSON or CSV",
+      "Convert a Windows .evtx event log to XML in your browser: the full <Event> XML of every record, rebuilt locally from BinXML. Free, no upload, no Windows needed.",
+    h1: "Convert EVTX to XML",
     intro:
-      "Turn a Windows .evtx event log into clean XML, JSON or CSV directly in your browser. Parsing and conversion run client-side via a Rust parser compiled to WebAssembly, so the file never leaves your device — no upload, no install, no Windows host required.",
-    ctaLabel: "Open the EVTX converter",
-    formatsHeading: "Which format do you need?",
+      "Get the XML behind every event in a Windows .evtx log, directly in your browser. A Rust parser compiled to WebAssembly rebuilds each record's <Event> XML on your device, so the file is never uploaded and you need neither Windows nor Event Viewer.",
+    ctaLabel: "Open the EVTX to XML converter",
+    formatsHeading: "What you get",
     formats: [
       {
-        name: "EVTX to XML",
-        body: "Each event in a .evtx file is stored as BinXML against a template table. The converter rebuilds the exact <Event> XML for every record — the same structure wevtutil or Get-WinEvent would emit — so you can grep, diff or feed it into an XML-aware pipeline.",
+        name: "The full <Event> XML of each record",
+        body: "Records in a .evtx file are stored as BinXML that points into a per-chunk template table, not as text. The converter expands each one back into its <Event> element: the System block (provider, Event ID, time, record number, computer) and the EventData or UserData payload. That is the document you can grep, diff, validate or feed into an XML-aware pipeline.",
+        code: `<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event">
+  <System>
+    <Provider Name="Microsoft-Windows-Security-Auditing" />
+    <EventID>4624</EventID>
+    <Channel>Security</Channel>
+    ...
+  </System>
+  <EventData>
+    <Data Name="TargetUserName">alice</Data>
+    <Data Name="LogonType">3</Data>
+    ...
+  </EventData>
+</Event>`,
       },
       {
-        name: "EVTX to JSON",
-        body: "JSON export flattens each record's System block and EventData fields into one object per event, ready for jq, a SIEM ingest path or a notebook. The raw event XML is included alongside the parsed fields when you need both.",
+        name: "XML for many events at once",
+        body: "Tick “Raw XML column” before you export. Export CSV then carries each event's XML in a RawXml column, and Export TXT prints it under each event's block. Export JSON always includes it in an xml field. Filter first and only the matching events are exported.",
       },
       {
         name: "EVTX to CSV",
-        body: "CSV export gives you one row per event with the common columns (record, time, level, Event ID, provider, channel, computer). Filter to a single Event ID first and the EventData keys become real columns — open the result straight in Excel.",
+        body: "Want a spreadsheet rather than XML? The CSV converter gives one row per event and turns EventData keys into columns, ready for Excel.",
+        href: "/evtx-to-csv",
+      },
+      {
+        name: "EVTX to JSON",
+        body: "Feeding jq, a SIEM or a notebook? The JSON converter writes one object per event with the parsed EventData fields.",
+        href: "/evtx-to-json",
       },
     ],
-    stepsHeading: "How to convert an EVTX file",
+    stepsHeading: "How to convert EVTX to XML",
     steps: [
       {
         title: "Open the converter",
-        body: "Open the EVTX parser homepage. Nothing is uploaded — the page loads a WebAssembly parser that runs entirely in your browser tab.",
+        body: "Open the EVTX parser homepage. Nothing is uploaded: the page loads a WebAssembly parser that runs entirely in your browser tab.",
       },
       {
         title: "Drop your .evtx file",
-        body: "Drag a .evtx file (Security.evtx, System.evtx, Sysmon, PowerShell…) onto the drop zone, or click to choose one. You can drop several files at once to convert them together.",
+        body: "Drag a .evtx file (Security.evtx, System.evtx, Sysmon, PowerShell…) onto the drop zone, or click to choose one. Several files can be loaded together.",
       },
       {
-        title: "Export to XML, JSON or CSV",
-        body: "Filter or sort if you like, then click Export. Choose JSON or CSV, or enable the raw-XML column to capture each event's full XML. The file downloads locally.",
+        title: "Get the XML",
+        body: "For one event, open its row and click “Show raw XML” or “Copy XML”. For many, filter the table, tick “Raw XML column” and export. The file is written locally.",
       },
     ],
-    faqHeading: "EVTX conversion FAQ",
+    faqHeading: "EVTX to XML FAQ",
     faq: [
       {
-        q: "Is the EVTX converter free and does it upload my file?",
+        q: "Is the converter free and does it upload my file?",
         a: "It is free and nothing is uploaded. The .evtx is read into your browser's memory and parsed locally with a Rust/WebAssembly parser; you can disconnect from the network and it still works.",
       },
       {
+        q: "Does the XML include the event message text?",
+        a: "No. A .evtx file stores the event's data, not its sentence. Windows renders the message from the provider's message DLL when you view it, so the XML here holds the System block and the EventData or UserData values, as stored in the file.",
+      },
+      {
         q: "How do I convert EVTX to XML without Windows?",
-        a: "Use this in-browser converter on Linux or macOS, or the evtx_dump CLI. Both rebuild the event XML offline — no Event Viewer, wevtutil or Windows runtime needed.",
+        a: "Use this in-browser converter on Linux or macOS, or the evtx_dump CLI. Both rebuild the event XML offline. On Windows itself, wevtutil qe <file>.evtx /lf:true /f:xml does the same from the command line.",
       },
       {
         q: "Can I convert a large or multiple EVTX files?",
-        a: "Yes. A few hundred MB is comfortable in a modern browser, and you can load multiple .evtx files and export them as one combined CSV or JSON.",
+        a: "Yes. A few hundred MB is comfortable in a modern browser, and events from several loaded .evtx files go into one combined export.",
       },
     ],
   },

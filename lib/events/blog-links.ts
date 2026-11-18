@@ -6,6 +6,7 @@
 export const EVENT_BLOG_POSTS: Record<string, string> = {
   "security/1102": "event-id-1102-cleared-log",
   "security/4616": "system-time-change-4616",
+  // No English version: /en/blog/understanding-event-id-4624 301s to the entry.
   "security/4624": "understanding-event-id-4624",
   "security/4625": "detecting-4625-brute-force",
   "security/4663": "event-id-4663-object-access",

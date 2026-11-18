@@ -46,7 +46,7 @@ If the attacker creates a *local* account on a server they have already compromi
 The fields that drive investigations:
 
 - `TargetUserName`. The new account. The literal name is the first triage signal: `svc_*`, `backup*`, `admin2`, `test`, `guest2`, lookalikes of legitimate accounts (`administrator`, `administr0r`), and short random strings all warrant a closer look.
-- `SubjectUserName` and `SubjectLogonId`. Who created it. Pivot to the [4624](/en/blog/understanding-event-id-4624) that created that session. A 4720 from `LocalSystem` on a workstation outside business hours is not a real provisioning workflow.
+- `SubjectUserName` and `SubjectLogonId`. Who created it. Pivot to the [4624](/en/events/security/4624) that created that session. A 4720 from `LocalSystem` on a workstation outside business hours is not a real provisioning workflow.
 - `UserAccountControl`. The *initial* set of UAC flags. `0x10` (in the example) is `NORMAL_ACCOUNT`. The dangerous flags appear in subsequent 4738 records.
 - `PrimaryGroupId`. 513 (Domain Users) is normal. 512 (Domain Admins) on a new account is screaming-loud and should never happen in a real provisioning workflow.
 - `SidHistory`. Non-empty on a newly created account is either a migration tool or, in the wrong context, a forged authentication artifact.
@@ -170,7 +170,7 @@ Local-account creates on member workstations are invisible to the DC. If you are
 
 The textbook persistence chain:
 
-1. [4624](/en/blog/understanding-event-id-4624). Initial domain logon by a phished user.
+1. [4624](/en/events/security/4624). Initial domain logon by a phished user.
 2. [4769](/en/blog/event-id-4769-kerberoasting) burst. Kerberoasting against domain service accounts.
 3. 4624 as a compromised service account on a member server.
 4. [4688](/en/blog/event-id-4688-process-creation). `net user svc_backup2 P@ssw0rd! /add /domain` (or `New-ADUser` via PowerShell).

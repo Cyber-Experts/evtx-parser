@@ -4,13 +4,13 @@ description: "Event ID 4672 fires when a logon gets admin-equivalent privileges 
 date: "2026-05-24"
 ---
 
-Event ID **4672**, "Special privileges assigned to new logon", fires on the [`Security` channel](/en/blog/what-is-an-evtx-file) every time a logon session is granted one of a fixed set of sensitive Windows privileges. In practice, every successful administrator-equivalent logon produces a 4672, written immediately after the corresponding [4624](/en/blog/understanding-event-id-4624). On most workstations 4672 is rare. On domain controllers and admin jumpboxes it is constant. That asymmetry is what makes it useful.
+Event ID **4672**, "Special privileges assigned to new logon", fires on the [`Security` channel](/en/blog/what-is-an-evtx-file) every time a logon session is granted one of a fixed set of sensitive Windows privileges. In practice, every successful administrator-equivalent logon produces a 4672, written immediately after the corresponding [4624](/en/events/security/4624). On most workstations 4672 is rare. On domain controllers and admin jumpboxes it is constant. That asymmetry is what makes it useful.
 
 If you filter Security by one field this week, run "all 4672s in the last seven days". It is the cheapest "show me every privileged session in the estate" query you can write.
 
 ## Where it fires
 
-On the host where the logon actually happened, same as [4624](/en/blog/understanding-event-id-4624). A network logon to `SERVER01` produces the 4624 and the 4672 on `SERVER01`, not on the originating workstation. To detect anything from 4672 at scale you need Security collection from servers and DCs at minimum. Admin workstations and jumphosts if you can afford the volume.
+On the host where the logon actually happened, same as [4624](/en/events/security/4624). A network logon to `SERVER01` produces the 4624 and the 4672 on `SERVER01`, not on the originating workstation. To detect anything from 4672 at scale you need Security collection from servers and DCs at minimum. Admin workstations and jumphosts if you can afford the volume.
 
 ## What the record contains
 
@@ -33,7 +33,7 @@ On the host where the logon actually happened, same as [4624](/en/blog/understan
 
 The fields:
 
-- `SubjectLogonId`. The same `LogonId` from the matching [4624](/en/blog/understanding-event-id-4624). This is your pivot. Every 4672 ties exactly one 4624 (and every subsequent record in that session) to the privilege set the logon got.
+- `SubjectLogonId`. The same `LogonId` from the matching [4624](/en/events/security/4624). This is your pivot. Every 4672 ties exactly one 4624 (and every subsequent record in that session) to the privilege set the logon got.
 - `PrivilegeList`. The actual privilege bag. Windows logs only the "sensitive" privileges defined in the audit policy. A logon may hold more privileges than the record shows. The omitted ones (`SeLockMemoryPrivilege`, `SeIncreaseBasePriorityPrivilege`, etc.) are non-security-relevant and pruned from this record on purpose.
 - `Subject*`. Who the logon belongs to. Almost always identical to the matching 4624.
 
@@ -174,7 +174,7 @@ The signal is the *new* producer, not the *recurring* one. A 4672 producer that 
 ## What 4672 does not tell you
 
 - No process information. You see the privilege grant, not what the privileged process did. To follow it forward, pivot `SubjectLogonId` to [4688](/en/blog/event-id-4688-process-creation) or [Sysmon 1](/en/blog/sysmon-event-id-1-process-create) records in the same session.
-- No source IP directly. You join to [4624](/en/blog/understanding-event-id-4624) via `SubjectLogonId`.
+- No source IP directly. You join to [4624](/en/events/security/4624) via `SubjectLogonId`.
 - Not every privileged action. Only the *grant at logon* is recorded. Subsequent uses (e.g. `RtlAdjustPrivilege` toggling `SeDebugPrivilege` on and off) produce 4673/4674 records, not another 4672.
 - Missed if Special Logon auditing is off. The audit sub-policy is *Audit Special Logon*. On by default in modern Windows, but worth verifying.
 
@@ -182,7 +182,7 @@ The signal is the *new* producer, not the *recurring* one. A 4672 producer that 
 
 The textbook escalation-and-cleanup chain:
 
-1. [4624](/en/blog/understanding-event-id-4624). LogonType 3 from an attacker-controlled IP, low-priv user.
+1. [4624](/en/events/security/4624). LogonType 3 from an attacker-controlled IP, low-priv user.
 2. *(silent)*. SeImpersonatePrivilege-based escalation (PrintSpoofer or similar).
 3. **4672**. SeImpersonatePrivilege + SeTcbPrivilege granted to a new logon session running as LocalSystem. Escalation visible here.
 4. [4688](/en/blog/event-id-4688-process-creation). `cmd.exe` or `powershell.exe` as SYSTEM via the impersonated token.
