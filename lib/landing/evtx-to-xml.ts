@@ -69,7 +69,7 @@ export const EVTX_TO_XML: LocaleContent<EvtxToXml> = {
       },
       {
         q: "Does the XML include the event message text?",
-        a: "No. A .evtx file stores the event's data, not its sentence. Windows renders the message from the provider's message DLL when you view it, so the XML here holds the System block and the EventData or UserData values, as stored in the file.",
+        a: "Usually not. A .evtx file stores the event's data, not its sentence: Windows renders the message from the provider's message DLL when you view it, so the XML holds the System block and the EventData or UserData values. The exception is forwarded events collected with the RenderedText format, which carry a RenderingInfo block with the message; it then appears in the XML too.",
       },
       {
         q: "How do I convert EVTX to XML without Windows?",

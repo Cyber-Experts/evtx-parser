@@ -56,7 +56,10 @@ export async function generateMetadata({
 
   // Hreflang: only locales that actually have a translation.
   const languages = await blog.hreflangMap(slug, LOCALES);
-  languages["x-default"] = languages.en ?? blog.url(slug, locale);
+  // Same x-default as the sitemap: English, else the first locale that has
+  // the post, so every translation of an English-less post agrees on it.
+  languages["x-default"] =
+    languages.en ?? Object.values(languages)[0] ?? blog.url(slug, locale);
 
   return {
     metadataBase: new URL(siteConfig.url),
