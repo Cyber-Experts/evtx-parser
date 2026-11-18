@@ -123,8 +123,8 @@ export default async function PrivacyPage({
           <h2>Analytics</h2>
           <p>
             To understand how the site is used, we collect aggregate, cookieless
-            statistics with Vercel Web Analytics, Vercel Speed Insights
-            (performance metrics) and Ahrefs Web Analytics: pages viewed,
+            statistics with Vercel Web Analytics and Vercel Speed Insights
+            (performance metrics): pages viewed,
             referrer, country, browser and device type. Two usage events are
             recorded: that a file was parsed (with a file-size bucket and the
             number of records) and that an export was made (format and number of
