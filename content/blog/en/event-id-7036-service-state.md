@@ -186,7 +186,7 @@ index=wineventlog SourceName="Service Control Manager" EventCode=7036
 
 Lateral execution plus defense evasion:
 
-1. [4624](/en/blog/understanding-event-id-4624). LogonType 3 from an attacker-controlled host, AuthenticationPackage Kerberos.
+1. [4624](/en/events/security/4624). LogonType 3 from an attacker-controlled host, AuthenticationPackage Kerberos.
 2. [4688](/en/blog/event-id-4688-process-creation). `services.exe` spawning a child for SCM operations (or PsExec's `psexesvc.exe`).
 3. [7045](/en/blog/service-creation-event-id-7045). Service installed, `ImagePath` outside standard install paths.
 4. **7036 `running`**. The install actually fired. Execution confirmation.

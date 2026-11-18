@@ -36,7 +36,7 @@ The fields that matter:
 - `Status`. Kerberos result code. `0x0` is success. The failures are what makes 4768 useful: `0x6` unknown user, `0x12` client locked out, `0x17` password expired, `0x18` bad password.
 - `TicketEncryptionType`. Same encoding as 4769: `0x12` and `0x11` AES (modern), **`0x17` RC4** (legacy, also the AS-REP roasting fingerprint).
 - `PreAuthType`. `2` is the standard encrypted-timestamp pre-auth. `0` means **no pre-auth was used** (the AS-REP roasting prerequisite). `15`, `16`, `17` are PKINIT certificate-based pre-auth values.
-- `IpAddress`. Requesting host. Pair with the client-side [4624](/en/blog/understanding-event-id-4624) for full context.
+- `IpAddress`. Requesting host. Pair with the client-side [4624](/en/events/security/4624) for full context.
 - `CertIssuerName`, `CertSerialNumber`, `CertThumbprint`. Populated for PKINIT (smart-card or certificate logon). Empty for password-based logons.
 
 ## The two attack patterns 4768 reveals
@@ -81,7 +81,7 @@ The 4768 brute-force fingerprint:
 1. Filter 4768 across all DCs for `PreAuthType == 0` AND `TicketEncryptionType == 0x17`.
 2. Group by `IpAddress`. Single account from a known migration host is configuration. Multiple accounts from one source is the attack.
 3. Pivot every `TargetUserName` to its `userAccountControl`. Does `DONT_REQUIRE_PREAUTH` actually need to be set? Almost certainly not.
-4. Source IP into [4624](/en/blog/understanding-event-id-4624) on that host to find the credential that authenticated to launch the attack.
+4. Source IP into [4624](/en/events/security/4624) on that host to find the credential that authenticated to launch the attack.
 5. Rotate every cracked account's password. Remove `DONT_REQUIRE_PREAUTH` from accounts that do not need it.
 
 ## Triage workflow: Kerberos brute force
@@ -155,7 +155,7 @@ index=wineventlog EventCode=4768 PreAuthType=0 TicketEncryptionType="0x17" Statu
 
 ## What 4768 does not tell you
 
-The record does not include the actual AS-REP material the attacker captured (which is what they crack offline). You see the request was issued. You do not see what data was returned beyond the metadata. You also do not see the client perspective: what application launched the request, which user context it ran in. For that you need the client-side [4624](/en/blog/understanding-event-id-4624), and [4688](/en/blog/event-id-4688-process-creation) if `kerbrute.exe` or Rubeus ran locally.
+The record does not include the actual AS-REP material the attacker captured (which is what they crack offline). You see the request was issued. You do not see what data was returned beyond the metadata. You also do not see the client perspective: what application launched the request, which user context it ran in. For that you need the client-side [4624](/en/events/security/4624), and [4688](/en/blog/event-id-4688-process-creation) if `kerbrute.exe` or Rubeus ran locally.
 
 Note also that 4768 fires only for the initial TGT request and on renewals. Once a client has a valid TGT cached, it does not talk to the KDC again for TGT until renewal. The service tickets it derives generate [4769](/en/blog/event-id-4769-kerberoasting), not 4768. An attacker who steals a long-lived TGT (golden ticket) can issue arbitrary 4769s without ever producing another 4768.
 
@@ -163,13 +163,13 @@ Note also that 4768 fires only for the initial TGT request and on renewals. Once
 
 AS-REP roasting start to finish:
 
-1. [4624](/en/blog/understanding-event-id-4624). Initial low-privilege domain logon (phished credential).
+1. [4624](/en/events/security/4624). Initial low-privilege domain logon (phished credential).
 2. *(LDAP, sometimes a 4662 if SACL is set)*. Attacker enumerates `userAccountControl` for accounts with `DONT_REQUIRE_PREAUTH`.
 3. **4768** burst. `PreAuthType=0`, `etype=0x17`, `Status=0x0` for each candidate account. The detection point.
 4. *(Offline, invisible)*. Attacker cracks the recovered AS-REP material in Hashcat (mode 18200).
 5. **4768**. New TGT request as the compromised account, this time normally pre-authed.
 6. [4769](/en/blog/event-id-4769-kerberoasting). Service tickets for everything the compromised account can reach.
-7. [4624](/en/blog/understanding-event-id-4624) LogonType 3 on the target service.
+7. [4624](/en/events/security/4624) LogonType 3 on the target service.
 
 Step 3 is the canary. Step 5 onward is the actual compromise. The window between them, minutes to days, is the only window where a defender can act before the credential is alive in the wild.
 

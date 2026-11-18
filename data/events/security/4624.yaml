@@ -55,7 +55,11 @@ fields:
       - value: "7"
         meaning: Unlock — workstation unlocked.
       - value: "8"
-        meaning: NetworkCleartext — network logon where the password was sent in clear text (IIS Basic authentication, some PowerShell/WinRM setups).
+        meaning: >-
+          NetworkCleartext — network logon where the password reached the authentication package in
+          clear text instead of as a hash: IIS Basic authentication, LDAP simple binds on a domain
+          controller, some PowerShell/WinRM setups. Whether it also crossed the network in clear
+          text depends on TLS.
       - value: "9"
         meaning: >-
           NewCredentials — `runas /netonly` or a process given alternate credentials for outbound
@@ -108,6 +112,14 @@ benign:
   - "File server and domain controller traffic — thousands of type 3 logons per hour from workstations."
   - Scheduled tasks (type 4) and IIS application pools using configured accounts.
   - Administrators using `runas /netonly` (type 9) for tools that need other credentials.
+  - >-
+    Credentialed vulnerability scanners and management or backup agents: dense type 3 logons to
+    many hosts from a small, stable set of source IPs. The shape looks like lateral movement, so
+    tag those sources once and exclude them.
+  - Remote Desktop Session Host and Citrix servers, which see type 10 logons from many internal IPs every day.
+  - >-
+    A user retyping the old password after a change: two or three 4625 followed by a 4624 from
+    the same workstation. Not brute force.
 attacker:
   - >-
     Lateral movement with stolen credentials: type 3 logons from a workstation to servers
@@ -118,6 +130,12 @@ attacker:
     `sekurlsa::pth` shows up as type 9 with LogonProcessName `seclogo`.
   - A successful logon right after many 4625 failures for the same account (brute force or password spraying that worked).
   - Logons by freshly created accounts (4720) or accounts that were just added to an admin group (4732, 4728).
+  - >-
+    LogonType drift on a service account: an account that has only ever logged on as type 5 (or
+    3) suddenly producing type 2 or 10 means someone is using its password interactively.
+  - >-
+    Forged service tickets (silver ticket): a Kerberos type 3 logon to a server with no 4769 for
+    that service on any domain controller around the same time. The ticket never came from a DC.
 investigation:
   - >-
     Filter out noise first: TargetUserName ending in `$`, `SYSTEM`, `ANONYMOUS LOGON` (unless you
@@ -130,6 +148,23 @@ investigation:
   - >-
     On domain controllers, match type 3 logons with 4768/4769 (Kerberos) or 4776 (NTLM) to confirm
     which protocol was really used.
+  - >-
+    Brute force that worked: count 4625 per `TargetUserName` and `IpAddress` over a few minutes,
+    then look for a 4624 with the same pair right after the burst.
+  - >-
+    External RDP in Microsoft Sentinel: `SecurityEvent | where EventID == 4624 and LogonType == 10
+    and not(ipv4_is_private(IpAddress)) | summarize count() by TargetUserName, IpAddress, Computer`.
+    Anything outside known VPN egress addresses or business hours is a lead.
+  - >-
+    Baseline LogonType per service account. Each one should use a single, stable type (5 for
+    services, 4 for scheduled tasks, 3 for network access); a new type is worth an alert.
+  - >-
+    Inventory type 8 logons: every source in that list hands a reusable password to the server,
+    even when the activity itself is legitimate.
+  - >-
+    Know the limits. 4624 does not say what ran in the session (pivot to 4688 or Sysmon 1 on the
+    logon ID) nor which client program started the logon. A type 11 logon proves the cached
+    credentials worked on that host, not that the account is still enabled in the domain.
 related:
   - security/4625
   - security/4634
@@ -147,6 +182,8 @@ attack:
   - T1021.001
   - T1021.002
   - T1550.002
+  - T1110
+  - T1558.002
 references:
   - title: "Microsoft Learn — 4624(S): An account was successfully logged on"
     url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4624

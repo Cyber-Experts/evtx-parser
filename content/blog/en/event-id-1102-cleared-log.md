@@ -22,7 +22,7 @@ If you see 1102, somebody with sufficient privilege deliberately wiped the audit
 </UserData>
 ```
 
-Note the `UserData` block rather than the usual `EventData`. 1102 uses a structured user-data schema, which trips up some naive parsers that only look at `EventData`. The fields tell you who cleared the log under what logon session. Pivot on `SubjectLogonId` to the matching [4624](/en/blog/understanding-event-id-4624) and you have the source IP, logon type, and credential that produced the privileged session.
+Note the `UserData` block rather than the usual `EventData`. 1102 uses a structured user-data schema, which trips up some naive parsers that only look at `EventData`. The fields tell you who cleared the log under what logon session. Pivot on `SubjectLogonId` to the matching [4624](/en/events/security/4624) and you have the source IP, logon type, and credential that produced the privileged session.
 
 ## What rides alongside
 
@@ -93,7 +93,7 @@ clears
 | order by ClearTime desc
 ```
 
-Every 1102 traces back to a [4672](/en/blog/event-id-4672-special-privileges) granting `SeSecurityPrivilege`, which traces back to a [4624](/en/blog/understanding-event-id-4624). The join completes the picture.
+Every 1102 traces back to a [4672](/en/blog/event-id-4672-special-privileges) granting `SeSecurityPrivilege`, which traces back to a [4624](/en/events/security/4624). The join completes the picture.
 
 ## Splunk: the tampering chain
 

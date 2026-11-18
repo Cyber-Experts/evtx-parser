@@ -44,7 +44,7 @@ The ones that matter:
   - `%%4425` = DELETE
 - `AccessMask`. Raw bitmask of `STANDARD_RIGHTS_*` and object-specific rights actually requested.
 - `ProcessName` and `ProcessId`. The process that opened the handle. Pivot to [4688](/en/blog/event-id-4688-process-creation) or [Sysmon 1](/en/blog/sysmon-event-id-1-process-create) for the full process context.
-- `SubjectLogonId`. Pivot to [4624](/en/blog/understanding-event-id-4624) for the originating session, the source IP if network logon, and the user.
+- `SubjectLogonId`. Pivot to [4624](/en/events/security/4624) for the originating session, the source IP if network logon, and the user.
 
 ## Turning 4663 on is three steps and people skip one
 
@@ -189,7 +189,7 @@ A well-tuned SACL on five high-value objects produces 50 to 200 records a day pe
 
 Classic LSASS credential dump chain:
 
-1. [4624](/en/blog/understanding-event-id-4624). Admin logon, LogonType 3 or 10.
+1. [4624](/en/events/security/4624). Admin logon, LogonType 3 or 10.
 2. [4672](/en/blog/event-id-4672-special-privileges). SeDebugPrivilege granted with the session.
 3. [4688](/en/blog/event-id-4688-process-creation). `rundll32.exe C:\Windows\System32\comsvcs.dll MiniDump <pid> C:\Windows\Temp\lsass.dmp full`.
 4. **4663**. `WriteData` to `C:\Windows\Temp\lsass.dmp` by `rundll32.exe`. Forensic gold. Proof of staged exfil.

@@ -12,7 +12,7 @@ tags:
 author: "Florian Amette"
 ---
 
-A single logon generates events on more than one machine, in more than one log, with the interesting detail spread across several event IDs. Reading [4624](/en/blog/understanding-event-id-4624) in isolation tells you *that* someone logged on; understanding the whole system tells you *how*, *from where*, and whether it should worry you. This post is the map.
+A single logon generates events on more than one machine, in more than one log, with the interesting detail spread across several event IDs. Reading [Event ID 4624](/en/events/security/4624) in isolation tells you *that* someone logged on; understanding the whole system tells you *how*, *from where*, and whether it should worry you. This post is the map.
 
 All of these live in the **Security** channel and require the relevant audit subcategories to be enabled (`Audit Logon`, `Audit Account Logon` / Kerberos and credential validation). They are documented in Microsoft's [Advanced Audit Policy Configuration](https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/advanced-audit-policy-configuration).
 

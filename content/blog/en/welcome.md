@@ -31,7 +31,7 @@ For deep details on how a file is laid out (the 64 KB chunks, the XML template t
 
 The shortlist that covers most of what an analyst pivots on:
 
-- [**4624** successful logon](/en/blog/understanding-event-id-4624). Read it through `LogonType`. The field decides whether you are looking at console (2), network (3), RDP (10), or `runas /netonly` (9).
+- [**4624** successful logon](/en/events/security/4624). Read it through `LogonType`. The field decides whether you are looking at console (2), network (3), RDP (10), or `runas /netonly` (9).
 - [**4625** failed logon](/en/blog/detecting-4625-brute-force). Bursts are reconnaissance, brute force, or password spray depending on which fields cluster.
 - [**1102** Security log cleared](/en/blog/event-id-1102-cleared-log). If you see this, the log you are holding has a known gap. Note it loudly.
 - [**4104** PowerShell scriptblock](/en/blog/powershell-4104-scriptblock). The script body *after* decoding and reflection. The single most useful free defensive control on the platform.

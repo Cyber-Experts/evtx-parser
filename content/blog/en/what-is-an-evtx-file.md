@@ -86,7 +86,7 @@ For a full walkthrough of each with the commands you would actually run, see [Ho
 - **Application debugging.** `Application.evtx` plus per-vendor channels often hold crash and error context the application's own logs do not.
 - **Threat hunting.** Long-tail rules against archived `.evtx` (or a SIEM forwarding the live channel) catch slow-burn patterns like off-hours RDP or service-account `LogonType` drift.
 
-The single most useful pivot is the Event ID. For the shortlist that earns its keep in a real SOC ([4624](/en/blog/understanding-event-id-4624), [4625](/en/blog/detecting-4625-brute-force), [1102](/en/blog/event-id-1102-cleared-log), [4104](/en/blog/powershell-4104-scriptblock), [7045](/en/blog/service-creation-event-id-7045), [Sysmon 1](/en/blog/sysmon-event-id-1-process-create)) see [the start-here orientation](/en/blog/welcome).
+The single most useful pivot is the Event ID. For the shortlist that earns its keep in a real SOC ([4624](/en/events/security/4624), [4625](/en/blog/detecting-4625-brute-force), [1102](/en/blog/event-id-1102-cleared-log), [4104](/en/blog/powershell-4104-scriptblock), [7045](/en/blog/service-creation-event-id-7045), [Sysmon 1](/en/blog/sysmon-event-id-1-process-create)) see [the start-here orientation](/en/blog/welcome).
 
 ## Further reading
 

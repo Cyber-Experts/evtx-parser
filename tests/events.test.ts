@@ -104,8 +104,12 @@ describe("event dataset", () => {
   it("links blog posts and legacy URLs only to existing entries", () => {
     for (const k of Object.keys(EVENT_BLOG_POSTS)) expect(keys.has(k), k).toBe(true);
     for (const k of Object.values(LEGACY_EVENT_IDS)) expect(keys.has(k), k).toBe(true);
+    // A post may exist only in some locales (the English 4624 post was folded
+    // into its entry); the entry links it wherever a translation is left.
+    const blogDir = path.join(process.cwd(), "content/blog");
+    const locales = fs.readdirSync(blogDir).filter((d) => fs.statSync(path.join(blogDir, d)).isDirectory());
     for (const slug of new Set(Object.values(EVENT_BLOG_POSTS)))
-      expect(fs.existsSync(path.join(process.cwd(), "content/blog/en", `${slug}.md`)), slug).toBe(true);
+      expect(locales.some((l) => fs.existsSync(path.join(blogDir, l, `${slug}.md`))), slug).toBe(true);
   });
 
   it("maps each post back to the entries it covers", () => {

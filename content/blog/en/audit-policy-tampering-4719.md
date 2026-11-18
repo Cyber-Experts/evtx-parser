@@ -15,7 +15,7 @@ Clearing a log ([1102](/en/blog/event-id-1102-cleared-log)) destroys history tha
 
 ## Why attackers touch the audit policy
 
-If an intruder disables, say, the *Process Creation* or *Logon* subcategory, then [4688](/en/blog/event-id-4688-process-creation) or [4624](/en/blog/understanding-event-id-4624) simply stop being written. There is no log to clear later because nothing was logged — and a half-blind log looks normal at a glance. It's a favourite of operators who want to work without leaving the usual trail, and it often precedes the noisy actions they're hiding.
+If an intruder disables, say, the *Process Creation* or *Logon* subcategory, then [4688](/en/blog/event-id-4688-process-creation) or [4624](/en/events/security/4624) simply stop being written. There is no log to clear later because nothing was logged — and a half-blind log looks normal at a glance. It's a favourite of operators who want to work without leaving the usual trail, and it often precedes the noisy actions they're hiding.
 
 ## Reading 4719
 
@@ -54,7 +54,7 @@ Seeing 4719 and [1102](/en/blog/event-id-1102-cleared-log) from the same actor i
 
 ## Don't trust an empty log at face value
 
-The deeper lesson: **absence of events is itself evidence.** If you expect [process](/en/blog/event-id-4688-process-creation) or [logon](/en/blog/understanding-event-id-4624) events in a window and find none, check for a preceding 4719 (auditing disabled) before concluding "nothing happened." A [missing-events gap](/en/blog/evtx-tampering-what-survives) explained by a 4719 is a finding, not a dead end.
+The deeper lesson: **absence of events is itself evidence.** If you expect [process](/en/blog/event-id-4688-process-creation) or [logon](/en/events/security/4624) events in a window and find none, check for a preceding 4719 (auditing disabled) before concluding "nothing happened." A [missing-events gap](/en/blog/evtx-tampering-what-survives) explained by a 4719 is a finding, not a dead end.
 
 ## Hunt checklist
 

@@ -170,7 +170,16 @@ export function LandingPage({
               className="surface flex min-w-0 flex-col gap-2 p-5 sm:p-6"
             >
               <h3 className="text-base font-semibold text-ink-950 dark:text-ink-50">
-                {f.name}
+                {f.href ? (
+                  <Link
+                    href={`/${locale}${f.href}`}
+                    className="text-uv-700 hover:underline dark:text-uv-300"
+                  >
+                    {f.name}
+                  </Link>
+                ) : (
+                  f.name
+                )}
               </h3>
               <p className="text-sm leading-relaxed text-ink-600 dark:text-ink-400">
                 {f.body}
