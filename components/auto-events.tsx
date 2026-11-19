@@ -9,6 +9,7 @@
 //   search             {via}              site search submitted/typed (query text is never sent)
 //   file_selected      {ext, via}         a file picked or dropped into a tool
 //   <data-event>       {data-event-*}     any element with data-event="name" (CTAs, book_call…)
+//   engaged            {via}              first real human input (trusted wheel/touch/key or pointer moves after 3s visible), once per tab session
 //
 // Guardrails: max 2 props per event (Vercel limit on some plans), no user
 // text/PII, identical events de-duplicated within 1s, at most 40 events per
@@ -56,6 +57,48 @@ export function AutoEvents() {
         /* analytics must never break the page */
       }
     };
+
+    // engaged {via}: once per tab session, the first sign of a real person.
+    // Headless crawlers that run JS rarely produce trusted input, so
+    // "visitors with engaged" is the trusted-traffic count.
+    const ENGAGED_KEY = "ae_engaged";
+    let engagedDone = false;
+    try {
+      engagedDone = sessionStorage.getItem(ENGAGED_KEY) === "1";
+    } catch {
+      /* storage blocked: fall back to once per page load */
+    }
+    let visibleMs = 0;
+    let visibleSince = document.visibilityState === "visible" ? performance.now() : 0;
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        if (!visibleSince) visibleSince = performance.now();
+      } else if (visibleSince) {
+        visibleMs += performance.now() - visibleSince;
+        visibleSince = 0;
+      }
+    };
+    const visibleFor = () => visibleMs + (visibleSince ? performance.now() - visibleSince : 0);
+    const HUMAN_EVENTS = ["pointermove", "wheel", "touchstart", "keydown"] as const;
+    let moves = 0;
+    const onHuman = (e: Event) => {
+      if (engagedDone || !e.isTrusted || navigator.webdriver) return;
+      if (e.type === "pointermove" && ++moves < 3) return;
+      if (visibleFor() < 3000) return;
+      engagedDone = true;
+      try {
+        sessionStorage.setItem(ENGAGED_KEY, "1");
+      } catch {
+        /* ignore */
+      }
+      const via = e.type === "keydown" ? "key" : e.type === "touchstart" ? "touch" : e.type === "wheel" ? "wheel" : "pointer";
+      send("engaged", { via });
+      for (const t of HUMAN_EVENTS) window.removeEventListener(t, onHuman, { capture: true });
+    };
+    if (!engagedDone) {
+      for (const t of HUMAN_EVENTS) window.addEventListener(t, onHuman, { capture: true, passive: true });
+      document.addEventListener("visibilitychange", onVisibility);
+    }
 
     const onClick = (e: MouseEvent) => {
       const t = e.target as Element | null;
@@ -143,6 +186,8 @@ export function AutoEvents() {
     window.addEventListener("drop", onDrop, { capture: true });
     return () => {
       clearTimeout(timer);
+      for (const t of HUMAN_EVENTS) window.removeEventListener(t, onHuman, { capture: true });
+      document.removeEventListener("visibilitychange", onVisibility);
       document.removeEventListener("click", onClick, { capture: true });
       document.removeEventListener("copy", onCopy);
       document.removeEventListener("submit", onSubmit, { capture: true });
