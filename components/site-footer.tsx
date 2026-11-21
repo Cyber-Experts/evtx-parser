@@ -25,7 +25,7 @@ export function SiteFooter({
   return (
     <footer className="mt-24 border-t border-ink-200/70 dark:border-white/[0.06]">
       <div className="container mx-auto grid gap-8 px-4 py-12 md:grid-cols-[1fr_auto] md:items-end">
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col items-start gap-3">
           <Logo className="h-7 w-auto text-ink-900 dark:text-ink-100" />
           <p className="max-w-sm text-sm leading-relaxed text-ink-600 dark:text-ink-400">
             {tagline}

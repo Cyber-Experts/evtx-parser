@@ -164,85 +164,93 @@ export default async function Home({ params }: { params: Promise<Params> }) {
           />
         </section>
 
-        <WorksWith label={dict.home.worksWith} />
+        {/* Everything below the tool reads as an editorial column: narrower
+            than the (wide) workspace so line lengths and cards stay calm. */}
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-24 sm:gap-32">
+          <WorksWith label={dict.home.worksWith} />
 
-        {/* "evtx" is a mostly-informational query and this page is the one
-            Google ranks for it, so answer "what is it" high on the page. */}
-        <section
-          aria-labelledby="what-is-evtx"
-          className="surface mx-auto -mt-8 flex w-full max-w-4xl flex-col gap-2 px-6 py-5 text-sm leading-relaxed text-ink-700 sm:-mt-12 dark:text-ink-300"
-        >
-          <h2 id="what-is-evtx" className="eyebrow">
-            {dict.home.whatIsHeading}
-          </h2>
-          <p>
-            {dict.home.whatIsBody}{" "}
-            <Link
-              href={`/${locale}/blog/what-is-an-evtx-file`}
-              className="font-medium text-uv-700 underline decoration-uv-300 underline-offset-4 hover:decoration-uv-500 dark:text-uv-300 dark:decoration-uv-700"
-            >
-              {dict.home.whatIsMore} →
-            </Link>
-          </p>
-        </section>
-
-        <FeatureGrid
-          dict={dict}
-          preview={
-            <div className="mx-auto hidden w-full max-w-5xl rounded-[1.25rem] border border-ink-200/70 bg-white/40 p-2 shadow-[0_50px_120px_-50px_rgb(106_51_245/0.55)] backdrop-blur sm:block dark:border-white/10 dark:bg-white/[0.03]">
-              <ProductPreview />
-            </div>
-          }
-        />
-
-        <StatsBand dict={dict} />
-
-        <EvtxLocations dict={dict} locale={locale} />
-
-        {featured.length > 0 && (
+          {/* "evtx" is a mostly-informational query and this page is the one
+              Google ranks for it, so answer "what is it" high on the page. */}
           <section
-            aria-labelledby="featured-heading"
-            className="flex flex-col gap-8"
+            aria-labelledby="what-is-evtx"
+            className="surface mx-auto -mt-8 flex w-full max-w-4xl flex-col gap-2 px-6 py-5 text-sm leading-relaxed text-ink-700 sm:-mt-12 dark:text-ink-300"
           >
-            <SectionHeading
-              id="featured-heading"
-              eyebrow="DFIR"
-              title={dict.home.featuredHeading}
-            />
-            <ul className="grid gap-4 sm:grid-cols-2">
-              {featured.map((p) => (
-                <li key={p.slug}>
-                  <Link
-                    href={`/${locale}/blog/${p.slug}`}
-                    className="surface surface-interactive group flex h-full flex-col gap-2 p-6"
-                  >
-                    <span className="flex items-start justify-between gap-3 font-medium text-ink-900 dark:text-ink-100">
-                      {(p.frontmatter.title as string) ?? p.slug}
-                      <span
-                        aria-hidden="true"
-                        className="text-uv-500 transition-transform group-hover:translate-x-1"
-                      >
-                        →
-                      </span>
-                    </span>
-                    {p.frontmatter.description ? (
-                      <span className="line-clamp-2 text-sm leading-relaxed text-ink-600 dark:text-ink-400">
-                        {p.frontmatter.description as string}
-                      </span>
-                    ) : null}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <h2 id="what-is-evtx" className="eyebrow">
+              {dict.home.whatIsHeading}
+            </h2>
+            <p>
+              {dict.home.whatIsBody}{" "}
+              <Link
+                href={`/${locale}/blog/what-is-an-evtx-file`}
+                className="font-medium text-uv-700 underline decoration-uv-300 underline-offset-4 hover:decoration-uv-500 dark:text-uv-300 dark:decoration-uv-700"
+              >
+                {dict.home.whatIsMore} →
+              </Link>
+            </p>
           </section>
-        )}
 
-        <HomeSeo locale={locale} />
+          <FeatureGrid
+            dict={dict}
+            preview={
+              <div className="mx-auto hidden w-full max-w-5xl rounded-[1.25rem] border border-ink-200/70 bg-white/40 p-2 shadow-[0_50px_120px_-50px_rgb(106_51_245/0.55)] backdrop-blur sm:block dark:border-white/10 dark:bg-white/[0.03]">
+                <ProductPreview />
+              </div>
+            }
+          />
 
+          <StatsBand dict={dict} />
 
-        <Faq dict={dict} />
+          <EvtxLocations dict={dict} locale={locale} />
 
-        <CtaBand dict={dict} />
+          {featured.length > 0 && (
+            <section
+              aria-labelledby="featured-heading"
+              className="flex flex-col gap-8"
+            >
+              <SectionHeading
+                id="featured-heading"
+                eyebrow="DFIR"
+                title={dict.home.featuredHeading}
+              />
+              <ul className="grid gap-4 sm:grid-cols-2">
+                {featured.map((p, i) => (
+                  <li key={p.slug}>
+                    <Link
+                      href={`/${locale}/blog/${p.slug}`}
+                      className="surface surface-interactive group flex h-full flex-col gap-3 p-6 sm:p-7"
+                    >
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="font-mono text-[11px] tracking-[0.14em] text-uv-600 dark:text-uv-300">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <span
+                          aria-hidden="true"
+                          className="flex size-7 items-center justify-center rounded-full border border-ink-200 text-ink-400 transition-all group-hover:translate-x-0.5 group-hover:border-uv-300 group-hover:bg-uv-50 group-hover:text-uv-600 dark:border-white/[0.08] dark:group-hover:border-uv-400/40 dark:group-hover:bg-uv-400/10 dark:group-hover:text-uv-300"
+                        >
+                          →
+                        </span>
+                      </span>
+                      <span className="font-heading text-lg leading-snug font-semibold text-ink-900 dark:text-ink-50">
+                        {(p.frontmatter.title as string) ?? p.slug}
+                      </span>
+                      {p.frontmatter.description ? (
+                        <span className="line-clamp-2 text-sm leading-relaxed text-ink-600 dark:text-ink-400">
+                          {p.frontmatter.description as string}
+                        </span>
+                      ) : null}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <HomeSeo locale={locale} />
+
+          <Faq dict={dict} />
+
+          <CtaBand dict={dict} />
+        </div>
       </main>
     </>
   );

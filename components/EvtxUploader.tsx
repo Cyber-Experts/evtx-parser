@@ -10,6 +10,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { Play } from "lucide-react";
 import { track } from "@vercel/analytics";
 
 import {
@@ -2665,7 +2666,7 @@ export function EvtxUploader({
             disabled={loading != null || restoring}
             className="inline-flex items-center gap-2 rounded-xl border border-uv-300 bg-card px-4 py-2 font-semibold text-uv-700 transition hover:border-uv-500 hover:bg-uv-50 disabled:opacity-50 dark:border-uv-400/40 dark:text-uv-300 dark:hover:bg-uv-500/10"
           >
-            <span aria-hidden="true">▶</span>
+            <Play aria-hidden="true" className="size-3.5 fill-current" />
             {t.home.sampleCta}
           </button>
           <span className="text-ink-500 dark:text-ink-400">{t.home.sampleNote}</span>
