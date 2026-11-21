@@ -13,10 +13,10 @@ export const es: Dict = {
     intro:
       "Suelta un registro de eventos .evtx de Windows. El análisis se ejecuta en tu navegador mediante WebAssembly — no se sube nada.",
     featuredHeading: "Guías destacadas",
-    dropArea: "Suelta un .evtx aquí o haz clic para elegir",
+    dropArea: "Suelta aquí uno o varios archivos .evtx",
     privacyNote: "Los archivos se quedan en tu dispositivo. Análisis 100 % en el cliente.",
     heroTag: "Código abierto · 100 % en tu navegador",
-    heroCtaOpen: "Abrir un archivo .evtx",
+    heroCtaOpen: "Abrir archivos .evtx",
     heroCtaGithub: "Ver en GitHub",
     footerTagline: "Análisis forense de registros de Windows, íntegramente en tu navegador.",
     statHunts: "reglas de hunting integradas",

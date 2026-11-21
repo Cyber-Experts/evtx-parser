@@ -87,13 +87,24 @@ export function StatsBand({ dict }: { dict: Dict }) {
     { value: String(LOCALES.length), label: dict.home.statLocales },
   ];
   return (
-    <dl className="surface grid grid-cols-2 divide-ink-200 overflow-hidden lg:grid-cols-4 lg:divide-x dark:divide-ink-800">
-      {stats.map((s) => (
-        <div key={s.label} className="flex flex-col gap-1 px-6 py-6 sm:px-8">
+    <dl className="surface relative grid grid-cols-2 overflow-hidden lg:grid-cols-4">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgb(123_76_255/0.6),rgb(189_240_30/0.5),transparent)]"
+      />
+      {stats.map((s, i) => (
+        <div
+          key={s.label}
+          className={`flex flex-col items-center gap-1.5 px-6 py-8 text-center sm:px-8 ${
+            i % 2 === 1 ? "border-l border-ink-200/70 dark:border-white/[0.06]" : ""
+          } ${i >= 2 ? "border-t border-ink-200/70 lg:border-t-0 dark:border-white/[0.06]" : ""} ${
+            i === 2 ? "lg:border-l" : ""
+          }`}
+        >
           <dt className="order-2 text-sm text-ink-500 dark:text-ink-400">
             {s.label}
           </dt>
-          <dd className="text-gradient-uv order-1 font-heading text-4xl font-semibold tracking-[-0.02em]">
+          <dd className="text-gradient-uv order-1 font-heading text-4xl font-semibold tracking-[-0.02em] sm:text-5xl">
             {s.value}
           </dd>
         </div>

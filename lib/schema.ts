@@ -316,7 +316,7 @@ export function homeGraph(locale: Locale, dict: Dict) {
       name: dict.meta.title,
       description: dict.meta.description,
       locale,
-      speakableSelectors: [".faq dt", ".faq dd"],
+      speakableSelectors: [".faq .faq-q", ".faq .faq-a"],
     }),
     softwareApplicationNode(locale, dict, url),
     faqPageNode(url, dict.faq.items),

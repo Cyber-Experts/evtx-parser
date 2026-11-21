@@ -10,6 +10,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { Play } from "lucide-react";
 import { track } from "@vercel/analytics";
 
 import {
@@ -2604,18 +2605,15 @@ export function EvtxUploader({
       )}
 
       {!ready && (
-        <label
-          tabIndex={0}
-          role="button"
-          aria-label={t.home.dropArea}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              openFilePicker();
-            }
-          }}
+        // Clicking anywhere on the zone opens the picker (mouse convenience);
+        // keyboard and screen-reader users get the two real buttons inside,
+        // so there is no nested-interactive role="button" wrapper.
+        <div
           id="dropzone"
-          className="edge-glow group relative flex scroll-mt-24 cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-3xl px-4 py-12 text-center text-sm shadow-[0_40px_100px_-40px_rgb(123_76_255/0.6)] transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_48px_120px_-40px_rgb(123_76_255/0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 sm:px-6 sm:py-14"
+          onClick={(e) => {
+            if (!(e.target as Element).closest("button")) openFilePicker();
+          }}
+          className="edge-glow group relative flex scroll-mt-24 cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-3xl px-4 py-12 text-center text-sm shadow-[0_40px_100px_-40px_rgb(123_76_255/0.6)] transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_48px_120px_-40px_rgb(123_76_255/0.75)] sm:px-6 sm:py-14"
         >
           <span
             aria-hidden="true"
@@ -2628,11 +2626,27 @@ export function EvtxUploader({
             {t.home.dropArea}
           </span>
           <span className="relative text-ink-500 dark:text-ink-400">{t.home.privacyNote}</span>
-          <span
-            aria-hidden="true"
-            className="relative mt-3 inline-flex items-center gap-2 rounded-xl bg-uv-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgb(106_51_245/0.8),inset_0_1px_0_rgb(255_255_255/0.2)] transition group-hover:bg-uv-500 dark:bg-uv-500 dark:group-hover:bg-uv-400"
-          >
-            {t.home.heroCtaOpen}
+          <span className="relative mt-3 flex flex-col items-center gap-2.5 sm:flex-row">
+            <button
+              type="button"
+              onClick={openFilePicker}
+              className="inline-flex items-center gap-2 rounded-xl bg-uv-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgb(106_51_245/0.8),inset_0_1px_0_rgb(255_255_255/0.2)] transition hover:bg-uv-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 focus-visible:ring-offset-2 focus-visible:ring-offset-card dark:bg-uv-500 dark:hover:bg-uv-400"
+            >
+              {t.home.heroCtaOpen}
+            </button>
+            <button
+              type="button"
+              onClick={loadSamples}
+              disabled={loading != null || restoring}
+              title={t.home.sampleNote}
+              className="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-card px-5 py-2.5 text-sm font-semibold text-ink-800 shadow-[0_1px_2px_rgb(11_12_22/0.05)] transition hover:border-uv-300 hover:text-uv-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 disabled:opacity-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-ink-100 dark:hover:border-uv-400/40 dark:hover:text-uv-200"
+            >
+              <Play aria-hidden="true" className="size-3.5 fill-current text-uv-600 dark:text-uv-300" />
+              {t.home.sampleCta}
+            </button>
+          </span>
+          <span className="relative max-w-md text-xs text-balance text-ink-500 dark:text-ink-400">
+            {t.home.sampleNote}
           </span>
           <span aria-hidden="true" className="relative mt-2 flex flex-wrap justify-center gap-2 font-mono text-[11px] text-ink-400 dark:text-ink-500">
             {["Security.evtx", "System.evtx", "Sysmon%4Operational.evtx"].map((n) => (
@@ -2641,36 +2655,25 @@ export function EvtxUploader({
               </span>
             ))}
           </span>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".evtx"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              const picked = Array.from(e.target.files ?? []);
-              // Reset so re-selecting the same file still fires onChange.
-              e.target.value = "";
-              if (picked.length) handleFiles(picked);
-            }}
-          />
-        </label>
-      )}
-
-      {!ready && (
-        <div className="flex flex-col items-center justify-center gap-x-3 gap-y-2 text-center text-sm sm:flex-row">
-          <button
-            type="button"
-            onClick={loadSamples}
-            disabled={loading != null || restoring}
-            className="inline-flex items-center gap-2 rounded-xl border border-uv-300 bg-card px-4 py-2 font-semibold text-uv-700 transition hover:border-uv-500 hover:bg-uv-50 disabled:opacity-50 dark:border-uv-400/40 dark:text-uv-300 dark:hover:bg-uv-500/10"
-          >
-            <span aria-hidden="true">▶</span>
-            {t.home.sampleCta}
-          </button>
-          <span className="text-ink-500 dark:text-ink-400">{t.home.sampleNote}</span>
         </div>
       )}
+      {!ready && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".evtx"
+          multiple
+          aria-label={t.home.dropArea}
+          className="hidden"
+          onChange={(e) => {
+            const picked = Array.from(e.target.files ?? []);
+            // Reset so re-selecting the same file still fires onChange.
+            e.target.value = "";
+            if (picked.length) handleFiles(picked);
+          }}
+        />
+      )}
+
 
       {!ready && (
         <SavedSessionsList
