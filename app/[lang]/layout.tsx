@@ -90,8 +90,8 @@ export async function generateMetadata({
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fcfcfe" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0b14" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
   ],
   colorScheme: "light dark",
   width: "device-width",
@@ -125,7 +125,11 @@ export default async function LangLayout({
           Skip to content
         </a>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <SiteHeader locale={lang as Locale} dict={dict} />
+          <SiteHeader
+            locale={lang as Locale}
+            dict={dict}
+            ctaLabel={getDict(lang as Locale).home.heroCtaOpen}
+          />
           {/* Clip the hero's decorative glows/grids (wider than a phone) here,
               not only on <body>: body overflow propagates to the viewport,
               where it no longer shrinks the scrollable width. */}

@@ -21,6 +21,7 @@ import { eventName, summaryFieldsFor } from "@/lib/event-info";
 import { runDetections, type Finding, type Severity } from "@/lib/detections";
 import { Timeline } from "@/components/Timeline";
 import { Logo } from "@/components/Logo";
+import { FileUp, Lock, Play } from "lucide-react";
 import { FilterBuilder, type FilterFacets } from "@/components/FilterBuilder";
 import {
   type Group,
@@ -192,7 +193,7 @@ function levelClass(level: number | null): string {
     case 2:
       return "text-red-600 dark:text-red-300";
     case 3:
-      return "text-orange-600 dark:text-orange-300";
+      return "text-amber-600 dark:text-amber-300";
     case 4:
       return "text-ink-700 dark:text-ink-300";
     case 5:
@@ -429,7 +430,7 @@ const CHIP_IDLE =
 // Severity dot colours for the triage Findings panel.
 const SEV_DOT: Record<Severity, string> = {
   high: "bg-red-500",
-  medium: "bg-orange-500 dark:bg-orange-400",
+  medium: "bg-amber-500 dark:bg-amber-400",
   low: "bg-ink-400",
 };
 
@@ -2582,18 +2583,10 @@ export function EvtxUploader({
       }
     >
       {windowDrag && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/70 p-6 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-uv-400 bg-ink-900/80 px-10 py-12 text-center">
-            <span className="flex items-end gap-1.5" aria-hidden="true">
-              {[14, 22, 30, 18, 12].map((h, i) => (
-                <span
-                  key={i}
-                  className={`w-2 rounded-sm ${i === 2 ? "bg-uv-400" : "bg-ink-500"}`}
-                  style={{ height: h }}
-                />
-              ))}
-            </span>
-            <span className="font-mono text-lg font-medium text-uv-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/80 p-6 backdrop-blur-md">
+          <div className="marks flex flex-col items-center gap-4 rounded-2xl border border-dashed border-uv-500/70 bg-ink-950 px-12 py-14 text-center [--mark:rgb(255_90_26/0.8)]">
+            <Logo withWordmark={false} className="h-12 w-12" />
+            <span className="text-2xl font-semibold tracking-[-0.02em] text-white">
               {t.home.dropArea}
             </span>
             <span className="font-mono text-xs text-ink-400">
@@ -2604,72 +2597,101 @@ export function EvtxUploader({
       )}
 
       {!ready && (
-        <label
-          tabIndex={0}
-          role="button"
-          aria-label={t.home.dropArea}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              openFilePicker();
-            }
-          }}
+        // Clicking anywhere on the zone opens the picker (mouse convenience);
+        // keyboard and screen-reader users get the two real buttons inside,
+        // so there is no nested-interactive role="button" wrapper.
+        <div
           id="dropzone"
-          className="edge-glow group relative flex scroll-mt-24 cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-3xl px-4 py-12 text-center text-sm shadow-[0_40px_100px_-40px_rgb(123_76_255/0.6)] transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_48px_120px_-40px_rgb(123_76_255/0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 sm:px-6 sm:py-14"
+          onClick={(e) => {
+            if (!(e.target as Element).closest("button")) openFilePicker();
+          }}
+          className="marks group relative grid cursor-pointer scroll-mt-28 rounded-2xl border border-ink-200 bg-card shadow-[0_1px_2px_rgb(10_10_10/0.04),0_24px_60px_-30px_rgb(10_10_10/0.25)] transition-colors hover:border-ink-300 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] dark:border-white/10 dark:bg-[#0d0d0d] dark:shadow-none dark:hover:border-white/20"
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(640px_300px_at_50%_0%,rgb(123_76_255/0.12),transparent)] opacity-80 transition-opacity group-hover:opacity-100 dark:bg-[radial-gradient(640px_300px_at_50%_0%,rgb(151_114_255/0.22),transparent)]"
+            className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-uv-500 to-transparent"
           />
-          <span className="relative mb-2 flex h-20 w-20 items-center justify-center rounded-2xl border border-ink-200 bg-card shadow-[inset_0_1px_0_rgb(255_255_255/0.7),0_8px_20px_-10px_rgb(123_76_255/0.5)] transition-transform group-hover:-translate-y-0.5 dark:border-ink-700 dark:shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_8px_24px_-10px_rgb(151_114_255/0.6)]">
-            <Logo withWordmark={false} className="h-11 w-11 text-ink-800 dark:text-ink-100" />
-          </span>
-          <span className="relative font-heading text-xl font-semibold tracking-[-0.01em] text-ink-900 sm:text-2xl dark:text-ink-50">
-            {t.home.dropArea}
-          </span>
-          <span className="relative text-ink-500 dark:text-ink-400">{t.home.privacyNote}</span>
-          <span
-            aria-hidden="true"
-            className="relative mt-3 inline-flex items-center gap-2 rounded-xl bg-uv-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgb(106_51_245/0.8),inset_0_1px_0_rgb(255_255_255/0.2)] transition group-hover:bg-uv-500 dark:bg-uv-500 dark:group-hover:bg-uv-400"
-          >
-            {t.home.heroCtaOpen}
-          </span>
-          <span aria-hidden="true" className="relative mt-2 flex flex-wrap justify-center gap-2 font-mono text-[11px] text-ink-400 dark:text-ink-500">
-            {["Security.evtx", "System.evtx", "Sysmon%4Operational.evtx"].map((n) => (
-              <span key={n} className="rounded-md border border-ink-200 bg-card/60 px-2 py-0.5 dark:border-ink-800">
-                {n}
-              </span>
-            ))}
-          </span>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".evtx"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              const picked = Array.from(e.target.files ?? []);
-              // Reset so re-selecting the same file still fires onChange.
-              e.target.value = "";
-              if (picked.length) handleFiles(picked);
-            }}
-          />
-        </label>
-      )}
+          <div className="flex flex-col items-start gap-6 p-6 sm:p-10 lg:p-12">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-600/20 bg-emerald-500/[0.08] px-2.5 py-1 font-mono text-[11px] text-emerald-700 dark:border-emerald-400/20 dark:text-emerald-300">
+              <Lock aria-hidden="true" className="size-3" />
+              {t.home.privacyNote}
+            </span>
+            <span className="text-[1.75rem] leading-[1.1] font-semibold tracking-[-0.03em] text-balance text-ink-950 sm:text-4xl dark:text-white">
+              {t.home.dropArea}
+            </span>
+            <span className="flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={openFilePicker}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-uv-500 px-5 text-sm font-semibold text-ink-950 shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_10px_30px_-12px_rgb(255_90_26/0.7)] transition-colors hover:bg-uv-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+              >
+                <FileUp aria-hidden="true" className="size-4" />
+                {t.home.heroCtaOpen}
+              </button>
+              <button
+                type="button"
+                onClick={loadSamples}
+                disabled={loading != null || restoring}
+                title={t.home.sampleNote}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-ink-200 bg-background px-5 text-sm font-semibold text-ink-900 transition-colors hover:border-ink-300 hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 disabled:opacity-50 dark:border-white/12 dark:bg-transparent dark:text-white dark:hover:border-white/25 dark:hover:bg-white/[0.04]"
+              >
+                <Play aria-hidden="true" className="size-3.5 fill-current" />
+                {t.home.sampleCta}
+              </button>
+            </span>
+            <span className="max-w-md text-sm leading-relaxed text-ink-500 dark:text-ink-400">
+              {t.home.sampleNote}
+            </span>
+          </div>
 
-      {!ready && (
-        <div className="flex flex-col items-center justify-center gap-x-3 gap-y-2 text-center text-sm sm:flex-row">
-          <button
-            type="button"
-            onClick={loadSamples}
-            disabled={loading != null || restoring}
-            className="inline-flex items-center gap-2 rounded-xl border border-uv-300 bg-card px-4 py-2 font-semibold text-uv-700 transition hover:border-uv-500 hover:bg-uv-50 disabled:opacity-50 dark:border-uv-400/40 dark:text-uv-300 dark:hover:bg-uv-500/10"
+          {/* Drop target: a stack of the files people actually bring. */}
+          <div
+            aria-hidden="true"
+            className="relative m-3 mt-0 flex min-h-56 items-center justify-center overflow-hidden rounded-xl border border-dashed border-ink-300 bg-ink-50 bg-[radial-gradient(rgb(10_10_10/0.07)_1px,transparent_1px)] bg-[size:14px_14px] transition-colors group-hover:border-uv-500/60 lg:mt-3 lg:ml-0 dark:border-white/15 dark:bg-white/[0.02] dark:bg-[radial-gradient(rgb(255_255_255/0.07)_1px,transparent_1px)]"
           >
-            <span aria-hidden="true">▶</span>
-            {t.home.sampleCta}
-          </button>
-          <span className="text-ink-500 dark:text-ink-400">{t.home.sampleNote}</span>
+            <span className="relative flex w-64 flex-col">
+              {[
+                ["Microsoft-Windows-Sysmon%4Operational.evtx", "-rotate-3 translate-x-4", "64 MB"],
+                ["System.evtx", "rotate-2 -translate-x-3 -mt-2", "20 MB"],
+                ["Security.evtx", "-mt-2", "128 MB"],
+              ].map(([name, tf, size], i) => (
+                <span
+                  key={name}
+                  className={`flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 font-mono text-[11px] shadow-[0_12px_30px_-14px_rgb(10_10_10/0.35)] transition-transform duration-300 group-hover:-translate-y-1 ${tf} ${i === 2 ? "border-uv-500/50 text-ink-900 dark:text-white" : "border-ink-200 text-ink-500 dark:border-white/10"}`}
+                >
+                  <span className={`flex h-7 w-6 shrink-0 items-end justify-center rounded-[3px] pb-1 text-[7px] font-semibold ${i === 2 ? "bg-uv-500 text-ink-950" : "bg-ink-200 text-ink-600 dark:bg-white/10 dark:text-ink-300"}`}>
+                    EVTX
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">{name}</span>
+                  <span className="shrink-0 text-ink-400">{size}</span>
+                </span>
+              ))}
+            </span>
+            <span className="absolute inset-x-0 bottom-0 flex items-center justify-between border-t border-ink-200 bg-card/80 px-4 py-2 font-mono text-[10px] text-ink-500 backdrop-blur dark:border-white/10">
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Ready
+              </span>
+              <span>Rust → WebAssembly · 0 {t.home.statUploaded}</span>
+            </span>
+          </div>
         </div>
+      )}
+      {!ready && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".evtx"
+          multiple
+          aria-label={t.home.dropArea}
+          className="hidden"
+          onChange={(e) => {
+            const picked = Array.from(e.target.files ?? []);
+            // Reset so re-selecting the same file still fires onChange.
+            e.target.value = "";
+            if (picked.length) handleFiles(picked);
+          }}
+        />
       )}
 
       {!ready && (

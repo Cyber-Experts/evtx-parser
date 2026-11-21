@@ -13,10 +13,10 @@ export const ja: Dict = {
     intro:
       "Windows の .evtx イベントログをドロップしてください。解析は WebAssembly でブラウザ内のみで実行され、アップロードは一切ありません。",
     featuredHeading: "おすすめガイド",
-    dropArea: "ここに .evtx をドロップ、またはクリックで選択",
+    dropArea: "1つ以上の .evtx ファイルをここにドロップ",
     privacyNote: "ファイルは端末内にとどまります。完全クライアントサイド処理です。",
     heroTag: "オープンソース · 100% ブラウザ内で動作",
-    heroCtaOpen: ".evtx ファイルを開く",
+    heroCtaOpen: ".evtx ファイルを開く（複数可）",
     heroCtaGithub: "GitHub で見る",
     footerTagline: "Windows イベントログのフォレンジックを、すべてブラウザ内で。",
     statHunts: "個の組み込みハントルール",

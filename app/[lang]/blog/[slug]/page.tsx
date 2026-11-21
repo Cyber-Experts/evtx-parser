@@ -270,7 +270,7 @@ export default async function BlogPostPage({
                   </span>
                 )}
                 <span>
-                  {post.readingTime} {dict.blog.readingTime}
+                  {dict.blog.readingTime.replace("{n}", String(post.readingTime))}
                 </span>
               </div>
               {tags.length > 0 && (

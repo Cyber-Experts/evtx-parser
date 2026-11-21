@@ -84,70 +84,87 @@ export function EvtxLocations({
   const t = dict.fileLocation;
 
   return (
-    <section
-      aria-labelledby="evtx-location-heading"
-      className="surface flex flex-col gap-3 p-5"
-    >
-      <div className="flex flex-col gap-1">
-        <h2
-          id="evtx-location-heading"
-          className="text-lg text-ink-950 dark:text-ink-50"
-        >
-          {t.heading}
-        </h2>
-        <p className="text-xs text-ink-600 dark:text-ink-400">{t.intro}</p>
+    <section aria-labelledby="evtx-location-heading" className="flex flex-col gap-10">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-end lg:gap-16">
+        <div className="flex flex-col gap-4">
+          <span className="eyebrow normal-case tracking-normal">{LOGS}</span>
+          <h2
+            id="evtx-location-heading"
+            className="text-[2rem] leading-[1.05] tracking-[-0.035em] text-balance text-ink-950 sm:text-5xl dark:text-white"
+          >
+            {t.heading}
+          </h2>
+        </div>
+        <p className="max-w-md text-base leading-relaxed text-ink-600 lg:pb-1.5 dark:text-ink-400">
+          {t.intro}
+        </p>
       </div>
 
-      <ul className="grid gap-1.5 lg:grid-cols-2">
-        {PATHS.map((row) => {
-          const label =
-            typeof row.label === "string" ? row.label : t[row.label.key];
-          const os =
-            row.os === "vistaPlus"
-              ? t.vistaPlus
-              : row.os === "xp"
-                ? "Windows XP / Server 2003"
-                : null;
-          return (
-            <li
-              key={row.path}
-              className="flex min-w-0 items-start gap-2 rounded-lg border border-ink-200/80 bg-ink-50/60 px-3 py-2 transition-colors hover:border-uv-300 dark:border-ink-800 dark:bg-ink-950/60 dark:hover:border-uv-800"
-            >
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="text-[11px] text-ink-500">
+      <div className="overflow-hidden rounded-2xl border border-ink-200 dark:border-white/[0.08]">
+        <div className="hidden grid-cols-[minmax(0,15rem)_minmax(0,1fr)_auto] gap-6 border-b border-ink-200 bg-ink-50 px-5 py-2.5 font-mono text-[11px] tracking-[0.12em] text-ink-500 uppercase md:grid dark:border-white/[0.08] dark:bg-white/[0.02]">
+          <span>Channel</span>
+          <span>Path</span>
+          <span className="sr-only">{t.copy}</span>
+        </div>
+        <ul>
+          {PATHS.map((row) => {
+            const label =
+              typeof row.label === "string" ? row.label : t[row.label.key];
+            const os =
+              row.os === "vistaPlus"
+                ? t.vistaPlus
+                : row.os === "xp"
+                  ? "Windows XP / Server 2003"
+                  : null;
+            return (
+              <li
+                key={row.path}
+                className="group grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-ink-200 px-5 py-3 transition-colors last:border-b-0 hover:bg-ink-50/70 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)_auto] md:gap-6 dark:border-white/[0.06] dark:hover:bg-white/[0.02]"
+              >
+                <span className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink-900 dark:text-ink-100">
                   {label}
                   {os && (
-                    <span className="ml-1.5 rounded border border-ink-200 px-1 font-mono text-[10px] text-ink-500 dark:border-ink-700">
+                    <span className="rounded-full border border-ink-200 px-1.5 font-mono text-[10px] font-normal text-ink-500 dark:border-white/10">
                       {os}
                     </span>
                   )}
                 </span>
-                <code className="break-all font-mono text-xs text-ink-900 dark:text-ink-100">
+                <code className="col-start-1 row-start-2 font-mono text-xs break-all text-ink-600 md:col-start-auto md:row-start-auto dark:text-ink-400">
                   {row.path}
                 </code>
-              </div>
-              <CopyPathButton
-                value={row.path}
-                label={t.copy}
-                copiedLabel={t.copied}
-              />
-            </li>
-          );
-        })}
-      </ul>
+                <span className="row-span-2 md:row-span-1">
+                  <CopyPathButton
+                    value={row.path}
+                    label={t.copy}
+                    copiedLabel={t.copied}
+                  />
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
 
-      <div className="flex flex-col gap-1.5 border-t border-ink-200 pt-3 dark:border-ink-800">
-        <h3 className="font-mono text-xs font-semibold uppercase tracking-wide text-ink-700 dark:text-ink-300">
+      <div className="flex flex-col gap-5">
+        <h3 className="text-lg font-semibold tracking-[-0.015em] text-ink-950 dark:text-white">
           {t.howToHeading}
         </h3>
-        <ul className="flex list-disc flex-col gap-1 pl-4 text-xs leading-relaxed text-ink-600 marker:text-uv-500 dark:text-ink-400">
+        <ol className="grid gap-px overflow-hidden rounded-2xl border border-ink-200 bg-ink-200 sm:grid-cols-2 lg:grid-cols-3 dark:border-white/[0.08] dark:bg-white/[0.08]">
           {t.howTo.map((item, i) => (
-            <li key={i}>{withCode(item)}</li>
+            <li
+              key={i}
+              className="flex flex-col gap-3 bg-background p-5 text-sm leading-relaxed text-ink-600 dark:text-ink-400"
+            >
+              <span className="font-mono text-xs text-uv-600 dark:text-uv-400">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span>{withCode(item)}</span>
+            </li>
           ))}
-        </ul>
+        </ol>
         <Link
           href={`/${locale}/blog/collecting-evtx-from-live-system`}
-          className="self-start text-xs text-ink-600 underline-offset-2 hover:text-ink-900 hover:underline dark:text-ink-400 dark:hover:text-ink-100"
+          className="self-start text-sm font-medium text-ink-950 underline decoration-uv-500 decoration-2 underline-offset-4 hover:text-uv-700 dark:text-white dark:hover:text-uv-300"
         >
           {t.readMore} →
         </Link>

@@ -13,10 +13,10 @@ export const fr: Dict = {
     intro:
       "Déposez un journal d'événements Windows .evtx. L'analyse s'exécute entièrement dans votre navigateur via WebAssembly — rien n'est téléversé.",
     featuredHeading: "Guides en vedette",
-    dropArea: "Déposez un .evtx ici ou cliquez pour choisir",
+    dropArea: "Déposez un ou plusieurs fichiers .evtx ici",
     privacyNote: "Les fichiers restent sur votre appareil. Analyse 100 % côté client.",
     heroTag: "Open source · 100 % dans votre navigateur",
-    heroCtaOpen: "Ouvrir un fichier .evtx",
+    heroCtaOpen: "Ouvrir des fichiers .evtx",
     heroCtaGithub: "Voir sur GitHub",
     footerTagline: "L'analyse forensique des journaux Windows, entièrement dans votre navigateur.",
     statHunts: "règles de chasse intégrées",

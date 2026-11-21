@@ -42,7 +42,7 @@ const STACK_ORDER = [4, 3, 2, 1, 0];
 const LEVEL_COLORS = [
   "bg-red-700 dark:bg-red-500", // 0 critical
   "bg-red-500 dark:bg-red-400", // 1 error
-  "bg-orange-500 dark:bg-orange-400", // 2 warning
+  "bg-amber-500 dark:bg-amber-400", // 2 warning
   "bg-ink-500 dark:bg-ink-400", // 3 info
   "bg-ink-300 dark:bg-ink-600", // 4 verbose / unknown
 ];

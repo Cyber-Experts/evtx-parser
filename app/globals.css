@@ -8,52 +8,54 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-plex-sans);
-  --font-mono: var(--font-plex-mono);
-  --font-heading: var(--font-plex-condensed);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+  --font-heading: var(--font-inter);
+  --font-serif: var(--font-instrument);
 
   /*
-   * "Alternate Light Source" palette.
-   * ink  — blue-black case-file neutrals (replaces zinc)
-   * uv   — ultraviolet brand: interactive, selected, focus
-   * glow — fluorescent lime: what the light reveals (search hits, matches)
-   * Warnings/errors keep Tailwind orange/red so severity never changes hue.
+   * "Flare" palette.
+   * ink  — true neutral greys, no tint: the black-and-white of a report
+   * uv   — signal-flare orange: the one brand accent (actions, focus, marks)
+   * glow — highlighter amber: what a search or hunt reveals
+   * Scale names are kept so every page re-skins from these tokens.
+   * Severity keeps red/amber/neutral so it never borrows the brand hue.
    */
-  --color-ink-50: #f5f6fa;
-  --color-ink-100: #ebedf4;
-  --color-ink-200: #d8dbe7;
-  --color-ink-300: #b7bbcf;
-  --color-ink-400: #8b90aa;
-  --color-ink-500: #666c88;
-  --color-ink-600: #4c526c;
-  --color-ink-700: #383d54;
-  --color-ink-800: #252a3d;
-  --color-ink-900: #171a29;
-  --color-ink-950: #0b0c16;
+  --color-ink-50: #fafafa;
+  --color-ink-100: #f4f4f4;
+  --color-ink-200: #e8e8e8;
+  --color-ink-300: #d1d1d1;
+  --color-ink-400: #a1a1a1;
+  --color-ink-500: #737373;
+  --color-ink-600: #555555;
+  --color-ink-700: #3d3d3d;
+  --color-ink-800: #262626;
+  --color-ink-900: #171717;
+  --color-ink-950: #0a0a0a;
 
-  --color-uv-50: #f3f0ff;
-  --color-uv-100: #e9e3ff;
-  --color-uv-200: #d4c9ff;
-  --color-uv-300: #b6a1ff;
-  --color-uv-400: #9772ff;
-  --color-uv-500: #7b4cff;
-  --color-uv-600: #6a33f5;
-  --color-uv-700: #5925d8;
-  --color-uv-800: #4a20b0;
-  --color-uv-900: #3d1d8c;
-  --color-uv-950: #231059;
+  --color-uv-50: #fff4ed;
+  --color-uv-100: #ffe6d4;
+  --color-uv-200: #ffc9a8;
+  --color-uv-300: #ffa370;
+  --color-uv-400: #ff7a3d;
+  --color-uv-500: #ff5a1a;
+  --color-uv-600: #f03f06;
+  --color-uv-700: #c72f07;
+  --color-uv-800: #9e270e;
+  --color-uv-900: #7f240f;
+  --color-uv-950: #450e05;
 
-  --color-glow-50: #f9ffe5;
-  --color-glow-100: #f0ffc2;
-  --color-glow-200: #e2ff8a;
-  --color-glow-300: #d0fb4d;
-  --color-glow-400: #bdf01e;
-  --color-glow-500: #a3d80c;
-  --color-glow-600: #7fad05;
-  --color-glow-700: #608309;
-  --color-glow-800: #4c670e;
-  --color-glow-900: #405711;
-  --color-glow-950: #213103;
+  --color-glow-50: #fffbeb;
+  --color-glow-100: #fef3c7;
+  --color-glow-200: #fde68a;
+  --color-glow-300: #fcd34d;
+  --color-glow-400: #fbbf24;
+  --color-glow-500: #f59e0b;
+  --color-glow-600: #d97706;
+  --color-glow-700: #b45309;
+  --color-glow-800: #92400e;
+  --color-glow-900: #78350f;
+  --color-glow-950: #451a03;
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -95,86 +97,86 @@
 }
 
 /*
- * "Alternate Light Source" identity. Forensic investigators sweep a scene
- * with ultraviolet light and traces start to glow — this tool does the same
- * to event logs. Blue-black case-file neutrals, an ultraviolet brand accent
- * (--brand / --ring) and fluorescent lime reserved for what gets revealed.
- * shadcn token names are kept so the primitives keep working; red stays
- * strictly for destructive.
+ * "Flare" identity. An investigation is a long, quiet read of records until
+ * one of them lights up. The site is black and white like a report; a single
+ * signal-flare orange marks the thing that matters (the primary action, the
+ * focused element, the event that fired). shadcn token names are kept so the
+ * primitives keep working; red stays strictly for destructive.
  */
 :root {
-  --background: #fcfcfe;
-  --foreground: #0b0c16;
+  --background: #ffffff;
+  --foreground: #0a0a0a;
   --card: #ffffff;
-  --card-foreground: #0b0c16;
+  --card-foreground: #0a0a0a;
   --popover: #ffffff;
-  --popover-foreground: #0b0c16;
-  --primary: #171a29;
+  --popover-foreground: #0a0a0a;
+  --primary: #0a0a0a;
   --primary-foreground: #ffffff;
-  --secondary: #f1f2f7;
-  --secondary-foreground: #0b0c16;
-  --muted: #f1f2f7;
-  --muted-foreground: #5a6079;
-  --accent: #efeaff;
-  --accent-foreground: #3d1d8c;
+  --secondary: #f4f4f4;
+  --secondary-foreground: #0a0a0a;
+  --muted: #f4f4f4;
+  --muted-foreground: #5c5c5c;
+  --accent: #fff1e8;
+  --accent-foreground: #9e270e;
   --destructive: #dc2626;
-  --border: #e3e5ee;
-  --input: #dcdfea;
-  --ring: #7b4cff;
-  /* UV -600 keeps legible contrast on light surfaces. */
-  --brand: #6a33f5;
+  --border: #e8e8e8;
+  --input: #dedede;
+  --ring: #ff5a1a;
+  /* Darker flare on white keeps text links at AA contrast. */
+  --brand: #d4380a;
   --brand-foreground: #ffffff;
-  --chart-1: #7b4cff;
-  --chart-2: #a3d80c;
-  --chart-3: #666c88;
-  --chart-4: #b7bbcf;
-  --chart-5: #252a3d;
-  --radius: 0.5rem;
-  --sidebar: #f8f8fc;
-  --sidebar-foreground: #0b0c16;
-  --sidebar-primary: #6a33f5;
+  --chart-1: #ff5a1a;
+  --chart-2: #f59e0b;
+  --chart-3: #737373;
+  --chart-4: #d1d1d1;
+  --chart-5: #262626;
+  --radius: 0.625rem;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #0a0a0a;
+  --sidebar-primary: #d4380a;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #efeaff;
-  --sidebar-accent-foreground: #3d1d8c;
-  --sidebar-border: #e3e5ee;
-  --sidebar-ring: #7b4cff;
+  --sidebar-accent: #fff1e8;
+  --sidebar-accent-foreground: #9e270e;
+  --sidebar-border: #e8e8e8;
+  --sidebar-ring: #ff5a1a;
+  --mark: rgb(10 10 10 / 0.28);
 }
 
 .dark {
-  --background: #0a0b14;
-  --foreground: #e8e9f2;
-  --card: #111322;
-  --card-foreground: #e8e9f2;
-  --popover: #141627;
-  --popover-foreground: #e8e9f2;
-  --primary: #e8e9f2;
-  --primary-foreground: #111322;
-  --secondary: #1a1d2f;
-  --secondary-foreground: #e8e9f2;
-  --muted: #1a1d2f;
-  --muted-foreground: #9ca1ba;
-  --accent: #231b45;
-  --accent-foreground: #d4c9ff;
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card: #111111;
+  --card-foreground: #ededed;
+  --popover: #141414;
+  --popover-foreground: #ededed;
+  --primary: #ededed;
+  --primary-foreground: #0a0a0a;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ededed;
+  --muted: #1a1a1a;
+  --muted-foreground: #a1a1a1;
+  --accent: #2a1408;
+  --accent-foreground: #ffc9a8;
   --destructive: #f05252;
-  --border: rgb(214 208 255 / 9%);
-  --input: rgb(214 208 255 / 13%);
-  --ring: #9772ff;
-  /* Under the lamp the violet glows brighter (-400). */
-  --brand: #9772ff;
-  --brand-foreground: #0a0b14;
-  --chart-1: #9772ff;
-  --chart-2: #bdf01e;
-  --chart-3: #8b90aa;
-  --chart-4: #4c526c;
-  --chart-5: #d8dbe7;
-  --sidebar: #111322;
-  --sidebar-foreground: #e8e9f2;
-  --sidebar-primary: #9772ff;
-  --sidebar-primary-foreground: #0a0b14;
-  --sidebar-accent: #231b45;
-  --sidebar-accent-foreground: #d4c9ff;
-  --sidebar-border: rgb(214 208 255 / 9%);
-  --sidebar-ring: #9772ff;
+  --border: rgb(255 255 255 / 9%);
+  --input: rgb(255 255 255 / 13%);
+  --ring: #ff7a3d;
+  --brand: #ff7a3d;
+  --brand-foreground: #0a0a0a;
+  --chart-1: #ff7a3d;
+  --chart-2: #fbbf24;
+  --chart-3: #a1a1a1;
+  --chart-4: #3d3d3d;
+  --chart-5: #e8e8e8;
+  --sidebar: #111111;
+  --sidebar-foreground: #ededed;
+  --sidebar-primary: #ff7a3d;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: #2a1408;
+  --sidebar-accent-foreground: #ffc9a8;
+  --sidebar-border: rgb(255 255 255 / 9%);
+  --sidebar-ring: #ff7a3d;
+  --mark: rgb(255 255 255 / 0.32);
 }
 
 @layer base {
@@ -183,13 +185,14 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings: "cv11", "ss01", "ss03";
     /* Decorative hero glows are wider than small screens; clip (not hidden)
        keeps position: sticky working. */
     overflow-x: clip;
   }
   ::selection {
-    background: rgb(123 76 255 / 0.28);
+    background: rgb(255 90 26 / 0.25);
   }
   html {
     @apply font-sans;
@@ -197,13 +200,13 @@
     scrollbar-gutter: stable;
   }
   /*
-   * Display layer — IBM Plex Sans Condensed on headings: the terse, labelled
-   * voice of a lab report. Plex Sans carries the UI, Plex Mono the data.
+   * Display layer: Inter, set tight. The brand voice adds Instrument Serif
+   * italic (.font-serif) for one phrase per hero, never for UI.
    */
   h1, h2, h3, h4, .font-heading {
-    font-family: var(--font-plex-condensed), var(--font-plex-sans), sans-serif;
+    font-family: var(--font-inter), sans-serif;
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.022em;
   }
 }
 
@@ -273,106 +276,128 @@
 }
 
 /*
- * Premium finish — shared surfaces. Hairline borders, a soft inner top
- * highlight and layered shadows give depth without adding colour; the
- * ultraviolet accent only appears on interaction and on the luminous edge.
+ * Flare components. Flat surfaces, hairline borders, almost no shadow:
+ * depth comes from contrast and type, colour only where something matters.
  */
 @layer components {
   .surface {
     background-color: var(--card);
     border: 1px solid var(--border);
-    border-radius: 1rem;
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.7),
-      0 1px 2px rgb(11 12 22 / 0.04),
-      0 12px 32px -18px rgb(11 12 22 / 0.18);
+    border-radius: 0.875rem;
+    box-shadow: 0 1px 2px rgb(10 10 10 / 0.04);
   }
   .dark .surface {
-    background-color: rgb(17 19 34 / 0.72);
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.05),
-      0 1px 2px rgb(0 0 0 / 0.4),
-      0 18px 40px -20px rgb(0 0 0 / 0.7);
+    background-color: #0f0f0f;
+    box-shadow: none;
   }
   .surface-interactive {
     transition:
-      transform 160ms ease,
-      border-color 160ms ease,
-      box-shadow 160ms ease;
+      border-color 150ms ease,
+      background-color 150ms ease;
   }
   .surface-interactive:hover {
-    transform: translateY(-2px);
-    border-color: rgb(123 76 255 / 0.35);
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.7),
-      0 18px 40px -18px rgb(123 76 255 / 0.35);
+    border-color: rgb(10 10 10 / 0.22);
+    background-color: #fcfcfc;
   }
   .dark .surface-interactive:hover {
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.06),
-      0 22px 48px -20px rgb(123 76 255 / 0.45);
+    border-color: rgb(255 255 255 / 0.2);
+    background-color: #141414;
   }
 
-  /* 1px luminous gradient edge: ultraviolet → transparent → fluorescent. */
+  /* A flare-lit top edge: the panel that holds the action. */
   .edge-glow {
-    border: 1px solid transparent;
+    border: 1px solid var(--border);
     background:
-      linear-gradient(var(--card), var(--card)) padding-box,
-      linear-gradient(135deg, rgb(123 76 255 / 0.65), rgb(123 76 255 / 0.08) 40%, rgb(189 240 30 / 0.45)) border-box;
-  }
-  .dark .edge-glow {
-    background:
-      linear-gradient(#111322, #111322) padding-box,
-      linear-gradient(135deg, rgb(151 114 255 / 0.8), rgb(151 114 255 / 0.1) 40%, rgb(189 240 30 / 0.5)) border-box;
+      linear-gradient(90deg, transparent, rgb(255 90 26 / 0.9) 50%, transparent) top / 100% 1px no-repeat,
+      var(--card);
   }
 
-  /* Headline ink: a quiet vertical gradient reads richer than flat black. */
+  /* Headlines stay solid ink in light; a silver fall-off in dark. */
   .text-gradient {
-    background: linear-gradient(180deg, #0b0c16 30%, #4c526c);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: #0a0a0a;
   }
   .dark .text-gradient {
-    background: linear-gradient(180deg, #ffffff 30%, #9ca1ba);
-    -webkit-background-clip: text;
-    background-clip: text;
-  }
-  .text-gradient-uv {
-    background: linear-gradient(100deg, #6a33f5, #9772ff 60%, #7b4cff);
+    background: linear-gradient(180deg, #ffffff 35%, #a1a1a1);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
-  .dark .text-gradient-uv {
-    background: linear-gradient(100deg, #b6a1ff, #9772ff 55%, #d4c9ff);
+  .text-gradient-uv {
+    background: linear-gradient(100deg, #f03f06, #ff7a3d 55%, #f59e0b);
     -webkit-background-clip: text;
     background-clip: text;
+    color: transparent;
   }
 
-  /* Small uppercase section label. */
+  .font-serif {
+    font-family: var(--font-instrument), ui-serif, Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  /* Section label: mono, uppercase, led by a small flare square. */
   .eyebrow {
-    font-family: var(--font-plex-mono), ui-monospace, monospace;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-jetbrains), ui-monospace, monospace;
     font-size: 0.6875rem;
-    letter-spacing: 0.14em;
+    font-weight: 500;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--brand);
+    color: var(--muted-foreground);
+  }
+  .eyebrow::before {
+    content: "";
+    width: 0.375rem;
+    height: 0.375rem;
+    flex: none;
+    background: #ff5a1a;
+  }
+
+  /*
+   * Registration marks: small crosshair corners, the way evidence is framed
+   * in a forensic photo. Drawn on ::after so the element keeps its own
+   * background and border.
+   */
+  .marks {
+    position: relative;
+  }
+  .marks::after {
+    content: "";
+    position: absolute;
+    inset: -5px;
+    pointer-events: none;
+    --l: 11px;
+    background:
+      linear-gradient(var(--mark), var(--mark)) top left / var(--l) 1px no-repeat,
+      linear-gradient(var(--mark), var(--mark)) top left / 1px var(--l) no-repeat,
+      linear-gradient(var(--mark), var(--mark)) top right / var(--l) 1px no-repeat,
+      linear-gradient(var(--mark), var(--mark)) top right / 1px var(--l) no-repeat,
+      linear-gradient(var(--mark), var(--mark)) bottom left / var(--l) 1px no-repeat,
+      linear-gradient(var(--mark), var(--mark)) bottom left / 1px var(--l) no-repeat,
+      linear-gradient(var(--mark), var(--mark)) bottom right / var(--l) 1px no-repeat,
+      linear-gradient(var(--mark), var(--mark)) bottom right / 1px var(--l) no-repeat;
+  }
+
+  /* Timeline ruler: minor ticks every 8px, a major tick every 64px. */
+  .ruler {
+    height: 12px;
+    background:
+      linear-gradient(90deg, var(--mark) 1px, transparent 1px) bottom left / 64px 12px repeat-x,
+      linear-gradient(90deg, var(--border) 1px, transparent 1px) bottom left / 8px 5px repeat-x;
   }
 }
 
-/* Film grain over the whole page — barely there, removes the flat-screen feel. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  pointer-events: none;
-  opacity: 0.025;
-  background-image: url("/grain.svg");
+/* Flare pulse on the brand spike (respects reduced motion). */
+@keyframes flare-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
-.dark body::before {
-  opacity: 0.045;
+.animate-flare {
+  animation: flare-pulse 2.4s ease-in-out infinite;
 }
-@media print {
-  body::before { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-flare { animation: none; }
 }
