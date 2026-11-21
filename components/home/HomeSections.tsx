@@ -12,6 +12,8 @@ import { LOCALES } from "@/lib/i18n";
 import sigmaMeta from "@/lib/sigma/sigmahq-meta.json";
 import type { Dict } from "@/src/dict/types";
 
+import { Canvas, FEATURE_VISUALS } from "./HomeVisuals";
+
 export const REPO_URL = "https://github.com/Cyber-Experts/evtx-parser";
 
 const CHANNELS = [
@@ -38,16 +40,16 @@ export function SectionHeading({
   id?: string;
 }) {
   return (
-    <div className="mx-auto flex max-w-2xl flex-col items-center gap-3 text-center">
+    <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 text-center">
       <span className="eyebrow">{eyebrow}</span>
       <h2
         id={id}
-        className="text-3xl leading-tight tracking-[-0.02em] text-balance text-ink-950 sm:text-4xl dark:text-ink-50"
+        className="text-3xl leading-[1.05] tracking-[-0.04em] text-balance text-ink-950 sm:text-5xl dark:text-ink-50"
       >
         {title}
       </h2>
       {intro ? (
-        <p className="text-base leading-relaxed text-ink-600 dark:text-ink-400">
+        <p className="max-w-2xl text-base leading-relaxed text-ink-600 sm:text-lg dark:text-ink-400">
           {intro}
         </p>
       ) : null}
@@ -171,46 +173,6 @@ const ICONS: ReactNode[] = [
   </>,
 ];
 
-/** Mini findings list — the visual for the wide "hunts" card. */
-function HuntsVisual() {
-  const rows = [
-    { sev: "high", name: "Security log cleared", id: "1102", n: 1 },
-    { sev: "high", name: "PowerShell download cradle", id: "4104", n: 3 },
-    { sev: "med", name: "Kerberoasting (RC4 TGS)", id: "4769", n: 12 },
-    { sev: "med", name: "New service installed", id: "7045", n: 2 },
-  ];
-  return (
-    <div
-      aria-hidden="true"
-      className="flex flex-col gap-1.5 rounded-xl border border-ink-200 bg-ink-50/70 p-2.5 font-mono text-xs dark:border-ink-800 dark:bg-ink-950/60"
-    >
-      {rows.map((r) => (
-        <div
-          key={r.name}
-          className="flex items-center gap-3 rounded-lg bg-card px-3 py-2 shadow-[0_1px_2px_rgb(11_12_15/0.05)] dark:bg-ink-900/80"
-        >
-          <span
-            className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
-              r.sev === "high"
-                ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                : "bg-orange-500/10 text-orange-600 dark:text-orange-400"
-            }`}
-          >
-            {r.sev}
-          </span>
-          <span className="truncate text-ink-800 dark:text-ink-200">
-            {r.name}
-          </span>
-          <span className="ml-auto text-ink-400">{r.id}</span>
-          <span className="rounded bg-glow-400/20 px-1.5 text-glow-700 dark:text-glow-300">
-            {r.n}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function FeatureGrid({
   dict,
   preview,
@@ -219,10 +181,12 @@ export function FeatureGrid({
   preview?: ReactNode;
 }) {
   const f = dict.home.features;
+  // Bento: [hunts ×2][query] / [pivots][sessions][report] / [offline ×3]
+  const span = ["lg:col-span-2", "", "", "", "", "md:col-span-2 lg:col-span-3"];
   return (
     <section
       aria-labelledby="features-heading"
-      className="flex flex-col gap-10"
+      className="flex flex-col gap-12"
     >
       <SectionHeading
         id="features-heading"
@@ -233,41 +197,46 @@ export function FeatureGrid({
       {preview}
       <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {f.map((feat, i) => {
-          const wide = i === 0;
           const last = i === f.length - 1;
+          const body = feat.body
+            .replace("{n}", String(HUNTS.length))
+            .replace("{sigma}", String(sigmaMeta.counts.bundled));
+          if (last) {
+            return (
+              <li
+                key={feat.title}
+                className={`surface surface-interactive relative flex flex-col gap-6 overflow-hidden p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:gap-10 ${span[i]}`}
+              >
+                <div className="flex flex-col gap-2">
+                  <h3 className="flex items-center gap-2.5 text-lg text-ink-950 dark:text-ink-50">
+                    <Icon>{ICONS[5]}</Icon>
+                    {feat.title}
+                  </h3>
+                  <p className="max-w-xl text-sm leading-relaxed text-ink-600 dark:text-ink-400">
+                    {body}
+                  </p>
+                </div>
+                <code className="w-fit max-w-full shrink-0 overflow-x-auto rounded-xl border border-ink-200 bg-ink-950 px-4 py-3 font-mono text-xs whitespace-nowrap text-ink-200 shadow-[0_12px_32px_-16px_rgb(11_12_15/0.5)] dark:border-white/10">
+                  <span className="text-glow-400">$</span> docker run --rm -p
+                  3000:3000 evtx-parser
+                </code>
+              </li>
+            );
+          }
           return (
             <li
               key={feat.title}
-              className={`surface surface-interactive relative flex flex-col gap-4 overflow-hidden p-6 ${
-                wide
-                  ? "md:col-span-2 lg:row-span-1 lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center lg:gap-6"
-                  : ""
-              } ${last ? "md:col-span-2 lg:col-span-3 lg:flex-row lg:items-center lg:justify-between lg:gap-10" : ""}`}
+              className={`surface surface-interactive group relative flex flex-col overflow-hidden ${span[i]}`}
             >
-              {wide && (
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,rgb(58_107_255/0.18),transparent)]"
-                />
-              )}
-              <div className="relative flex flex-col gap-3">
-                <Icon>{ICONS[i % ICONS.length]}</Icon>
-                <h3 className="text-lg font-semibold text-ink-900 dark:text-ink-50">
+              <Canvas tall={i === 0}>{FEATURE_VISUALS[i]}</Canvas>
+              <div className="flex flex-col gap-2 p-6">
+                <h3 className="text-base font-semibold text-ink-950 dark:text-ink-50">
                   {feat.title}
                 </h3>
                 <p className="text-sm leading-relaxed text-ink-600 dark:text-ink-400">
-                  {feat.body
-                    .replace("{n}", String(HUNTS.length))
-                    .replace("{sigma}", String(sigmaMeta.counts.bundled))}
+                  {body}
                 </p>
               </div>
-              {wide && <HuntsVisual />}
-              {last && (
-                <code className="relative w-fit max-w-full shrink-0 overflow-x-auto rounded-lg whitespace-nowrap border border-ink-200 bg-ink-50 px-3 py-2 font-mono text-xs text-ink-700 dark:border-ink-800 dark:bg-ink-950/60 dark:text-ink-300">
-                  <span className="text-uv-600 dark:text-uv-300">$</span> docker
-                  run --rm -p 3000:3000 evtx-parser
-                </code>
-              )}
             </li>
           );
         })}

@@ -10,7 +10,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { FileUp, Play } from "lucide-react";
+import { FileUp, Lock, Play } from "lucide-react";
 import { track } from "@vercel/analytics";
 
 import {
@@ -2607,53 +2607,94 @@ export function EvtxUploader({
         // Clicking anywhere on the zone opens the picker (mouse convenience);
         // keyboard and screen-reader users get the two real buttons inside,
         // so there is no nested-interactive role="button" wrapper.
-        <div
-          id="dropzone"
-          onClick={(e) => {
-            if (!(e.target as Element).closest("button")) openFilePicker();
-          }}
-          className="edge-glow group relative flex scroll-mt-24 cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-3xl px-4 py-12 text-center text-sm shadow-[0_40px_100px_-40px_rgb(58_107_255/0.6)] transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_48px_120px_-40px_rgb(58_107_255/0.75)] sm:px-6 sm:py-14"
-        >
-          <span
+        // Framed as the product window: title bar, a dashed drop area, and a
+        // status bar — the page's hero visual is the real tool, idle.
+        <div className="relative mx-auto w-full max-w-5xl">
+          <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(640px_300px_at_50%_0%,rgb(58_107_255/0.12),transparent)] opacity-80 transition-opacity group-hover:opacity-100 dark:bg-[radial-gradient(640px_300px_at_50%_0%,rgb(92_142_255/0.22),transparent)]"
+            className="pointer-events-none absolute inset-x-10 -bottom-10 h-40 rounded-full bg-uv-500/25 blur-[80px] dark:bg-uv-500/30"
           />
-          <span className="relative mb-2 flex h-16 w-16 items-center justify-center rounded-2xl border border-ink-200 bg-card shadow-[inset_0_1px_0_rgb(255_255_255/0.7),0_8px_20px_-10px_rgb(58_107_255/0.5)] transition-transform group-hover:-translate-y-0.5 dark:border-ink-700 dark:shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_8px_24px_-10px_rgb(92_142_255/0.6)]">
-            <FileUp aria-hidden="true" className="h-8 w-8 text-uv-600 dark:text-uv-300" strokeWidth={1.6} />
-          </span>
-          <span className="relative font-heading text-xl font-semibold tracking-[-0.01em] text-ink-900 sm:text-2xl dark:text-ink-50">
-            {t.home.dropArea}
-          </span>
-          <span className="relative text-ink-500 dark:text-ink-400">{t.home.privacyNote}</span>
-          <span className="relative mt-3 flex flex-col items-center gap-2.5 sm:flex-row">
-            <button
-              type="button"
-              onClick={openFilePicker}
-              className="inline-flex items-center gap-2 rounded-xl bg-uv-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgb(36_80_245/0.8),inset_0_1px_0_rgb(255_255_255/0.2)] transition hover:bg-uv-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 focus-visible:ring-offset-2 focus-visible:ring-offset-card dark:bg-uv-500 dark:hover:bg-uv-400"
+          <div className="relative rounded-[1.15rem] bg-[linear-gradient(180deg,rgb(58_107_255/0.45),rgb(11_12_15/0.08)_35%,rgb(11_12_15/0.08))] p-px shadow-[0_40px_100px_-40px_rgb(11_12_15/0.35)] dark:bg-[linear-gradient(180deg,rgb(92_142_255/0.55),rgb(255_255_255/0.08)_35%,rgb(255_255_255/0.06))] dark:shadow-[0_40px_100px_-40px_rgb(0_0_0/0.9)]">
+            <div
+              id="dropzone"
+              onClick={(e) => {
+                if (!(e.target as Element).closest("button")) openFilePicker();
+              }}
+              className="group relative flex scroll-mt-24 cursor-pointer flex-col overflow-hidden rounded-[1.1rem] bg-card text-sm"
             >
-              {t.home.heroCtaOpen}
-            </button>
-            <button
-              type="button"
-              onClick={loadSamples}
-              disabled={loading != null || restoring}
-              title={t.home.sampleNote}
-              className="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-card px-5 py-2.5 text-sm font-semibold text-ink-800 shadow-[0_1px_2px_rgb(11_12_15/0.05)] transition hover:border-uv-300 hover:text-uv-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 disabled:opacity-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-ink-100 dark:hover:border-uv-400/40 dark:hover:text-uv-200"
-            >
-              <Play aria-hidden="true" className="size-3.5 fill-current text-uv-600 dark:text-uv-300" />
-              {t.home.sampleCta}
-            </button>
-          </span>
-          <span className="relative max-w-md text-xs text-balance text-ink-500 dark:text-ink-400">
-            {t.home.sampleNote}
-          </span>
-          <span aria-hidden="true" className="relative mt-2 flex flex-wrap justify-center gap-2 font-mono text-[11px] text-ink-400 dark:text-ink-500">
-            {["Security.evtx", "System.evtx", "Sysmon%4Operational.evtx"].map((n) => (
-              <span key={n} className="rounded-md border border-ink-200 bg-card/60 px-2 py-0.5 dark:border-ink-800">
-                {n}
-              </span>
-            ))}
-          </span>
+              {/* title bar */}
+              <div className="flex h-11 items-center gap-3 border-b border-ink-200/80 bg-ink-50/70 px-4 dark:border-white/[0.07] dark:bg-white/[0.02]">
+                <span aria-hidden="true" className="flex gap-1.5">
+                  <span className="size-2.5 rounded-full bg-ink-200 dark:bg-white/15" />
+                  <span className="size-2.5 rounded-full bg-ink-200 dark:bg-white/15" />
+                  <span className="size-2.5 rounded-full bg-ink-200 dark:bg-white/15" />
+                </span>
+                <span className="absolute left-1/2 -translate-x-1/2 font-mono text-xs text-ink-500">
+                  {t.home.windowTitle}
+                </span>
+                <span className="ml-auto hidden items-center gap-1.5 rounded-full border border-ink-200 bg-card px-2.5 py-0.5 font-mono text-[10px] text-ink-500 sm:inline-flex dark:border-white/10 dark:bg-transparent">
+                  <Lock aria-hidden="true" className="size-3" />
+                  {t.home.windowLocal}
+                </span>
+              </div>
+
+              {/* drop area */}
+              <div className="p-3 sm:p-4">
+                <div className="relative flex flex-col items-center justify-center gap-3 overflow-hidden rounded-xl border border-dashed border-ink-300/80 px-4 py-12 text-center transition-colors group-hover:border-uv-400 group-hover:bg-uv-50/40 sm:py-16 dark:border-white/[0.14] dark:group-hover:border-uv-400/60 dark:group-hover:bg-uv-400/[0.04]">
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 bg-[radial-gradient(520px_240px_at_50%_0%,rgb(58_107_255/0.10),transparent)] dark:bg-[radial-gradient(520px_240px_at_50%_0%,rgb(92_142_255/0.16),transparent)]"
+                  />
+                  <span className="relative mb-1 flex size-14 items-center justify-center rounded-2xl border border-ink-200 bg-card shadow-[0_1px_2px_rgb(11_12_15/0.05),0_10px_24px_-12px_rgb(58_107_255/0.5)] transition-transform duration-300 group-hover:-translate-y-1 dark:border-white/10 dark:bg-ink-900">
+                    <FileUp aria-hidden="true" className="size-6 text-uv-600 dark:text-uv-300" strokeWidth={1.7} />
+                  </span>
+                  <span className="relative font-heading text-xl font-semibold tracking-[-0.03em] text-ink-950 sm:text-2xl dark:text-ink-50">
+                    {t.home.dropArea}
+                  </span>
+                  <span className="relative text-ink-500 dark:text-ink-400">{t.home.privacyNote}</span>
+                  <span className="relative mt-3 flex flex-col items-center gap-2.5 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={openFilePicker}
+                      className="inline-flex h-10 items-center gap-2 rounded-lg bg-uv-600 px-5 text-sm font-medium text-white shadow-[0_8px_24px_-8px_rgb(36_80_245/0.8),inset_0_1px_0_rgb(255_255_255/0.2)] transition hover:bg-uv-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 focus-visible:ring-offset-2 focus-visible:ring-offset-card dark:bg-uv-500 dark:hover:bg-uv-400"
+                    >
+                      {t.home.heroCtaOpen}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={loadSamples}
+                      disabled={loading != null || restoring}
+                      title={t.home.sampleNote}
+                      className="inline-flex h-10 items-center gap-2 rounded-lg border border-ink-200 bg-card px-5 text-sm font-medium text-ink-800 shadow-[0_1px_2px_rgb(11_12_15/0.05)] transition hover:border-ink-300 hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 disabled:opacity-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-ink-100 dark:hover:bg-white/[0.07]"
+                    >
+                      <Play aria-hidden="true" className="size-3.5 fill-current text-uv-600 dark:text-uv-300" />
+                      {t.home.sampleCta}
+                    </button>
+                  </span>
+                  <span className="relative max-w-md text-xs text-balance text-ink-500 dark:text-ink-400">
+                    {t.home.sampleNote}
+                  </span>
+                </div>
+              </div>
+
+              {/* status bar */}
+              <div className="flex h-9 items-center gap-4 border-t border-ink-200/80 px-4 font-mono text-[11px] text-ink-500 dark:border-white/[0.07]">
+                <span className="flex items-center gap-1.5">
+                  <span className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgb(16_185_129/0.8)]" />
+                  {t.home.windowReady}
+                </span>
+                <span className="hidden sm:inline">Rust → WebAssembly</span>
+                <span aria-hidden="true" className="hidden gap-2 md:flex">
+                  {["Security.evtx", "System.evtx", "Sysmon%4Operational.evtx"].map((n) => (
+                    <span key={n} className="text-ink-400 dark:text-ink-600">
+                      {n}
+                    </span>
+                  ))}
+                </span>
+                <span className="ml-auto">0 {t.home.statUploaded}</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
       {!ready && (

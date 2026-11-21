@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Check, ChevronDown } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -11,9 +12,12 @@ import {
   FeatureGrid,
   REPO_URL,
   SectionHeading,
-  StatsBand,
-  WorksWith,
 } from "@/components/home/HomeSections";
+import {
+  ChannelMarquee,
+  HowItWorks,
+  PrivacySection,
+} from "@/components/home/HomeVisuals";
 import { ProductPreview } from "@/components/ProductPreview";
 import { HomeSeo } from "@/components/HomeSeo";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -108,46 +112,68 @@ export default async function Home({ params }: { params: Promise<Params> }) {
         id="main-content"
         className="container mx-auto flex flex-1 flex-col gap-20 px-4 py-6 sm:gap-28 sm:py-10"
       >
-        {/* Hero — cobalt haze over a faint grid. */}
-        <header className="relative isolate flex flex-col items-center gap-6 pt-4 text-center sm:pt-8">
+        {/* Hero — spotlight from the top, hairline grid, then the tool
+            itself framed as the product window. */}
+        <header className="relative isolate flex flex-col items-center gap-7 pt-8 text-center sm:pt-16">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -top-40 left-1/2 -z-10 h-[640px] w-[1200px] -translate-x-1/2 bg-[radial-gradient(closest-side,rgb(58_107_255/0.16),transparent)] dark:bg-[radial-gradient(closest-side,rgb(58_107_255/0.32),transparent)]"
+            className="pointer-events-none absolute -top-56 left-1/2 -z-10 h-[720px] w-[1100px] -translate-x-1/2 bg-[radial-gradient(ellipse_50%_45%_at_50%_30%,rgb(58_107_255/0.18),transparent_70%)] dark:bg-[radial-gradient(ellipse_50%_45%_at_50%_30%,rgb(58_107_255/0.35),transparent_70%)]"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -top-24 left-1/2 -z-10 h-[620px] w-[1400px] -translate-x-1/2 bg-[linear-gradient(to_right,rgb(58_107_255/0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgb(58_107_255/0.08)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_50%_60%_at_50%_30%,black,transparent)] bg-[size:48px_48px]"
+            className="pointer-events-none absolute -top-24 left-1/2 -z-10 h-[680px] w-[1400px] -translate-x-1/2 bg-[linear-gradient(to_right,rgb(11_12_15/0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgb(11_12_15/0.05)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_45%_55%_at_50%_25%,black,transparent)] bg-[size:56px_56px] dark:bg-[linear-gradient(to_right,rgb(255_255_255/0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgb(255_255_255/0.05)_1px,transparent_1px)]"
           />
           <a
             href={REPO_URL}
-            className="inline-flex items-center gap-2 rounded-full border border-ink-200 bg-card/70 py-1 pr-3 pl-1.5 text-xs text-ink-600 shadow-sm backdrop-blur transition hover:border-uv-300 dark:border-ink-800 dark:text-ink-300 dark:hover:border-uv-400/40"
+            className="group inline-flex items-center gap-2 rounded-full border border-ink-200 bg-card/80 py-1 pr-3 pl-1 text-xs text-ink-600 shadow-[0_1px_2px_rgb(11_12_15/0.05)] backdrop-blur transition hover:border-uv-300 dark:border-white/10 dark:bg-white/[0.03] dark:text-ink-300 dark:hover:border-uv-400/40"
           >
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-glow-400/20 px-2 py-0.5 font-medium text-glow-800 dark:text-glow-300">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-ink-950 px-2 py-0.5 font-medium text-white dark:bg-white dark:text-ink-950">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-glow-400 opacity-70 motion-reduce:hidden" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-glow-500" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-glow-400" />
               </span>
               DFIR
             </span>
             {dict.home.heroTag}
-            <span aria-hidden="true" className="text-ink-400">
+            <span
+              aria-hidden="true"
+              className="text-ink-400 transition-transform group-hover:translate-x-0.5"
+            >
               →
             </span>
           </a>
-          <h1 className="text-gradient max-w-5xl text-[2.6rem] leading-[1.02] font-semibold tracking-[-0.045em] text-balance sm:text-6xl lg:text-[4.5rem]">
+          {/* The full headline stays in the h1 for SEO; the brand half is set
+              as a small label above the display line. */}
+          <h1 className="flex flex-col items-center gap-5">
             {headlineBrand ? (
               <>
-                {headlineBrand}
-                <span className="font-normal opacity-40"> — </span>
-                {headlineRest}
+                <span className="font-mono text-xs font-medium tracking-[0.22em] text-uv-600 uppercase sm:text-sm dark:text-uv-300">
+                  {headlineBrand}
+                  <span className="sr-only"> — </span>
+                </span>
+                <span className="text-gradient max-w-5xl pb-1 text-[2.75rem] leading-[0.98] font-semibold tracking-[-0.05em] text-balance sm:text-7xl lg:text-[5.5rem]">
+                  {headlineRest}
+                </span>
               </>
             ) : (
-              dict.home.headline
+              <span className="text-gradient max-w-5xl pb-1 text-[2.75rem] leading-[0.98] font-semibold tracking-[-0.05em] text-balance sm:text-7xl lg:text-[5.5rem]">
+                {dict.home.headline}
+              </span>
             )}
           </h1>
           <p className="max-w-2xl text-lg leading-relaxed text-ink-600 sm:text-xl dark:text-ink-400">
             {dict.home.intro}
           </p>
+          <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-ink-600 dark:text-ink-400">
+            {dict.home.trust.map((t) => (
+              <li key={t} className="flex items-center gap-2">
+                <span className="flex size-4 items-center justify-center rounded-full bg-uv-500/10 text-uv-600 dark:text-uv-300">
+                  <Check className="size-2.5" strokeWidth={3} aria-hidden="true" />
+                </span>
+                {t}
+              </li>
+            ))}
+          </ul>
         </header>
 
         {/* The tool is the hero's centrepiece: the drop zone is the main
@@ -155,25 +181,38 @@ export default async function Home({ params }: { params: Promise<Params> }) {
         <section
           id="tool"
           aria-label={dict.home.dropArea}
-          className="-mt-10 scroll-mt-24 sm:-mt-16"
+          className="-mt-6 scroll-mt-24 sm:-mt-10"
         >
           <EvtxUploader
             dict={dict}
             locale={locale}
-            emptyStateAside={<CollectGuide dict={dict} locale={locale} />}
+            emptyStateAside={
+              <details className="group mx-auto w-full max-w-5xl">
+                <summary className="mx-auto flex w-fit cursor-pointer list-none items-center gap-2 rounded-full border border-ink-200 bg-card px-4 py-2 text-sm text-ink-700 shadow-[0_1px_2px_rgb(11_12_15/0.05)] transition-colors select-none hover:border-uv-300 hover:text-ink-950 dark:border-white/10 dark:bg-white/[0.03] dark:text-ink-300 dark:hover:border-uv-400/40 dark:hover:text-ink-50 [&::-webkit-details-marker]:hidden">
+                  {dict.home.collectToggle}
+                  <ChevronDown
+                    aria-hidden="true"
+                    className="size-4 text-ink-400 transition-transform group-open:rotate-180 motion-reduce:transition-none"
+                  />
+                </summary>
+                <div className="mt-4">
+                  <CollectGuide dict={dict} locale={locale} />
+                </div>
+              </details>
+            }
           />
         </section>
 
         {/* Everything below the tool reads as an editorial column: narrower
             than the (wide) workspace so line lengths and cards stay calm. */}
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-24 sm:gap-32">
-          <WorksWith label={dict.home.worksWith} />
+          <ChannelMarquee label={dict.home.worksWith} />
 
           {/* "evtx" is a mostly-informational query and this page is the one
               Google ranks for it, so answer "what is it" high on the page. */}
           <section
             aria-labelledby="what-is-evtx"
-            className="surface mx-auto -mt-8 flex w-full max-w-4xl flex-col gap-2 px-6 py-5 text-sm leading-relaxed text-ink-700 sm:-mt-12 dark:text-ink-300"
+            className="surface mx-auto -mt-10 flex w-full max-w-3xl flex-col gap-2 px-6 py-5 text-sm leading-relaxed text-ink-700 sm:-mt-16 dark:text-ink-300"
           >
             <h2 id="what-is-evtx" className="eyebrow">
               {dict.home.whatIsHeading}
@@ -192,13 +231,15 @@ export default async function Home({ params }: { params: Promise<Params> }) {
           <FeatureGrid
             dict={dict}
             preview={
-              <div className="mx-auto hidden w-full max-w-5xl rounded-[1.25rem] border border-ink-200/70 bg-white/40 p-2 shadow-[0_50px_120px_-50px_rgb(36_80_245/0.55)] backdrop-blur sm:block dark:border-white/10 dark:bg-white/[0.03]">
+              <div className="relative mx-auto hidden w-full max-w-5xl rounded-[1.25rem] border border-ink-200/70 bg-white/50 p-2 shadow-[0_60px_140px_-60px_rgb(36_80_245/0.6)] ring-1 ring-black/[0.02] backdrop-blur sm:block dark:border-white/10 dark:bg-white/[0.03] dark:ring-white/[0.03]">
                 <ProductPreview />
               </div>
             }
           />
 
-          <StatsBand dict={dict} />
+          <HowItWorks dict={dict} />
+
+          <PrivacySection dict={dict} />
 
           <EvtxLocations dict={dict} locale={locale} />
 
