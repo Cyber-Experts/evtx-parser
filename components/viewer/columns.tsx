@@ -112,8 +112,8 @@ export function useColumnLayout(order: string[]) {
   const css = useMemo(() => {
     const t = `#${EVENTS_TABLE_ID}`;
     const rules: string[] = [
-      `${t}{--pin-bg:#fcfcfe;--pin-head:#f5f6fa}`,
-      `.dark ${t}{--pin-bg:#0a0b14;--pin-head:#171a29}`,
+      `${t}{--pin-bg:#ffffff;--pin-head:#f7f8fa}`,
+      `.dark ${t}{--pin-bg:#08090b;--pin-head:#16181d}`,
     ];
     for (const [col, w] of Object.entries(layout.widths)) {
       if (!order.includes(col)) continue;

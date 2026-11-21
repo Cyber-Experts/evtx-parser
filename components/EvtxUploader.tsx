@@ -10,7 +10,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { Play } from "lucide-react";
+import { FileUp, Play } from "lucide-react";
 import { track } from "@vercel/analytics";
 
 import {
@@ -21,7 +21,6 @@ import {
 import { eventName, summaryFieldsFor } from "@/lib/event-info";
 import { runDetections, type Finding, type Severity } from "@/lib/detections";
 import { Timeline } from "@/components/Timeline";
-import { Logo } from "@/components/Logo";
 import { FilterBuilder, type FilterFacets } from "@/components/FilterBuilder";
 import {
   type Group,
@@ -2613,14 +2612,14 @@ export function EvtxUploader({
           onClick={(e) => {
             if (!(e.target as Element).closest("button")) openFilePicker();
           }}
-          className="edge-glow group relative flex scroll-mt-24 cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-3xl px-4 py-12 text-center text-sm shadow-[0_40px_100px_-40px_rgb(123_76_255/0.6)] transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_48px_120px_-40px_rgb(123_76_255/0.75)] sm:px-6 sm:py-14"
+          className="edge-glow group relative flex scroll-mt-24 cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-3xl px-4 py-12 text-center text-sm shadow-[0_40px_100px_-40px_rgb(58_107_255/0.6)] transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_48px_120px_-40px_rgb(58_107_255/0.75)] sm:px-6 sm:py-14"
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(640px_300px_at_50%_0%,rgb(123_76_255/0.12),transparent)] opacity-80 transition-opacity group-hover:opacity-100 dark:bg-[radial-gradient(640px_300px_at_50%_0%,rgb(151_114_255/0.22),transparent)]"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(640px_300px_at_50%_0%,rgb(58_107_255/0.12),transparent)] opacity-80 transition-opacity group-hover:opacity-100 dark:bg-[radial-gradient(640px_300px_at_50%_0%,rgb(92_142_255/0.22),transparent)]"
           />
-          <span className="relative mb-2 flex h-20 w-20 items-center justify-center rounded-2xl border border-ink-200 bg-card shadow-[inset_0_1px_0_rgb(255_255_255/0.7),0_8px_20px_-10px_rgb(123_76_255/0.5)] transition-transform group-hover:-translate-y-0.5 dark:border-ink-700 dark:shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_8px_24px_-10px_rgb(151_114_255/0.6)]">
-            <Logo withWordmark={false} className="h-11 w-11 text-ink-800 dark:text-ink-100" />
+          <span className="relative mb-2 flex h-16 w-16 items-center justify-center rounded-2xl border border-ink-200 bg-card shadow-[inset_0_1px_0_rgb(255_255_255/0.7),0_8px_20px_-10px_rgb(58_107_255/0.5)] transition-transform group-hover:-translate-y-0.5 dark:border-ink-700 dark:shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_8px_24px_-10px_rgb(92_142_255/0.6)]">
+            <FileUp aria-hidden="true" className="h-8 w-8 text-uv-600 dark:text-uv-300" strokeWidth={1.6} />
           </span>
           <span className="relative font-heading text-xl font-semibold tracking-[-0.01em] text-ink-900 sm:text-2xl dark:text-ink-50">
             {t.home.dropArea}
@@ -2630,7 +2629,7 @@ export function EvtxUploader({
             <button
               type="button"
               onClick={openFilePicker}
-              className="inline-flex items-center gap-2 rounded-xl bg-uv-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgb(106_51_245/0.8),inset_0_1px_0_rgb(255_255_255/0.2)] transition hover:bg-uv-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 focus-visible:ring-offset-2 focus-visible:ring-offset-card dark:bg-uv-500 dark:hover:bg-uv-400"
+              className="inline-flex items-center gap-2 rounded-xl bg-uv-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgb(36_80_245/0.8),inset_0_1px_0_rgb(255_255_255/0.2)] transition hover:bg-uv-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 focus-visible:ring-offset-2 focus-visible:ring-offset-card dark:bg-uv-500 dark:hover:bg-uv-400"
             >
               {t.home.heroCtaOpen}
             </button>
@@ -2639,7 +2638,7 @@ export function EvtxUploader({
               onClick={loadSamples}
               disabled={loading != null || restoring}
               title={t.home.sampleNote}
-              className="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-card px-5 py-2.5 text-sm font-semibold text-ink-800 shadow-[0_1px_2px_rgb(11_12_22/0.05)] transition hover:border-uv-300 hover:text-uv-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 disabled:opacity-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-ink-100 dark:hover:border-uv-400/40 dark:hover:text-uv-200"
+              className="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-card px-5 py-2.5 text-sm font-semibold text-ink-800 shadow-[0_1px_2px_rgb(11_12_15/0.05)] transition hover:border-uv-300 hover:text-uv-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 disabled:opacity-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-ink-100 dark:hover:border-uv-400/40 dark:hover:text-uv-200"
             >
               <Play aria-hidden="true" className="size-3.5 fill-current text-uv-600 dark:text-uv-300" />
               {t.home.sampleCta}

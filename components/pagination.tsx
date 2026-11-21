@@ -42,7 +42,7 @@ export function Pagination({
               className={cn(
                 "inline-flex h-9 min-w-9 items-center justify-center rounded-full px-3 font-medium tabular-nums transition-colors",
                 n === current
-                  ? "bg-uv-600 text-white shadow-[0_8px_20px_-8px_rgb(106_51_245/0.7)] dark:bg-uv-500"
+                  ? "bg-uv-600 text-white shadow-[0_8px_20px_-8px_rgb(36_80_245/0.7)] dark:bg-uv-500"
                   : "text-ink-600 hover:bg-ink-100 hover:text-ink-900 dark:text-ink-400 dark:hover:bg-ink-800/60 dark:hover:text-ink-100",
               )}
             >

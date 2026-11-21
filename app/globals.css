@@ -5,55 +5,68 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* One page width everywhere (header, footer, home and inner pages) so every
+   edge lines up: 72rem, widening to 1400px / 1600px on large screens. */
+@utility container {
+  max-width: 72rem;
+  @media (width >= 80rem) {
+    max-width: 1400px;
+  }
+  @media (width >= 96rem) {
+    max-width: 1600px;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-plex-sans);
-  --font-mono: var(--font-plex-mono);
-  --font-heading: var(--font-plex-condensed);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
 
   /*
-   * "Alternate Light Source" palette.
-   * ink  — blue-black case-file neutrals (replaces zinc)
-   * uv   — ultraviolet brand: interactive, selected, focus
-   * glow — fluorescent lime: what the light reveals (search hits, matches)
-   * Warnings/errors keep Tailwind orange/red so severity never changes hue.
+   * "Luminol" palette. Investigators spray luminol and hidden traces glow
+   * blue; this tool does the same to event logs.
+   * ink  — cool graphite neutrals
+   * uv   — cobalt brand: interactive, selected, focus (name kept from v1)
+   * glow — luminol cyan: what gets revealed (search hits, matches)
+   * Warnings/errors keep Tailwind orange/red so severity never reads as brand.
    */
-  --color-ink-50: #f5f6fa;
-  --color-ink-100: #ebedf4;
-  --color-ink-200: #d8dbe7;
-  --color-ink-300: #b7bbcf;
-  --color-ink-400: #8b90aa;
-  --color-ink-500: #666c88;
-  --color-ink-600: #4c526c;
-  --color-ink-700: #383d54;
-  --color-ink-800: #252a3d;
-  --color-ink-900: #171a29;
-  --color-ink-950: #0b0c16;
+  --color-ink-50: #f7f8fa;
+  --color-ink-100: #eff1f4;
+  --color-ink-200: #e3e6eb;
+  --color-ink-300: #c8cdd5;
+  --color-ink-400: #979eaa;
+  --color-ink-500: #6b727f;
+  --color-ink-600: #4e5562;
+  --color-ink-700: #373c46;
+  --color-ink-800: #24282f;
+  --color-ink-900: #16181d;
+  --color-ink-950: #0b0c0f;
 
-  --color-uv-50: #f3f0ff;
-  --color-uv-100: #e9e3ff;
-  --color-uv-200: #d4c9ff;
-  --color-uv-300: #b6a1ff;
-  --color-uv-400: #9772ff;
-  --color-uv-500: #7b4cff;
-  --color-uv-600: #6a33f5;
-  --color-uv-700: #5925d8;
-  --color-uv-800: #4a20b0;
-  --color-uv-900: #3d1d8c;
-  --color-uv-950: #231059;
+  --color-uv-50: #eef4ff;
+  --color-uv-100: #dae6ff;
+  --color-uv-200: #bdd3ff;
+  --color-uv-300: #90b6ff;
+  --color-uv-400: #5c8eff;
+  --color-uv-500: #3a6bff;
+  --color-uv-600: #2450f5;
+  --color-uv-700: #1c3ee0;
+  --color-uv-800: #1d34b5;
+  --color-uv-900: #1e318e;
+  --color-uv-950: #162056;
 
-  --color-glow-50: #f9ffe5;
-  --color-glow-100: #f0ffc2;
-  --color-glow-200: #e2ff8a;
-  --color-glow-300: #d0fb4d;
-  --color-glow-400: #bdf01e;
-  --color-glow-500: #a3d80c;
-  --color-glow-600: #7fad05;
-  --color-glow-700: #608309;
-  --color-glow-800: #4c670e;
-  --color-glow-900: #405711;
-  --color-glow-950: #213103;
+  --color-glow-50: #ecfeff;
+  --color-glow-100: #cdfbff;
+  --color-glow-200: #a2f5fd;
+  --color-glow-300: #63eafb;
+  --color-glow-400: #22d6f0;
+  --color-glow-500: #08b8d6;
+  --color-glow-600: #0a92b3;
+  --color-glow-700: #107491;
+  --color-glow-800: #165f76;
+  --color-glow-900: #174f64;
+  --color-glow-950: #093345;
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -95,86 +108,83 @@
 }
 
 /*
- * "Alternate Light Source" identity. Forensic investigators sweep a scene
- * with ultraviolet light and traces start to glow — this tool does the same
- * to event logs. Blue-black case-file neutrals, an ultraviolet brand accent
- * (--brand / --ring) and fluorescent lime reserved for what gets revealed.
- * shadcn token names are kept so the primitives keep working; red stays
- * strictly for destructive.
+ * "Luminol" identity. Graphite neutrals, one cobalt accent (--brand / --ring)
+ * and luminol cyan reserved for what the search reveals. shadcn token names
+ * are kept so the primitives keep working; red stays strictly destructive.
  */
 :root {
-  --background: #fcfcfe;
-  --foreground: #0b0c16;
+  --background: #ffffff;
+  --foreground: #0b0c0f;
   --card: #ffffff;
-  --card-foreground: #0b0c16;
+  --card-foreground: #0b0c0f;
   --popover: #ffffff;
-  --popover-foreground: #0b0c16;
-  --primary: #171a29;
+  --popover-foreground: #0b0c0f;
+  --primary: #0b0c0f;
   --primary-foreground: #ffffff;
-  --secondary: #f1f2f7;
-  --secondary-foreground: #0b0c16;
-  --muted: #f1f2f7;
-  --muted-foreground: #5a6079;
-  --accent: #efeaff;
-  --accent-foreground: #3d1d8c;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #0b0c0f;
+  --muted: #f3f4f6;
+  --muted-foreground: #5d6471;
+  --accent: #eef4ff;
+  --accent-foreground: #1d34b5;
   --destructive: #dc2626;
-  --border: #e3e5ee;
-  --input: #dcdfea;
-  --ring: #7b4cff;
-  /* UV -600 keeps legible contrast on light surfaces. */
-  --brand: #6a33f5;
+  --border: #e6e8ec;
+  --input: #dfe2e7;
+  --ring: #3a6bff;
+  /* Cobalt -600 keeps AA contrast on white. */
+  --brand: #2450f5;
   --brand-foreground: #ffffff;
-  --chart-1: #7b4cff;
-  --chart-2: #a3d80c;
-  --chart-3: #666c88;
-  --chart-4: #b7bbcf;
-  --chart-5: #252a3d;
+  --chart-1: #3a6bff;
+  --chart-2: #08b8d6;
+  --chart-3: #6b727f;
+  --chart-4: #c8cdd5;
+  --chart-5: #24282f;
   --radius: 0.5rem;
-  --sidebar: #f8f8fc;
-  --sidebar-foreground: #0b0c16;
-  --sidebar-primary: #6a33f5;
+  --sidebar: #fafafb;
+  --sidebar-foreground: #0b0c0f;
+  --sidebar-primary: #2450f5;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #efeaff;
-  --sidebar-accent-foreground: #3d1d8c;
-  --sidebar-border: #e3e5ee;
-  --sidebar-ring: #7b4cff;
+  --sidebar-accent: #eef4ff;
+  --sidebar-accent-foreground: #1d34b5;
+  --sidebar-border: #e6e8ec;
+  --sidebar-ring: #3a6bff;
 }
 
 .dark {
-  --background: #0a0b14;
-  --foreground: #e8e9f2;
-  --card: #111322;
-  --card-foreground: #e8e9f2;
-  --popover: #141627;
-  --popover-foreground: #e8e9f2;
-  --primary: #e8e9f2;
-  --primary-foreground: #111322;
-  --secondary: #1a1d2f;
-  --secondary-foreground: #e8e9f2;
-  --muted: #1a1d2f;
-  --muted-foreground: #9ca1ba;
-  --accent: #231b45;
-  --accent-foreground: #d4c9ff;
+  --background: #08090b;
+  --foreground: #ededf0;
+  --card: #0f1013;
+  --card-foreground: #ededf0;
+  --popover: #121317;
+  --popover-foreground: #ededf0;
+  --primary: #ededf0;
+  --primary-foreground: #0f1013;
+  --secondary: #17191d;
+  --secondary-foreground: #ededf0;
+  --muted: #17191d;
+  --muted-foreground: #9198a4;
+  --accent: #141c33;
+  --accent-foreground: #bdd3ff;
   --destructive: #f05252;
-  --border: rgb(214 208 255 / 9%);
-  --input: rgb(214 208 255 / 13%);
-  --ring: #9772ff;
-  /* Under the lamp the violet glows brighter (-400). */
-  --brand: #9772ff;
-  --brand-foreground: #0a0b14;
-  --chart-1: #9772ff;
-  --chart-2: #bdf01e;
-  --chart-3: #8b90aa;
-  --chart-4: #4c526c;
-  --chart-5: #d8dbe7;
-  --sidebar: #111322;
-  --sidebar-foreground: #e8e9f2;
-  --sidebar-primary: #9772ff;
-  --sidebar-primary-foreground: #0a0b14;
-  --sidebar-accent: #231b45;
-  --sidebar-accent-foreground: #d4c9ff;
-  --sidebar-border: rgb(214 208 255 / 9%);
-  --sidebar-ring: #9772ff;
+  --border: rgb(255 255 255 / 8%);
+  --input: rgb(255 255 255 / 12%);
+  --ring: #5c8eff;
+  /* In the dark the cobalt lifts a step (-400) to stay luminous. */
+  --brand: #5c8eff;
+  --brand-foreground: #08090b;
+  --chart-1: #5c8eff;
+  --chart-2: #22d6f0;
+  --chart-3: #979eaa;
+  --chart-4: #4e5562;
+  --chart-5: #e3e6eb;
+  --sidebar: #0f1013;
+  --sidebar-foreground: #ededf0;
+  --sidebar-primary: #5c8eff;
+  --sidebar-primary-foreground: #08090b;
+  --sidebar-accent: #141c33;
+  --sidebar-accent-foreground: #bdd3ff;
+  --sidebar-border: rgb(255 255 255 / 8%);
+  --sidebar-ring: #5c8eff;
 }
 
 @layer base {
@@ -183,27 +193,25 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    text-rendering: optimizeLegibility;
     /* Decorative hero glows are wider than small screens; clip (not hidden)
        keeps position: sticky working. */
     overflow-x: clip;
   }
   ::selection {
-    background: rgb(123 76 255 / 0.28);
+    background: rgb(58 107 255 / 0.22);
   }
   html {
     @apply font-sans;
     /* Stable scrollbar gutter to avoid CLS when content overflows */
     scrollbar-gutter: stable;
   }
-  /*
-   * Display layer — IBM Plex Sans Condensed on headings: the terse, labelled
-   * voice of a lab report. Plex Sans carries the UI, Plex Mono the data.
-   */
+  /* Display layer: Geist set tight, the way product sites set headlines. */
   h1, h2, h3, h4, .font-heading {
-    font-family: var(--font-plex-condensed), var(--font-plex-sans), sans-serif;
+    font-family: var(--font-geist-sans), ui-sans-serif, sans-serif;
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.025em;
   }
 }
 
@@ -249,7 +257,7 @@
 }
 
 /*
- * "Scanning" loading affordance for the parser. An indeterminate ultraviolet
+ * "Scanning" loading affordance for the parser. An indeterminate cobalt
  * segment sweeps the track while a file is read/parsed, and the brand bars
  * pulse — so a large Security.evtx never reads as a frozen UI.
  */
@@ -275,7 +283,7 @@
 /*
  * Premium finish — shared surfaces. Hairline borders, a soft inner top
  * highlight and layered shadows give depth without adding colour; the
- * ultraviolet accent only appears on interaction and on the luminous edge.
+ * cobalt accent only appears on interaction and on the luminous edge.
  */
 @layer components {
   .surface {
@@ -284,11 +292,11 @@
     border-radius: 1rem;
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.7),
-      0 1px 2px rgb(11 12 22 / 0.04),
-      0 12px 32px -18px rgb(11 12 22 / 0.18);
+      0 1px 2px rgb(11 12 15 / 0.04),
+      0 12px 32px -18px rgb(11 12 15 / 0.18);
   }
   .dark .surface {
-    background-color: rgb(17 19 34 / 0.72);
+    background-color: rgb(15 16 19 / 0.8);
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.05),
       0 1px 2px rgb(0 0 0 / 0.4),
@@ -302,77 +310,61 @@
   }
   .surface-interactive:hover {
     transform: translateY(-2px);
-    border-color: rgb(123 76 255 / 0.35);
+    border-color: rgb(58 107 255 / 0.35);
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.7),
-      0 18px 40px -18px rgb(123 76 255 / 0.35);
+      0 18px 40px -18px rgb(58 107 255 / 0.35);
   }
   .dark .surface-interactive:hover {
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.06),
-      0 22px 48px -20px rgb(123 76 255 / 0.45);
+      0 22px 48px -20px rgb(58 107 255 / 0.45);
   }
 
-  /* 1px luminous gradient edge: ultraviolet → transparent → fluorescent. */
+  /* 1px luminous gradient edge: cobalt → transparent → luminol cyan. */
   .edge-glow {
     border: 1px solid transparent;
     background:
       linear-gradient(var(--card), var(--card)) padding-box,
-      linear-gradient(135deg, rgb(123 76 255 / 0.65), rgb(123 76 255 / 0.08) 40%, rgb(189 240 30 / 0.45)) border-box;
+      linear-gradient(135deg, rgb(58 107 255 / 0.65), rgb(58 107 255 / 0.08) 40%, rgb(34 214 240 / 0.45)) border-box;
   }
   .dark .edge-glow {
     background:
-      linear-gradient(#111322, #111322) padding-box,
-      linear-gradient(135deg, rgb(151 114 255 / 0.8), rgb(151 114 255 / 0.1) 40%, rgb(189 240 30 / 0.5)) border-box;
+      linear-gradient(#0f1013, #0f1013) padding-box,
+      linear-gradient(135deg, rgb(92 142 255 / 0.8), rgb(92 142 255 / 0.1) 40%, rgb(34 214 240 / 0.5)) border-box;
   }
 
   /* Headline ink: a quiet vertical gradient reads richer than flat black. */
   .text-gradient {
-    background: linear-gradient(180deg, #0b0c16 30%, #4c526c);
+    background: linear-gradient(180deg, #0b0c0f 35%, #4e5562);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
   .dark .text-gradient {
-    background: linear-gradient(180deg, #ffffff 30%, #9ca1ba);
+    background: linear-gradient(180deg, #ffffff 35%, #8a919d);
     -webkit-background-clip: text;
     background-clip: text;
   }
   .text-gradient-uv {
-    background: linear-gradient(100deg, #6a33f5, #9772ff 60%, #7b4cff);
+    background: linear-gradient(100deg, #1c3ee0, #3a6bff 55%, #08b8d6);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
   .dark .text-gradient-uv {
-    background: linear-gradient(100deg, #b6a1ff, #9772ff 55%, #d4c9ff);
+    background: linear-gradient(100deg, #90b6ff, #5c8eff 50%, #63eafb);
     -webkit-background-clip: text;
     background-clip: text;
   }
 
   /* Small uppercase section label. */
   .eyebrow {
-    font-family: var(--font-plex-mono), ui-monospace, monospace;
-    font-size: 0.6875rem;
-    letter-spacing: 0.14em;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--brand);
   }
-}
-
-/* Film grain over the whole page — barely there, removes the flat-screen feel. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  pointer-events: none;
-  opacity: 0.025;
-  background-image: url("/grain.svg");
-}
-.dark body::before {
-  opacity: 0.045;
-}
-@media print {
-  body::before { display: none; }
 }

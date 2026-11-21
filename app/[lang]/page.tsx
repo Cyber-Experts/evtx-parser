@@ -96,7 +96,7 @@ export default async function Home({ params }: { params: Promise<Params> }) {
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   };
 
-  // "EVTX parser — Windows Event Log viewer…": brand part in ultraviolet.
+  // "EVTX parser — Windows Event Log viewer…": the dash is set lighter.
   const [headlineBrand, headlineRest] = dict.home.headline.includes(" — ")
     ? dict.home.headline.split(" — ", 2)
     : [null, null];
@@ -106,17 +106,17 @@ export default async function Home({ params }: { params: Promise<Params> }) {
       <JsonLd data={homeGraph} />
       <main
         id="main-content"
-        className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-20 px-4 py-6 sm:gap-28 sm:px-6 sm:py-10 xl:max-w-[1400px] 2xl:max-w-[1600px]"
+        className="container mx-auto flex flex-1 flex-col gap-20 px-4 py-6 sm:gap-28 sm:py-10"
       >
-        {/* Hero — the case file under an ultraviolet lamp. */}
+        {/* Hero — cobalt haze over a faint grid. */}
         <header className="relative isolate flex flex-col items-center gap-6 pt-4 text-center sm:pt-8">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -top-40 left-1/2 -z-10 h-[640px] w-[1200px] -translate-x-1/2 bg-[radial-gradient(closest-side,rgb(123_76_255/0.16),transparent)] dark:bg-[radial-gradient(closest-side,rgb(123_76_255/0.32),transparent)]"
+            className="pointer-events-none absolute -top-40 left-1/2 -z-10 h-[640px] w-[1200px] -translate-x-1/2 bg-[radial-gradient(closest-side,rgb(58_107_255/0.16),transparent)] dark:bg-[radial-gradient(closest-side,rgb(58_107_255/0.32),transparent)]"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -top-24 left-1/2 -z-10 h-[620px] w-[1400px] -translate-x-1/2 bg-[linear-gradient(to_right,rgb(123_76_255/0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgb(123_76_255/0.08)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_50%_60%_at_50%_30%,black,transparent)] bg-[size:48px_48px]"
+            className="pointer-events-none absolute -top-24 left-1/2 -z-10 h-[620px] w-[1400px] -translate-x-1/2 bg-[linear-gradient(to_right,rgb(58_107_255/0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgb(58_107_255/0.08)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_50%_60%_at_50%_30%,black,transparent)] bg-[size:48px_48px]"
           />
           <a
             href={REPO_URL}
@@ -134,11 +134,11 @@ export default async function Home({ params }: { params: Promise<Params> }) {
               →
             </span>
           </a>
-          <h1 className="text-gradient max-w-5xl text-[2.6rem] leading-[1.02] font-semibold tracking-[-0.03em] text-balance sm:text-6xl lg:text-7xl">
+          <h1 className="text-gradient max-w-5xl text-[2.6rem] leading-[1.02] font-semibold tracking-[-0.045em] text-balance sm:text-6xl lg:text-[4.5rem]">
             {headlineBrand ? (
               <>
-                <span className="text-gradient-uv">{headlineBrand}</span>
-                <span className="text-ink-300 dark:text-ink-700"> — </span>
+                {headlineBrand}
+                <span className="font-normal opacity-40"> — </span>
                 {headlineRest}
               </>
             ) : (
@@ -192,7 +192,7 @@ export default async function Home({ params }: { params: Promise<Params> }) {
           <FeatureGrid
             dict={dict}
             preview={
-              <div className="mx-auto hidden w-full max-w-5xl rounded-[1.25rem] border border-ink-200/70 bg-white/40 p-2 shadow-[0_50px_120px_-50px_rgb(106_51_245/0.55)] backdrop-blur sm:block dark:border-white/10 dark:bg-white/[0.03]">
+              <div className="mx-auto hidden w-full max-w-5xl rounded-[1.25rem] border border-ink-200/70 bg-white/40 p-2 shadow-[0_50px_120px_-50px_rgb(36_80_245/0.55)] backdrop-blur sm:block dark:border-white/10 dark:bg-white/[0.03]">
                 <ProductPreview />
               </div>
             }

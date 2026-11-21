@@ -1,7 +1,10 @@
-// Inline brand mark — an event histogram seen through an investigator's lens.
-// The lens is ultraviolet (--brand), the peak bar glows fluorescent lime: the
-// trace the light reveals. Bars and wordmark use currentColor so the mark is
-// theme-aware. The canonical externally-served mark is app/icon.svg.
+import { useId } from "react";
+
+// Brand mark: a tile of log lines where one line lights up (cobalt → luminol
+// cyan), the event you were looking for. The tile takes currentColor and the
+// lines take the page background, so the mark inverts with the theme: black
+// tile on light pages, white tile on dark ones. The canonical
+// externally-served mark is app/icon.svg (always the dark tile).
 
 export function Logo({
   className = "h-6 w-auto",
@@ -10,49 +13,41 @@ export function Logo({
   className?: string;
   withWordmark?: boolean;
 }) {
+  const id = useId();
+  const lit = `${id}-lit`;
   return (
     <svg
-      viewBox={withWordmark ? "0 0 148 32" : "0 0 32 32"}
+      viewBox={withWordmark ? "0 0 132 32" : "0 0 32 32"}
       className={className}
       role="img"
       aria-label="EVTX parser"
     >
       <defs>
-        <clipPath id="evtx-lens">
-          <circle cx="13.5" cy="13.5" r="9.5" />
-        </clipPath>
+        <linearGradient id={lit} x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0" stopColor="#3a6bff" />
+          <stop offset="1" stopColor="#22d6f0" />
+        </linearGradient>
       </defs>
-      {/* bars inside the lens */}
-      <g clipPath="url(#evtx-lens)">
-        <rect x="6" y="15" width="3" height="10" rx="1" fill="currentColor" opacity="0.35" />
-        <rect x="10.5" y="10" width="3" height="15" rx="1" fill="currentColor" opacity="0.55" />
-        <rect x="15" y="6" width="3" height="19" rx="1" className="fill-glow-500 dark:fill-glow-400" />
-        <rect x="19.5" y="12" width="3" height="13" rx="1" fill="currentColor" opacity="0.45" />
+      <rect width="32" height="32" rx="8" fill="currentColor" />
+      <g fill="var(--background)">
+        <rect x="7" y="8" width="11" height="3" rx="1.5" opacity="0.45" />
+        <rect x="7" y="12.5" width="15" height="3" rx="1.5" opacity="0.65" />
+        <rect x="7" y="21.5" width="8" height="3" rx="1.5" opacity="0.45" />
       </g>
-      {/* lens + handle */}
-      <circle cx="13.5" cy="13.5" r="10.5" fill="none" stroke="var(--brand)" strokeWidth="2.6" />
-      <line
-        x1="21.3"
-        y1="21.3"
-        x2="28.5"
-        y2="28.5"
-        stroke="var(--brand)"
-        strokeWidth="3.4"
-        strokeLinecap="round"
-      />
+      <rect x="7" y="17" width="18" height="3" rx="1.5" fill={`url(#${lit})`} />
       {withWordmark && (
         <text
-          x="38"
-          y="22"
-          style={{ fontFamily: "var(--font-plex-mono), ui-monospace, monospace" }}
-          fontSize="19"
-          letterSpacing="-0.6"
+          x="41"
+          y="21.5"
+          style={{ fontFamily: "var(--font-geist-sans), ui-sans-serif, sans-serif" }}
+          fontSize="17.5"
+          letterSpacing="-0.5"
         >
           <tspan fill="currentColor" fontWeight="600">
             evtx
           </tspan>
-          <tspan fill="var(--brand)" fontWeight="400">
-            parser
+          <tspan fill="currentColor" fontWeight="400" opacity="0.55">
+            {" "}parser
           </tspan>
         </text>
       )}

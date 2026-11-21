@@ -2,6 +2,7 @@ import Link from "next/link";
 import { siteConfig } from "@/site.config";
 import { Logo } from "./Logo";
 import { GitHubMark } from "./GitHubMark";
+import { SHELL } from "./site-header";
 import type { Locale } from "@/lib/i18n";
 
 type Dict = {
@@ -24,9 +25,9 @@ export function SiteFooter({
   const year = new Date().getFullYear();
   return (
     <footer className="mt-24 border-t border-ink-200/70 dark:border-white/[0.06]">
-      <div className="container mx-auto grid gap-8 px-4 py-12 md:grid-cols-[1fr_auto] md:items-end">
+      <div className={`${SHELL} grid gap-8 py-12 md:grid-cols-[1fr_auto] md:items-end`}>
         <div className="flex flex-col items-start gap-3">
-          <Logo className="h-7 w-auto text-ink-900 dark:text-ink-100" />
+          <Logo className="h-7 w-auto text-ink-950 dark:text-white" />
           <p className="max-w-sm text-sm leading-relaxed text-ink-600 dark:text-ink-400">
             {tagline}
           </p>

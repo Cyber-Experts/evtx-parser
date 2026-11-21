@@ -33,7 +33,7 @@ export function HomeSeo({ locale }: { locale: Locale }) {
               <li key={l.path}>
                 <Link
                   href={`/${locale}${l.path}`}
-                  className="inline-flex items-center rounded-full border border-ink-200 bg-card px-3 py-1 text-sm text-ink-700 shadow-[0_1px_2px_rgb(11_12_22/0.04)] transition-colors hover:border-uv-300 hover:text-uv-700 dark:border-white/[0.08] dark:bg-white/[0.02] dark:text-ink-300 dark:hover:border-uv-400/40 dark:hover:text-uv-200"
+                  className="inline-flex items-center rounded-full border border-ink-200 bg-card px-3 py-1 text-sm text-ink-700 shadow-[0_1px_2px_rgb(11_12_15/0.04)] transition-colors hover:border-uv-300 hover:text-uv-700 dark:border-white/[0.08] dark:bg-white/[0.02] dark:text-ink-300 dark:hover:border-uv-400/40 dark:hover:text-uv-200"
                 >
                   {l.label}
                 </Link>
