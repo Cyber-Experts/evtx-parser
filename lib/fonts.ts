@@ -1,27 +1,18 @@
-import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Condensed } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 
-// IBM Plex: technical, highly legible in dense tables, with the terse voice
-// of a lab report. Sans for the UI, Mono for event data, Condensed for
-// headings. Self-hosted by next/font at build time (no runtime requests).
-export const plexSans = IBM_Plex_Sans({
-  variable: "--font-plex-sans",
+// Geist: a neutral, precise grotesk for UI and display, with a matching mono
+// for event data, IDs and labels. Self-hosted by next/font at build time (no
+// runtime requests). The OG renderer uses the same faces from assets/fonts.
+export const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-export const plexMono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
+export const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
   display: "swap",
 });
 
-export const plexCondensed = IBM_Plex_Sans_Condensed({
-  variable: "--font-plex-condensed",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  display: "swap",
-});
-
-export const fontVariables = `${plexSans.variable} ${plexMono.variable} ${plexCondensed.variable}`;
+export const fontVariables = `${geistSans.variable} ${geistMono.variable}`;

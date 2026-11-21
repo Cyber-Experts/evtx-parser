@@ -90,7 +90,7 @@ export function StatsBand({ dict }: { dict: Dict }) {
     <dl className="surface relative grid grid-cols-2 overflow-hidden lg:grid-cols-4">
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgb(123_76_255/0.6),rgb(189_240_30/0.5),transparent)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgb(58_107_255/0.6),rgb(34_214_240/0.5),transparent)]"
       />
       {stats.map((s, i) => (
         <div
@@ -187,7 +187,7 @@ function HuntsVisual() {
       {rows.map((r) => (
         <div
           key={r.name}
-          className="flex items-center gap-3 rounded-lg bg-card px-3 py-2 shadow-[0_1px_2px_rgb(11_12_22/0.05)] dark:bg-ink-900/80"
+          className="flex items-center gap-3 rounded-lg bg-card px-3 py-2 shadow-[0_1px_2px_rgb(11_12_15/0.05)] dark:bg-ink-900/80"
         >
           <span
             className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
@@ -247,7 +247,7 @@ export function FeatureGrid({
               {wide && (
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,rgb(123_76_255/0.18),transparent)]"
+                  className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,rgb(58_107_255/0.18),transparent)]"
                 />
               )}
               <div className="relative flex flex-col gap-3">
@@ -285,11 +285,11 @@ export function CtaBand({ dict, href }: { dict: Dict; href?: string }) {
   return (
     <section
       aria-labelledby="cta-heading"
-      className="relative isolate overflow-hidden rounded-3xl bg-ink-950 px-6 py-14 text-center shadow-[0_40px_100px_-40px_rgb(106_51_245/0.7)] sm:px-12 sm:py-20"
+      className="relative isolate overflow-hidden rounded-3xl bg-ink-950 px-6 py-14 text-center shadow-[0_40px_100px_-50px_rgb(36_80_245/0.6)] ring-1 ring-white/10 sm:px-12 sm:py-20 dark:bg-[#0c0d11] dark:shadow-[0_30px_80px_-50px_rgb(36_80_245/0.5)]"
     >
       <div
         aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-[radial-gradient(700px_320px_at_50%_-10%,rgb(123_76_255/0.55),transparent_70%),radial-gradient(500px_260px_at_85%_120%,rgb(189_240_30/0.14),transparent_70%)]"
+        className="absolute inset-0 -z-10 bg-[radial-gradient(700px_320px_at_50%_-10%,rgb(58_107_255/0.55),transparent_70%),radial-gradient(500px_260px_at_85%_120%,rgb(34_214_240/0.14),transparent_70%)]"
       />
       <div
         aria-hidden="true"
