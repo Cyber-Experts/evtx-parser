@@ -1,27 +1,28 @@
-import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Condensed } from "next/font/google";
+import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
 
-// IBM Plex: technical, highly legible in dense tables, with the terse voice
-// of a lab report. Sans for the UI, Mono for event data, Condensed for
-// headings. Self-hosted by next/font at build time (no runtime requests).
-export const plexSans = IBM_Plex_Sans({
-  variable: "--font-plex-sans",
+// "Flare" type system. Inter carries the UI and headings (set tight, with
+// its single-storey "a" and flat-top "1" alternates for a technical voice),
+// Instrument Serif italic is the editorial accent used once per hero, and
+// JetBrains Mono renders event data. Self-hosted by next/font at build time.
+export const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-export const plexMono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
+export const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument",
+  subsets: ["latin"],
+  weight: "400",
+  style: ["italic", "normal"],
+  display: "swap",
+});
+
+export const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   display: "swap",
 });
 
-export const plexCondensed = IBM_Plex_Sans_Condensed({
-  variable: "--font-plex-condensed",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  display: "swap",
-});
-
-export const fontVariables = `${plexSans.variable} ${plexMono.variable} ${plexCondensed.variable}`;
+export const fontVariables = `${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`;

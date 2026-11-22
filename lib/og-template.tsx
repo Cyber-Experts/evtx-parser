@@ -9,56 +9,80 @@ import type { Locale } from "@/src/dict/locales";
 export const ogSize = { width: 1200, height: 630 };
 export const ogContentType = "image/png";
 
-// "Alternate Light Source" palette (see app/globals.css).
-const INK = "#0a0b14";
-const INK_TEXT = "#e8e9f2";
-const INK_MUTED = "#9ca1ba";
-const INK_FAINT = "#666c88";
-const UV = "#9772ff";
-const GLOW = "#bdf01e";
+// "Flare" palette (see app/globals.css).
+const BG = "#0a0a0a";
+const TEXT = "#ededed";
+const MUTED = "#a1a1a1";
+const FAINT = "#5c5c5c";
+const FLARE = "#7b4cff";
+const FLARE_SOFT = "#9772ff";
 
-// Plex fonts bundled in assets/fonts (OFL) — read from disk, never fetched,
-// so images render offline too (Docker / air-gapped builds).
+// Fonts bundled in assets/fonts (OFL) — read from disk, never fetched, so
+// images render offline too (Docker / air-gapped builds).
 let fontsPromise: Promise<NonNullable<ConstructorParameters<typeof ImageResponse>[1]>["fonts"]> | null =
   null;
 function loadFonts() {
   const read = (file: string) => readFile(join(process.cwd(), "assets/fonts", file));
   fontsPromise ??= Promise.all([
-    read("IBMPlexSans-Regular.woff"),
-    read("IBMPlexSans-SemiBold.woff"),
-    read("IBMPlexMono-Regular.woff"),
-    read("IBMPlexMono-SemiBold.woff"),
-    read("IBMPlexSansCondensed-Bold.woff"),
-  ]).then(([sans, sansSemi, mono, monoSemi, condensed]) => [
-    { name: "Plex Sans", data: sans, weight: 400 as const, style: "normal" as const },
-    { name: "Plex Sans", data: sansSemi, weight: 600 as const, style: "normal" as const },
-    { name: "Plex Mono", data: mono, weight: 400 as const, style: "normal" as const },
-    { name: "Plex Mono", data: monoSemi, weight: 600 as const, style: "normal" as const },
-    { name: "Plex Condensed", data: condensed, weight: 700 as const, style: "normal" as const },
+    read("Inter-Regular.woff"),
+    read("Inter-SemiBold.woff"),
+    read("Inter-Bold.woff"),
+    read("InstrumentSerif-Italic.woff"),
+    read("JetBrainsMono-Regular.woff"),
+    read("JetBrainsMono-Medium.woff"),
+  ]).then(([reg, semi, bold, serif, mono, monoMed]) => [
+    { name: "Inter", data: reg, weight: 400 as const, style: "normal" as const },
+    { name: "Inter", data: semi, weight: 600 as const, style: "normal" as const },
+    { name: "Inter", data: bold, weight: 700 as const, style: "normal" as const },
+    { name: "Instrument Serif", data: serif, weight: 400 as const, style: "italic" as const },
+    { name: "JetBrains Mono", data: mono, weight: 400 as const, style: "normal" as const },
+    { name: "JetBrains Mono", data: monoMed, weight: 500 as const, style: "normal" as const },
   ]);
   return fontsPromise;
 }
 
-// The brand mark (lens over an event histogram), transparent background.
-const MARK = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <defs><clipPath id="l"><circle cx="13.5" cy="13.5" r="9.5"/></clipPath></defs>
-  <g clip-path="url(#l)">
-    <rect x="6" y="15" width="3" height="10" rx="1" fill="${INK_TEXT}" opacity="0.4"/>
-    <rect x="10.5" y="10" width="3" height="15" rx="1" fill="${INK_TEXT}" opacity="0.6"/>
-    <rect x="15" y="6" width="3" height="19" rx="1" fill="${GLOW}"/>
-    <rect x="19.5" y="12" width="3" height="13" rx="1" fill="${INK_TEXT}" opacity="0.5"/>
-  </g>
-  <circle cx="13.5" cy="13.5" r="10.5" fill="none" stroke="${UV}" stroke-width="2.6"/>
-  <line x1="21.3" y1="21.3" x2="28.5" y2="28.5" stroke="${UV}" stroke-width="3.4" stroke-linecap="round"/>
-</svg>`;
-const MARK_SRC = `data:image/svg+xml;base64,${Buffer.from(MARK).toString("base64")}`;
+const svgSrc = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 
-// A few plausible log lines; the last one "fluoresces" under the lamp.
-const ROWS = [
-  { t: "03:51:52.591", id: "4624", text: "Successful logon · jim.tomato · Interactive", hit: false },
-  { t: "03:52:07.113", id: "4672", text: "Special privileges assigned · admin", hit: false },
-  { t: "03:52:31.842", id: "4104", text: "Script block · IEX (New-Object Net.WebClient).Download…", hit: true },
-];
+// Brand mark: event baseline with one spike, on an ultraviolet tile.
+const MARK_SRC = svgSrc(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="8" fill="${FLARE}"/>
+  <path d="M5.5 20.5H11.6L14.4 9.5L17.6 23L19.6 16.8L20.9 20.5H26.5" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`);
+
+// Backdrop: 12 faint column rules, a flare glow on the spike, and the event
+// baseline with its ruler running across the bottom. Drawn as one SVG
+// because Satori's CSS gradients are limited.
+const cols = Array.from({ length: 11 }, (_, i) => {
+  const x = ((i + 1) * 1200) / 12;
+  return `<line x1="${x}" y1="0" x2="${x}" y2="630" stroke="white" stroke-opacity="0.045"/>`;
+}).join("");
+const ticks = Array.from({ length: 151 }, (_, i) => {
+  const x = i * 8;
+  const major = i % 8 === 0;
+  return `<line x1="${x}" y1="${major ? 618 : 624}" x2="${x}" y2="630" stroke="white" stroke-opacity="${major ? 0.3 : 0.12}"/>`;
+}).join("");
+const BACKDROP = svgSrc(`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="g" cx="890" cy="470" r="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="${FLARE}" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="${FLARE}" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="f" x1="0" x2="1">
+      <stop offset="0" stop-color="white" stop-opacity="0"/>
+      <stop offset="0.2" stop-color="white" stop-opacity="0.28"/>
+      <stop offset="0.85" stop-color="white" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="${BG}"/>
+  ${cols}
+  <rect width="1200" height="630" fill="url(#g)"/>
+  <path d="M0 596H840L866 596L890 470L922 612L940 560L954 596H1200" fill="none" stroke="url(#f)" stroke-width="2"/>
+  <path d="M840 596L866 596L890 470L922 612L940 560L954 596" fill="none" stroke="${FLARE}" stroke-width="3.5" stroke-linejoin="round"/>
+  <circle cx="890" cy="470" r="7" fill="${FLARE}"/>
+  <circle cx="890" cy="470" r="16" fill="${FLARE}" fill-opacity="0.18"/>
+  ${ticks}
+</svg>`);
 
 function Frame({ children, footer }: { children: React.ReactNode; footer: React.ReactNode }) {
   return (
@@ -69,101 +93,95 @@ function Frame({ children, footer }: { children: React.ReactNode; footer: React.
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
-        background: INK,
-        backgroundImage:
-          "radial-gradient(780px 520px at 92% -8%, rgba(123,76,255,0.42), transparent 62%), radial-gradient(600px 420px at -6% 112%, rgba(123,76,255,0.14), transparent 60%)",
-        padding: "60px 68px 54px",
-        color: INK_TEXT,
-        fontFamily: "Plex Sans",
+        background: BG,
+        padding: "56px 72px 0",
+        color: TEXT,
+        fontFamily: "Inter",
       }}
     >
-      {/* faint log-line rules — the case file under the lamp */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          backgroundImage:
-            "repeating-linear-gradient(0deg, rgba(214,208,255,0.035) 0px, rgba(214,208,255,0.035) 1px, transparent 1px, transparent 38px)",
-        }}
-      />
+      {/* Rendered to PNG by Satori, not the browser: next/image doesn't apply. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={BACKDROP} width={1200} height={630} alt="" style={{ position: "absolute", top: 0, left: 0 }} />
 
       {/* brand */}
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        {/* Rendered to PNG by Satori, not the browser: next/image doesn't apply. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={MARK_SRC} width={54} height={54} alt="" />
-        <div style={{ display: "flex", fontFamily: "Plex Mono", fontSize: 30, letterSpacing: "-0.02em" }}>
-          <span style={{ fontWeight: 600, color: INK_TEXT }}>evtx</span>
-          <span style={{ color: UV }}>parser</span>
+        <img src={MARK_SRC} width={48} height={48} alt="" />
+        <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
+          <span style={{ fontWeight: 700, fontSize: 30, letterSpacing: "-0.03em" }}>EVTX</span>
+          <span style={{ fontFamily: "Instrument Serif", fontStyle: "italic", fontSize: 38 }}>parser</span>
         </div>
-        <div style={{ display: "flex", marginLeft: "auto", fontFamily: "Plex Mono", fontSize: 22, color: INK_FAINT }}>
+        <div style={{ display: "flex", marginLeft: "auto", fontFamily: "JetBrains Mono", fontSize: 20, color: FAINT }}>
           evtxparser.com
         </div>
       </div>
 
-      {children}
-      {footer}
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center", paddingBottom: 70 }}>
+        {children}
+      </div>
+      <div style={{ display: "flex", position: "absolute", left: 72, bottom: 40 }}>{footer}</div>
     </div>
   );
 }
 
-function EventStrip() {
+function Tags({ items }: { items: string[] }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-        fontFamily: "Plex Mono",
-        fontSize: 21,
-        borderTop: "1px solid rgba(214,208,255,0.12)",
-        paddingTop: 18,
-      }}
-    >
-      {ROWS.map((r) => (
-        <div
-          key={r.id}
+    <div style={{ display: "flex", gap: 12, fontFamily: "JetBrains Mono", fontSize: 19, color: MUTED }}>
+      {items.map((t, i) => (
+        <span
+          key={t}
           style={{
             display: "flex",
-            gap: 24,
-            padding: "6px 14px",
-            borderRadius: 8,
-            color: r.hit ? "#e2ff8a" : INK_FAINT,
-            background: r.hit ? "rgba(189,240,30,0.12)" : "transparent",
-            borderLeft: r.hit ? `4px solid ${GLOW}` : "4px solid transparent",
+            alignItems: "center",
+            gap: 10,
+            padding: "7px 14px",
+            borderRadius: 999,
+            border: `1px solid ${i === 0 ? "rgba(123,76,255,0.55)" : "rgba(255,255,255,0.14)"}`,
+            background: i === 0 ? "rgba(123,76,255,0.12)" : "rgba(10,10,10,0.6)",
+            color: i === 0 ? FLARE_SOFT : MUTED,
           }}
         >
-          <span>{r.t}</span>
-          <span style={{ fontWeight: 600, color: r.hit ? GLOW : INK_MUTED }}>{r.id}</span>
-          <span>{r.text}</span>
-        </div>
+          {i === 0 ? <span style={{ display: "flex", width: 8, height: 8, background: FLARE }} /> : null}
+          {t}
+        </span>
       ))}
     </div>
   );
 }
 
-/** Site-wide card: name + tagline + the glowing event strip. */
+/** Site-wide card: the brand line in the serif, the promise in the sans. */
 export async function renderOg(locale: Locale) {
   const dict = getDict(locale);
+  const [brand, rest] = dict.home.headline.includes(" — ")
+    ? dict.home.headline.split(" — ", 2)
+    : [null, dict.home.headline];
   return new ImageResponse(
     (
-      <Frame footer={<EventStrip />}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 1000 }}>
+      <Frame footer={<Tags items={["0 bytes uploaded", "Rust → WebAssembly", "Sigma · hunts"]} />}>
+        <div style={{ display: "flex", flexDirection: "column", maxWidth: 960 }}>
+          {brand ? (
+            <div
+              style={{
+                fontFamily: "Instrument Serif",
+                fontStyle: "italic",
+                fontSize: 92,
+                lineHeight: 1,
+                color: FLARE_SOFT,
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {brand}
+            </div>
+          ) : null}
           <div
             style={{
-              fontFamily: "Plex Condensed",
-              fontWeight: 700,
-              fontSize: 66,
-              lineHeight: 1.04,
-              letterSpacing: "-0.02em",
+              fontWeight: 600,
+              fontSize: rest.length > 48 ? 64 : 76,
+              lineHeight: 1.02,
+              letterSpacing: "-0.045em",
             }}
           >
-            {dict.home.headline}
-          </div>
-          <div style={{ fontSize: 30, lineHeight: 1.35, color: INK_MUTED, maxWidth: 940 }}>
-            {dict.meta.description}
+            {rest}
           </div>
         </div>
       </Frame>
@@ -181,46 +199,24 @@ export async function renderPostOg(opts: {
 }) {
   const { title, description, locale, minutes } = opts;
   const titleSize = title.length > 70 ? 54 : title.length > 45 ? 64 : 74;
+  const tags = ["DFIR guide", ...(minutes ? [`${minutes} min read`] : []), locale.toUpperCase()];
   return new ImageResponse(
     (
-      <Frame
-        footer={
+      <Frame footer={<Tags items={tags} />}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 22, maxWidth: 1000 }}>
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 26,
-              fontFamily: "Plex Mono",
-              fontSize: 22,
-              color: INK_FAINT,
-              borderTop: "1px solid rgba(214,208,255,0.12)",
-              paddingTop: 20,
-            }}
-          >
-            <span style={{ display: "flex", alignItems: "center", gap: 10, color: GLOW }}>
-              <span style={{ display: "flex", width: 10, height: 10, borderRadius: 10, background: GLOW }} />
-              DFIR · Windows Event Logs
-            </span>
-            {minutes ? <span>{minutes} min read</span> : null}
-            <span style={{ marginLeft: "auto" }}>{locale.toUpperCase()}</span>
-          </div>
-        }
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 1050 }}>
-          <div
-            style={{
-              fontFamily: "Plex Condensed",
-              fontWeight: 700,
+              fontWeight: 600,
               fontSize: titleSize,
-              lineHeight: 1.05,
-              letterSpacing: "-0.015em",
+              lineHeight: 1.04,
+              letterSpacing: "-0.04em",
             }}
           >
             {title}
           </div>
           {description ? (
-            <div style={{ fontSize: 27, lineHeight: 1.4, color: INK_MUTED, maxWidth: 1000 }}>
-              {description.length > 170 ? `${description.slice(0, 167)}…` : description}
+            <div style={{ fontSize: 26, lineHeight: 1.4, color: MUTED, maxWidth: 900 }}>
+              {description.length > 150 ? `${description.slice(0, 147)}…` : description}
             </div>
           ) : null}
         </div>
@@ -230,7 +226,7 @@ export async function renderPostOg(opts: {
   );
 }
 
-/** Event ID encyclopedia card: the ID large, channel, title and summary. */
+/** Event ID encyclopedia card: the ID large in the serif, then the title. */
 export async function renderEventOg(opts: {
   id: number;
   channel: string;
@@ -239,61 +235,47 @@ export async function renderEventOg(opts: {
   locale: Locale;
 }) {
   const { id, channel, title, summary, locale } = opts;
-  const titleSize = title.length > 60 ? 50 : title.length > 40 ? 58 : 66;
+  const titleSize = title.length > 60 ? 46 : title.length > 40 ? 54 : 62;
   return new ImageResponse(
     (
-      <Frame
-        footer={
+      <Frame footer={<Tags items={["Event ID encyclopedia", channel, locale.toUpperCase()]} />}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 1000 }}>
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: 26,
-              fontFamily: "Plex Mono",
-              fontSize: 22,
-              color: INK_FAINT,
-              borderTop: "1px solid rgba(214,208,255,0.12)",
-              paddingTop: 20,
+              alignItems: "baseline",
+              gap: 18,
+              fontFamily: "JetBrains Mono",
+              fontSize: 24,
+              color: FAINT,
             }}
           >
-            <span style={{ display: "flex", alignItems: "center", gap: 10, color: GLOW }}>
-              <span style={{ display: "flex", width: 10, height: 10, borderRadius: 10, background: GLOW }} />
-              Event ID encyclopedia
-            </span>
-            <span>{channel}</span>
-            <span style={{ marginLeft: "auto" }}>{locale.toUpperCase()}</span>
-          </div>
-        }
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 44 }}>
-          <div
-            style={{
-              display: "flex",
-              fontFamily: "Plex Mono",
-              fontWeight: 600,
-              fontSize: String(id).length > 4 ? 112 : 150,
-              letterSpacing: "-0.04em",
-              color: GLOW,
-              lineHeight: 1,
-            }}
-          >
-            {id}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 720 }}>
-            <div
+            <span style={{ color: MUTED }}>EventID</span>
+            <span
               style={{
-                fontFamily: "Plex Condensed",
-                fontWeight: 700,
-                fontSize: titleSize,
-                lineHeight: 1.05,
-                letterSpacing: "-0.015em",
+                fontFamily: "Instrument Serif",
+                fontStyle: "italic",
+                fontSize: String(id).length > 4 ? 120 : 150,
+                lineHeight: 0.9,
+                color: FLARE_SOFT,
+                letterSpacing: "-0.02em",
               }}
             >
-              {title}
-            </div>
-            <div style={{ fontSize: 25, lineHeight: 1.4, color: INK_MUTED }}>
-              {summary.length > 150 ? `${summary.slice(0, 147)}…` : summary}
-            </div>
+              {id}
+            </span>
+          </div>
+          <div
+            style={{
+              fontWeight: 600,
+              fontSize: titleSize,
+              lineHeight: 1.05,
+              letterSpacing: "-0.035em",
+            }}
+          >
+            {title}
+          </div>
+          <div style={{ fontSize: 24, lineHeight: 1.4, color: MUTED, maxWidth: 900 }}>
+            {summary.length > 130 ? `${summary.slice(0, 127)}…` : summary}
           </div>
         </div>
       </Frame>

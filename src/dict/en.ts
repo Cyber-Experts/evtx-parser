@@ -13,10 +13,10 @@ export const en: Dict = {
     intro:
       "Drop a Windows .evtx event log. Parsing runs entirely in your browser via WebAssembly — nothing is uploaded.",
     featuredHeading: "Featured guides",
-    dropArea: "Drop .evtx here or click to choose",
+    dropArea: "Drop one or more .evtx files here",
     privacyNote: "Files stay on your device. Pure client-side parsing.",
     heroTag: "Open source · runs 100% in your browser",
-    heroCtaOpen: "Open a .evtx file",
+    heroCtaOpen: "Open .evtx files",
     heroCtaGithub: "View on GitHub",
     footerTagline: "Windows Event Log forensics, entirely in your browser.",
     statHunts: "built-in hunt rules",

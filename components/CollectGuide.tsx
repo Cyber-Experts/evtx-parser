@@ -73,8 +73,8 @@ function CommandBlock({
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <p className="text-sm font-medium text-ink-900 dark:text-ink-100">{label}</p>
-      <div className="min-w-0 overflow-hidden rounded-lg border border-ink-200 bg-ink-50/80 dark:border-ink-800 dark:bg-ink-950/70">
-        <div className="flex items-center justify-between gap-2 border-b border-ink-200 py-1 pr-1 pl-3 dark:border-ink-800">
+      <div className="min-w-0 overflow-hidden rounded-xl border border-ink-900 bg-ink-950 dark:border-white/10 dark:bg-[#0c0c0c]">
+        <div className="flex items-center justify-between gap-2 border-b border-white/[0.08] py-1 pr-1 pl-3 [&_button]:text-ink-400 [&_button:hover]:bg-white/10 [&_button:hover]:text-white">
           <span className="font-mono text-[11px] tracking-wide text-ink-500 uppercase">
             {shell}
           </span>
@@ -85,7 +85,7 @@ function CommandBlock({
             text={t.copy}
           />
         </div>
-        <pre className="overflow-x-auto px-3 py-2.5 font-mono text-xs leading-relaxed text-ink-900 dark:text-ink-100">
+        <pre className="overflow-x-auto px-3 py-2.5 font-mono text-xs leading-relaxed text-ink-100">
           <code>{command}</code>
         </pre>
       </div>
@@ -263,7 +263,7 @@ export function CollectGuide({
         {!compact && (
           <a
             href="#evtx-location-heading"
-            className="self-start text-xs font-medium text-uv-700 underline decoration-uv-300 underline-offset-4 hover:decoration-uv-500 dark:text-uv-300 dark:decoration-uv-700"
+            className="self-start text-xs font-medium text-ink-950 underline decoration-uv-500 decoration-2 underline-offset-4 hover:text-uv-700 dark:text-white dark:hover:text-uv-300"
           >
             {t.allPaths} ↓
           </a>
@@ -279,34 +279,37 @@ export function CollectGuide({
       className={
         compact
           ? "flex min-w-0 flex-col gap-4"
-          : "surface flex min-w-0 scroll-mt-24 flex-col gap-4 p-4 sm:p-6"
+          : "flex min-w-0 scroll-mt-28 flex-col gap-8 rounded-[1.75rem] border border-ink-200 p-5 sm:p-10 dark:border-white/[0.08]"
       }
     >
       {/* In the dialog the DialogTitle already names the guide. */}
       {!compact && (
-        <div className="flex flex-col gap-1">
-          <h2
-            id={`${baseId}-heading`}
-            className="text-lg text-ink-950 sm:text-xl dark:text-ink-50"
-          >
-            {t.heading}
-          </h2>
-          <p className="text-sm text-ink-600 dark:text-ink-400">{t.intro}</p>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-end lg:gap-16">
+          <div className="flex flex-col gap-4">
+            <span className="eyebrow">wevtutil · KAPE · Velociraptor</span>
+            <h2
+              id={`${baseId}-heading`}
+              className="text-3xl leading-[1.08] tracking-[-0.035em] text-balance text-ink-950 sm:text-4xl dark:text-white"
+            >
+              {t.heading}
+            </h2>
+          </div>
+          <p className="max-w-md text-base leading-relaxed text-ink-600 dark:text-ink-400">{t.intro}</p>
         </div>
       )}
 
       {!compact && (
-        <ol className="grid gap-2 sm:grid-cols-3">
+        <ol className="grid gap-px overflow-hidden rounded-xl border border-ink-200 bg-ink-200 sm:grid-cols-3 dark:border-white/[0.08] dark:bg-white/[0.08]">
           {t.steps.map((step, i) => (
             <li
               key={i}
-              className="flex items-center gap-2.5 rounded-lg border border-ink-200/80 bg-ink-50/60 px-3 py-2 text-sm text-ink-800 dark:border-ink-800 dark:bg-ink-950/60 dark:text-ink-200"
+              className="flex items-center gap-3 bg-background px-4 py-3.5 text-sm text-ink-800 dark:text-ink-200"
             >
               <span
                 aria-hidden="true"
-                className="flex size-6 shrink-0 items-center justify-center rounded-full bg-uv-600 font-mono text-xs font-semibold text-white dark:bg-uv-500"
+                className="shrink-0 font-mono text-xs text-uv-600 dark:text-uv-400"
               >
-                {i + 1}
+                {String(i + 1).padStart(2, "0")}
               </span>
               <span className="min-w-0">{step}</span>
             </li>
@@ -318,7 +321,7 @@ export function CollectGuide({
         <div
           role="tablist"
           aria-label={t.tabsLabel}
-          className="flex max-w-full gap-1 overflow-x-auto rounded-lg border border-ink-200 p-0.5 text-xs sm:w-fit sm:text-sm dark:border-ink-800"
+          className="flex max-w-full gap-1 overflow-x-auto rounded-full border border-ink-200 p-1 text-xs sm:w-fit sm:text-sm dark:border-white/10"
         >
           {TABS.map((id) => {
             const selected = active === id;
@@ -336,10 +339,10 @@ export function CollectGuide({
                 tabIndex={selected ? 0 : -1}
                 onClick={() => setActive(id)}
                 onKeyDown={onTabKey}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 motion-reduce:transition-none ${
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 motion-reduce:transition-none ${
                   selected
-                    ? "bg-ink-900 text-ink-50 dark:bg-ink-100 dark:text-ink-900"
-                    : "text-ink-600 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-ink-900"
+                    ? "bg-ink-950 text-white dark:bg-white dark:text-ink-950"
+                    : "text-ink-600 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-white/[0.06]"
                 }`}
               >
                 {labels[id]}
@@ -347,8 +350,8 @@ export function CollectGuide({
                   <span
                     className={`rounded px-1 text-[10px] font-semibold uppercase ${
                       selected
-                        ? "bg-glow-400/30 text-glow-200 dark:text-glow-800"
-                        : "bg-glow-400/20 text-glow-800 dark:text-glow-300"
+                        ? "bg-uv-500 text-white"
+                        : "bg-uv-500/15 text-uv-700 dark:text-uv-300"
                     }`}
                   >
                     {t.recommended}

@@ -13,10 +13,10 @@ export const zh: Dict = {
     intro:
       "将一个 Windows .evtx 事件日志拖入。解析全部在浏览器中通过 WebAssembly 完成 — 不会上传任何内容。",
     featuredHeading: "精选指南",
-    dropArea: "拖放 .evtx 到此处,或点击选择",
+    dropArea: "拖放一个或多个 .evtx 文件到此处",
     privacyNote: "文件留在你的设备上,完全客户端解析。",
     heroTag: "开源 · 100% 在浏览器中运行",
-    heroCtaOpen: "打开 .evtx 文件",
+    heroCtaOpen: "打开 .evtx 文件（可多选）",
     heroCtaGithub: "在 GitHub 上查看",
     footerTagline: "Windows 事件日志取证,完全在浏览器中完成。",
     statHunts: "条内置狩猎规则",

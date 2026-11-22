@@ -34,7 +34,7 @@ export async function MdImage({
       height={dims.height}
       sizes="(min-width: 1024px) 768px, 100vw"
       unoptimized={isExternal ? false : undefined}
-      className="my-6 h-auto w-full rounded-xl border border-ink-200 shadow-[0_12px_32px_-18px_rgb(11_12_22/0.25)] dark:border-ink-800"
+      className="my-6 h-auto w-full rounded-xl border border-ink-200 shadow-[0_12px_32px_-18px_rgb(10_10_10/0.25)] dark:border-ink-800"
       {...rest}
     />
   );

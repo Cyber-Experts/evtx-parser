@@ -208,7 +208,7 @@ export function LandingPage({
             >
               <span
                 aria-hidden="true"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-uv-600 text-sm font-semibold text-white shadow-[0_6px_16px_-6px_rgb(106_51_245/0.8)] dark:bg-uv-500"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-uv-600 text-sm font-semibold text-white shadow-[0_6px_16px_-6px_rgb(240_63_6/0.8)] dark:bg-uv-500"
               >
                 {i + 1}
               </span>

@@ -82,6 +82,6 @@ export function SectionTitle({
 
 /** Primary / secondary button styles shared with the home page. */
 export const BTN_PRIMARY =
-  "inline-flex items-center gap-2 rounded-xl bg-uv-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgb(106_51_245/0.8),inset_0_1px_0_rgb(255_255_255/0.2)] transition hover:-translate-y-px hover:bg-uv-500 dark:bg-uv-500 dark:hover:bg-uv-400";
+  "inline-flex items-center gap-2 rounded-xl bg-uv-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgb(240_63_6/0.8),inset_0_1px_0_rgb(255_255_255/0.2)] transition hover:-translate-y-px hover:bg-uv-500 dark:bg-uv-500 dark:hover:bg-uv-400";
 export const BTN_SECONDARY =
   "inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-card/70 px-5 py-2.5 text-sm font-medium text-ink-800 backdrop-blur transition hover:border-ink-300 hover:bg-card dark:border-ink-800 dark:text-ink-200 dark:hover:border-ink-700";

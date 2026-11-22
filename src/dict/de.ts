@@ -13,10 +13,10 @@ export const de: Dict = {
     intro:
       "Ziehe ein Windows .evtx-Ereignisprotokoll hierher. Die Analyse läuft komplett im Browser über WebAssembly — es wird nichts hochgeladen.",
     featuredHeading: "Ausgewählte Guides",
-    dropArea: ".evtx hier ablegen oder klicken zum Auswählen",
+    dropArea: "Eine oder mehrere .evtx-Dateien hier ablegen",
     privacyNote: "Die Dateien bleiben auf deinem Gerät. Reine Client-Analyse.",
     heroTag: "Open Source · läuft zu 100 % im Browser",
-    heroCtaOpen: ".evtx-Datei öffnen",
+    heroCtaOpen: ".evtx-Dateien öffnen",
     heroCtaGithub: "Auf GitHub ansehen",
     footerTagline: "Windows-Ereignisprotokoll-Forensik, komplett im Browser.",
     statHunts: "integrierte Hunting-Regeln",

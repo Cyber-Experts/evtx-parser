@@ -113,7 +113,7 @@ export function useColumnLayout(order: string[]) {
     const t = `#${EVENTS_TABLE_ID}`;
     const rules: string[] = [
       `${t}{--pin-bg:#fcfcfe;--pin-head:#f5f6fa}`,
-      `.dark ${t}{--pin-bg:#0a0b14;--pin-head:#171a29}`,
+      `.dark ${t}{--pin-bg:#0a0a0a;--pin-head:#171a29}`,
     ];
     for (const [col, w] of Object.entries(layout.widths)) {
       if (!order.includes(col)) continue;

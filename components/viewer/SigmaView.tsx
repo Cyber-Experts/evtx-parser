@@ -27,14 +27,14 @@ export type SigmaStatus =
 // Level badge / dot colours, most to least severe.
 export const SIGMA_LEVEL_DOT: Record<SigmaLevel, string> = {
   critical: "bg-red-600 dark:bg-red-500",
-  high: "bg-orange-500 dark:bg-orange-400",
+  high: "bg-amber-500 dark:bg-amber-400",
   medium: "bg-amber-400 dark:bg-amber-300",
   low: "bg-sky-500 dark:bg-sky-400",
   informational: "bg-ink-400",
 };
 const LEVEL_TEXT: Record<SigmaLevel, string> = {
   critical: "text-red-700 dark:text-red-400",
-  high: "text-orange-700 dark:text-orange-300",
+  high: "text-amber-700 dark:text-amber-300",
   medium: "text-amber-700 dark:text-amber-300",
   low: "text-sky-700 dark:text-sky-300",
   informational: "text-ink-500",
