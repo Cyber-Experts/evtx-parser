@@ -350,7 +350,7 @@ export function CollectGuide({
                   <span
                     className={`rounded px-1 text-[10px] font-semibold uppercase ${
                       selected
-                        ? "bg-uv-500 text-ink-950"
+                        ? "bg-uv-500 text-white"
                         : "bg-uv-500/15 text-uv-700 dark:text-uv-300"
                     }`}
                   >

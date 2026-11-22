@@ -16,7 +16,7 @@
   /*
    * "Flare" palette.
    * ink  — true neutral greys, no tint: the black-and-white of a report
-   * uv   — signal-flare orange: the one brand accent (actions, focus, marks)
+   * uv   — ultraviolet: the one brand accent (actions, focus, marks)
    * glow — highlighter amber: what a search or hunt reveals
    * Scale names are kept so every page re-skins from these tokens.
    * Severity keeps red/amber/neutral so it never borrows the brand hue.
@@ -33,17 +33,17 @@
   --color-ink-900: #171717;
   --color-ink-950: #0a0a0a;
 
-  --color-uv-50: #fff4ed;
-  --color-uv-100: #ffe6d4;
-  --color-uv-200: #ffc9a8;
-  --color-uv-300: #ffa370;
-  --color-uv-400: #ff7a3d;
-  --color-uv-500: #ff5a1a;
-  --color-uv-600: #f03f06;
-  --color-uv-700: #c72f07;
-  --color-uv-800: #9e270e;
-  --color-uv-900: #7f240f;
-  --color-uv-950: #450e05;
+  --color-uv-50: #f3f0ff;
+  --color-uv-100: #e9e3ff;
+  --color-uv-200: #d4c9ff;
+  --color-uv-300: #b6a1ff;
+  --color-uv-400: #9772ff;
+  --color-uv-500: #7b4cff;
+  --color-uv-600: #6a33f5;
+  --color-uv-700: #5925d8;
+  --color-uv-800: #4a20b0;
+  --color-uv-900: #3d1d8c;
+  --color-uv-950: #231059;
 
   --color-glow-50: #fffbeb;
   --color-glow-100: #fef3c7;
@@ -99,7 +99,7 @@
 /*
  * "Flare" identity. An investigation is a long, quiet read of records until
  * one of them lights up. The site is black and white like a report; a single
- * signal-flare orange marks the thing that matters (the primary action, the
+ * one ultraviolet accent marks the thing that matters (the primary action, the
  * focused element, the event that fired). shadcn token names are kept so the
  * primitives keep working; red stays strictly for destructive.
  */
@@ -116,16 +116,16 @@
   --secondary-foreground: #0a0a0a;
   --muted: #f4f4f4;
   --muted-foreground: #5c5c5c;
-  --accent: #fff1e8;
-  --accent-foreground: #9e270e;
+  --accent: #f3f0ff;
+  --accent-foreground: #4a20b0;
   --destructive: #dc2626;
   --border: #e8e8e8;
   --input: #dedede;
-  --ring: #ff5a1a;
+  --ring: #7b4cff;
   /* Darker flare on white keeps text links at AA contrast. */
-  --brand: #d4380a;
+  --brand: #6a33f5;
   --brand-foreground: #ffffff;
-  --chart-1: #ff5a1a;
+  --chart-1: #7b4cff;
   --chart-2: #f59e0b;
   --chart-3: #737373;
   --chart-4: #d1d1d1;
@@ -133,12 +133,12 @@
   --radius: 0.625rem;
   --sidebar: #fafafa;
   --sidebar-foreground: #0a0a0a;
-  --sidebar-primary: #d4380a;
+  --sidebar-primary: #6a33f5;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #fff1e8;
-  --sidebar-accent-foreground: #9e270e;
+  --sidebar-accent: #f3f0ff;
+  --sidebar-accent-foreground: #4a20b0;
   --sidebar-border: #e8e8e8;
-  --sidebar-ring: #ff5a1a;
+  --sidebar-ring: #7b4cff;
   --mark: rgb(10 10 10 / 0.28);
 }
 
@@ -155,27 +155,27 @@
   --secondary-foreground: #ededed;
   --muted: #1a1a1a;
   --muted-foreground: #a1a1a1;
-  --accent: #2a1408;
-  --accent-foreground: #ffc9a8;
+  --accent: #1a1233;
+  --accent-foreground: #d4c9ff;
   --destructive: #f05252;
   --border: rgb(255 255 255 / 9%);
   --input: rgb(255 255 255 / 13%);
-  --ring: #ff7a3d;
-  --brand: #ff7a3d;
+  --ring: #9772ff;
+  --brand: #9772ff;
   --brand-foreground: #0a0a0a;
-  --chart-1: #ff7a3d;
+  --chart-1: #9772ff;
   --chart-2: #fbbf24;
   --chart-3: #a1a1a1;
   --chart-4: #3d3d3d;
   --chart-5: #e8e8e8;
   --sidebar: #111111;
   --sidebar-foreground: #ededed;
-  --sidebar-primary: #ff7a3d;
+  --sidebar-primary: #9772ff;
   --sidebar-primary-foreground: #0a0a0a;
-  --sidebar-accent: #2a1408;
-  --sidebar-accent-foreground: #ffc9a8;
+  --sidebar-accent: #1a1233;
+  --sidebar-accent-foreground: #d4c9ff;
   --sidebar-border: rgb(255 255 255 / 9%);
-  --sidebar-ring: #ff7a3d;
+  --sidebar-ring: #9772ff;
   --mark: rgb(255 255 255 / 0.32);
 }
 
@@ -192,7 +192,7 @@
     overflow-x: clip;
   }
   ::selection {
-    background: rgb(255 90 26 / 0.25);
+    background: rgb(123 76 255 / 0.25);
   }
   html {
     @apply font-sans;
@@ -308,7 +308,7 @@
   .edge-glow {
     border: 1px solid var(--border);
     background:
-      linear-gradient(90deg, transparent, rgb(255 90 26 / 0.9) 50%, transparent) top / 100% 1px no-repeat,
+      linear-gradient(90deg, transparent, rgb(123 76 255 / 0.9) 50%, transparent) top / 100% 1px no-repeat,
       var(--card);
   }
 
@@ -323,7 +323,7 @@
     color: transparent;
   }
   .text-gradient-uv {
-    background: linear-gradient(100deg, #f03f06, #ff7a3d 55%, #f59e0b);
+    background: linear-gradient(100deg, #6a33f5, #9772ff 55%, #c4b5fd);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -353,7 +353,7 @@
     width: 0.375rem;
     height: 0.375rem;
     flex: none;
-    background: #ff5a1a;
+    background: #7b4cff;
   }
 
   /*

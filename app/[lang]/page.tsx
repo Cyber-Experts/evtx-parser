@@ -8,11 +8,7 @@ import { CollectGuide } from "@/components/CollectGuide";
 import { EvtxLocations } from "@/components/EvtxLocations";
 import { EvtxUploader } from "@/components/EvtxUploader";
 import { Faq } from "@/components/Faq";
-import { GitHubMark } from "@/components/GitHubMark";
-import { OpenFileButton } from "@/components/OpenFileButton";
 import {
-  BTN_PRIMARY,
-  BTN_SECONDARY,
   COL,
   CtaBand,
   FeatureGrid,
@@ -134,7 +130,7 @@ export default async function Home({ params }: { params: Promise<Params> }) {
               aria-hidden="true"
               className="pointer-events-none absolute inset-x-0 -top-24 -z-10 h-[720px] bg-[linear-gradient(to_right,rgb(10_10_10/0.045)_1px,transparent_1px)] bg-[size:calc(100%/12)_100%] [mask-image:linear-gradient(to_bottom,black,transparent_85%)] dark:bg-[linear-gradient(to_right,rgb(255_255_255/0.045)_1px,transparent_1px)]"
             />
-            <header className={`${COL} flex flex-col gap-10 pt-16 sm:pt-24`}>
+            <header className={`${COL} flex flex-col gap-6 pt-8 sm:gap-7 sm:pt-12`}>
               <a
                 href={REPO_URL}
                 className="group inline-flex w-fit items-center gap-2.5 rounded-full border border-ink-200 bg-background py-1 pr-3 pl-1 text-xs text-ink-600 transition-colors hover:border-ink-300 dark:border-white/10 dark:text-ink-400 dark:hover:border-white/20"
@@ -148,7 +144,7 @@ export default async function Home({ params }: { params: Promise<Params> }) {
                   className="size-3.5 text-ink-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
                 />
               </a>
-              <h1 className="max-w-5xl text-[2.9rem] leading-[0.98] font-semibold tracking-[-0.045em] text-balance text-ink-950 sm:text-7xl lg:text-[5.75rem] dark:text-white">
+              <h1 className="max-w-5xl text-[2.5rem] leading-[0.98] font-semibold tracking-[-0.045em] text-balance text-ink-950 sm:text-6xl lg:text-[4.5rem] dark:text-white">
                 {headlineBrand ? (
                   <>
                     <span className="font-serif block text-[1.08em] leading-[0.9] tracking-[-0.02em] text-uv-600 dark:text-uv-400">
@@ -161,31 +157,23 @@ export default async function Home({ params }: { params: Promise<Params> }) {
                   dict.home.headline
                 )}
               </h1>
-              <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-                <p className="max-w-xl text-lg leading-relaxed text-ink-600 sm:text-xl dark:text-ink-400">
+              {/* The drop zone right below is the primary action, so the hero
+                  carries no duplicate CTA: intro on the left, specs on the right. */}
+              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-12">
+                <p className="max-w-xl text-base leading-relaxed text-ink-600 sm:text-lg dark:text-ink-400">
                   {dict.home.intro}
                 </p>
-                <div className="flex flex-wrap gap-3">
-                  <OpenFileButton className={BTN_PRIMARY}>
-                    {dict.home.heroCtaOpen}
-                    <ArrowRight aria-hidden="true" className="size-4" />
-                  </OpenFileButton>
-                  <a href={REPO_URL} className={BTN_SECONDARY}>
-                    <GitHubMark className="h-4 w-4" />
-                    {dict.home.heroCtaGithub}
-                  </a>
-                </div>
+                <ul className="flex flex-wrap gap-x-5 gap-y-2 font-mono text-xs text-ink-500 lg:justify-end lg:pb-1">
+                  {specs.map((s) => (
+                    <li key={s} className="flex items-center gap-2">
+                      <span aria-hidden="true" className="h-1 w-1 bg-uv-500" />
+                      {s}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="flex flex-wrap gap-x-6 gap-y-2 border-t border-ink-200 pt-5 font-mono text-xs text-ink-500 dark:border-white/[0.08]">
-                {specs.map((s) => (
-                  <li key={s} className="flex items-center gap-2">
-                    <span aria-hidden="true" className="h-1 w-1 bg-uv-500" />
-                    {s}
-                  </li>
-                ))}
-              </ul>
             </header>
-            <FlareLine className="mt-6 mb-10 h-28 text-ink-300 sm:h-36 dark:text-ink-700" />
+            <FlareLine className="mt-2 mb-5 h-14 text-ink-300 sm:h-20 dark:text-ink-700" />
           </div>
 
           {/* The tool itself, framed like evidence. */}

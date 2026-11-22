@@ -76,7 +76,7 @@ export function ProductShot() {
           {BARS.map((h, i) => (
             <span
               key={i}
-              className={`flex-1 rounded-[1px] ${h > 80 ? "bg-uv-500 shadow-[0_0_16px_rgb(255_90_26/0.8)]" : "bg-white/[0.12]"}`}
+              className={`flex-1 rounded-[1px] ${h > 80 ? "bg-uv-500 shadow-[0_0_16px_rgb(123_76_255/0.8)]" : "bg-white/[0.12]"}`}
               style={{ height: `${Math.min(h, 100)}%` }}
             />
           ))}

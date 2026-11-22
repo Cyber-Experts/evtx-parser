@@ -30,11 +30,11 @@ export function PageHero({
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-48 left-1/2 -z-10 h-[520px] w-[1100px] -translate-x-1/2 bg-[radial-gradient(closest-side,rgb(255_90_26/0.12),transparent)] dark:bg-[radial-gradient(closest-side,rgb(255_90_26/0.26),transparent)]"
+        className="pointer-events-none absolute -top-48 left-1/2 -z-10 h-[520px] w-[1100px] -translate-x-1/2 bg-[radial-gradient(closest-side,rgb(123_76_255/0.12),transparent)] dark:bg-[radial-gradient(closest-side,rgb(123_76_255/0.26),transparent)]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-40 left-1/2 -z-10 h-[460px] w-[1200px] -translate-x-1/2 bg-[linear-gradient(to_right,rgb(255_90_26/0.07)_1px,transparent_1px),linear-gradient(to_bottom,rgb(255_90_26/0.07)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_45%_55%_at_50%_30%,black,transparent)] bg-[size:48px_48px]"
+        className="pointer-events-none absolute -top-40 left-1/2 -z-10 h-[460px] w-[1200px] -translate-x-1/2 bg-[linear-gradient(to_right,rgb(123_76_255/0.07)_1px,transparent_1px),linear-gradient(to_bottom,rgb(123_76_255/0.07)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_45%_55%_at_50%_30%,black,transparent)] bg-[size:48px_48px]"
       />
       {top}
       {eyebrow ? <span className="eyebrow">{eyebrow}</span> : null}

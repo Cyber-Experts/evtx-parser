@@ -1,5 +1,5 @@
 // "Flare" brand mark: a flat event baseline with one sharp spike, the record
-// that lights up in a quiet log, on a signal-orange tile. The wordmark pairs
+// that lights up in a quiet log, on a ultraviolet tile. The wordmark pairs
 // Inter caps with an Instrument Serif italic, the site's two voices.
 // The canonical externally-served mark is app/icon.svg.
 
@@ -19,11 +19,11 @@ export function Logo({
       role="img"
       aria-label="EVTX parser"
     >
-      <rect width="32" height="32" rx="8" fill="#ff5a1a" />
+      <rect width="32" height="32" rx="8" fill="#7b4cff" />
       <path
         d={MARK_PATH}
         fill="none"
-        stroke="#0a0a0a"
+        stroke="#ffffff"
         strokeWidth="2.6"
         strokeLinecap="round"
         strokeLinejoin="round"

@@ -67,7 +67,7 @@ export function SiteHeader({
           <MobileNav links={links} label="Menu" />
           <Link
             href={`/${locale}#tool`}
-            className="ml-1.5 hidden h-9 items-center rounded-full bg-uv-500 px-4 text-sm font-semibold text-ink-950 shadow-[inset_0_1px_0_rgb(255_255_255/0.35)] transition-colors hover:bg-uv-400 sm:inline-flex"
+            className="ml-1.5 hidden h-9 items-center rounded-full bg-uv-500 px-4 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.35)] transition-colors hover:bg-uv-600 sm:inline-flex"
           >
             {ctaLabel}
           </Link>

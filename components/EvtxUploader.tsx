@@ -2584,7 +2584,7 @@ export function EvtxUploader({
     >
       {windowDrag && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/80 p-6 backdrop-blur-md">
-          <div className="marks flex flex-col items-center gap-4 rounded-2xl border border-dashed border-uv-500/70 bg-ink-950 px-12 py-14 text-center [--mark:rgb(255_90_26/0.8)]">
+          <div className="marks flex flex-col items-center gap-4 rounded-2xl border border-dashed border-uv-500/70 bg-ink-950 px-12 py-14 text-center [--mark:rgb(123_76_255/0.8)]">
             <Logo withWordmark={false} className="h-12 w-12" />
             <span className="text-2xl font-semibold tracking-[-0.02em] text-white">
               {t.home.dropArea}
@@ -2623,7 +2623,7 @@ export function EvtxUploader({
               <button
                 type="button"
                 onClick={openFilePicker}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-uv-500 px-5 text-sm font-semibold text-ink-950 shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_10px_30px_-12px_rgb(255_90_26/0.7)] transition-colors hover:bg-uv-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-uv-500 px-5 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_10px_30px_-12px_rgb(123_76_255/0.7)] transition-colors hover:bg-uv-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
               >
                 <FileUp aria-hidden="true" className="size-4" />
                 {t.home.heroCtaOpen}
@@ -2659,7 +2659,7 @@ export function EvtxUploader({
                   key={name}
                   className={`flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 font-mono text-[11px] shadow-[0_12px_30px_-14px_rgb(10_10_10/0.35)] transition-transform duration-300 group-hover:-translate-y-1 ${tf} ${i === 2 ? "border-uv-500/50 text-ink-900 dark:text-white" : "border-ink-200 text-ink-500 dark:border-white/10"}`}
                 >
-                  <span className={`flex h-7 w-6 shrink-0 items-end justify-center rounded-[3px] pb-1 text-[7px] font-semibold ${i === 2 ? "bg-uv-500 text-ink-950" : "bg-ink-200 text-ink-600 dark:bg-white/10 dark:text-ink-300"}`}>
+                  <span className={`flex h-7 w-6 shrink-0 items-end justify-center rounded-[3px] pb-1 text-[7px] font-semibold ${i === 2 ? "bg-uv-500 text-white" : "bg-ink-200 text-ink-600 dark:bg-white/10 dark:text-ink-300"}`}>
                     EVTX
                   </span>
                   <span className="min-w-0 flex-1 truncate">{name}</span>

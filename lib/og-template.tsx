@@ -14,8 +14,8 @@ const BG = "#0a0a0a";
 const TEXT = "#ededed";
 const MUTED = "#a1a1a1";
 const FAINT = "#5c5c5c";
-const FLARE = "#ff5a1a";
-const FLARE_SOFT = "#ff7a3d";
+const FLARE = "#7b4cff";
+const FLARE_SOFT = "#9772ff";
 
 // Fonts bundled in assets/fonts (OFL) — read from disk, never fetched, so
 // images render offline too (Docker / air-gapped builds).
@@ -43,10 +43,10 @@ function loadFonts() {
 
 const svgSrc = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 
-// Brand mark: event baseline with one spike, on a signal-orange tile.
+// Brand mark: event baseline with one spike, on an ultraviolet tile.
 const MARK_SRC = svgSrc(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <rect width="32" height="32" rx="8" fill="${FLARE}"/>
-  <path d="M5.5 20.5H11.6L14.4 9.5L17.6 23L19.6 16.8L20.9 20.5H26.5" fill="none" stroke="#0a0a0a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M5.5 20.5H11.6L14.4 9.5L17.6 23L19.6 16.8L20.9 20.5H26.5" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`);
 
 // Backdrop: 12 faint column rules, a flare glow on the spike, and the event
@@ -136,8 +136,8 @@ function Tags({ items }: { items: string[] }) {
             gap: 10,
             padding: "7px 14px",
             borderRadius: 999,
-            border: `1px solid ${i === 0 ? "rgba(255,90,26,0.55)" : "rgba(255,255,255,0.14)"}`,
-            background: i === 0 ? "rgba(255,90,26,0.12)" : "rgba(10,10,10,0.6)",
+            border: `1px solid ${i === 0 ? "rgba(123,76,255,0.55)" : "rgba(255,255,255,0.14)"}`,
+            background: i === 0 ? "rgba(123,76,255,0.12)" : "rgba(10,10,10,0.6)",
             color: i === 0 ? FLARE_SOFT : MUTED,
           }}
         >

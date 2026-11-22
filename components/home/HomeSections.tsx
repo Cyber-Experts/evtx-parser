@@ -28,7 +28,7 @@ export const SIGMA_COUNT = sigmaMeta.counts.bundled;
 export const COL = "mx-auto w-full max-w-6xl px-4 sm:px-6";
 
 export const BTN_PRIMARY =
-  "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-uv-500 px-5 text-sm font-semibold text-ink-950 shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_10px_30px_-12px_rgb(255_90_26/0.7)] transition-colors hover:bg-uv-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-uv-500 px-5 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_10px_30px_-12px_rgb(123_76_255/0.7)] transition-colors hover:bg-uv-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 export const BTN_SECONDARY =
   "inline-flex h-11 items-center justify-center gap-2 rounded-full border border-ink-200 bg-background px-5 text-sm font-semibold text-ink-900 transition-colors hover:border-ink-300 hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 dark:border-white/12 dark:text-white dark:hover:border-white/25 dark:hover:bg-white/[0.04]";
@@ -107,7 +107,7 @@ export function FlareLine({ className = "" }: { className?: string }) {
         <path
           d="M790 104L812 14L842 116L858 72L870 104"
           fill="none"
-          stroke="#ff5a1a"
+          stroke="#7b4cff"
           strokeWidth="2.5"
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
@@ -233,7 +233,7 @@ export function CtaBand({ dict, href }: { dict: Dict; href?: string }) {
     >
       <div
         aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-[radial-gradient(600px_260px_at_68%_100%,rgb(255_90_26/0.35),transparent_70%)]"
+        className="absolute inset-0 -z-10 bg-[radial-gradient(600px_260px_at_68%_100%,rgb(123_76_255/0.35),transparent_70%)]"
       />
       <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex max-w-2xl flex-col gap-4">

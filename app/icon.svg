@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Flare mark: a quiet event baseline with one spike, on signal orange -->
-  <rect width="64" height="64" rx="15" fill="#ff5a1a"/>
-  <path d="M10 41H23.2L28.8 18.5L35.2 46L39.2 33.6L41.8 41H54" fill="none" stroke="#0a0a0a" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Flare mark: a quiet event baseline with one spike, on ultraviolet -->
+  <rect width="64" height="64" rx="15" fill="#7b4cff"/>
+  <path d="M10 41H23.2L28.8 18.5L35.2 46L39.2 33.6L41.8 41H54" fill="none" stroke="#ffffff" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
