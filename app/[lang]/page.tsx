@@ -12,7 +12,6 @@ import {
   COL,
   CtaBand,
   FeatureGrid,
-  FlareLine,
   REPO_URL,
   SIGMA_COUNT,
   SectionHeading,
@@ -122,59 +121,45 @@ export default async function Home({ params }: { params: Promise<Params> }) {
         id="main-content"
         className="flex flex-1 flex-col gap-24 pb-8 sm:gap-36"
       >
-        {/* Hero: a report-white (or black) page with a single flare on the
-            event baseline. */}
+        {/* Hero: the drop zone is the page. A short, centered headline
+            introduces it, then the tool takes the full column. */}
         <div className="relative">
-          <div className="relative isolate">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 -top-24 -z-10 h-[720px] bg-[linear-gradient(to_right,rgb(10_10_10/0.045)_1px,transparent_1px)] bg-[size:calc(100%/12)_100%] [mask-image:linear-gradient(to_bottom,black,transparent_85%)] dark:bg-[linear-gradient(to_right,rgb(255_255_255/0.045)_1px,transparent_1px)]"
-            />
-            <header className={`${COL} flex flex-col gap-6 pt-8 sm:gap-7 sm:pt-12`}>
-              <a
-                href={REPO_URL}
-                className="group inline-flex w-fit items-center gap-2.5 rounded-full border border-ink-200 bg-background py-1 pr-3 pl-1 text-xs text-ink-600 transition-colors hover:border-ink-300 dark:border-white/10 dark:text-ink-400 dark:hover:border-white/20"
-              >
-                <span className="rounded-full bg-ink-950 px-2 py-0.5 font-mono text-[10px] font-medium tracking-wider text-white dark:bg-white dark:text-ink-950">
-                  DFIR
-                </span>
-                {dict.home.heroTag}
-                <ArrowUpRight
-                  aria-hidden="true"
-                  className="size-3.5 text-ink-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                />
-              </a>
-              <h1 className="max-w-5xl text-[2.5rem] leading-[0.98] font-semibold tracking-[-0.045em] text-balance text-ink-950 sm:text-6xl lg:text-[4.5rem] dark:text-white">
-                {headlineBrand ? (
-                  <>
-                    <span className="font-serif block text-[1.08em] leading-[0.9] tracking-[-0.02em] text-uv-600 dark:text-uv-400">
-                      {headlineBrand}
-                    </span>
-                    <span className="sr-only"> — </span>
-                    <span className="text-gradient">{headlineRest}</span>
-                  </>
-                ) : (
-                  dict.home.headline
-                )}
-              </h1>
-              {/* The drop zone right below is the primary action, so the hero
-                  carries no duplicate CTA: intro on the left, specs on the right. */}
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-12">
-                <p className="max-w-xl text-base leading-relaxed text-ink-600 sm:text-lg dark:text-ink-400">
-                  {dict.home.intro}
-                </p>
-                <ul className="flex flex-wrap gap-x-5 gap-y-2 font-mono text-xs text-ink-500 lg:justify-end lg:pb-1">
-                  {specs.map((s) => (
-                    <li key={s} className="flex items-center gap-2">
-                      <span aria-hidden="true" className="h-1 w-1 bg-uv-500" />
-                      {s}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </header>
-            <FlareLine className="mt-2 mb-5 h-14 text-ink-300 sm:h-20 dark:text-ink-700" />
-          </div>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 -top-24 -z-10 h-[640px] bg-[linear-gradient(to_right,rgb(10_10_10/0.045)_1px,transparent_1px)] bg-[size:calc(100%/12)_100%] [mask-image:linear-gradient(to_bottom,black,transparent_80%)] dark:bg-[linear-gradient(to_right,rgb(255_255_255/0.045)_1px,transparent_1px)]"
+          />
+          <header className={`${COL} flex flex-col items-center gap-3 pt-6 pb-7 text-center sm:gap-4 sm:pt-9 sm:pb-9`}>
+            <a
+              href={REPO_URL}
+              className="group inline-flex w-fit items-center gap-2.5 rounded-full border border-ink-200 bg-background py-1 pr-3 pl-1 text-xs text-ink-600 transition-colors hover:border-ink-300 dark:border-white/10 dark:text-ink-400 dark:hover:border-white/20"
+            >
+              <span className="rounded-full bg-ink-950 px-2 py-0.5 font-mono text-[10px] font-medium tracking-wider text-white dark:bg-white dark:text-ink-950">
+                DFIR
+              </span>
+              {dict.home.heroTag}
+              <ArrowUpRight
+                aria-hidden="true"
+                className="size-3.5 text-ink-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              />
+            </a>
+            <h1 className="max-w-4xl text-[1.75rem] leading-[1.08] font-semibold tracking-[-0.035em] text-balance text-ink-950 sm:text-4xl lg:text-[2.6rem] dark:text-white">
+              {headlineBrand ? (
+                <>
+                  <span className="font-serif font-normal tracking-[-0.01em] text-uv-600 dark:text-uv-400">
+                    {headlineBrand}
+                  </span>
+                  <span className="sr-only"> — </span>
+                  <br />
+                  <span className="text-gradient">{headlineRest}</span>
+                </>
+              ) : (
+                dict.home.headline
+              )}
+            </h1>
+            <p className="max-w-2xl text-[15px] leading-relaxed text-ink-600 sm:text-base dark:text-ink-400">
+              {dict.home.intro}
+            </p>
+          </header>
 
           {/* The tool itself, framed like evidence. */}
           <section
@@ -186,16 +171,26 @@ export default async function Home({ params }: { params: Promise<Params> }) {
               dict={dict}
               locale={locale}
               emptyStateAside={
-                <a
-                  href="#collect"
-                  className="group mx-auto inline-flex items-center gap-2 text-sm text-ink-600 transition-colors hover:text-ink-950 dark:text-ink-400 dark:hover:text-white"
-                >
-                  {dict.collect.heading}
-                  <ArrowRight
-                    aria-hidden="true"
-                    className="size-3.5 rotate-90 transition-transform group-hover:translate-y-0.5"
-                  />
-                </a>
+                <div className="flex flex-col items-center gap-4 pt-2 sm:flex-row sm:justify-between">
+                  <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2 font-mono text-xs text-ink-500">
+                    {specs.map((s) => (
+                      <li key={s} className="flex items-center gap-2">
+                        <span aria-hidden="true" className="h-1 w-1 bg-uv-500" />
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href="#collect"
+                    className="group inline-flex shrink-0 items-center gap-2 text-sm text-ink-600 transition-colors hover:text-ink-950 dark:text-ink-400 dark:hover:text-white"
+                  >
+                    {dict.collect.heading}
+                    <ArrowRight
+                      aria-hidden="true"
+                      className="size-3.5 rotate-90 transition-transform group-hover:translate-y-0.5"
+                    />
+                  </a>
+                </div>
               }
             />
           </section>
