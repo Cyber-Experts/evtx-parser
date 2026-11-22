@@ -475,12 +475,16 @@ export function EvtxUploader({
   dict,
   locale,
   emptyStateAside,
+  dropzoneExtra,
 }: {
   dict: Dict;
   locale: string;
   /** Rendered directly under the drop zone while no file is loaded
    *  (e.g. the "Where to find .evtx files" panel). */
   emptyStateAside?: ReactNode;
+  /** Rendered inside the drop zone, under the buttons (e.g. a link to the
+   *  collection guide). Links inside it don't open the file picker. */
+  dropzoneExtra?: ReactNode;
 }) {
   const t = dict;
   const clientRef = useRef<EvtxClient | null>(null);
@@ -2603,7 +2607,7 @@ export function EvtxUploader({
         <div
           id="dropzone"
           onClick={(e) => {
-            if (!(e.target as Element).closest("button")) openFilePicker();
+            if (!(e.target as Element).closest("button, a")) openFilePicker();
           }}
           className="marks group relative isolate flex min-h-[24rem] cursor-pointer scroll-mt-28 flex-col rounded-[1.75rem] border border-ink-200 bg-card shadow-[0_1px_2px_rgb(10_10_10/0.04),0_40px_90px_-40px_rgb(91_37_216/0.35)] transition-[border-color,box-shadow] duration-300 hover:border-uv-500/50 hover:shadow-[0_1px_2px_rgb(10_10_10/0.04),0_40px_100px_-36px_rgb(91_37_216/0.5)] sm:min-h-[28rem] dark:border-white/10 dark:bg-[#0c0b10] dark:shadow-[0_40px_120px_-50px_rgb(123_76_255/0.45)] dark:hover:border-uv-400/40"
         >
@@ -2641,7 +2645,7 @@ export function EvtxUploader({
             </span>
           ))}
 
-          <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-6 pt-12 pb-8 text-center sm:px-10 sm:pt-14">
+          <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-6 pt-10 pb-8 text-center sm:px-10 sm:pt-12">
             <span aria-hidden="true" className="relative flex size-16 items-center justify-center">
               <span className="absolute inset-0 rounded-2xl bg-uv-500/30 blur-xl transition-opacity duration-300 group-hover:opacity-100 sm:opacity-70" />
               <span className="absolute -inset-2 rounded-[1.25rem] border border-uv-500/25 motion-safe:animate-pulse" />
@@ -2676,9 +2680,7 @@ export function EvtxUploader({
                 {t.home.sampleCta}
               </button>
             </span>
-            <span className="max-w-md text-sm leading-relaxed text-ink-500 dark:text-ink-400">
-              {t.home.sampleNote}
-            </span>
+            {dropzoneExtra}
           </div>
 
           <span
