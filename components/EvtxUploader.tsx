@@ -475,12 +475,16 @@ export function EvtxUploader({
   dict,
   locale,
   emptyStateAside,
+  dropzoneExtra,
 }: {
   dict: Dict;
   locale: string;
   /** Rendered directly under the drop zone while no file is loaded
    *  (e.g. the "Where to find .evtx files" panel). */
   emptyStateAside?: ReactNode;
+  /** Rendered inside the drop zone, under the buttons (e.g. a link to the
+   *  collection guide). Links inside it don't open the file picker. */
+  dropzoneExtra?: ReactNode;
 }) {
   const t = dict;
   const clientRef = useRef<EvtxClient | null>(null);
@@ -2603,27 +2607,64 @@ export function EvtxUploader({
         <div
           id="dropzone"
           onClick={(e) => {
-            if (!(e.target as Element).closest("button")) openFilePicker();
+            if (!(e.target as Element).closest("button, a")) openFilePicker();
           }}
-          className="marks group relative grid cursor-pointer scroll-mt-28 rounded-2xl border border-ink-200 bg-card shadow-[0_1px_2px_rgb(10_10_10/0.04),0_24px_60px_-30px_rgb(10_10_10/0.25)] transition-colors hover:border-ink-300 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] dark:border-white/10 dark:bg-[#0d0d0d] dark:shadow-none dark:hover:border-white/20"
+          className="marks group relative isolate flex min-h-[24rem] cursor-pointer scroll-mt-28 flex-col rounded-[1.75rem] border border-ink-200 bg-card shadow-[0_1px_2px_rgb(10_10_10/0.04),0_40px_90px_-40px_rgb(91_37_216/0.35)] transition-[border-color,box-shadow] duration-300 hover:border-uv-500/50 hover:shadow-[0_1px_2px_rgb(10_10_10/0.04),0_40px_100px_-36px_rgb(91_37_216/0.5)] sm:min-h-[28rem] dark:border-white/10 dark:bg-[#0c0b10] dark:shadow-[0_40px_120px_-50px_rgb(123_76_255/0.45)] dark:hover:border-uv-400/40"
         >
+          {/* Backdrop: an ultraviolet wash from the top, a dot grid, and a
+              dashed inner target that lights up on hover. */}
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-uv-500 to-transparent"
-          />
-          <div className="flex flex-col items-start gap-6 p-6 sm:p-10 lg:p-12">
-            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-600/20 bg-emerald-500/[0.08] px-2.5 py-1 font-mono text-[11px] text-emerald-700 dark:border-emerald-400/20 dark:text-emerald-300">
-              <Lock aria-hidden="true" className="size-3" />
-              {t.home.privacyNote}
+            className="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-[inherit]"
+          >
+            <span className="absolute inset-0 bg-[radial-gradient(rgb(10_10_10/0.08)_1px,transparent_1px)] bg-[size:16px_16px] [mask-image:radial-gradient(70%_60%_at_50%_45%,black,transparent)] dark:bg-[radial-gradient(rgb(255_255_255/0.08)_1px,transparent_1px)]" />
+            <span className="absolute inset-x-0 top-0 h-2/3 bg-[radial-gradient(55%_70%_at_50%_0%,rgb(123_76_255/0.16),transparent_70%)] opacity-70 transition-opacity duration-500 group-hover:opacity-100 dark:bg-[radial-gradient(55%_70%_at_50%_0%,rgb(123_76_255/0.24),transparent_70%)]" />
+            <span className="absolute inset-x-16 top-0 h-px bg-gradient-to-r from-transparent via-uv-500 to-transparent" />
+            <span className="absolute inset-3 rounded-[1.35rem] border-2 border-dashed border-ink-200/80 transition-colors duration-300 group-hover:border-uv-500/45 sm:inset-4 dark:border-white/[0.07] dark:group-hover:border-uv-400/35" />
+          </span>
+
+          {/* The files people actually bring, drifting toward the target. */}
+          {(
+            [
+              ["Security.evtx", "128 MB", "left-[4%] top-[18%] -rotate-6 group-hover:translate-x-3 group-hover:rotate-[-3deg]", true],
+              ["Microsoft-Windows-Sysmon%4Operational.evtx", "64 MB", "left-[7%] bottom-[22%] rotate-3 group-hover:translate-x-3 group-hover:rotate-1", false],
+              ["System.evtx", "20 MB", "right-[5%] top-[22%] rotate-6 group-hover:-translate-x-3 group-hover:rotate-3", false],
+              ["Microsoft-Windows-PowerShell%4Operational.evtx", "12 MB", "right-[4%] bottom-[18%] -rotate-3 group-hover:-translate-x-3 group-hover:rotate-[-1deg]", false],
+            ] as const
+          ).map(([name, size, pos, hot]) => (
+            <span
+              key={name}
+              aria-hidden="true"
+              className={`pointer-events-none absolute hidden w-56 items-center gap-3 rounded-xl border bg-card/90 px-3 py-2.5 font-mono text-[11px] shadow-[0_18px_40px_-18px_rgb(10_10_10/0.4)] backdrop-blur transition-transform duration-500 ease-out xl:flex ${pos} ${hot ? "border-uv-500/50 text-ink-900 dark:text-white" : "border-ink-200 text-ink-500 dark:border-white/10 dark:bg-white/[0.03]"}`}
+            >
+              <span className={`flex h-8 w-7 shrink-0 items-end justify-center rounded-[4px] pb-1 text-[7px] font-semibold ${hot ? "bg-uv-500 text-white" : "bg-ink-100 text-ink-500 dark:bg-white/10 dark:text-ink-300"}`}>
+                EVTX
+              </span>
+              <span className="min-w-0 flex-1 truncate">{name}</span>
+              <span className="shrink-0 text-ink-400">{size}</span>
             </span>
-            <span className="text-[1.75rem] leading-[1.1] font-semibold tracking-[-0.03em] text-balance text-ink-950 sm:text-4xl dark:text-white">
+          ))}
+
+          <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-6 pt-10 pb-8 text-center sm:px-10 sm:pt-12">
+            <span aria-hidden="true" className="relative flex size-16 items-center justify-center">
+              <span className="absolute inset-0 rounded-2xl bg-uv-500/30 blur-xl transition-opacity duration-300 group-hover:opacity-100 sm:opacity-70" />
+              <span className="absolute -inset-2 rounded-[1.25rem] border border-uv-500/25 motion-safe:animate-pulse" />
+              <span className="relative flex size-16 items-center justify-center rounded-2xl bg-gradient-to-b from-uv-400 to-uv-600 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_12px_30px_-10px_rgb(123_76_255/0.8)] transition-transform duration-300 group-hover:-translate-y-1">
+                <FileUp className="size-7" strokeWidth={1.75} />
+              </span>
+            </span>
+            <span className="max-w-2xl text-[1.9rem] leading-[1.05] font-semibold tracking-[-0.04em] text-balance text-ink-950 sm:text-5xl lg:text-[3.25rem] dark:text-white">
               {t.home.dropArea}
             </span>
-            <span className="flex flex-col gap-3 sm:flex-row">
+            <span className="inline-flex items-center gap-2 font-mono text-xs text-emerald-700 dark:text-emerald-300">
+              <Lock aria-hidden="true" className="size-3.5" />
+              {t.home.privacyNote}
+            </span>
+            <span className="mt-2 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
               <button
                 type="button"
                 onClick={openFilePicker}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-uv-500 px-5 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_10px_30px_-12px_rgb(123_76_255/0.7)] transition-colors hover:bg-uv-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-uv-500 px-6 text-[15px] font-semibold text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_12px_32px_-12px_rgb(123_76_255/0.8)] transition-colors hover:bg-uv-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
               >
                 <FileUp aria-hidden="true" className="size-4" />
                 {t.home.heroCtaOpen}
@@ -2633,48 +2674,28 @@ export function EvtxUploader({
                 onClick={loadSamples}
                 disabled={loading != null || restoring}
                 title={t.home.sampleNote}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-ink-200 bg-background px-5 text-sm font-semibold text-ink-900 transition-colors hover:border-ink-300 hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 disabled:opacity-50 dark:border-white/12 dark:bg-transparent dark:text-white dark:hover:border-white/25 dark:hover:bg-white/[0.04]"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink-200 bg-background px-6 text-[15px] font-semibold text-ink-900 transition-colors hover:border-ink-300 hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uv-500 disabled:opacity-50 dark:border-white/12 dark:bg-white/[0.03] dark:text-white dark:hover:border-white/25 dark:hover:bg-white/[0.06]"
               >
                 <Play aria-hidden="true" className="size-3.5 fill-current" />
                 {t.home.sampleCta}
               </button>
             </span>
-            <span className="max-w-md text-sm leading-relaxed text-ink-500 dark:text-ink-400">
-              {t.home.sampleNote}
-            </span>
+            {dropzoneExtra}
           </div>
 
-          {/* Drop target: a stack of the files people actually bring. */}
-          <div
+          <span
             aria-hidden="true"
-            className="relative m-3 mt-0 flex min-h-56 items-center justify-center overflow-hidden rounded-xl border border-dashed border-ink-300 bg-ink-50 bg-[radial-gradient(rgb(10_10_10/0.07)_1px,transparent_1px)] bg-[size:14px_14px] transition-colors group-hover:border-uv-500/60 lg:mt-3 lg:ml-0 dark:border-white/15 dark:bg-white/[0.02] dark:bg-[radial-gradient(rgb(255_255_255/0.07)_1px,transparent_1px)]"
+            className="relative mx-3 mb-3 flex items-center justify-between gap-4 rounded-b-[1.35rem] border-t border-ink-200/80 px-5 py-3 font-mono text-[11px] text-ink-500 sm:mx-4 sm:mb-4 dark:border-white/[0.07]"
           >
-            <span className="relative flex w-64 flex-col">
-              {[
-                ["Microsoft-Windows-Sysmon%4Operational.evtx", "-rotate-3 translate-x-4", "64 MB"],
-                ["System.evtx", "rotate-2 -translate-x-3 -mt-2", "20 MB"],
-                ["Security.evtx", "-mt-2", "128 MB"],
-              ].map(([name, tf, size], i) => (
-                <span
-                  key={name}
-                  className={`flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 font-mono text-[11px] shadow-[0_12px_30px_-14px_rgb(10_10_10/0.35)] transition-transform duration-300 group-hover:-translate-y-1 ${tf} ${i === 2 ? "border-uv-500/50 text-ink-900 dark:text-white" : "border-ink-200 text-ink-500 dark:border-white/10"}`}
-                >
-                  <span className={`flex h-7 w-6 shrink-0 items-end justify-center rounded-[3px] pb-1 text-[7px] font-semibold ${i === 2 ? "bg-uv-500 text-white" : "bg-ink-200 text-ink-600 dark:bg-white/10 dark:text-ink-300"}`}>
-                    EVTX
-                  </span>
-                  <span className="min-w-0 flex-1 truncate">{name}</span>
-                  <span className="shrink-0 text-ink-400">{size}</span>
-                </span>
-              ))}
-            </span>
-            <span className="absolute inset-x-0 bottom-0 flex items-center justify-between border-t border-ink-200 bg-card/80 px-4 py-2 font-mono text-[10px] text-ink-500 backdrop-blur dark:border-white/10">
-              <span className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Ready
+            <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
+              <span className="relative flex size-1.5">
+                <span className="absolute inset-0 rounded-full bg-emerald-500 motion-safe:animate-ping" />
+                <span className="relative size-1.5 rounded-full bg-emerald-500" />
               </span>
-              <span>Rust → WebAssembly · 0 {t.home.statUploaded}</span>
+              Ready · .evtx
             </span>
-          </div>
+            <span className="hidden truncate sm:inline">Rust → WebAssembly · 0 {t.home.statUploaded}</span>
+          </span>
         </div>
       )}
       {!ready && (
