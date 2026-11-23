@@ -13,7 +13,11 @@ import {
   type EventTranslation,
 } from "./types";
 
-export const EVENTS_DIR = path.join(process.cwd(), "data/events");
+// `turbopackIgnore` stops Turbopack from tracing the whole project from this
+// dynamic fs access. The data is only read at build time (every events page
+// is statically generated); if a route ever reads it at runtime, add
+// "./data/events/**" to outputFileTracingIncludes in next.config.ts.
+export const EVENTS_DIR = path.join(/* turbopackIgnore: true */ process.cwd(), "data/events");
 
 const FILE_RE = /^(\d+)(?:\.([a-z]{2}))?\.yaml$/;
 
