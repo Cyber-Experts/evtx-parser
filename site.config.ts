@@ -70,6 +70,7 @@ export const siteConfig = {
       rcs: "953 156 791 R.C.S. Paris",
       naf: "62.02A",
       president: "FAKGROUP",
+      publicationDirector: "Florian Amette",
     },
     contactPoint: {
       email: "contact@evtxparser.com" as string | undefined,

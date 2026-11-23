@@ -24,7 +24,14 @@ const AUTHOR_GIVEN_NAME = "Florian";
 const AUTHOR_FAMILY_NAME = "Amette";
 const AUTHOR_ALIAS = "F4K";
 const AUTHOR_URL = "https://www.f4k.fr";
-const AUTHOR_SAME_AS = [AUTHOR_URL];
+const AUTHOR_SAME_AS = [
+  AUTHOR_URL,
+  `${AUTHOR_URL}/me`,
+  "https://www.linkedin.com/in/florianamette/",
+  "https://github.com/florianamette",
+  "https://x.com/florianamette",
+  "https://www.youtube.com/@florianamette",
+];
 
 const websiteId = (locale: Locale) => `${SITE_URL}/${locale}#website`;
 const pageId = (url: string) => `${url}#webpage`;
@@ -54,6 +61,7 @@ function authorNode(dict: Dict) {
     givenName: AUTHOR_GIVEN_NAME,
     familyName: AUTHOR_FAMILY_NAME,
     alternateName: AUTHOR_ALIAS,
+    jobTitle: "Cybersecurity entrepreneur",
     description: `Author at ${dict.meta.siteName} — DFIR practitioner writing on Windows Event Log forensics.`,
     url: AUTHOR_URL,
     sameAs: AUTHOR_SAME_AS,

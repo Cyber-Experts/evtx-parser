@@ -108,8 +108,8 @@ export default async function TermsPage({
               {siteConfig.organization.legal.naf}
             </li>
             <li>
-              Director of publication: {siteConfig.organization.legal.president}
-              , President
+              Director of publication:{" "}
+              {siteConfig.organization.legal.publicationDirector}
             </li>
             <li>
               Website:{" "}
