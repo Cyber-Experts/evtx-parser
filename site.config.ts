@@ -44,17 +44,33 @@ export const siteConfig = {
   defaultOgImage: "/opengraph-image",
   organization: {
     legalName: "Cyber Experts",
+    /** Company website (the publisher of this site). */
+    url: "https://www.cyberexperts.io",
     logo: "/icon",
-    foundingDate: "2025-01-01",
+    foundingDate: "2023-05-30",
     founder: "Florian Amette" as string | undefined,
     wikidata: undefined as string | undefined,
-    sameAs: ["https://github.com/Cyber-Experts"] as string[],
+    sameAs: [
+      "https://www.cyberexperts.io",
+      "https://github.com/Cyber-Experts",
+    ] as string[],
     address: {
-      streetAddress: undefined as string | undefined,
-      addressLocality: undefined as string | undefined,
-      addressRegion: undefined as string | undefined,
-      postalCode: undefined as string | undefined,
-      addressCountry: undefined as string | undefined,
+      streetAddress: "12 rue de Port-Mahon" as string | undefined,
+      addressLocality: "Paris" as string | undefined,
+      addressRegion: "Île-de-France" as string | undefined,
+      postalCode: "75002" as string | undefined,
+      addressCountry: "FR" as string | undefined,
+    },
+    /** French company register details (legal notice + JSON-LD identifiers). */
+    legal: {
+      form: "SASU (société par actions simplifiée unipersonnelle)",
+      capital: "42 €",
+      siren: "953 156 791",
+      siret: "953 156 791 00014",
+      rcs: "953 156 791 R.C.S. Paris",
+      naf: "62.02A",
+      president: "FAKGROUP",
+      publicationDirector: "Florian Amette",
     },
     contactPoint: {
       email: "contact@evtxparser.com" as string | undefined,
@@ -71,10 +87,7 @@ export const siteConfig = {
   },
   analytics: {
     provider: process.env.NEXT_PUBLIC_ANALYTICS_PROVIDER as
-      | "plausible"
-      | "umami"
-      | "ga4"
-      | undefined,
+      "plausible" | "umami" | "ga4" | undefined,
     domain: process.env.NEXT_PUBLIC_ANALYTICS_DOMAIN,
     id: process.env.NEXT_PUBLIC_ANALYTICS_ID,
   },

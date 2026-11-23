@@ -26,7 +26,10 @@ export function SiteFooter({
   tagline: string;
 }) {
   const year = new Date().getFullYear();
-  const cols: { title: string; links: { href: string; label: React.ReactNode; external?: boolean }[] }[] = [
+  const cols: {
+    title: string;
+    links: { href: string; label: React.ReactNode; external?: boolean }[];
+  }[] = [
     {
       title: "Product",
       links: [
@@ -47,6 +50,11 @@ export function SiteFooter({
     {
       title: "Company",
       links: [
+        {
+          href: siteConfig.organization.url,
+          label: "Cyber Experts",
+          external: true,
+        },
         { href: `/${locale}/contact`, label: "Contact" },
         { href: `/${locale}/privacy`, label: "Privacy" },
         { href: `/${locale}/terms`, label: "Terms" },
@@ -73,12 +81,16 @@ export function SiteFooter({
             {tagline}
           </p>
           <span className="inline-flex items-center gap-2 rounded-full border border-ink-200 px-2.5 py-1 font-mono text-[11px] text-ink-600 dark:border-white/10 dark:text-ink-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            0 bytes uploaded
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />0 bytes
+            uploaded
           </span>
         </div>
         {cols.map((c) => (
-          <nav key={c.title} aria-label={c.title} className="flex flex-col gap-3 text-sm">
+          <nav
+            key={c.title}
+            aria-label={c.title}
+            className="flex flex-col gap-3 text-sm"
+          >
             <span className={HEAD}>{c.title}</span>
             {c.links.map((l) =>
               l.external ? (
@@ -96,9 +108,18 @@ export function SiteFooter({
       </div>
       <div className="mx-auto flex max-w-6xl flex-col gap-2 border-t border-ink-200 px-4 py-6 text-xs text-ink-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-white/[0.08]">
         <span>
-          © {year} {siteConfig.organization.legalName}. {dict.footer.rights}
+          © {year}{" "}
+          <a
+            href={siteConfig.organization.url}
+            className="font-medium text-ink-700 underline-offset-4 hover:text-ink-950 hover:underline dark:text-ink-300 dark:hover:text-white"
+          >
+            {siteConfig.organization.legalName}
+          </a>
+          . {dict.footer.rights}
         </span>
-        <span className="font-mono">Rust → WebAssembly · Elastic License 2.0</span>
+        <span className="font-mono">
+          Rust → WebAssembly · Elastic License 2.0
+        </span>
       </div>
       {/* Oversized wordmark, cropped by the page edge. */}
       <div
