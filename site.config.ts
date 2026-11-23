@@ -43,7 +43,7 @@ export const siteConfig = {
   }>,
   defaultOgImage: "/opengraph-image",
   organization: {
-    legalName: "CE Cyber Experts",
+    legalName: "Cyber Experts",
     /** Company website (the publisher of this site). */
     url: "https://www.cyberexperts.io",
     logo: "/icon",
