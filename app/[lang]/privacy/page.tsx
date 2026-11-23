@@ -86,8 +86,8 @@ export default async function PrivacyPage({
           <p>
             {siteConfig.name} is operated by {siteConfig.organization.legalName}{" "}
             (
-            <a href="https://github.com/Cyber-Experts">
-              github.com/Cyber-Experts
+            <a href={siteConfig.organization.url}>
+              {siteConfig.organization.url.replace("https://", "")}
             </a>
             ). This policy explains what data is processed when you use the
             site, and what is not.
@@ -124,11 +124,11 @@ export default async function PrivacyPage({
           <p>
             To understand how the site is used, we collect aggregate, cookieless
             statistics with Vercel Web Analytics and Vercel Speed Insights
-            (performance metrics): pages viewed,
-            referrer, country, browser and device type. Two usage events are
-            recorded: that a file was parsed (with a file-size bucket and the
-            number of records) and that an export was made (format and number of
-            rows). These events never include file names or any event content.
+            (performance metrics): pages viewed, referrer, country, browser and
+            device type. Two usage events are recorded: that a file was parsed
+            (with a file-size bucket and the number of records) and that an
+            export was made (format and number of rows). These events never
+            include file names or any event content.
           </p>
 
           <h2>Hosting</h2>
@@ -158,8 +158,13 @@ export default async function PrivacyPage({
           </p>
         </article>
         <p>
-          Pages visited and a few actions on them, with the country, are also measured by Borromic web analytics, with no cookies and no identification of visitors.{" "}
-          <OptOut stop="Stop measuring my visits" resume="Measure my visits again" />
+          Pages visited and a few actions on them, with the country, are also
+          measured by Borromic web analytics, with no cookies and no
+          identification of visitors.{" "}
+          <OptOut
+            stop="Stop measuring my visits"
+            resume="Measure my visits again"
+          />
         </p>
       </main>
     </>

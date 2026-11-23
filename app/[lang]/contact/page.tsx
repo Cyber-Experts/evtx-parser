@@ -100,18 +100,29 @@ export default async function ContactPage({
           size="md"
           intro={
             <p>
-              {siteConfig.name} is built by {siteConfig.organization.legalName}.
-              Feedback from people using it on real cases is what shapes the
+              {siteConfig.name} is built by{" "}
+              <a href={siteConfig.organization.url} className={LINK}>
+                {siteConfig.organization.legalName}
+              </a>
+              . Feedback from people using it on real cases is what shapes the
               roadmap — feature requests, bug reports and questions are all
               welcome.
             </p>
           }
         />
-        <ul className="grid gap-4 sm:grid-cols-2">
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <li>
             <a href={`mailto:${contactPoint.email}`} className={CARD}>
               <span className={CARD_LABEL}>Email</span>
               <span className={CARD_VALUE}>{contactPoint.email}</span>
+            </a>
+          </li>
+          <li>
+            <a href={siteConfig.organization.url} className={CARD}>
+              <span className={CARD_LABEL}>Company</span>
+              <span className={CARD_VALUE}>
+                {siteConfig.organization.url.replace("https://", "")}
+              </span>
             </a>
           </li>
           <li>
@@ -155,7 +166,9 @@ export default async function ContactPage({
                 <br />
                 {address.postalCode} {address.addressLocality}
                 <br />
-                {address.addressCountry}
+                {address.addressCountry === "FR"
+                  ? "France"
+                  : address.addressCountry}
               </address>
             </>
           )}

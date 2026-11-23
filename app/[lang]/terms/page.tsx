@@ -83,9 +83,49 @@ export default async function TermsPage({
         </PageHero>
         <article className={PROSE}>
           <p>
-            {siteConfig.name} is provided by {siteConfig.organization.legalName}
+            {siteConfig.name} is provided by{" "}
+            <a href={siteConfig.organization.url}>
+              {siteConfig.organization.legalName}
+            </a>
             . By using the site you agree to these terms.
           </p>
+
+          <h2 id="legal-notice">Legal notice</h2>
+          <ul>
+            <li>
+              Publisher: {siteConfig.organization.legalName},{" "}
+              {siteConfig.organization.legal.form} with a share capital of{" "}
+              {siteConfig.organization.legal.capital}
+            </li>
+            <li>
+              Registered office: {siteConfig.organization.address.streetAddress}
+              , {siteConfig.organization.address.postalCode}{" "}
+              {siteConfig.organization.address.addressLocality}, France
+            </li>
+            <li>
+              Registration: {siteConfig.organization.legal.rcs} · SIRET{" "}
+              {siteConfig.organization.legal.siret} · NAF{" "}
+              {siteConfig.organization.legal.naf}
+            </li>
+            <li>
+              Director of publication: {siteConfig.organization.legal.president}
+              , President
+            </li>
+            <li>
+              Website:{" "}
+              <a href={siteConfig.organization.url}>
+                {siteConfig.organization.url.replace("https://", "")}
+              </a>{" "}
+              · Email:{" "}
+              <a href={`mailto:${siteConfig.organization.contactPoint.email}`}>
+                {siteConfig.organization.contactPoint.email}
+              </a>
+            </li>
+            <li>
+              Hosting: Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723,
+              United States
+            </li>
+          </ul>
 
           <h2>The tool</h2>
           <p>

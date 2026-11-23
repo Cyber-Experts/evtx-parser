@@ -57,7 +57,7 @@ function authorNode(dict: Dict) {
     description: `Author at ${dict.meta.siteName} — DFIR practitioner writing on Windows Event Log forensics.`,
     url: AUTHOR_URL,
     sameAs: AUTHOR_SAME_AS,
-    worksFor: { "@id": ORG_ID },
+    worksFor: { "@id": `${siteConfig.organization.url}/#organization` },
     knowsAbout: [
       "Windows Event Log",
       "EVTX",
@@ -75,6 +75,32 @@ export const editorialAuthor = {
   url: AUTHOR_URL,
 };
 
+function companyNode() {
+  const o = siteConfig.organization;
+  return {
+    "@type": "Organization",
+    "@id": `${o.url}/#organization`,
+    name: "Cyber Experts",
+    legalName: o.legalName,
+    url: o.url,
+    sameAs: o.sameAs,
+    foundingDate: o.foundingDate,
+    address: { "@type": "PostalAddress", ...o.address },
+    identifier: [
+      {
+        "@type": "PropertyValue",
+        propertyID: "SIREN",
+        value: o.legal.siren.replace(/ /g, ""),
+      },
+      {
+        "@type": "PropertyValue",
+        propertyID: "SIRET",
+        value: o.legal.siret.replace(/ /g, ""),
+      },
+    ],
+  };
+}
+
 function organizationNode(dict: Dict) {
   return {
     "@type": "Organization",
@@ -82,6 +108,9 @@ function organizationNode(dict: Dict) {
     name: dict.meta.siteName,
     url: SITE_URL,
     sameAs: ["https://github.com/omerbenamram/evtx"],
+    // The company that publishes the site: a backlink + a verifiable legal
+    // entity (French company register) for the publisher.
+    parentOrganization: companyNode(),
     logo: {
       "@type": "ImageObject",
       "@id": LOGO_ID,
